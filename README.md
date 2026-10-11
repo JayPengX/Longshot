@@ -195,6 +195,17 @@ A fair chance is DraftKings, Polymarket and Kambi with their margins
 removed (proportional, or the power method for N outcomes), then averaged.
 The estimated odds are `1 ÷ (fair × cut)`.
 
+**What it costs to open** (every game's ~60 options are priced on the
+phone as the board is drawn, once for the saved board and again for
+today's): a game's options are kept by its contents (`optionsOf` in
+`app.js`), F1's top six, top ten, teammates and teams (40,000 drawn races,
+`f1Markets`) once per field of prices (`f1MarketsMemo`), and soccer's 半全場
+summed by each half's goal difference (`goalMarkets`), not every score of
+one half against every score of the other. A model change keeps these
+cheap: profile an opening (Chromium's profiler, the second opening) before
+and after. Today's board is read while the sign-in is on its way (`boot`),
+not under a `#qh=` sign-in link.
+
 **House rules** (`HOUSE_RULES`, for the slip and the simulated crowd alike):
 
 | Rule | When |
