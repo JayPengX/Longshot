@@ -295,7 +295,9 @@ function named(game, o, matchup) {
     }
     default: {
       const name = pickName(game, o.m, o.pick);
-      return { ...o, matchup, marketLabel: marketLabelOf(game, o.m), chip: name, label: `${matchup} ${name}`, shortLabel: name };
+      // Double chance's buttons in the sheet's words (主勝或和): two teams' names on one wrapped it.
+      const chip = o.m.kind === 'dc' && /^(home|draw|away)\|(home|draw|away)$/.test(o.pick.side) ? t(`dc_${o.pick.side.replace('|', '_')}`) : name;
+      return { ...o, matchup, marketLabel: marketLabelOf(game, o.m), chip, label: `${matchup} ${name}`, shortLabel: name };
     }
   }
 }
@@ -958,8 +960,17 @@ function gameMore(game, bets) {
   else if (current) panel = marketPanel(game, current, bets.filter(b => b.kind === current.kind));
   // Kambi's full list on its way: say so under the model's markets.
   const waiting = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id)) || gamePlayers.get(game.id)?.loading;
-  return el('div', { class: 'game-more' }, [tabStrip(tabs), panel, waiting ? el('p', { class: 'muted offers-wait', text: t('offersLoading') }) : !panel ? el('p', { class: 'muted offers-wait', text: t('offersNone') }) : null]);
+  // The markets keep the tallest height they've had while this game is open:
+  // a shorter tab no longer pulls the page (and the tabs under the finger) up.
+  if (marketTall.game !== game.id) Object.assign(marketTall, { game: game.id, h: 0 });
+  const body = el('div', { class: 'market-body', style: marketTall.h ? `min-height:${marketTall.h}px` : null }, [panel]);
+  requestAnimationFrame(() => {
+    if (marketTall.game === game.id && body.isConnected) marketTall.h = Math.max(marketTall.h, body.offsetHeight);
+  });
+  return el('div', { class: 'game-more' }, [tabStrip(tabs), body, waiting ? el('p', { class: 'muted offers-wait', text: t('offersLoading') }) : !panel ? el('p', { class: 'muted offers-wait', text: t('offersNone') }) : null]);
 }
+
+const marketTall = { game: null, h: 0 };
 
 // Players' markets: one chip per market (進球, 射正 1.5 …), then each
 // player with their price, the likeliest first.
@@ -1168,6 +1179,15 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
         return lineTable([t('colLine'), t('over'), t('under')], rows, teamName(game[team]));
       })
       .filter(Boolean);
+  } else if (section.kind === 'margin' && bets.length && bets.every(b => b.pick?.team)) {
+    // One row of bands per team under its name ("1-5", "21+"): the team's
+    // name on every button wrapped it onto two rows.
+    const band = p => (p.hi == null ? `${p.lo}+` : p.lo === p.hi ? String(p.lo) : `${p.lo}-${p.hi}`);
+    body = ['away', 'home'].flatMap(team => {
+      const list = bets.filter(b => b.pick.team === team).sort((a, b) => a.pick.lo - b.pick.lo);
+      if (!list.length) return [];
+      return [el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: teamName(game[team]) })]), el('div', { class: 'market-picks bands', style: `--n:${list.length <= 5 ? list.length : 4}` }, list.map(b => pickButton(b, band(b.pick))))];
+    });
   } else {
     // One block per market (最高單局 has one; 第N分 one per run).
     const markets = [...groupBy(bets, b => b.market).values()];
@@ -3756,6 +3776,7 @@ function closeGameSheet() {
 }
 gameSheet?.addEventListener('close', () => {
   state.sheetGame = null;
+  marketTall.game = null;
   $('game-sheet-body').replaceChildren();
   renderSlipBar();
 });

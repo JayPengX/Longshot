@@ -194,6 +194,9 @@ button.pick:active { transform: scale(0.98); }
 .market-head .market-title { overflow-wrap: anywhere; }
 .market-picks { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
 .market-picks .pick { min-width: 0; }
+.market-picks.bands { grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 5px; }
+.market-picks.bands .pick { padding-inline: 2px; }
+.market-picks.bands .pick-odds { font-size: 1rem; }
 .market.wide { grid-column: 1 / -1; }
 .market.wide .market-picks { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
 
