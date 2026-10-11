@@ -13,7 +13,7 @@ const { personPhoto } = kitPhotos;
 import { inningsLeft, liveBaseball, liveSoccer, liveGoals, livePoints, fitGoals, liveMarkets, liveOdds, pregameRuns, nextRunChances, nextRunOdds, LIVE_MIN_LIQUIDITY, LIVE_THREE_WAY, PERIODS } from './lib/live.mjs';
 import { fitHockey } from './lib/markets.mjs';
 import {
-  WEEKLY_GRANT, newAccount, balance, canClaim, claimGrant, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, compactAccount, cashOut, isAccount
+  WEEKLY_GRANT, newAccount, balance, canClaim, claimGrant, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { renderHome, tasteKey } from './home.js';
@@ -2180,8 +2180,9 @@ async function mergeRemote(remote) {
   // The money on open slips (counted in the account's worth) and how many.
   const n = merged.slips.filter(x => x.status === 'open').length;
   const had = wallet?.snap?.odds;
-  const same = had?.open === open && had?.n === n && !had?.slips;
-  const snap = same ? undefined : { odds: { open, n, t: Date.now() } };
+  const pl = resultByMarket(merged);
+  const same = had?.open === open && had?.n === n && !had?.slips && JSON.stringify(had?.pl || {}) === JSON.stringify(pl);
+  const snap = same ? undefined : { odds: { open, n, pl, t: Date.now() } };
   const changed = !theirs || JSON.stringify(merged) !== JSON.stringify(theirs);
   if (JSON.stringify(merged) !== JSON.stringify(state.account)) {
     state.account = merged;

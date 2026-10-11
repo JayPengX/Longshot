@@ -383,6 +383,33 @@ export function poolEntries(account) {
   return account.ledger.map(e => ({ id: `odds:${e.id}`, t: Date.parse(e.t), app: 'odds', kind: e.kind, amount: e.amount }));
 }
 
+// The account's settled money by market, for the admin page's totals (sent
+// in the wallet's `snap.odds.pl`): each settled slip's net under its sport
+// ('mixed' across sports, 'other' with no picks left), lottery draws and
+// scratch cards each their own; money on open slips and tickets isn't in yet.
+export function resultByMarket(account) {
+  const slips = new Map(account.slips.map(x => [x.id, x]));
+  const tickets = new Map((account.tickets || []).map(x => [x.id, x]));
+  const out = {};
+  for (const e of account.ledger) {
+    let key = null;
+    const slipId = e.slipId || /^(?:stake|payout|refund|plus)-(.+)$/.exec(e.id)?.[1];
+    if (['stake', 'payout', 'cashout', 'refund', 'plusboost'].includes(e.kind) && slipId) {
+      const slip = slips.get(slipId);
+      if (slip?.status !== 'settled') continue;
+      const sports = new Set(slip.legs.map(l => l.sport).filter(Boolean));
+      key = sports.size === 1 ? [...sports][0] : sports.size ? 'mixed' : 'other';
+    } else if (e.kind === 'lottery' || e.kind === 'prize') {
+      const ticket = tickets.get(e.id.replace(/^(?:lotto|prize)-/, ''));
+      if (ticket?.status === 'open') continue;
+      key = String(ticket?.game || '').startsWith('scratch:') ? 'scratch' : 'lottery';
+    } else continue;
+    out[key] = (out[key] || 0) + e.amount;
+  }
+  for (const k of Object.keys(out)) out[k] = Math.round(out[k]);
+  return out;
+}
+
 // What the pass's wallet still records of this account that the account
 // itself lost (every ledger entry goes to the wallet as `odds:<id>`, and the
 // wallet never drops one): the missing ledger entries come back as they
