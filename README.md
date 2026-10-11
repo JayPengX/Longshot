@@ -1,396 +1,533 @@
 # Quadra Play
 
-**Live site: https://jaypengx.github.io/Quadra-Play/**
+**https://jaypengx.github.io/Quadra-Play/**
 
-Quadra Play is the place to play in **Quadra**: sports bets on every sport
-and match the sources carry, and Taiwan Lottery's draw games and scratch
-cards, all with the one Quadra balance.
+The place to play in **Quadra**: sports bets on every game the sources
+carry, and Taiwan Lottery's draw games and scratch cards. It uses the one
+Quadra balance and is play money only. It prices and settles like a real
+sportsbook: the house never loses on its own prices.
 
-| App | Part it plays |
-| --- | --- |
-| **Quadra Securities** | Where money lives and grows |
-| **Quadra Play** | A place to play: sports bets and the lottery |
-| **Quadra Pass** | The account behind every app's top-right: Plus, the truth about the money, every app and its guide |
-| Orbit Class, Weather, Transit, Sports, Words | Orbit: the everyday tools, no money, the same pass |
+> Not betting advice. Lottery tickets in Taiwan are 18+ only, and betting
+> on overseas sites (Polymarket included) is illegal in Taiwan.
 
-- **Quadra Pass required**, one app at a time, one money pool: see the
-  shared kit (`#kit/quadra.mjs`, loaded from Shared-Proxy's Pages). The
-  account is kept with the pass; the odds proxy answers signed-in apps only.
-  Syncs of the account run one after another, so a slower save never lands
-  after a newer one.
-- **Tabs:** 首頁 Home, 賽事 Games, 彩券 Lottery, 投注單 Slip, 紀錄 History.
-  The guide is in the Quadra Pass sheet's 說明; the simulator's crowd now only serves analysis (紀錄's "you against the
-  crowd").
+The family's rules are `Shared-Proxy/docs/TRUTH.md` (they win over
+anything here). The Quadra Pass, the money pool, Plus, VIP and free bets
+are the kit's and the Worker's (Shared-Proxy README §5–6).
 
-### 首頁 Home
+## Contents
 
-`public/home.js`.
+- [The tabs](#the-tabs)
+- [What's sold](#whats-sold)
+- [A game's sheet and its markets](#a-games-sheet-and-its-markets)
+- [F1](#f1)
+- [Live (場中)](#live-場中)
+- [Pricing: the house's cut, rules and models](#pricing-the-houses-cut-rules-and-models)
+- [The slip](#the-slip)
+- [Cash out](#cash-out)
+- [Settling](#settling)
+- [The account, money and Plus](#the-account-money-and-plus)
+- [The lottery (彩券)](#the-lottery-彩券)
+- [紀錄: slips, tickets, 戰績 and stats](#紀錄-slips-tickets-戰績-and-stats)
+- [Recommendations](#recommendations)
+- [The simulated crowd](#the-simulated-crowd)
+- [Data sources](#data-sources)
+- [Opening fast, staying still](#opening-fast-staying-still)
+- [Files](#files)
+- [Develop, test, deploy](#develop-test-deploy)
+- [What depends on what](#what-depends-on-what)
+
+## The tabs
+
+Four tabs from the kit's tab bar: 首頁, 賽事, 彩券, 紀錄. **投注單 (the
+slip) is a sheet over any tab**, opened from the slip bar above the tab bar
+(while it has picks: how many, the stake, the most it pays). At the top
+right are 說明 · 重新整理 · the account.
+
+### 首頁 Home (`home.js`)
 
 Calm on purpose: no banners, no one-tap "hot" parlays, no nags.
 
-- **The balance:** the Quadra balance; with open slips, what's in play and
-  what they'd cash out for right now (or the most they can pay).
-- **焦點賽事 Featured:** up to four games, drawn like the board (logos, the
-  win prices; a tap puts a price on the slip). Ranked by Quadra's shared
-  recommender (`rank` in `quadra.mjs`): what's followed in Orbit Sports
-  weighs most (the wallet's `follow:match`), then the teams, leagues and
-  sports bet on and opened; each game's own weight is its league tier
-  (`leagueTier` in `rules.mjs`: MLB, NBA, NFL, NHL, the top soccer leagues
-  and F1 first, thinly traded ones last) and how soon it starts.
-- **你的投注 Your bets:** open slips, each with its cash-out price.
-- **The lottery:** the next draws and their jackpots.
-- **Quadra Plus**, once, for someone who isn't a member.
-
-- **精選串關:** two ready-made trebles from the big leagues' win prices
-  (favourites 1.30-1.80, bigger prices 1.90-4.00; games in the next two
-  days, one pick a game), with the boosted payout on NT$500; one tap puts
-  them on the slip.
-
-### Built to keep people betting
-
-- **The slip bar:** while the slip has picks, a bar above the tab bar on
-  every tab shows how many, the stake and the most it pays, and opens the
-  slip.
-- **Parlay by default:** a second pick turns the slip into a parlay unless
-  another way was chosen. **Quick stakes** (NT$100 to 5,000), and the stake
-  is remembered on the device (NT$500 to start).
-- **After a bet:** "投注成功" with a way straight back to the board.
-- **戰績** (`stats-ui.js`): only wins, over all time, 30 or 7 days. A gold
-  hero with the total won and its rhythm (weekly bars, or 3-day/daily for
-  the shorter periods); tiles (this month, wins, longest run, top multiple,
-  cashed out, biggest lottery prize); 11 achievements (first win, 3 and 5
-  in a row, 3+ and 5+ pick parlays all right, a 10× slip, NT$10,000 in one
-  win, a lottery or scratch prize, a profitable cash out, NT$100K and 1M
-  won in all), unlocked ones first and the rest with their progress; the
-  six biggest moments with their multiple; the sports that paid most; and
-  buttons back to the games and the lottery.
-- **電腦彩券's slip** (`lottery-ui.js`): the jackpot on top, then a slip:
-  slots fill as numbers are picked (tap one to take it back), a full zone
-  swaps out its oldest pick, a dot marks last draw's numbers, 快選 fills
-  the rest (keeping the picks), and a finished line is counted and can be
-  added to start the next. +1/+5/+10 random lines; the prize table folds
-  away; a bar at the bottom holds the multiple, total and 購買.
-- **Nothing that talks people out of it:** 紀錄's 戰績 shows only wins; slips
-  show what they paid, never a net or an expected return; the lottery
-  shows prizes, not odds, and no purchase confirmation; groups and the
-  account show 累計中獎, not 輸贏.
-
-### Making money the way a real book does
-
-- **The board** opens on the big leagues; with every sport shown, thinly
-  traded games (lower leagues…) fold behind one row
-  ("其他 N 場").
-- **Parlay boost** (`PARLAY_BOOST` in `odds.mjs`): the winnings of any
-  winning combination of 3+ picks grow by 5% (3), 8%, 12%, 15%, up to 20%
-  (7+). Quadra Plus multiplies the boost by `PLUS.odds.boost` (1.5) on a
-  member's slip; the slip keeps its `boost` from when it was bought, and
-  what Plus adds is paid as its own entry, `plus-<slip>` (kind
-  `plusboost`), so the statement and the Plus sheet show it. Even boosted,
-  a parlay keeps most of the house's cut, since every pick carries its own
-  and they multiply.
-- **Free bets** come from Plus's weekly NT$200 (`eco:fb:<Monday>`) and the
-  welcome NT$200 after a first paid bet (`eco:fb:welcome`), both written by
-  the Worker.
-- **VIP** (kit `VIP`, `vipStatus`): the balance card on home shows this
-  month's tier from its gaming stakes, the cashback so far and the next
-  tier; the Worker pays it after the month (`eco:vip:<month>`).
-- **Cash out** (`lib/cashout.mjs`): an open slip can be sold back. Its price
-  weighs every way the undecided picks can land by the board's current
-  odds (1/odds, so the cut is in it), times what the slip would pay then
-  (tax, cap and boost included), less 5% (2% for Plus). Before a game the
-  pick's own price is used; once it's under way, the same market on the
-  live board (MLB and soccer win, total, run line, team total); no price:
-  suspended. Paid as `payout-<slip>` with kind `cashout`, so a result
-  arriving later on another device can never pay twice.
-
-Notices: a slip settling (won, or not) and a winning lottery ticket, as a
-banner on screen or a system notice when allowed.
-
-### 賽事 Games: every match, more sports
-
-- **A game opens in a sheet** (like Orbit Sports' match sheet): a tap on
-  a game (on 賽事, or home's 焦點賽事 and 場中) opens it over the tab with
-  every market, its own tabs and the slip bar at the foot; the board under
-  it never moves. The card keeps its win prices for a one-tap pick.
-- **No time window:** every game the sources list that hasn't started is
-  shown (daily sports about a week ahead, soccer every matchday in three
-  weeks, football the current week), not only tomorrow's or the next
-  matchweek.
-- **More leagues** (ESPN's DraftKings lines, the other markets from our
-  model): Belgium, Scotland, Turkey, the Saudi Pro League, the Conference
-  League, Libertadores, Sudamericana, the Nations League, World Cup
-  qualifying, the EFL Cup and the Copa del Rey, and for Asia and the
-  national teams the AFC Champions League Elite, the Asian Cup and
-  international friendlies, on top of everything before.
-- **F1:** the race winner and podium, and now the **top six**, **points
-  finish (top ten)**, **teammates head to head** and the **winning team**,
-  from the win chances (Harville finishing orders, 40,000 draws with a
-  fixed seed, `f1Markets` in `board.mjs`), settled from ESPN's full
-  finishing order.
-- **Every match settles by itself.** Kambi never publishes results; a
-  match is settled from its live score once decided, and when Kambi drops
-  it with no deciding score kept the pick is void
-  (stake back) within hours, instead of waiting three days. The Worker's
-  watch now checks every 2 minutes.
-
-### 彩券 Lottery
-
-`public/lib/lottery.mjs`, `public/lib/scratch.mjs`, `public/lottery-ui.js`.
-
-- **11 computer-drawn games**, Taiwan Lottery's rules: 威力彩, 大樂透,
-  今彩539, 賓果賓果, 3星彩 (正彩/組彩/對彩), 4星彩 (正彩/組彩), 38/39/49樂合彩
-  (二合 to 五合, every combination a bet), 雙贏彩 and 大福彩. Nine settle
-  against the real draws (Taiwan Lottery's public results API, read
-  directly: it sends CORS headers); 樂合彩 use their parent game's draw
-  (威力彩's first zone, 今彩539, 大樂透). 雙贏彩 and 大福彩 are no longer
-  sold, so their numbers come from the real BINGO BINGO draw at 20:30,
-  hashed with the game's name: nobody can know them before that draw.
-  Pool prizes (威力彩's first two tiers, 大樂透's first four) pay what that
-  draw paid per winner, shared with the real winners; a tier nobody won
-  pays its whole pool. Prizes over NT$5,000 are taxed 20.4%. Sales for an
-  evening draw close half an hour before it; BINGO draws every 5 minutes
-  07:05-23:55.
-- **6 scratch cards** (NT$100-2,000): 幸運7, 三個一樣, 對中發財, 賓果連線,
-  金幣翻倍 and 億萬富翁, each paying back about 58-65% with a top prize of
-  10,000 times its price. The prize is fixed when the card is bought (crypto
-  random, by the card's table); scratching (on a canvas, with a finger)
-  reveals the face, laid out to show exactly that prize.
-- **Buying:** each game card shows the time to the draw and the latest
-  numbers, with a one-tap quick pick. A game's sheet shows your numbers as
-  you pick them (with progress), a basket (add this bet, or quick pick 5)
-  paid in one go from a buy bar that stays in view, then a done panel.
-  My tickets lists those waiting for a draw and those drawn, with the total
-  won.
-- Tickets live on the account beside the slips (ledger entries
-  `lotto-<id>` and `prize-<id>`), merge across devices like slips, and pay
-  into the one pool.
-
-An educational app about the math of the Taiwan Sports Lottery (台灣運彩): what each bet gives back on average, where the money goes, and why nearly every bet loses over time.
-
-> Not betting advice. Lottery tickets in Taiwan are 18+ only, and betting on overseas sites (Polymarket included) is illegal in Taiwan.
-
-## The app
-
-Five tabs, drawn by the kit (`tabBar`, the same in every Quadra app): a bottom bar on phones, the top bar on desktop; the slip's count is a badge on 投注單. The top right is the kit's `topActions`: help, refresh, the account. Big numbers never wrap: they shrink (to 60% at most) to fit on one line. On desktop the tabs are in the top bar.
-
-Logos come from ESPN, with dark-background versions in dark mode: the leagues on the filters, cards and boards, and the teams on the games.
-
-The page stays simple: odds, colours and the amounts that matter. What the numbers mean (fair chance, back per NT$100, house take, margins of error) is explained in 說明's first card, 怎麼看這些數字; hovering a pick shows its own figures.
+- **The balance.** It shows what's out in open bets and what they'd cash
+  out for now, plus this month's VIP tier, its cashback so far and the next
+  tier (kit `vipStatus`).
+- **場中焦點.** Games on now with live prices. A tap on a price puts it on
+  the slip; the card opens its live markets.
+- **為你推薦** (`lib/foryou.mjs`). One pick a game on the teams and leagues
+  followed in Orbit Sports (the wallet's `follows:match`) and bet on here,
+  the next games of teams already backed, and the best prices. Picks are on
+  the team cared about, never against it. Its top three are offered as a
+  ready-made parlay.
+- **焦點賽事.** The games worth betting on, drawn like the board. They're
+  ranked by the kit's `rank`: affinity × the league's tier (`leagueTier`:
+  the majors first, thin leagues last) × how soon it starts.
+- **你的投注.** Open slips, each with its cash-out price and a few words on
+  where it stands.
+- **The lottery's jackpots**, and Quadra Plus once for a non-member.
 
 ### 賽事 Games
 
-- **What's listed:** every game of every league starting within the next 14 days (one reach for all, see the house cut below):
-  - MLB and the Premier League (DraftKings and Polymarket).
-  - **More sports from ESPN** (DraftKings' lines, else the house's own prices): football, basketball, hockey and the soccer leagues.
-  - **More sports from Kambi** (a European bookmaker's public odds, `public/lib/kambi.mjs`): NPB, KBO and CPBL baseball, EuroLeague and NBL basketball, K League 1 soccer (three-way; full-time markets, settled from Kambi's last score). Every game on each league's own schedule is sold, not only the ones Kambi prices (`public/lib/schedules.mjs`): Asian baseball's month lists (clubs' strength from this season's results; settled from the lists' final scores, so only winner, totals, run lines, team totals, odd/even and margin), and for the rest every match in Kambi's list, priced or not. Kambi's price takes over a game once it has one. Tennis and UFC were removed on 2026-10-11 (a pick still open on one is void).
-  - The next F1 race winner, every driver by their English name (George Russell, Kimi Antonelli …), as every other sport's players.
-  - Championships (see Boards below).
-  Everything but MLB, the Premier League and F1 loads in the background after the page opens.
-- **Filters:** one tile per sport, never several sports in one (棒球, 籃球, 足球, 美式足球, 冰球, F1, each with its games listed). Picking one with several leagues shows its leagues as chips underneath (全部聯賽, MLB, 日職 …). Then a day strip.
-- **Picks:** tap one to add it to the bet slip. It shows the estimated lottery odds, and:
-  - 🔒 (just the lock) when the lottery doesn't sell it, and 限2關 / 限3關 when it's sold only in parlays (see House rules);
-  - a corner tag when it's recommended: 划算 (value), 穩 (steady) or 值博 (worth a shot) (see Recommendations);
-  - a green tint when it gives back more than most; its fair chance, the market's cut and the average back per NT$100 in its tooltip.
-- **更多玩法 (more markets)**, one tab per kind of market:
-  - MLB: 大小分, 讓分 and 單隊大小 (the lottery's own lines, checked against its board, and a wider range), 得分最高單局, and from the score model 單雙, 勝分差, 首局得分, 前五局 and **首分** (who scores first);
-  - other baseball (NPB, KBO, CPBL): the same (得分最高單局 too), from Kambi's win, run line and total;
-  - football and basketball: 讓分, 大小分, **單隊總分** (team totals), 單雙, 勝分差, 上半場, **上半場大小** (first-half total) and **第一節** (first quarter);
-  - hockey: puck lines, totals, **單隊大小**, 60 分鐘勝負, 單雙;
-  - soccer: 讓球, 大小, **單隊大小**, 雙方進球, 波膽, 上半場, **上半場大小**, **雙重機會** (double chance: either of two results), **半全場** (half-time and full-time results together, 9 outcomes) and **總進球數** (0–1, 2–3, 4–6, 7+);
-  - F1: the race winner and **前三名** (podium): top-three chances from the win chances (Harville), priced to return what the winner board does.
-- **Cards:** each shows its series (日職 · NPB: the league and, for cups, the round).
-- **Leagues:** each nation's first tier and the big international competitions. Removed on 2026-09-30: the second divisions (英冠, 英甲, 德乙, 西乙, 義乙, 法乙, USL), NCAA basketball, the smaller countries' leagues (Austria, Switzerland, Denmark, Norway, Sweden, Greece, Colombia, Chile, the A-League, the Chinese Super League, NWSL), NRL, AFL, NASCAR and IndyCar.
-- **Loading:** every ESPN league from its months' pages (`dates=YYYYMM`, odds and all: one or two requests a league; cups and national teams too, whose default page can be a past round); the other leagues join one by one as each arrives, and the loading screen stays until the whole board is in (at most `BOOT_FULL_MS`).
-- **場中 (live):** only on today's board (the day strip keeps today while games are on); games in progress (MLB and the Premier League), refreshed every 30 seconds while on screen, with the same market tabs, 第N分 for MLB, and the live model (`public/lib/live.mjs`) checked on one real snapshot of the lottery's 場中 page. The house rules apply live too, so lopsided games show their lopsided side locked.
+- **Filters.** One tile per kind of sport (棒球, 籃球, 足球, 美式足球, 冰球,
+  F1), then that sport's leagues as chips, then a day strip (Taiwan time;
+  today stays on it while games are on). With every sport shown, thinly
+  traded leagues fold behind "其他 N 場".
+- **Search.** Teams (Chinese or English) and leagues across every day and
+  sport.
+- **A game card.** Teams with logos and the win prices for one-tap picks.
+  A tap elsewhere opens its sheet.
+- **Championship and F1 boards** (one board each).
 
-- **Boards:** F1 (drivers with team-coloured badges, and whether the odds are before or after qualifying) and every championship: World Series, AL, NL, NBA, Premier League, and from Polymarket's search NFL, NHL, WNBA, college football, Champions League, Europa League, La Liga, Serie A, Bundesliga, Ligue 1, MLS, and the F1 drivers' and constructors' titles.
+### 彩券 Lottery
 
-### House rules, the house cut and recommendations
+See [The lottery](#the-lottery-彩券).
 
-- **House rules** (`public/lib/rules.mjs`), for you and the simulated crowd alike:
-  - locked (🔒): odds of 1.05 or less, or 8+ on ordinary markets (80+ on correct scores, margins and the like). F1 and championships are priced one by one up to 500 and never locked;
-  - parlay only: under 1.30 only in parlays of 2+ games (限2關), under 1.15 of 3+ (限3關). The slip refuses a ticket with any combination too small for one of its picks. These thresholds are the house's usual shape, not measured on the lottery's board.
-- **One house cut:** every market takes what the lottery was measured taking on that kind of market (1.158 two-way, 1.20 three-way, 1.35 bands, 1.50 correct scores, 1.92 the top inning, 1.16 live), whatever the league and whoever priced the game, so Play stays close to 運彩's prices (1.72-1.73 each side of a coin flip).
-- **Every game, two weeks ahead** (`SOLD_DAYS` in the kit's `catalog.mjs`, shared with Orbit Sports' 投注): every league's games up to 14 days out. A game no bookmaker prices yet (preseason, a game past DraftKings' posting, a small league) is priced by the house (`public/lib/house.mjs`): each team's share of wins in ESPN's standings (last season, pulled a third of the way to even, weighted like 30% of a season, this season's games on top), log5 between the two, plus the home side's edge; soccer takes a draw out (27% between even sides); preseason pulled halfway to even. A bookmaker's line replaces it as soon as one is posted.
-- **Recommendations** (`public/lib/recommend.mjs`), shown on each pick instead of a separate list: every pick is judged by its average back per NT$100 against the others. The day's top 10% get 划算; picks of 65%+ that return at least the median get 穩; picks of 30% or less in the top quarter get 值博. Locked picks, picks over 85% or under 5%, and lots of under 10 picks get none. The simulator's value hunters bet exactly these picks.
+### 紀錄 History
 
-### 投注單 Bet slip
+See [紀錄](#紀錄-slips-tickets-戰績-and-stats).
 
-- **Ticket rules** follow the lottery:
-  - 一關, 全部過關 and 過關組合 (過2關 … 過11關, 全過);
-  - 1–12 picks, one per game;
-  - NT$100–100,000 per ticket, with a NT$20 million payout cap;
-  - 20% income tax plus 0.4% stamp duty on any combination paying over NT$5,000.
-- **Mode:** 一關 (singles) by default.
-- **Stake:** typed in NT$10 units, like a real slip (10 = NT$100 per combination).
-- **Each pick** shows its market as a coloured tag (不讓分, 大小分, 讓分, 單隊大小 …), the pick, its game and start time in full, and its odds large (`@1.87`).
-- **派彩試算 (what it pays)** above the place button: for 全部過關 the odds multiplied out (`1.89 × 1.87 × 1.68 = ×5.94`), for 一關 each pick's return, for 過關組合 each size with its number of combinations; then the ticket total, what all correct pays after tax (large) with the profit, the tax withheld when any combination is over NT$5,000, and the least a winning ticket pays.
-- **Games that have started:** their pregame picks drop off the slip; live picks from 場中 stay.
-- **Analysis:** all of it is exact over every way the picks can land:
-  - **Key numbers:** cost, top payout, average back after tax, chance of any payout, chance of profit, take + tax. Each comes with its error range.
-  - **Where each NT$100 goes:** back to you, the lottery's cut and the tax.
-  - **Every result:** the chance of k of n correct, what it pays, and which results make a profit.
-  - **Each pick on its own:** the odds against the fair odds, its value per NT$100, and what the ticket returns without it. The costliest pick is flagged.
-  - **One pick short:** the chance of missing by exactly one pick, how many times likelier that is than winning outright, and for each pick the chance it's the only one that lost. The pick most likely to let the ticket down is flagged.
-- **Grade:** a letter from the average back per NT$100 (a single game at the usual cut gets an A), a type from the chance of profit (steady to lottery ticket), the average loss per ticket in bubble teas, and how many tickets it takes on average to get paid once.
-- **How hard is it to win?** The ticket's chances of all correct and of any profit, placed among well-known odds: a coin, a die, a stranger's birthday, 10 heads in a row, a royal flush, the Lotto 6/49 and Power Lottery jackpots.
-- **Try a draw:** opens the ticket with each pick drawn from its fair chance. One ticket at a time, the picks revealed one by one; the button reads 開始 (Start), then 再開一張 (Restart) once a ticket is done. A running tally shows tickets opened, how many paid, the result so far with a small chart, the biggest ticket, and what the odds say that many tickets average.
+## What's sold
 
-### 紀錄 History: practice account, saved slips and stats
+Every league in the shared catalogue with a `bet` key (`lib/teams.mjs` reads
+`kit/catalog.mjs`). Every game starting within **14 days** (`SOLD_DAYS`) is
+sold, whoever prices it:
 
-
-- **Play money only:** the money is the Quadra Pass's one pool (Quadra pays the month and the week); there's no betting limit and no sending money to another pass.
-- **Kept on the pass:** the account is Play's data on the Quadra Pass, merged with this device's copy (never saved over when the pass's copy can't be read). A bet the account lost but the pass's money records still hold comes back as a recovered slip (cost, time and payout; picks lost), listed on its own and left out of the per-play tables.
-- **模擬下注 (place with play money)** on the slip buys it at the odds shown: the cost comes off the balance at once, and the page opens the 紀錄 (history) tab with the slip in **我的投注單 (my slips)**. A slip costing more than the balance can't be placed.
-- **Settling:** opening the 紀錄 tab (or coming back to it) checks every open slip whose games have started, at most every 90 seconds, or at once with 檢查結果:
-  - MLB and Premier League from ESPN's final scores (innings for the top-scoring inning);
-  - F1 from ESPN's race result;
-  - championships from Polymarket once it resolves the market;
-  - the other Kambi leagues have no public results: they settle when Kambi's live score shows the game over, otherwise 3 hours after the start the pick shows 中 / 沒中 / 取消 buttons to settle it by hand.
-
-  Each pick is marked won, lost or void. Once all are decided the slip pays like a real ticket: a postponed or cancelled game counts at odds 1.00, every combination over NT$5,000 is taxed 20.4%, NT$20 million at most. A game still without a result three days after its start counts as void.
-- **The card** shows the balance, the money on open slips, the total won or lost, and each slip with its picks (✓ ✗ ↺ ⏳, each with its market tag and odds) and a row of large figures: cost, total odds (全部過關), and what all correct pays or, once settled, the payout and profit.
-- **Two views** under the account card: 投注單 (slips) and 統計分析 (stats).
-- **Slip history:** a summary row (open slips, money at stake, the most they can pay, the settled result), filters for all, open, won and lost, and the slips in groups, each with its count, cost and result (or the most it can pay):
-  - 比賽進行中: at least one game on now;
-  - 等待開賽: no game started yet;
-  - 已確定沒中: open, but nothing left can pay (a parlay with a lost pick) while its other games finish;
-  - settled slips by the day they settled (今天, 昨天, then dates); 10 shown, the rest behind a button.
-
-  Each pick shows its team's logo (saved with the pick, so it stays after the board moves on), the driver's badge for F1, or the league's logo for picks on no one team (單雙, 波膽 …).   Each card shows the mode, the number of games and when it was bought; a bar with one segment per pick (green won, red lost, grey void, pulsing red in play, empty not started); how many games are over and when the next one starts; each pick with its state (✓ ✗ ↺ ● ⏳), market tag and odds; and large figures: cost, total odds (parlays), what is already locked in and the most it can still pay, or once settled the payout and profit. **Games in play:** each pick whose game is on shows its score (sets and each set's score for matches in sets), where the game is (8局上, Q3 5:21, 67', 第 3 局) and whether it's winning, losing or level right now, judged by the same settlement the slip will use; the slip adds how many picks are winning and, once nothing is left to start, what it would pay at these scores. Scores come from the result checks themselves (ESPN's scoreboards, Kambi's live feed), every 30 seconds while 紀錄 is on screen and a game is in play. **History is kept for good:** each pick keeps its final score (or race winner) as it's decided, so old slips never depend on the sources keeping old games; picks are saved without empty fields; the sync holds up to 1 MB (several thousand slips) and warns if an account ever outgrows it; and 備份紀錄 downloads the whole account as a file and restores one (merged, like the sync, so nothing is lost or counted twice). Each slip folds out what the odds said when it was bought: its average payout, the chance of any payout, each pick's fair chance and value per NT$100, and once settled, its result against that average (luck) and the tax withheld.
-- **統計與分析 (stats and analysis)**, from `public/lib/history.mjs`:
-  - key numbers: slips settled, staked, paid after tax, net, back per NT$100 and the share of slips that paid, each against what the odds said to expect;
-  - the balance over time, a step line with payouts and weekly claims marked;
-  - luck or the cut: the expected loss (the lottery's cut plus tax) against the actual result, the usual luck range (one standard deviation over all settled slips) and how rare the result is (normal approximation);
-  - how good the picks are: won against their fair chances, overall, by chance band (0–20% … 80–100%) and by market, with average odds;
-  - by sport (slips from several sports count as mixed), by mode and by number of picks: slips, staked, net, back per NT$100 actual and expected;
-  - streaks and records: the current and longest winning and losing runs, the best and worst slip, the biggest return, the average slip and the tax paid;
-  - week by week (Taiwan weeks from Monday);
-  - **你的下注輪廓 (how you bet)**, from `public/lib/profile.mjs`: tickets and hit rate, back per NT$100, average and largest ticket, picks per ticket and singles, average odds and pick chance, biggest win, longest streaks, near misses, best and worst week, pace, and the simulator's traits your tickets show (backs favourites, upset hunter, singles, parlay lover, every day, now and then, tilts). A simulated person's lookup shows the very same card from their replayed tickets;
-  - **你和 100,000 人比 (you against the crowd):** the simulated crowd playing the nearest period at least as long as your record, run only now that it's needed, in the background: the share of the crowd your result beats, you against the typical person, and how the crowd's people with your traits did;
-  - **趣味數據 (fun facts):** the biggest upset you picked, the most painful miss, parlays one pick short and what they'd have paid, the team you pick most and its record, your most played market, your favourite day to bet, how many picks were live, your boldest slip, and the lottery's average take from you in bubble teas.
-- **Saves are always compressed:** the account is gzip-compressed (JSON → gzip → base64, marked `gz1:`, see `public/lib/codec.mjs`) both in `localStorage` and in the synced copy, about 8–10 times smaller. Older plain-JSON saves still open, and are rewritten compressed.
-- **Sync:** 建立同步碼 creates an 8-character passcode (letters and digits, no 0/1/O/I); typing it on another device links that device to the same account. The two copies merge: the balance is a ledger of entries with fixed ids (start, each week's grant, each slip's stake and payout), so nothing counts twice, and a slip settled on either device is settled on both. Changes are sent a second after they happen, and picked up when the page opens or the tab comes back. The account lives in `localStorage` on each device and in Firestore (through Shared-Proxy's `/odds-sync`), stored under the passcode's hash.
-
-### The simulated crowd (analysis only)
-
-`public/lib/sim.mjs` still simulates about 100,000 bettors on this very board
-(traits, stakes, the lottery's rules), but only for analysis: 紀錄's "you
-against the crowd" compares your record with theirs over the same time.
-The simulator tab itself was removed.
-
-## The math
-
-| What | How |
+| Source | Leagues |
 | --- | --- |
-| Fair chance | DraftKings (via ESPN), Polymarket and Kambi, each with its margin removed, averaged |
-| MLB win odds | `1 ÷ (fair × 1.15)`; average error about 0.04 against 14 real lottery games (2026-09-25) |
-| MLB totals | Total runs as negative binomial (r = 5) fitted to DraftKings' line; the lottery's 3 lines (the one closest to 50/50, ±1). Matched all 12 lottery lines, 0.9 points off |
-| MLB run lines | Lottery chance `0.5 + 0.732 × (p − 0.5)` for ±1.5, then 8.6 points more for ±2.5; 1.6% off on 38 prices |
-| MLB team totals | Each team's runs as negative binomial (r = 4) fitted to the win chance and total; 17 of 18 lines matched |
-| Top-scoring inning | The lottery's own fixed table (about a 48% take) |
-| F1 winner, after qualifying | `1 ÷ (1.17 × fair^0.765)`, at least 1.05; drivers under 1% get the lottery's fixed 65 (0.4–1%) / 275 (0.15–0.4%) / 500. About 10% off on 8 drivers the eve of the 2026 Azerbaijan GP (`tests/fixtures/lottery-f1-2026-09-26.json`) |
-| F1 winner, before qualifying | `1 ÷ fair^0.692`; 65 (0.4–1%) / 325 (0.1–0.4%) / 500. About 8% off on 9 prices from the same race's board the morning before qualifying. The phase comes from ESPN's F1 schedule (qualifying start + 90 minutes); without it, over 21 hours before the race counts as before |
-| House cut | The measured cut of the market's kind, the same for every league and source |
-| Extra lines | Totals from the same negative binomial; run lines and team totals from the per-team score grid; odds `1 ÷ (p × 1.158)` (totals × 1.153), never above halfway from p to 1 in implied chance, at least 1.01. Not checked against the lottery |
-| Championships | Implied chance ∝ `fair^0.7`, scaled to the lottery's total (MLB 200%, EPL 160%, others 180%, unchecked); longshots 133 / 300 |
-| Back per NT$100 | `fair chance × odds × 100`; below 100 loses on average |
-| House take | `1 − 1 ÷ Σ(1 / odds)` |
-| Tax | 20.4% of any combination paying over NT$5,000 |
+| ESPN (schedules, results) with DraftKings' lines through ESPN | MLB, NBA, NFL, NHL, the top soccer leagues and cups (Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions/Europa/Conference League, MLS, Scotland, Belgium, Turkey, Saudi Pro League, Libertadores, Sudamericana, Nations League, World Cup qualifying, EFL Cup, Copa del Rey, AFC Champions League Elite, Asian Cup, friendlies…) |
+| Kambi (prices, live scores) | NPB, KBO, CPBL (with the leagues' own month lists: every game on them), EuroLeague, NBL, K League 1 |
+| Polymarket | Win chances (MLB, Premier League, NBA), championships, F1's markets, the F1 flags |
+| The house (`lib/house.mjs`) | Any game no bookmaker prices yet (preseason, weeks out, a small league) |
 
-Every estimate carries its **margin of error**:
+A bookmaker's line replaces the house's as soon as one is posted. An ESPN
+league with a Kambi path is priced by Kambi first, with DraftKings as the
+cross-check. Tennis and UFC were removed on 2026-10-11; a pick still open
+on one is void.
 
-- **Fair chances:** half the DraftKings–Polymarket gap. `*` marks a game with only one source, which gets its league's typical gap.
-- **Estimated odds:** their measured error against real lottery prices. `?` marks one not yet checked.
-- **Simulator results:** 95% sampling error.
+## A game's sheet and its markets
 
-The calibration data is the real lottery prices in `tests/fixtures/lottery-mlb-2026-09-25.json` `tests/fixtures/lottery-f1-2026-09-26.json` and, for live odds, `tests/fixtures/lottery-live-2026-09-26.json`. Soccer, the Kambi sports and the new plays haven't been checked against the lottery yet.
+A game opens in a sheet (like Orbit Sports' match sheet), so the board
+under it never moves. The sheet has a tab per kind of market, players'
+markets (球員) next, and the long shots under 更多. The slip bar sits at
+its foot.
+- **Waiting.** The markets are drawn once Kambi's list and the players are
+  in, or after 4 s with what there is.
+- **Height.** The markets keep the tallest height they've had, so a
+  shorter tab never pulls the page up.
 
-### Our own lines (`lines.mjs`)
-
-Every market past the winner (totals, handicaps, team totals, halves,
-quarters, first five innings, margins, correct scores, both teams to score…)
-is priced from two numbers: the win chance and the game's expected total.
-The win chance always exists (DraftKings, Polymarket or Kambi). The total
-used to come only from DraftKings, so a game without its line got little
-more than the winner. Now, when no total is posted, it comes from a model:
-
-- **Soccer**: each team's mean goals fitted to the game's own 1X2 chances (a
-  likely draw means fewer goals), scaled up 12% (real games draw more often
-  than independent goal counts say) and blended 70/30 with the league's own
-  average.
-- **Everything else**: the league's average total (`LEAGUE_TOTALS`), plus a
-  little for one-sided basketball and football games.
-
-The line is the half line nearest the mean, priced with the same spreads
-the bookmaker lines use (negative binomial for runs and goals, normal for
-points), and shown as the model's own (never as the lottery's line, with
-more room for error in the recommendations).
-
-Checked against the bookmakers' totals on one day's slate (2026-09-27),
-mean gap between our total and theirs: MLB 0.7 runs (no bias), NPB 0.45,
-KBO 0.9, CPBL 0.6, B.League 5 points, WNBA 10 (a four-game playoff sample),
-NFL 2.9 points, NCAAF 0.4, MLS 0.2 goals, Liga MX 0.1. Game-to-game
-differences (pitchers, parks, injuries) are what the model can't see; its
-averages are unbiased.
-
-With this, a league needs only a winner price to get the full board: the
-Brasileirão, Argentina's Liga Profesional, the Süper Lig and the Scottish
-Premiership were added this way (ESPN's DraftKings winner odds).
-
-## How it works
-
-A static site with no build step and no dependencies. The browser fetches odds live through the `sports-proxy` Cloudflare Worker from [Shared-Proxy](https://github.com/JayPengX/Shared-Proxy) (`PROXY_URL` in `public/lib/sources.mjs`). The Worker adds the CORS headers Polymarket doesn't send, and caches responses. A failed request is retried once. Team logos load straight from ESPN's image server; for the leagues ESPN doesn't cover (NPB, KBO, CPBL, EuroLeague) they come from TheSportsDB's free badges, matched by the words the club names share. Players (tennis and the like) show initials.
-
-The page depends on that Worker:
-
-- **No proxy, no data.** If the Worker is down, the page opens without odds. The tests don't need it.
-- **Allowed origins only:** `https://jaypengx.github.io` and `http://localhost:<port>`. Hosting elsewhere needs the origin added to `ALLOWED_ORIGINS` in Shared-Proxy's `sports-proxy-worker.js`.
-- **Allowed hosts only:** `site.api.espn.com`, `gamma-api.polymarket.com` and `eu-offering-api.kambicdn.com` are the ones used here.
-- **Fetching politely:** every response is cached at the Worker for every viewer (Kambi's lists 2 minutes, Polymarket's championship search 10 minutes, live scores 20 seconds), Kambi's responses are trimmed to the fields used (`&trim=kambi-events`, about 5× smaller), the page sends at most 6 requests at once, and live scores are polled only while the page is visible.
-
-The account lives on the Quadra Pass: Shared-Proxy's `orbit-workers-proxy`, route `/eco` (the shared kit, `#kit/quadra.mjs`). A Quadra Pass is required.
-
-| File | Purpose |
+| Sport | Markets |
 | --- | --- |
-| `public/lib/odds.mjs` | The math: devig, estimated odds, F1 phases, bet slip rules and analysis |
-| `public/lib/board.mjs` | Every priced option of a game, for the page and the crowd alike, and the crowd's pool |
-| `public/lib/lottery.mjs` | The lottery's draw games: rules, draw times, real results, prizes |
-| `public/lib/scratch.mjs` | Scratch cards: prize tables and faces |
-| `public/home.js`, `public/lottery-ui.js` | The home and lottery tabs |
-| `public/lib/audit.mjs` | The fairness audit of sports and series |
-| `public/lib/rules.mjs` | House rules (locks, parlay only) and the house cut |
-| `public/lib/house.mjs` | The house's own prices for games no bookmaker prices: standings, records, ranking points |
-| `public/lib/schedules.mjs` | Kambi leagues' own schedules (Asian baseball), every game on them |
-| `public/lib/recommend.mjs` | Recommendations on single picks |
-| `public/lib/sim.mjs` | The simulated crowd: traits, calendar, the shared world, leaderboards |
-| `public/lib/profile.mjs` | One person's betting from their tickets, for you and for anyone in the crowd |
-| `public/lib/kambi.mjs` | Kambi's odds and live scores |
-| `public/lib/markets.mjs` | Every sport's side markets, the new plays and matches in sets |
-| `public/lib/sources.mjs` | Fetching and parsing ESPN, Polymarket and Kambi; results; what the lottery would list |
-| `public/lib/teams.mjs` | Leagues, Chinese team and driver names, ESPN logo ids, TheSportsDB badges, the F1 grid's team colours |
-| `public/lib/i18n.mjs` | Traditional Chinese and English text (follows the browser's language) |
-| `public/lib/account.mjs` | The practice account: ledger, weekly grant, placing and settling slips, merging two copies |
-| `#kit/quadra.mjs` | The shared kit, from Shared-Proxy's Pages (sign-in, session, pool, recommender, the Quadra Pass sheet) |
-| `public/lib/live.mjs` | Live odds: the in-game score model, the lines closest to 50/50, prices at the live cut |
-| `public/lib/history.mjs` | Stats over saved slips: money, luck against the cut, picks against their chances, breakdowns, streaks, records |
-| `public/lib/codec.mjs` | gzip + base64 for every save |
-| `public/app.js` | Rendering |
-| `public/sim-worker.js` | Runs the crowd simulation off the main thread |
-| `public/styles.css` | Design tokens (light and dark) and components |
+| Baseball | 不讓分, 大小分, 讓分 (run lines to ±4.5), 單隊大小, 單雙, 勝分差, 首局得分, 前五局, 得分最高單局, 首分 (who scores first); live 第N分 |
+| Football, basketball | 讓分, 大小分, 單隊總分, 單雙, 勝分差, 上半場, 上半場大小, 第一節 |
+| Hockey | Puck lines, totals, 單隊大小, 60 分鐘勝負, 單雙 |
+| Soccer | 1X2, 讓球, 大小, 單隊大小, 雙方進球, 波膽, 上半場, 上半場大小, 雙重機會, 半全場, 總進球數 (0–1, 2–3, 4–6, 7+), corners (Kambi) |
+| Players (球員) | Kambi's (to score, first goalscorer, shots on target, points, rebounds…, `lib/offers.mjs`, `lib/props.mjs`) and the house's own model for everyone else (`lib/propmodel.mjs`, priced at `MODEL_CUT` 1.25), settled from ESPN's box score |
 
-A loading screen (logo, spinner, progress, time left) covers the page until the odds are ready, for 45 seconds at most. The crowd simulation never runs at start-up: only when the 模擬 tab opens (the page waits for it when it opens on that tab), or quietly in the background when 紀錄's 統計分析 needs it for the comparison. If the scripts never start, a failsafe in `index.html` offers Reload or Open anyway. On deploy, `scripts/stamp-version.mjs` does two things:
+**Where the prices come from.**
+- **Kambi**: a game's own markets (`betoffer/event/<id>.json`, the
+  `kambi-offers` trim), read when the game is opened, replace the model's
+  where Kambi prices them.
+- **Our own lines** (`lib/lines.mjs`): every market past the winner comes
+  from two numbers, the win chance and the expected total. When no total
+  is posted, the model makes one:
+  - soccer: each side's goals fitted to the 1X2 chances, scaled up 12% and
+    blended 70/30 with the league's average;
+  - everything else: the league's average (`LEAGUE_TOTALS`) nudged for
+    one-sided games.
 
-- It adds `?v=<commit>` to every local file, so browsers never mix new files with cached old ones.
-- It stamps the commit into `index.html` and writes `version.json`. On open, and whenever the tab comes back, the page fetches `version.json` past every cache. If a newer deploy is out, the page reloads once under `?v=<commit>`, which fetches it and every file fresh.
+  Measured against the bookmakers' totals: MLB 0.7 runs, NPB 0.45, KBO
+  0.9, CPBL 0.6, MLS 0.2 goals, unbiased.
 
-A browser holding an old copy of the page still gets the new version.
+## F1
 
-## Development
+One card, a tab per market:
 
-```sh
-npm test                                              # node:test, no installs needed
-python3 -m http.server 8000 --directory public        # then open http://localhost:8000
+| Market | How |
+| --- | --- |
+| 冠軍 (winner) | The sources' chances at their most (`mergeF1Boards`: Polymarket, Kambi), priced at the outright cut 1.2, up to the lottery's 500 |
+| 排位賽第一 (pole) | Until qualifying starts: our estimate (season's qualifying form and the race's chances) with Polymarket's or Kambi's prices counted as far as they're traded (`f1PoleModel`) |
+| 前三名, 前六名, 前十名 (podium, top six, points) | Finishing orders drawn from the win chances (Harville, 40,000 draws, fixed seed, `f1Markets`) |
+| 車手對決 (teammates head to head) | The same draws |
+| 冠軍車隊 (winning team) | The same draws |
+| 安全車, 虛擬安全車, 紅旗 (yes/no) | Polymarket's market where traded, else history; priced like a two-way line |
+
+The drivers are named in English as the apps name them. Before or after
+qualifying is said beside the prices.
+
+## Live (場中)
+
+Live markets are on today's board only.
+
+- **The model** (`lib/live.mjs`): a game in progress is modelled from its
+  pregame lines and the live state.
+  - baseball: each team's remaining runs (negative binomial) scaled to the
+    half-innings left;
+  - soccer by the minute;
+  - hockey, football and basketball by the clock left.
+- **The win chance** is averaged with Polymarket's live price when enough
+  money is behind it.
+- **Kambi's sports** use Kambi's own live prices, its margin taken out.
+- **Lines**: the lottery posts the lines closest to 50/50, and the model
+  picks them the same way.
+- **The cut**: live is 1.16 (soccer's winner at the three-way cut), more
+  for leagues the house knows less.
+- **Suspended**: a rain delay suspends live odds.
+- **Refresh**: everything live (the board's games in play, open bets'
+  scores and cash-out values) refreshes on one beat, `playLive` (5 s), and
+  at once on coming back.
+
+## Pricing: the house's cut, rules and models
+
+**One cut per kind of market** (`BASE_CUT` in `lib/rules.mjs`), whoever
+priced the game. These are what Taiwan Sports Lottery was measured taking:
+
+| Kind | Overround |
+| --- | --- |
+| Two-way (win, totals, run lines, team totals) | 1.158 (81 markets, 2026-09-25) |
+| Three-way | 1.20 |
+| Bands | 1.35 |
+| Correct scores | 1.50 |
+| Top-scoring inning | 1.92 (the lottery's own table) |
+| 第N分 (live) | 1.31 |
+| Live | 1.16 |
+| Outrights (F1, pole) | 1.20 |
+| Players by the model | 1.25 |
+
+A fair chance is DraftKings, Polymarket and Kambi with their margins
+removed (proportional, or the power method for N outcomes), then averaged.
+The estimated odds are `1 ÷ (fair × cut)`.
+
+**House rules** (`HOUSE_RULES`, for the slip and the simulated crowd alike):
+
+| Rule | When |
+| --- | --- |
+| Locked 🔒 | Odds of 1.03 or less; 30+ on an ordinary market, 150+ on a many-outcome one; outrights under 1.12 |
+| 限3關 | Under 1.12: only in a parlay of 3+ games |
+| 限2關 | Under 1.25 (outrights under 1.30): only in a parlay of 2+ games |
+| Longshot shade | Past odds of 6, an ordinary market pays only 85% of the rest (`LONG_FROM`, `LONG_SHARE`) |
+
+**The house's own prices** (`lib/house.mjs`): each team's share of wins in
+ESPN's standings. Last season counts as 30% of a season, pulled a third of
+the way to even, with this season's games on top. The two sides meet by
+log5, plus the home edge. Soccer takes a draw out (27% between even
+sides). The preseason is pulled halfway to even.
+
+## The slip
+
+The slip follows the lottery's ticket rules:
+- **Modes**: 一關 (singles, the default), 全部過關, 過關組合 (過2關 …
+  過11關, 全過). A second pick turns it into a parlay unless another way
+  was chosen.
+- **Picks**: 1–12, one per game in a parlay or system; singles may hold
+  picks of one game.
+- **Stakes**: NT$100–100,000 a ticket, typed in NT$10 units (10 = NT$100).
+  Quick stakes run NT$100–5,000, and the last stake is remembered on the
+  device (`play.stake`).
+- **Limits**: a NT$20 million payout cap, and 20% income tax plus 0.4%
+  stamp duty on any combination paying over NT$5,000.
+
+**Each pick** shows its market as a coloured tag, the pick, its game and
+start, and its odds (and how they moved since it was picked).
+
+**派彩試算.** For a parlay it shows the odds multiplied out; for singles,
+each pick's return; for a system, each size and its combinations. Then
+the cost, what all correct pays after tax, the tax withheld, the least a
+winning ticket pays, and the parlay boost in money.
+
+**The parlay boost** (`PARLAY_BOOST`): the winnings of a winning
+combination of 3+ picks grow by 5% (3), 8%, 12%, 15%, up to 20% (7+).
+Quadra Plus multiplies it by 1.5. The slip keeps its boost from when it
+was bought, and what Plus adds is paid as its own entry, `plus-<slip>`
+(kind `plusboost`).
+
+**Free bets** (Plus's weekly NT$200, the welcome NT$200; the kit's
+`FREEBET`):
+- **Use**: one tap above the stake. Every pick must be at 1.50 or longer
+  (a parlay's together).
+- **Payout**: only the winnings come back. A free bet's slip is never
+  cashed out.
+- **Spent**: marked with `odds:fb-<token>`.
+
+**Buying** (模擬下注) asks first (the cost and the most it pays), buys at
+the board's odds now, and syncs at once. Picks on a game that has started
+drop off; live picks stay. The slip being made is kept on the device under
+the pass.
+
+## Cash out
+
+`lib/cashout.mjs`. An open slip can be sold back at a sportsbook's own
+price:
+1. Each undecided pick's fair chance now is cut by the house's margin
+   (`LEG_CUT`: 4% before its game, 6% in play).
+2. Every way those picks can still land is weighed by those chances.
+3. Each way is multiplied by what the slip would pay then (tax, cap and
+   boost included).
+4. The house keeps 3% (`CASHOUT_KEEP`; Plus 2%, `PLUS.odds.cashOutKeep`).
+
+A parlay's offer drops with each pick still to play, and nothing is worth
+more cashed out than held.
+
+**Paused, with why** (`cashOutState`): a pick has no price now, two
+undecided picks are on one game, there are too many undecided picks, or
+it's a free bet. If the price moved since it was shown, it asks again.
+
+It is paid as `payout-<slip>` (kind `cashout`), so a result arriving later
+on another device never pays twice.
+
+## Settling
+
+On opening 紀錄 (or coming back to it), every open slip whose games have
+started is checked, at most every 90 s, or at once with 檢查結果.
+
+| What | Settled from |
+| --- | --- |
+| ESPN's leagues | ESPN's final scores (innings for the top inning); players from ESPN's box score |
+| Kambi's leagues | Kambi's live score once decided; when Kambi drops a match, the Worker's copy (`/kambi`, kept every 2 minutes); none kept: void within hours |
+| Asian baseball | The leagues' own month lists' final scores (`scoreOnly` markets: winner, totals, run lines, team totals, odd/even, margin) |
+| F1 race, pole, places | **F1's own timing first** (`kit/f1live.mjs f1Outcome`: a session over settles at once; one on stands as it is now, 目前會中), else ESPN's results |
+| F1 safety car, VSC, red flag | OpenF1's race control messages; no race within a week of its date: void |
+| Championships | Polymarket once it resolves |
+
+Each pick is won, lost or void. Once all are decided, the slip pays like a
+real ticket:
+- a postponed or cancelled game counts at 1.00;
+- tax and the cap apply;
+- a game still without a result three days after its start counts as
+  void;
+- a parlay with a lost pick settles at once.
+
+Each pick keeps its final score (or winner) as it's decided, so old slips
+never depend on the sources keeping old games.
+
+**Notices** (the kit's `odds` kinds): `slip` (a slip settled), `ticket` (a
+lottery win), `plus` (Plus's weekly bet and renewal). While Play is
+closed, a notice comes when an open slip's last game should be over.
+
+## The account, money and Plus
+
+**Where it's kept.** The account is Play's data on the Quadra Pass
+(`odds-study-accounts`), with a gzip copy on the device (`lib/codec.mjs`:
+JSON → gzip → base64, `gz1:`, 8–10× smaller).
+- **The ledger.** The balance is never stored: it's the sum of a ledger of
+  entries with fixed ids (`start`, `stake-<slip>`, `payout-<slip>`,
+  `lotto-<id>`, `prize-<id>`, `plus-<slip>`). Two copies merge by union,
+  and nothing counts twice.
+- **Saves.** Writes go one after another, so a slower save never lands
+  after a newer one. A copy that can't be read is never saved over.
+- **Recovered slips.** A bet the account lost but the pass's money records
+  hold comes back as a recovered slip (cost, time, payout).
+
+**The money is the pass's one pool.**
+- **Income.** Quadra pays the opening NT$30,000 and NT$6,000 every Taiwan
+  month. Play's own weekly grants ended with the week of 2026-09-28. Play
+  shows the pool, which may be below zero if other apps spent it.
+- **VIP.** The month's gaming stakes (bets, lottery, scratch, less refunds)
+  set the tier, and the Worker pays the cashback after the month.
+- **Plus.** The weekly NT$200 free bet, the boost ×1.5, cash-out keeps 2%.
+- **Welcome.** NT$200 free bet after the first paid bet.
+- **Stakes.** Play reports its settled result per sport (`snap.odds.pl`)
+  for the admin money report.
+
+## The lottery (彩券)
+
+`lib/lottery.mjs`, `lib/scratch.mjs`, `lottery-ui.js`.
+
+**11 computer-drawn games** follow Taiwan Lottery's rules and settle
+against the real draws. Taiwan Lottery's public results API sends CORS
+headers, so it's read directly.
+
+| Game | What | Price | Draw |
+| --- | --- | --- | --- |
+| 威力彩 | 6 of 1–38 + 1 of 1–8 | 100 | Mon, Thu 20:30 |
+| 大樂透 | 6 of 1–49 (+ special) | 50 | Tue, Fri 20:30 |
+| 今彩539 | 5 of 1–39 | 50 | Mon–Sat 20:30 |
+| 3星彩 / 4星彩 | 3 / 4 digits (正彩, 組彩, 對彩) | 25 | Mon–Sat 20:30 |
+| 38 / 39 / 49 樂合彩 | 2–5 of 38, 2–4 of 39 / 49, on 威力彩's first zone, 今彩539, 大樂透 | 25 a combination | their parent draw |
+| 賓果賓果 | 1–10 stars of 1–80, 20 drawn | 25 | every 5 min 07:05–23:55 |
+| 雙贏彩 | 12 of 1–24 | 50 | Mon–Sat 20:30 (house draw) |
+| 大福彩 | 7 of 1–40 | 100 | Wed, Sat 20:30 (house draw) |
+
+**How it pays.**
+- **House draws.** 雙贏彩 and 大福彩 are no longer sold, so their numbers
+  come from the real BINGO draw at 20:30, hashed with the game's name;
+  nobody can know them before.
+- **Pool prizes** (威力彩's first two tiers, 大樂透's first four) pay what
+  that draw paid per winner, shared with the real winners. A tier nobody
+  won pays its whole pool.
+- **Tax** on prizes over NT$5,000 is 20.4%.
+- **Sales** close half an hour before an evening draw.
+
+**12 scratch cards** (two at each price, NT$100–2,000), with each price's
+table set to Taiwan Lottery's 2026 cards:
+
+| Price | Pays back | Wins | Top prize |
+| --- | --- | --- | --- |
+| 100 | 63% | 33% | NT$50萬 |
+| 200 | 65% | 33% | NT$200萬 |
+| 300 | 66% | 36% | NT$300萬 |
+| 500 | 70% | 41% | NT$500萬 |
+| 1,000 | 74% | 70% | NT$1,200萬 |
+| 2,000 | 75% | 69% | NT$2,000萬 |
+
+The prize is fixed when the card is bought (the device's crypto random,
+by the table). Scratching on a canvas reveals a face laid out to show
+exactly that prize.
+
+**Buying.**
+- **The game's slip** has slots that fill as numbers are picked; a full
+  zone swaps out its oldest pick; a dot marks the last draw's numbers.
+  快選 fills the rest, and +1/+5/+10 add random lines.
+- **The buy bar** stays in view (multiple, total, 購買), and the prize
+  table folds away.
+- **My tickets** lists waiting and drawn tickets, with the total won.
+
+Tickets live on the account beside the slips and pay into the one pool.
+
+## 紀錄: slips, tickets, 戰績 and stats
+
+- **投注單 (slips).**
+  - A summary row, filters (all, open, won, lost) and groups: 比賽進行中,
+    等待開賽, 已確定沒中, then settled by Taiwan day (the day the last game
+    was played).
+  - Each slip: its mode, games, when bought; a bar with one segment per
+    pick (green won, red lost, grey void, pulsing in play); each pick's
+    state, market tag, odds and, in play, its score and whether it's
+    winning; the large figures (cost, odds, locked in, most it can pay, or
+    payout).
+  - A sentence on where it stands ("1 場目前猜錯，這張串關會輸"). It folds
+    out what the odds said when bought.
+- **彩券 (tickets).**
+- **戰績** (`stats-ui.js`): only wins, over all time, 30 or 7 days. A gold
+  hero with the total won and its rhythm; tiles; 11 achievements with
+  progress; the six biggest moments; the sports that paid most.
+- **統計分析** (`lib/history.mjs`):
+  - **Money**: key numbers against what the odds said to expect; the
+    balance over time; luck against the cut (one standard deviation, how
+    rare).
+  - **Picks**: won against their fair chances (by band and market); by
+    sport, mode and number of picks; streaks and records; week by week.
+  - **How you bet** (`lib/profile.mjs`): the same card as the crowd's
+    people.
+  - **You against 100,000** (§The simulated crowd).
+  - **Fun facts.**
+- **Nothing that talks people out of it.** 戰績 shows only wins; slips
+  show what they paid, never a net or an expected return; the lottery
+  shows prizes, not odds.
+
+## Recommendations
+
+`lib/recommend.mjs`. They're tags on each pick, judged by its average back
+per NT$100 (fair chance × odds) against the others:
+
+| Tag | When |
+| --- | --- |
+| 划算 | Top 10% |
+| 穩 | 65%+ to win and at least the median return |
+| 值博 | 30% or less, in the top quarter |
+
+No tag goes on a locked pick, over 85% or under 5%, a lot under 10 picks,
+or a capped pick (a player's, a house-priced game's).
+
+## The simulated crowd
+
+`lib/sim.mjs`, `sim-worker.js`. About 100,000 people bet on this very
+board by the same rules, each a mix of traits: how they bet, plus
+reactions (chasing losses, cashing out, sulking after a near miss).
+- **Only for analysis**: 紀錄's "you against the crowd", run in a worker
+  only when it's shown. One 1-year run answers every shorter period.
+- **The audit** (`lib/audit.mjs`) checks that no sport or kind of fan does
+  better because of how it's modelled (the tests run it on every sport's
+  typical week).
+
+## Data sources
+
+All read through the kit's `proxyJson` (the sports proxy; Shared-Data's
+season packs and mirror where they hold the read), `lib/sources.mjs`:
+
+| Source | For |
+| --- | --- |
+| ESPN site API (`dates=YYYYMM` month pages, odds included) | Schedules, DraftKings' lines, results, standings, rosters, players' seasons, box scores |
+| Shared-Data season packs and mirror | Seasons, past days, tables, squads, numbers (Play's leagues) |
+| Polymarket (Gamma, trimmed) | Win chances, championships, F1 markets and flags |
+| Kambi (trimmed) | Asian baseball, EuroLeague, NBL, K League odds and live; a game's own markets |
+| The leagues' own month lists (`asia-baseball.quadra`, kit `asiaMonth`) | NPB, KBO, CPBL schedules and finals |
+| F1's live timing (`f1-live.quadra`, kit `f1live.mjs`) | F1 settling at the flag |
+| OpenF1 | Race control (SC, VSC, red flag) |
+| `/kambi` (orbit-workers-proxy) | Kambi matches' last live data after Kambi drops them |
+| Taiwan Lottery's results API (direct) | Draws |
+
+Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
+`photos.mjs`).
+
+## Opening fast, staying still
+
+- **The saved board** (kept 3 days, tied to its shape `SNAPSHOT_V`, not
+  the deploy) is drawn while signing in. The loading screen lifts once
+  today's board, the balance and the games on now have replaced it (at
+  most `SNAPSHOT_WAIT_MS`, 2 s), so nothing reshuffles.
+- **The games on now** (`play.live.v1`, 15 minutes) are drawn at once on a
+  reopen, prices dimmed and not taken until today's swaps in.
+- **The first read** asks for every league at once. The other leagues join
+  as each arrives and are swapped in whole.
+- **Redraws** keep the pictures already on screen (`recycled`), so logos
+  never blink. A game's options are worked out once per contents, never on
+  every redraw.
+- **The slip bar** and big numbers shrink to fit (60% at most), never wrap.
+- **An iOS fix**: empty passive document-wide touch listeners fix iOS's
+  "a tap needs two taps" (do not remove).
+
+## Files
+
+| File | What |
+| --- | --- |
+| `public/app.js` | Rendering: games, sheets, markets, live, F1 and championship boards, the slip, the account, cash out, settling, history, boot, tabs |
+| `public/home.js`, `lottery-ui.js`, `stats-ui.js` | The home tab, the lottery tab, 戰績 |
+| `lib/sources.mjs` | Fetching and parsing ESPN, Polymarket, Kambi, F1; results for settling |
+| `lib/board.mjs` | Every priced option of a game (one pricing path for the page and the crowd); F1's markets |
+| `lib/odds.mjs` | Devig, estimated odds, the slip's rules and analysis, `PARLAY_BOOST` |
+| `lib/rules.mjs` | `BASE_CUT`, `HOUSE_RULES`, the longshot shade, league tiers |
+| `lib/markets.mjs` | Every sport's side markets from a score model |
+| `lib/lines.mjs` | Our own totals |
+| `lib/live.mjs` | Live odds |
+| `lib/house.mjs` | The house's prices from standings |
+| `lib/kambi.mjs`, `offers.mjs` | Kambi's lists, live prices, a game's own markets |
+| `lib/players.mjs`, `props.mjs`, `propmodel.mjs` | Players' markets: rosters and seasons, Kambi's props, the house's model |
+| `lib/schedules.mjs` | Kambi leagues' own schedules |
+| `lib/cashout.mjs` | Cash out |
+| `lib/account.mjs` | The ledger, placing and settling, merging |
+| `lib/history.mjs`, `profile.mjs` | Stats and a bettor's profile |
+| `lib/recommend.mjs`, `foryou.mjs` | Tags and 為你推薦 |
+| `lib/lottery.mjs`, `scratch.mjs` | Draw games and scratch cards |
+| `lib/sim.mjs`, `audit.mjs`, `sim-worker.js` | The crowd and its audit |
+| `lib/teams.mjs` | Leagues (from the catalogue), names, logos, the F1 grid |
+| `lib/codec.mjs` | gzip saves |
+| `lib/i18n.mjs` | Chinese and English |
+| `scripts/stamp-version.mjs` | `?v=` on every file, `version.json` |
+
+## Develop, test, deploy
+
+```bash
+npm test
 ```
 
-Pushing to `main` runs the tests and deploys to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+```bash
+node ../Shared-Proxy/tools/preview.mjs play --webkit
+```
+
+- **Tests**: the odds, cuts and rules, markets, lines, live, house, Kambi,
+  offers, players, F1 (flags, pole), the account and its merging, cash
+  out, the lottery, scratch, the simulator and its audit, postseason, and
+  sources (on fixtures, including real lottery prices:
+  `tests/fixtures/lottery-mlb-2026-09-25.json`,
+  `lottery-f1-2026-09-26.json`, `lottery-live-2026-09-26.json`).
+- **Deploy**: a push to `main` runs the tests and deploys `public/` to
+  Pages, stamped with versions; the kit puts a new deploy in place at once.
+
+## What depends on what
+
+| If you change… | Also check |
+| --- | --- |
+| A cut, a rule or the boost | The crowd (`sim.mjs` uses the same `board.mjs`), the audit, the kit's `truth.mjs` (it mirrors Play's prices), `help.mjs`'s money topics |
+| A market | Its settling (`market-result`, `props.mjs`), cash out's price for it (`livePrice`), the slip's names, `history.mjs` by market |
+| F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports (the same feed) |
+| Kambi's trims | Shared-Proxy's `sports-proxy-worker.js` and `kambi.js` (`/kambi`), Shared-Data's mirror |
+| The account's ledger ids | Merging, the Worker's `ENTRY_APPS`/VIP stakes (kinds `stake`, `lottery`, `refund`), the money report |
+| The league list | `kit/catalog.mjs` (shared with Orbit Sports) |
