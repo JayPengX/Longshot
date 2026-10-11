@@ -2820,7 +2820,7 @@ function savedSlipCard(slip) {
     // A pick in play: green while it would win, red while it would lose.
     el('div', { class: 'leg-bar', role: 'img', 'aria-label': t('slipProgress', { k: decided, n }) }, byStart(slip.legs).map(k => el('span', { class: `seg seg-${states[k]}${states[k] === 'live' ? ` ${liveTone(slip.legs[k])}` : ''}` }))),
     el('p', { class: 'saved-progress' }, [
-      document.createTextNode(t('slipProgress', { k: decided, n })),
+      document.createTextNode(states.includes('moot') ? t('slipProgressMoot', { m: states.filter(st => st === 'moot').length }) : t('slipProgress', { k: decided, n })),
       !settled && nextStart ? el('span', { class: 'muted', text: ` · ${t('slipNextStart', { time: fmtShort(nextStart) })}` }) : null
     ]),
     slipVerdict(slip, states),

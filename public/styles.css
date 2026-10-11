@@ -1467,6 +1467,7 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .cashout-actions { display: flex; }
 .cashout-actions .cashout-btn { flex: 1; }
 .cashout-btn:active:not(:disabled) { transform: scale(0.97); }
-/* A lost slip's games still to play: not counted, shown done (a filled grey bar, the row faded). */
-.seg-moot { background: color-mix(in srgb, var(--text-muted) 45%, transparent) !important; }
+/* A lost slip's games still to play: not counted, shown ended: crossed out in
+   the lost colour (grey read as a game not started, the slip still going). */
+.seg-moot { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--bad) 70%, transparent) 0 2px, color-mix(in srgb, var(--bad) 22%, transparent) 2px 5px) !important; }
 .saved-legs li.leg-moot { opacity: 0.55; }
