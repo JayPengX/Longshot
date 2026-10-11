@@ -42,7 +42,7 @@ const TXT = {
     mine: 'Your bets', seeAll: 'See all', legs: '{n} picks', legsUnit: 'picks', single: 'Single', parlayN: '{n}-pick parlay', cashOut: 'Cash out', paused: 'Suspended', freeBet: 'Free bet',
     lottery: 'Lottery', drawIn: 'Draw {when}', none: 'Games are loading, or none are on sale right now.', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
-    vipNone: 'VIP cashback', vipNoneSub: 'From {v} staked this month, up to {top} back', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipTop: 'Top tier', vipPaid: 'Last month’s {v} paid in',
+    vipNone: 'VIP cashback', vipNoneSub: 'Up to {top} back from {v}', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipTop: 'Top tier', vipPaid: 'Last month’s {v} paid in',
     vipTitle: 'VIP cashback', vipBody: 'A month’s stakes set your tier; the cashback arrives early next month. Free, nothing to sign up for.', vipTier: '{min}+ a month · {back} back',
     welcome: 'Place your first bet and get a {v} free bet',
     forYou: 'For you', why_follow: '★ Following · {team}', why_backed: '↺ Backed · {team}', why_like: '♥ Watching · {team}', why_league: 'Your {league}', why_sport: 'Your {league}', why_value: '🔥 Value', why_steady: '✓ Steady', why_shot: '⚡ Long shot', payLine: '{s} wins {w}', comboMine: 'Your treble',
@@ -179,7 +179,7 @@ export function renderHome(ctx) {
       ]),
       el('button', { class: 'fy-game', type: 'button', onclick: () => ctx.openGame(g.id) }, [
         face ? ctx.logoImg(g.sport, g[face].en, ctx.teamName(g[face]), 'logo-lg') : ctx.leagueImg(g.sport, 'logo-lg'),
-        el('span', { class: 'fy-text' }, [el('strong', { text: bet.shortLabel || bet.label }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${(ctx.shortGameText || ctx.matchupText)(g)}` })])
+        el('span', { class: 'fy-text' }, [el('strong', { text: ctx.shortPick(bet) }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${(ctx.shortGameText || ctx.matchupText)(g)}` })])
       ]),
       el('div', { class: 'fy-foot' }, [el('small', { class: 'num', text: f('payLine', { s: money(STAKE), w: money(Math.round(STAKE * bet.estOdds)) }) }), ctx.pickButton(bet, '')])
     ]);

@@ -243,8 +243,17 @@ function matchupText(game) {
 
 // The same by the teams' short names ("火箭 @ 獨行俠"), for a line under a
 // pick that has a league in front of it too (the full names were cut).
+// A team's short name, for a row with no room for the city: Chinese's
+// nickname (道奇), and in English the same teams' (Dodgers; the American
+// leagues' city + nickname, as the kit's names have them). Else `fallback`.
+const EN_TWO_WORD = /\b(Red Sox|White Sox|Blue Jays|Trail Blazers|Golden Knights|Maple Leafs|Blue Jackets|Red Wings|Red Bulls)$/;
+function shortTeamName(sport, en, fallback) {
+  const zh = en ? teamNameZh(sport, en, familyOf(sport)) : null;
+  if (state.locale === 'zh') return zh?.short || fallback;
+  return zh?.short && zh.short !== zh.full ? EN_TWO_WORD.exec(en)?.[1] || en.split(' ').pop() : fallback;
+}
 function shortGameText(game) {
-  const name = team => (state.locale === 'zh' ? teamNameZh(game.sport, team.en, familyOf(game.sport))?.short : null) || teamName(team);
+  const name = team => shortTeamName(game.sport, team.en, teamName(team));
   return isSoccer(game.sport) ? `${name(game.home)} vs ${name(game.away)}` : `${name(game.away)} @ ${name(game.home)}`;
 }
 
@@ -352,6 +361,7 @@ function optionsOf(game) {
   return options;
 }
 
+const f1MarketsMemo = { key: '', more: null };
 function buildBets(data) {
   const t = state.t;
   const bets = [];
@@ -394,7 +404,11 @@ function buildBets(data) {
       bets.push({ ...w, id: `f1pod|${w.driverEn}`, gameId: `f1pod|${w.driverEn}`, kind: 'f1podium', market: `f1podium|${w.driverEn}`, label: `F1 ${t('f1PodiumShort')} ${w.shortLabel}`, fairChance: p.fair, estOdds: p.odds, errKey: 'extra', lock: p.lock, minLegs: p.minLegs });
     });
     // Top six, top ten, teammates head to head and the winning team.
-    const more = f1Markets(winners.map(b => ({ fair: b.fairChance, odds: b.estOdds, team: b.driver.team })));
+    const field = winners.map(b => ({ fair: b.fairChance, odds: b.estOdds, team: b.driver.team }));
+    // (40,000 drawn races: once for these prices, not on every redraw.)
+    const fieldKey = JSON.stringify(field);
+    if (f1MarketsMemo.key !== fieldKey) Object.assign(f1MarketsMemo, { key: fieldKey, more: f1Markets(field) });
+    const more = f1MarketsMemo.more;
     for (const [key, list, short] of [['f1top6', more.top6, 'f1Top6Short'], ['f1top10', more.top10, 'f1Top10Short']])
       list.forEach((p, i) => {
         const w = winners[i];
@@ -1912,11 +1926,11 @@ function legMain(leg) {
 // A pick with its team's short name where it names one ("布魯克林籃網 -3.5" → "籃網 -3.5").
 function shortPick(leg) {
   const label = shownLabel(leg);
-  if (state.locale !== 'zh') return label;
   for (const side of ['away', 'home']) {
     const en = leg[side] ?? leg.game?.[side]?.en;
-    const zh = en && teamNameZh(leg.sport, en, familyOf(leg.sport));
-    if (zh?.full && zh.short && label.includes(zh.full)) return label.replace(zh.full, zh.short);
+    const full = en && (state.locale === 'zh' ? teamNameZh(leg.sport, en, familyOf(leg.sport))?.full : en);
+    const short = full && shortTeamName(leg.sport, en, null);
+    if (short && short !== full && label.includes(full)) return label.replace(full, short);
   }
   return label;
 }
@@ -1926,7 +1940,7 @@ function shortMatchup(leg) {
   const [away, home] = [leg.away ?? leg.game?.away?.en, leg.home ?? leg.game?.home?.en];
   // A race's pick: the race alone (an older ticket's "新加坡站 排位賽第一" said the tag again and was cut).
   if (!away || !home) return leg.sport === 'f1' ? String(leg.matchup || '').replace(/\s+(排位賽|衝刺|正賽|Pole\b|Qualifying\b|Sprint\b).*$/i, '') : leg.matchup;
-  const name = n => (state.locale === 'zh' ? teamNameZh(leg.sport, n, familyOf(leg.sport))?.short : null) || n;
+  const name = n => shortTeamName(leg.sport, n, n);
   return isSoccer(leg.sport) ? `${name(home)} vs ${name(away)}` : `${name(away)} @ ${name(home)}`;
 }
 
@@ -2678,7 +2692,7 @@ function slipVerdict(slip, states) {
 // 運動家".
 function scoreText(leg, score) {
   // Short names ("火箭 76 : 64 獨行俠"): the full ones were cut on a phone.
-  const name = side => (state.locale === 'zh' ? teamNameZh(leg.sport, leg[side], familyOf(leg.sport))?.short : null) || teamName({ en: leg[side], zh: teamZh(leg.sport, leg[side]) });
+  const name = side => shortTeamName(leg.sport, leg[side], teamName({ en: leg[side], zh: teamZh(leg.sport, leg[side]) }));
   const first = isSoccer(leg.sport) ? ['home', 'away'] : ['away', 'home'];
   return `${name(first[0])} ${score[first[0]]} : ${score[first[1]]} ${name(first[1])}`;
 }
@@ -2708,7 +2722,7 @@ function legSubLine(leg, st) {
   if (live) {
     // The minute, then each side's name around the score: a long name gives way ("阿斯頓維… 2 : 2 布倫特…"), the score never.
     const order = isSoccer(leg.sport) ? ['home', 'away'] : ['away', 'home'];
-    const name = side => (state.locale === 'zh' ? teamNameZh(leg.sport, leg[side], familyOf(leg.sport))?.short : null) || teamName({ en: leg[side], zh: teamZh(leg.sport, leg[side]) });
+    const name = side => shortTeamName(leg.sport, leg[side], teamName({ en: leg[side], zh: teamZh(leg.sport, leg[side]) }));
     const score = `${live[`${order[0]}Score`]} : ${live[`${order[1]}Score`]}`;
     const moved = scoreMoved(`leg|${leg.id}`, score);
     // Each side its small logo (its name where there's none): the names cut each other to 阿斯… 布倫….
@@ -3874,8 +3888,8 @@ topActions(q, { refresh: load });
 // fit its box, instead of wrapping onto a second row on phones. Checked when
 // its text changes and when its box resizes (which also covers a tab showing
 // it for the first time). Only the slip and simulator
-// have such numbers. All reads, then all writes, so the page lays out once.
-const FIT_SELECTOR = '.stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end';
+// have such numbers (and 首頁's picks' names). All reads, then all writes, so the page lays out once.
+const FIT_SELECTOR = '.stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong';
 function fitNumbers(nodes) {
   for (const node of nodes) node.style.fontSize = '';
   const sizes = nodes.map(node => {
@@ -3920,7 +3934,8 @@ if ('ResizeObserver' in window) {
     }
     if (found.size) fitNumbers([...found]);
   });
-  for (const id of ['slip-sheet', 'panel-history', 'account-body']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
+  // (首頁: a 為你推薦 pick's name, whole in its card.)
+  for (const id of ['slip-sheet', 'panel-history', 'account-body', 'panel-home']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
 }
 
 // Tells the page's failsafe (in index.html) that the scripts loaded and started.
@@ -3982,7 +3997,7 @@ function homeCtx() {
   };
   return {
     openSlip: () => openSlip(),
-    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => (state.locale === 'zh' ? teamNameZh(sport, team.en, familyOf(sport))?.short : null) || teamName(team), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, slipRange, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
+    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, slipRange, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, el, svgEl, fmtMoney, fmtInt, fmtPctShort, fmtOdds, fmtTime, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)), youCard, crowdCard, funCard, picksCard, breakdownCard });
 lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets });
@@ -4078,9 +4093,14 @@ async function boot() {
   // second).
   await Promise.race([starting, new Promise(resolve => setTimeout(resolve, 30))]);
   drawSnapshot();
+  // Today's board read while the sign-in is on its way (its reads through
+  // the proxy wait for that sign-in, not a second one), not a round trip
+  // after it. (Under a sign-in link, after: its hand-off is redeemed first.)
+  const handoff = /[#&]q[hp]=/.test(location.hash);
+  let loading = handoff ? null : load();
   const first = await starting;
   state.wallet = first.wallet || q.wallet;
-  const loading = load();
+  loading ??= load();
   state.account = await loadAccount();
   state.accountReady = true;
   if (first && !first.offline) await mergeFirst(first);

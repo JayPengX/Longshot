@@ -320,11 +320,21 @@ export function goalMarkets(means, { family, totalLine }) {
     // 半全場: the half-time and full-time results together (9 outcomes), the
     // second half's goals on their own.
     const second = goalGrid(means, 0.55);
-    const res = (a, h) => (h > a ? 'home' : h === a ? 'draw' : 'away');
+    const res = d => (d < 0 ? 'home' : d === 0 ? 'draw' : 'away');
+    // Only each half's goal difference (away − home) decides it: the halves
+    // summed by difference first (~30 × 30, not every score of one half
+    // against every score of the other, 400 × 400 a game).
+    const byDiff = grid => {
+      const m = new Map();
+      for (const x of grid) m.set(x.away - x.home, (m.get(x.away - x.home) ?? 0) + x.p);
+      return m;
+    };
+    const firstDiff = byDiff(first);
+    const secondDiff = byDiff(second);
     const htft = new Map();
-    for (const x of first) for (const y of second) {
-      const key = `${res(x.away, x.home)}|${res(x.away + y.away, x.home + y.home)}`;
-      htft.set(key, (htft.get(key) ?? 0) + x.p * y.p);
+    for (const [d1, p1] of firstDiff) for (const [d2, p2] of secondDiff) {
+      const key = `${res(d1)}|${res(d1 + d2)}`;
+      htft.set(key, (htft.get(key) ?? 0) + p1 * p2);
     }
     const order = ['home', 'draw', 'away'];
     out.push({ kind: 'htft', market: 'htft', cut: CUT.bands, picks: order.flatMap(ht => order.map(ft => ({ side: `${ht}|${ft}`, ht, ft, fair: htft.get(`${ht}|${ft}`) ?? 0 }))) });
