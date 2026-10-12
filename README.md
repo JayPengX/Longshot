@@ -285,8 +285,28 @@ on another device never pays twice.
 
 ## Settling
 
-On opening 紀錄 (or coming back to it), every open slip whose games have
-started is checked, at most every 90 s, or at once with 檢查結果.
+**The Worker settles** (Shared-Proxy `settle.js`, `/play`; the owner,
+2026-10-12), whether Play is open or not. Play hands it each open slip
+(`lib/settled.mjs watchOpen`: after placing, and any open slip this device
+hasn't handed over yet, at each sync). When a slip's soonest undecided game
+should be over (its start plus its kind's usual length), the Worker reads
+that game once for every slip on it (the kit's `readOutcomes`, the same code
+below), decides each pick (`legResult`), and once the slip is settled
+(`applyResults`) pays the pass's wallet `odds:payout-<slip>` (and
+`odds:plus-<slip>`) and sends the won / lost notice. A game not over is
+looked at again 15 minutes later.
+
+Play applies the Worker's results (`applySettled`: on each sync and with
+紀錄's check, at most once a minute): `applyResults` with the same ids, so
+the payout already in the wallet comes back into the ledger and is never
+paid twice; then tells the Worker to forget them. Cash out first takes the
+slip from the Worker (`takeForCashOut`): a slip it settled meanwhile keeps
+its result (這張已經結算了), and a cashed-out slip is never settled.
+
+On 紀錄 (and home's 你的投注) the open picks' games are still read, at most
+every 90 s, for what's shown: live scores and cash out. This device settles
+a slip itself only when the Worker hasn't 30 hours after its games began
+(`BACKSTOP_MS`: the Worker unreachable), by the same rules and ids.
 
 | What | Settled from |
 | --- | --- |
@@ -310,7 +330,8 @@ never depend on the sources keeping old games.
 
 **Notices** (the kit's `odds` kinds): `slip` (a slip settled), `ticket` (a
 lottery win), `plus` (Plus's weekly bet and renewal). While Play is
-closed, a notice comes when an open slip's last game should be over.
+closed, the Worker tells how a slip went once it settles it (中獎 NT$…,
+投注單沒中).
 
 ## The account, money and Plus
 
@@ -504,6 +525,7 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 | `lib/schedules.mjs` | Kambi leagues' own schedules |
 | `lib/cashout.mjs` | Cash out |
 | `lib/account.mjs` | The ledger, placing and settling, merging |
+| `lib/settled.mjs` | The Worker's settling: handing it open slips, its results, cash out's lock |
 | `lib/history.mjs`, `profile.mjs` | Stats and a bettor's profile |
 | `lib/recommend.mjs`, `foryou.mjs` | Tags and 為你推薦 |
 | `lib/lottery.mjs`, `scratch.mjs` | Draw games and scratch cards |

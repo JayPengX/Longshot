@@ -16,6 +16,7 @@ import {
   WEEKLY_GRANT, newAccount, balance, canClaim, claimGrant, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
+import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
@@ -2056,6 +2057,7 @@ const q = quadraSession('odds', { lang: state.locale });
 let lotteryUi = null;
 let statsUi = null;
 useSourcesSession(q);
+useSettleToken(() => q?.token || '');
 const accountKey = () => `${ACCOUNT_KEY}:${q.pass}`;
 
 // This pass's copy on the device.
@@ -2114,26 +2116,14 @@ const slipLegsLine = slip => {
   const more = names.length > 3 ? (state.locale === 'en' ? ` +${names.length - 3}` : ` 等 ${names.length} 場`) : '';
   return `${names.slice(0, 3).join('、')}${more} · ${fmtMoney(slip.stake, { sign: false })}`;
 };
-// While Play is closed: when an open slip's last game should be over, a
-// notice to come and see how it went (it settles when Play is opened).
-const GAME_HOURS = { baseball: 3.3, football: 3.5, basketball: 2.6, hockey: 2.7, soccer: 2.1, sets: 2.5, racing: 2.2 };
-function syncPush(profile) {
-  const now = Date.now();
-  const items = [];
-  for (const slip of profile?.slips || []) {
-    if (slip.status !== 'open') continue;
-    const ends = slip.legs.map(l => (l.start ? Date.parse(l.start) + (GAME_HOURS[familyOf(l.sport)] || 3) * 3_600_000 : NaN)).filter(Number.isFinite);
-    if (!ends.length) continue;
-    const at = Math.max(...ends);
-    if (at > now && at < now + 30 * 86_400_000) items.push({ at, title: state.t('noticeSlipDone'), body: state.t('noticeSlipDoneBody', { legs: slipLegsLine(slip) }), tag: `slip:${slip.id}`, hash: 'history', kind: 'slip' });
-  }
-  schedulePush(q, items);
-}
+// While Play is closed the Worker tells how a slip went once it's settled
+// (settle.js); the guessed "games are over" notices handed over before are
+// cleared from its list.
+const clearGuessedNotices = () => schedulePush(q, []);
 
 // A slip or lottery ticket just settled: a notice (a banner on screen, a
 // system notice when Play is in the background and they're allowed).
 function noticeSettled(prev, next) {
-  syncPush(next);
   if (!prev) return;
   const was = new Map(prev.slips.map(x => [x.id, x.status]));
   for (const slip of next.slips) {
@@ -2185,6 +2175,9 @@ function syncNow() {
     try {
       await mergeRemote(await q.read({ data: true, inbox: true }));
       state.sync = { ...state.sync, busy: false, at: new Date().toISOString() };
+      // Open slips handed to the Worker to settle; what it settled applied.
+      watchOpen(state.account).catch(() => {});
+      applySettled();
     } catch (error) {
       state.sync = { ...state.sync, busy: false, error: error.code === 'ECO_SESSION_MOVED' ? '' : state.t(error.code === 'TOO_BIG' ? 'syncTooBig' : 'syncFailed') };
     }
@@ -2416,13 +2409,39 @@ function placeButton(legs, sizes, cost, errors, free = null) {
 }
 
 
-// Legs of open slips whose games are over get their results; a slip is paid
-// once every leg is decided. A game still not found three days after its
-// start (postponed and never replayed) counts as void, as the lottery does.
+// Slips are settled by the Worker (lib/settled.mjs) when their games end,
+// whether Play is open or not: its results are applied here (the ledger's
+// own ids: nothing paid twice). This device reads the open picks' games only
+// for what's shown (live scores, cash out), and settles a slip itself only
+// if the Worker hasn't, well after its games began (BACKSTOP_MS: the Worker
+// unreachable), by the same rules. A game still not found three days after
+// its start (postponed and never replayed) counts as void, as the lottery does.
 const RESULT_CHECK_MS = 90_000;
 const VOID_AFTER_MS = 3 * 86_400_000;
+const BACKSTOP_MS = 30 * 3_600_000;
+const SETTLED_EVERY_MS = 60_000;
+let settledAt = 0;
+async function applySettled(force = false) {
+  if (!state.accountReady || !q.active || !state.account.slips.some(s => s.status === 'open')) return;
+  if (!force && Date.now() - settledAt < SETTLED_EVERY_MS) return;
+  settledAt = Date.now();
+  const records = await readSettled().catch(() => null);
+  if (!records) return;
+  const now = new Date();
+  let account = state.account;
+  for (const [id, r] of Object.entries(records)) {
+    if (!Array.isArray(r?.results)) continue;
+    const next = applyResults(account, id, r.results, now, r.finals || []);
+    if (next !== account && next.slips.find(s => s.id === id)?.status === 'settled') state.freshSlips.add(id);
+    account = next;
+  }
+  commitAccount(account);
+  // Settled in this account now: the Worker forgets them.
+  ackSettled(Object.keys(records).filter(id => records[id]?.settled && account.slips.find(s => s.id === id)?.status === 'settled')).catch(() => {});
+}
 async function checkResults(force = false) {
   if (!state.accountReady) return;
+  await applySettled(force);
   let open = state.account.slips.filter(s => s.status === 'open');
   const now = new Date();
   // A slip with nothing left that can pay (a parlay's pick lost) settles now,
@@ -2445,7 +2464,9 @@ async function checkResults(force = false) {
     const outcomes = await fetchOutcomes(pending, now);
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
     let account = state.account;
-    for (const slip of open) {
+    // The Worker's backstop: every pick decided or its game long begun.
+    const late = slip => slip.legs.every(l => l.result || (l.kind !== 'future' && l.start && now.getTime() - Date.parse(l.start) > BACKSTOP_MS));
+    for (const slip of open.filter(late)) {
       const results = slip.legs.map(leg => {
         if (leg.result) return leg.result;
         const result = legResult(leg, outcomes.get(leg.id));
@@ -2598,6 +2619,13 @@ async function doCashOut(slip, value) {
   // The price moved since it was shown: ask again at the new one.
   if (fresh == null) return tell({ lang: state.locale, title: t('cashOutGone'), body: t('cashOutGoneBody') });
   if (!(await ask({ lang: state.locale, icon: '💵', title: t('cashOutAsk', { v: fmtMoney(fresh, { sign: false }) }), body: t('cashOutAskBody', { most: fmtMoney(Math.max(0, slipRange(slip).most), { sign: false }) }), ok: t('cashOutOk'), cancel: t('cashOutKeep') }))) return;
+  // Taken from the Worker first: a slip it settled meanwhile keeps its result.
+  const taken = await takeForCashOut(slip.id).catch(() => null);
+  if (!taken) return tell({ lang: state.locale, title: t('cashOutGone'), body: t('cashOutGoneBody') });
+  if (taken.settled) {
+    await applySettled(true);
+    return tell({ lang: state.locale, title: t('cashOutSettled') });
+  }
   const account = cashOut(state.account, slip.id, cashOutPrice(slip) ?? fresh);
   if (account === state.account) return;
   state.freshSlips.add(slip.id);
@@ -4103,6 +4131,7 @@ async function boot() {
   loading ??= load();
   state.account = await loadAccount();
   state.accountReady = true;
+  clearGuessedNotices();
   if (first && !first.offline) await mergeFirst(first);
   if (!state.account) {
     state.account = freshAccount();
