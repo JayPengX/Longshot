@@ -2229,7 +2229,8 @@ async function applySettled(force = false) {
   let account = state.account;
   for (const [id, r] of Object.entries(records)) {
     if (!Array.isArray(r?.results)) continue;
-    const next = applyResults(account, id, r.results, now, r.finals || []);
+    // Cashed out (on another device): as it was, at its value.
+    const next = r.cashedOut ? cashOut(account, id, r.payout, now) : applyResults(account, id, r.results, now, r.finals || []);
     if (next !== account && next.slips.find(s => s.id === id)?.status === 'settled') state.freshSlips.add(id);
     account = next;
   }
@@ -2417,14 +2418,17 @@ async function doCashOut(slip, value) {
   // The price moved since it was shown: ask again at the new one.
   if (fresh == null) return tell({ lang: state.locale, title: t('cashOutGone'), body: t('cashOutGoneBody') });
   if (!(await ask({ lang: state.locale, icon: '💵', title: t('cashOutAsk', { v: fmtMoney(fresh, { sign: false }) }), body: t('cashOutAskBody', { most: fmtMoney(Math.max(0, slipRange(slip).most), { sign: false }) }), ok: t('cashOutOk'), cancel: t('cashOutKeep') }))) return;
-  // Taken from the Worker first: a slip it settled meanwhile keeps its result.
-  const taken = await takeForCashOut(slip.id).catch(() => null);
-  if (!taken) return tell({ lang: state.locale, title: t('cashOutGone'), body: t('cashOutGoneBody') });
-  if (taken.settled) {
+  // Cashed out by the Worker: the value checked against the house's own,
+  // paid by it (never with settling: a slip it settled meanwhile keeps its result).
+  const asked = cashOutPrice(slip) ?? fresh;
+  const taken = await takeForCashOut(slip.id, asked).catch(() => null);
+  if (taken?.settled) {
     await applySettled(true);
     return tell({ lang: state.locale, title: t('cashOutSettled') });
   }
-  const account = cashOut(state.account, slip.id, cashOutPrice(slip) ?? fresh);
+  if (!taken?.cashedOut) return tell({ lang: state.locale, title: t('cashOutGone'), body: taken?.refused?.value ? t('cashOutMovedBody', { v: fmtMoney(taken.refused.value, { sign: false }) }) : t('cashOutGoneBody') });
+  if (taken.wallet) state.wallet = taken.wallet;
+  const account = cashOut(state.account, slip.id, taken.cashedOut);
   if (account === state.account) return;
   state.freshSlips.add(slip.id);
   commitAccount(account);

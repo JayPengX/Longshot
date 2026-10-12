@@ -133,12 +133,15 @@ export { topInning, legResult, applyResults } from '#kit/settle.mjs';
 export function cashOut(account, slipId, amount, now = new Date()) {
   const slip = account.slips.find(s => s.id === slipId);
   if (!slip || slip.status !== 'open' || slip.recovered || slip.free || !(amount > 0)) return account;
-  if (account.ledger.some(e => e.id === `payout-${slip.id}`)) return account;
   const t = now.toISOString();
   const payout = Math.floor(amount);
   const updated = { ...slip, status: 'settled', settledAt: t, cashedOut: true, gross: payout, payout };
-  const entry = { id: `payout-${slip.id}`, t, kind: 'cashout', amount: payout, slipId: slip.id };
-  return touched({ ...account, ledger: [...account.ledger, entry], slips: account.slips.map(s => (s.id === slipId ? updated : s)) }, now);
+  // Paid already (the Worker's cash out, come back from the wallet): the slip
+  // shows it, nothing paid again.
+  const paid = account.ledger.find(e => e.id === `payout-${slip.id}`);
+  if (paid && paid.kind !== 'cashout') return account;
+  const ledger = paid ? account.ledger : [...account.ledger, { id: `payout-${slip.id}`, t, kind: 'cashout', amount: payout, slipId: slip.id }];
+  return touched({ ...account, ledger, slips: account.slips.map(s => (s.id === slipId ? updated : s)) }, now);
 }
 
 // Two copies of one account (this device's and the synced one) as one: every

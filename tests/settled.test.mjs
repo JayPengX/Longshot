@@ -30,3 +30,16 @@ test('what the Worker is handed of a slip', () => {
   const spec = slipSpec({ id: 'slipwin01', t: 't', mode: 'parlay', sizes: [2], stake: 100, cost: 100, legs: [leg, leg], status: 'open', boost: 1.1, free: 'fb1', freeValue: 200, settledAt: 'x' });
   assert.deepEqual(Object.keys(spec), ['id', 't', 'status', 'mode', 'sizes', 'stake', 'cost', 'legs', 'boost', 'free', 'freeValue']);
 });
+
+test('a slip the Worker cashed out (on another device) shows cashed out, paid once', async () => {
+  const { cashOut } = await import('../public/lib/account.mjs');
+  const placed = placeSlip(newAccount(new Date('2026-10-10T20:00:00Z')), { id: 'slipco0001', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [leg] }, new Date('2026-10-10T20:00:00Z')).account;
+  const wallet = { entries: [...poolEntries(placed), { id: 'odds:payout-slipco0001', t: now.getTime(), app: 'odds', kind: 'cashout', amount: 120 }] };
+  const recovered = recoverFromWallet(placed, wallet);
+  const cashed = cashOut(recovered, 'slipco0001', 120, now);
+  const slip = cashed.slips.find(s => s.id === 'slipco0001');
+  assert.equal(slip.status, 'settled');
+  assert.equal(slip.cashedOut, true);
+  assert.equal(cashed.ledger.filter(e => e.id === 'payout-slipco0001').length, 1);
+  assert.equal(balance(cashed), balance(placed) + 120);
+});

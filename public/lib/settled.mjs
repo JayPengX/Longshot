@@ -72,5 +72,7 @@ export async function placeSlips(slips) {
 export const readSettled = async () => (await call('GET')).settled || {};
 // Applied: the Worker forgets them.
 export const ackSettled = async ids => (ids.length ? call('POST', { op: 'ack', ids }) : null);
-// Cash out: { ok } (go ahead) or { settled: record } (it was settled first).
-export const takeForCashOut = id => call('POST', { op: 'cashout', id });
+// Cash out at `value`: { cashedOut, wallet } (paid by the Worker),
+// { settled: record } (it was settled first) or { refused: { value } } (the
+// house's value now, null: paused).
+export const takeForCashOut = (id, value) => call('POST', { op: 'cashout', id, value });
