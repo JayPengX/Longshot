@@ -18,6 +18,9 @@
 // A team the standings don't list (a cup's guest, a national team) counts as
 // even. Cut like every other price (rules.mjs houseCut).
 import { normalizeTeamName, isSoccer, familyOf } from './teams.mjs';
+// The same side under two spellings: the shared kit's (settle.mjs).
+import { sameSide } from '#kit/settle.mjs';
+export { sameSide };
 
 const ESPN_STANDINGS = 'https://site.api.espn.com/apis/v2/sports';
 
@@ -128,16 +131,6 @@ export async function withHousePrices(games, sport, path, getJson) {
   if (!path || !games.some(g => !priced(g))) return games;
   const table = await loadStrengths(sport, path, getJson).catch(() => new Map());
   return games.map(g => (priced(g) ? g : { ...g, house: housePrices(sport, g.away, g.home, table, { neutral: g.neutral, preseason: g.preseason }) }));
-}
-
-// The same side under two spellings (Kambi's, a league's own, ESPN's): equal,
-// one inside the other, or a shared long word ("Rakuten Monkeys" / "Rakuten").
-export function sameSide(a, b) {
-  const [x, y] = [normalizeTeamName(a), normalizeTeamName(b)];
-  if (!x || !y) return false;
-  if (x === y || x.includes(y) || y.includes(x)) return true;
-  const words = new Set(x.split(' ').filter(w => w.length >= 4));
-  return y.split(' ').some(w => w.length >= 4 && words.has(w));
 }
 
 

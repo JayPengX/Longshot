@@ -6,21 +6,22 @@ import * as kit from '#kit/quadra.mjs';
 const { proxyJson } = kit;
 import { americanToProbability, devigProportional, devigPower } from './odds.mjs';
 import { normalizeTeamName, teamZh, LEAGUES, familyOf, isSoccer, rememberLogo, rememberTeams, hasTeams } from './teams.mjs';
-import { runOrder, shareLeft } from './live.mjs';
-import { KAMBI, kambiUrl, parseKambiEvents, parseKambiInPlay, useKambiToken, fetchKambiLeague, decidedTeamGame, parseKambiLiveData, kambiLiveDataUrl, watchKambiMatches, fetchKeptKambi } from './kambi.mjs';
+import { shareLeft } from './live.mjs';
+import { KAMBI, kambiUrl, parseKambiEvents, parseKambiInPlay, useKambiToken, fetchKambiLeague, watchKambiMatches, fetchKeptKambi } from './kambi.mjs';
 import { KAMBI_LEAGUES } from './teams.mjs';
-import { withHousePrices, sameSide, loadStrengths } from './house.mjs';
+import { withHousePrices, loadStrengths } from './house.mjs';
 import { SOLD_DAYS, ASIA_URL, asiaMonth, asiaMonthOf } from '#kit/catalog.mjs';
 import { parseAsiaSchedule } from './schedules.mjs';
-import { propOutcome } from './props.mjs';
 import { offersUrl, parseOffers } from './offers.mjs';
 import { loadGamePlayers } from './players.mjs';
 
 export const PROXY_URL = 'https://sports-proxy.pengzjay.workers.dev';
+// Reading results and the parsers both the phone and the Worker's settling
+// use: the shared kit's (settle.mjs), one copy.
+import { yyyymmdd, parseJsonArray, futureTeamName, sameGame, sameSide, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, readOutcomes, F1_FLAG_KINDS } from '#kit/settle.mjs';
+export { futureTeamName, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, F1_FLAG_KINDS };
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports';
 const GAMMA = 'https://gamma-api.polymarket.com';
-const OPENF1 = 'https://api.openf1.org/v1';
-export const F1_FLAG_KINDS = new Set(['f1sc', 'f1vsc', 'f1red']);
 const POLYMARKET_TAG = { mlb: 100381, epl: 306, f1: 100389, nba: 745 };
 // Every game on the board starts within this many days (the kit's SOLD_DAYS),
 // whatever its league and whoever prices it: a bookmaker, a market, or the
@@ -28,7 +29,6 @@ const POLYMARKET_TAG = { mlb: 100381, epl: 306, f1: 100389, nba: 745 };
 // answer a month) fill in the rest.
 export const DAYS_AHEAD = SOLD_DAYS;
 const DAILY_DAYS = 7;
-const MATCH_TOLERANCE_MS = 6 * 60 * 60 * 1000;
 const DAY_MS = 86_400_000;
 const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
 
@@ -118,15 +118,6 @@ export const EXTRA_FUTURES = [
   { key: 'f1constructors', sport: 'f1', query: "F1 Constructors' Champion", title: /^F1 Constructors' Champion$/i }
 ];
 
-// The team (or driver) a championship market is about: Polymarket's short
-// name when it has one, else from the question ("Will the X win the ...?",
-// "Will X be (named) the ... Champion?").
-export function futureTeamName(market) {
-  const short = (market.groupItemTitle || '').trim();
-  if (short) return short;
-  return /^Will (?:the )?(.+?) (?:win the|be (?:named )?the) /i.exec(market.question || '')?.[1] ?? null;
-}
-
 // The proxy answers signed-in apps only: the Quadra session (quadra.mjs)
 // supplies the token.
 let session = null;
@@ -171,19 +162,6 @@ const LIVE_TTL = 2_000;
 export function getJson(url, trim) {
   const ttl = ttlFor(url);
   return proxyJson(url, { ttl, trim: trim || '', persist: ttl >= 60_000, timeout: 30_000 });
-}
-
-function yyyymmdd(date) {
-  return date.toISOString().slice(0, 10).replaceAll('-', '');
-}
-
-function parseJsonArray(text) {
-  if (Array.isArray(text)) return text;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
 }
 
 // ---- ESPN (DraftKings) --------------------------------------------------------
@@ -621,23 +599,6 @@ export function parseF1Flags(events, startUtc) {
   return out;
 }
 
-// The race's safety car, VSC and red flag from OpenF1's race control
-// messages, once the race is over: { status, flags: { sc, vsc, red } }.
-export function parseOpenF1Flags(messages) {
-  if (!Array.isArray(messages) || !messages.length) return { status: 'pending' };
-  const text = messages.map(m => String(m.message || '').toUpperCase());
-  const over = text.some(m => m === 'CHEQUERED FLAG' || m === 'SESSION FINISHED' || m === 'RACE WILL NOT RESUME') || messages.some(m => m.flag === 'CHEQUERED');
-  if (!over) return { status: 'pending' };
-  return {
-    status: 'final',
-    flags: {
-      sc: text.some(m => m.startsWith('SAFETY CAR DEPLOYED')),
-      vsc: text.some(m => /^(VIRTUAL SAFETY CAR|VSC) DEPLOYED/.test(m)),
-      red: messages.some(m => m.flag === 'RED') || text.some(m => m.startsWith('RED FLAG'))
-    }
-  };
-}
-
 // The next race weekend's qualifying and race start from ESPN's F1
 // scoreboard: { qualifyingUtc, raceUtc } for the race nearest `startUtc`.
 export function parseF1Schedule(data, startUtc) {
@@ -729,15 +690,6 @@ export async function loadExtraFutures() {
 }
 
 // ---- Merge --------------------------------------------------------------------
-
-function sameGame(a, b) {
-  return (
-    a.sport === b.sport &&
-    normalizeTeamName(a.away) === normalizeTeamName(b.away) &&
-    normalizeTeamName(a.home) === normalizeTeamName(b.home) &&
-    Math.abs(Date.parse(a.startUtc) - Date.parse(b.startUtc)) <= MATCH_TOLERANCE_MS
-  );
-}
 
 // DraftKings team names win (ESPN's naming is the stabler of the two).
 // `scheduled`: the sports whose ESPN schedule was read: a Polymarket game
@@ -854,263 +806,17 @@ export const loadPlayers = game => loadGamePlayers(game, getJson);
 
 // ---- Results (for saved slips) ------------------------------------------------
 
+
+// Each league's ESPN path (its scoreboard), for the live boards.
 const ESPN_PATH = Object.fromEntries(Object.entries(LEAGUES).map(([key, league]) => [key, league.path]));
-const VOID_STATUS = /POSTPONED|CANCELED|CANCELLED|FORFEIT|ABANDONED/;
-
-// Every game on an ESPN scoreboard with how it stands: 'final', 'void'
-// (called off) or 'pending', and for baseball the runs of each inning.
-export function parseEspnResults(data, sport) {
-  const games = [];
-  for (const event of data.events || []) {
-    const comp = event.competitions?.[0];
-    if (!comp) continue;
-    const side = ha => comp.competitors.find(c => c.homeAway === ha);
-    const away = side('away');
-    const home = side('home');
-    if (!away || !home) continue;
-    const type = comp.status?.type || {};
-    const status = VOID_STATUS.test(type.name || '') ? 'void' : type.completed && type.state === 'post' ? 'final' : 'pending';
-    // Soccer settles on 90 minutes: a tie that went to extra time (or
-    // penalties) counts its two halves only.
-    const halves = side => (side.linescores || []).slice(0, 2).reduce((sum, l) => sum + (Number(l.value) || 0), 0);
-    const ninety = isSoccer(sport) && /AET|PEN|EXTRA|SHOOTOUT/i.test(type.name || '') && (away.linescores?.length ?? 0) >= 2 && (home.linescores?.length ?? 0) >= 2;
-    games.push({
-      sport,
-      espnId: event.id,
-      startUtc: new Date(event.date).toISOString(),
-      away: away.team.displayName,
-      home: home.team.displayName,
-      status,
-      awayScore: ninety ? halves(away) : Number(away.score),
-      homeScore: ninety ? halves(home) : Number(home.score),
-      awayInnings: (away.linescores || []).map(l => Number(l.value) || 0),
-      homeInnings: (home.linescores || []).map(l => Number(l.value) || 0),
-      // Where a game in progress is: 'in', ESPN's short detail ("Top 7th",
-      // "Q3 5:21", "67'") and the period number.
-      state: type.state ?? null,
-      detail: type.shortDetail || type.detail || '',
-      period: Number(comp.status?.period) || 0
-    });
-  }
-  return games;
-}
-
-// The race winner from ESPN's F1 scoreboard: { status, winner, podium } for
-// the race nearest `startUtc` (within four days: the pick's start can be the
-// weekend's rather than the race's). ESPN can take hours to mark a race
-// final; its "session complete" already has the finishing order, so it
-// counts as the result too.
-export function parseEspnRace(data, startUtc) {
-  let best = null;
-  for (const event of data.events || []) {
-    for (const comp of event.competitions || []) {
-      if (comp.type?.abbreviation !== 'Race') continue;
-      const gap = Math.abs(Date.parse(comp.date) - Date.parse(startUtc));
-      if (gap <= 4 * DAY_MS && (!best || gap < best.gap)) best = { gap, comp };
-    }
-  }
-  if (!best) return null;
-  const comp = best.comp;
-  const type = comp.status?.type || {};
-  if (VOID_STATUS.test(type.name || '')) return { status: 'void' };
-  if (!type.completed && !/SESSION_COMPLETE|FINAL/.test(type.name || '')) return { status: 'pending' };
-  const ranked = [...(comp.competitors || [])].filter(c => Number(c.order) >= 1).sort((a, b) => Number(a.order) - Number(b.order));
-  const first = (comp.competitors || []).find(c => c.winner) ?? ranked[0];
-  const name = c => c.athlete?.displayName || c.athlete?.fullName;
-  const podium = ranked.slice(0, 3).map(name);
-  // The whole order, for top six and ten, head-to-heads and the winning team.
-  const order = ranked.map(name);
-  return first ? { status: 'final', winner: name(first), ...(podium.length === 3 ? { podium } : {}), ...(order.length >= 10 ? { order } : {}) } : { status: 'pending' };
-}
-
-// The pole-sitter of the qualifying session nearest `startUtc` (a pole
-// pick's start is the qualifying's): { status: 'final', pole } once over.
-export function parseEspnPole(data, startUtc) {
-  let best = null;
-  for (const event of data.events || []) {
-    for (const comp of event.competitions || []) {
-      if (comp.type?.abbreviation !== 'Qual') continue;
-      const gap = Math.abs(Date.parse(comp.date) - Date.parse(startUtc));
-      if (gap <= 2 * DAY_MS && (!best || gap < best.gap)) best = { gap, comp };
-    }
-  }
-  if (!best) return null;
-  const type = best.comp.status?.type || {};
-  if (VOID_STATUS.test(type.name || '')) return { status: 'void' };
-  if (!type.completed && !/SESSION_COMPLETE|FINAL/.test(type.name || '')) return { status: 'pending' };
-  const first = (best.comp.competitors || []).find(c => Number(c.order) === 1);
-  const name = first?.athlete?.displayName || first?.athlete?.fullName;
-  return name ? { status: 'final', pole: name } : { status: 'pending' };
-}
-
-// A championship's winner once Polymarket has resolved the market.
-export function parseFutureResult(events) {
-  const event = events?.[0];
-  if (!event?.closed) return { status: 'pending' };
-  for (const m of event.markets || []) {
-    const name = futureTeamName(m);
-    const outcomes = parseJsonArray(m.outcomes);
-    const prices = parseJsonArray(m.outcomePrices);
-    const yes = Number(prices?.[outcomes?.findIndex(o => /^yes$/i.test(o)) ?? 0]);
-    if (name && yes >= 0.99) return { status: 'final', winner: name };
-  }
-  return { status: 'pending' };
-}
-
-// ESPN files games under the US Eastern date.
-function espnDates(startUtc) {
-  const t = Date.parse(startUtc);
-  return [...new Set([4, 5].map(h => yyyymmdd(new Date(t - h * 3_600_000))))];
-}
 
 // Outcomes for saved-slip legs that have started: legId -> outcome (see
-// legResult in account.mjs). Legs whose results can't be fetched are left out.
+// legResult). The reading is the shared kit's (settle.mjs readOutcomes), the
+// same the Worker settles with; Kambi matches with bets on them are watched
+// by the Worker (their scores kept from now on).
 export async function fetchOutcomes(legs, now = new Date()) {
-  const out = new Map();
-  const kambiGone = [];
-  // Kambi matches with bets on them: the Worker keeps their scores from now on.
   watchKambiMatches(legs.filter(l => LEAGUES[l.sport]?.kambi && l.kambiId)).catch(() => {});
-  const pages = new Map();
-  const page = url => {
-    if (!pages.has(url)) pages.set(url, getJson(url).catch(() => null));
-    return pages.get(url);
-  };
-  await Promise.all(
-    legs.map(async leg => {
-      if (leg.kind === 'future') {
-        if (!leg.eventSlug) return;
-        const events = await page(`${GAMMA}/events?slug=${encodeURIComponent(leg.eventSlug)}`);
-        if (events) out.set(leg.id, parseFutureResult(events));
-        return;
-      }
-      if (!leg.start || Date.parse(leg.start) > now.getTime()) return;
-      if (F1_FLAG_KINDS.has(leg.kind)) {
-        // OpenF1's race control messages for the race nearest the pick's start.
-        const day = new Date(Date.parse(leg.start) - DAY_MS).toISOString().slice(0, 10);
-        const sessions = await page(`${OPENF1}/sessions?session_name=Race&date_start>=${day}`);
-        const race = (Array.isArray(sessions) ? sessions : [])
-          .map(x => ({ key: x.session_key, gap: Math.abs(Date.parse(x.date_start) - Date.parse(leg.start)) }))
-          .filter(x => x.gap < 2 * DAY_MS)
-          .sort((a, b) => a.gap - b.gap)[0];
-        if (race) out.set(leg.id, parseOpenF1Flags(await page(`${OPENF1}/race_control?session_key=${race.key}`)));
-        // No race run within a week of its date (called off): the stake back.
-        else if (Array.isArray(sessions) && now.getTime() - Date.parse(leg.start) > 7 * DAY_MS) out.set(leg.id, { status: 'void' });
-        return;
-      }
-      // F1's own timing first (Orbit Sports' too, the kit's f1live.mjs): a
-      // session over is settled at once, one on stands as it is now (目前會中);
-      // ESPN's results (below) came minutes to hours after the flag.
-      if (leg.kind?.startsWith('f1')) {
-        const kit = await f1Kit;
-        const fed = kit?.f1Outcome && (await kit.f1Outcome(getJson, leg.kind === 'f1pole' ? 'Qualifying' : 'Race', leg.start, now.getTime()).catch(() => null));
-        if (fed) return out.set(leg.id, fed);
-      }
-      if (leg.kind === 'f1pole') {
-        // The qualifying's day and the next (its start is the qualifying's).
-        for (const days of [0, 1]) {
-          const data = await page(`${ESPN}/racing/f1/scoreboard?dates=${yyyymmdd(new Date(Date.parse(leg.start) + days * DAY_MS))}`);
-          const result = data && parseEspnPole(data, leg.start);
-          if (result) return out.set(leg.id, result);
-        }
-        return;
-      }
-      if (leg.kind?.startsWith('f1')) {
-        // The race's day and the two after (the start kept with a pick can be
-        // a little before the race itself).
-        for (const days of [0, 1, 2]) {
-          const data = await page(`${ESPN}/racing/f1/scoreboard?dates=${yyyymmdd(new Date(Date.parse(leg.start) + days * DAY_MS))}`);
-          const result = data && parseEspnRace(data, leg.start);
-          if (result) return out.set(leg.id, result);
-        }
-        return;
-      }
-      const league = LEAGUES[leg.sport];
-      // Tennis and UFC are no longer sold (2026-10-11): a pick still open on
-      // one is void, its stake back.
-      if (!league && ['atp', 'wta', 'ufc'].includes(leg.sport)) return out.set(leg.id, { status: 'void' });
-      // Asian baseball from the league's own list (a game Kambi didn't price):
-      // the final score in its month's list.
-      if (league?.schedule?.asia && !leg.kambiId) {
-        const t = Date.parse(leg.start);
-        const games = await asiaMonth(page, league.schedule.asia, asiaMonthOf(t)).catch(() => []);
-        const g = games.find(x => Math.abs(Date.parse(x.start) - t) < 12 * 3_600_000 && sameSide(x.home?.en, leg.home) && sameSide(x.away?.en, leg.away));
-        if (g) out.set(leg.id, asiaResult(g));
-        return;
-      }
-      // Kambi's sports: the result from the match's own live data, once the
-      // score shows it decided (see decidedTeamGame). Once
-      // Kambi has dropped it, from the Worker's kept copy (below).
-      if (league?.kambi && leg.kambiId) {
-        const live = parseKambiLiveData(await page(kambiLiveDataUrl(leg.kambiId)));
-        if (!live) return kambiGone.push(leg);
-        const result = decidedTeamGame(live, leg.sport, leg.start, now);
-        out.set(leg.id, result ?? kambiInPlay(live, leg.sport));
-        return;
-      }
-      const path = ESPN_PATH[leg.sport];
-      if (!path) return;
-      for (const date of espnDates(leg.start)) {
-        const data = await page(`${ESPN}/${path}/scoreboard?dates=${date}`);
-        const game = data && parseEspnResults(data, leg.sport).find(g => sameGame(g, { sport: leg.sport, away: leg.away, home: leg.home, startUtc: leg.start }));
-        if (game) {
-          // 第N分 needs the order the runs came in: the game's scoring plays;
-          // a player's pick their box score; corners the teams' stats.
-          if ((leg.kind === 'nextrun' || leg.kind === 'prop' || leg.kind === 'corners') && game.status === 'final') {
-            const summary = await page(`${ESPN}/${path}/summary?event=${game.espnId}`);
-            if (!summary) return;
-            if (leg.kind === 'nextrun') out.set(leg.id, { ...game, runOrder: runOrder(summary.plays) });
-            else if (leg.kind === 'prop') {
-              // Kambi settles players' soccer markets on 90 minutes; ESPN's
-              // numbers count extra time: a tie that went on is void.
-              const status = summary.header?.competitions?.[0]?.status?.type?.name || '';
-              const prop = /AET|PEN|EXTRA|SHOOTOUT/i.test(status) && isSoccer(leg.sport) ? { status: 'void' } : propOutcome(leg, summary);
-              if (prop) out.set(leg.id, { ...game, prop });
-            } else {
-              const corners = teamCorners(summary);
-              if (corners) out.set(leg.id, { ...game, corners });
-            }
-            return;
-          }
-          out.set(leg.id, game);
-          return;
-        }
-      }
-    })
-  );
-  if (kambiGone.length) {
-    const kept = await fetchKeptKambi([...new Set(kambiGone.map(l => String(l.kambiId)))]).catch(() => null);
-    for (const leg of kambiGone) {
-      const entry = kept?.get(String(leg.kambiId));
-      const live = entry?.live && parseKambiLiveData({ liveData: entry.live });
-      const result = live && decidedTeamGame(live, leg.sport, leg.start, now, { ended: Boolean(entry.gone) });
-      if (result) out.set(leg.id, result);
-      else if (kambiUnresolvable(leg, entry, now, Boolean(kept))) out.set(leg.id, { status: 'void', reason: 'noResult' });
-      else if (live && !entry.gone) out.set(leg.id, kambiInPlay(live, leg.sport));
-    }
-  }
-  return out;
-}
-
-// Each side's corners from a soccer summary's team stats: { home, away }.
-export function teamCorners(summary) {
-  const teams = summary?.boxscore?.teams || [];
-  const of = side => {
-    const t = teams.find(x => x.homeAway === side);
-    const stat = t?.statistics?.find(x => x.name === 'wonCorners');
-    const n = Number(stat?.displayValue ?? stat?.value);
-    return Number.isFinite(n) ? n : null;
-  };
-  const home = of('home');
-  const away = of('away');
-  return home == null || away == null ? null : { home, away };
-}
-
-// A game in an Asian league's month list as a result: final (its score),
-// void (called off), or still to come.
-export function asiaResult(g) {
-  if (g.state === 'void') return { status: 'void' };
-  if (g.state === 'post' && g.homeScore != null && g.awayScore != null) return { status: 'final', homeScore: Number(g.homeScore), awayScore: Number(g.awayScore), awayInnings: [], homeInnings: [] };
-  return { status: 'pending', state: g.state === 'in' ? 'in' : 'pre' };
+  return readOutcomes(legs, { read: getJson, keptKambi: fetchKeptKambi, now });
 }
 
 // ---- Live (場中) ------------------------------------------------------------------
@@ -1396,25 +1102,6 @@ async function storeTeams(url, teams) {
   } catch {}
 }
 
-// Every Kambi match gets settled: Kambi never publishes results, so when it
-// has dropped the match and the last score kept (by the app or the Worker's
-// watch) can't decide it, the pick is void (the stake comes back), as the
-// lottery does with a match that has no official result. That's once the
-// kept copy is marked gone, or, with nothing kept at all, once the match is
-// surely over (its sport's longest usual length, plus two hours).
-const KAMBI_LONGEST_H = { npb: 6, kbo: 6, cpbl: 6, euroleague: 4, kleague: 4 };
-export function kambiUnresolvable(leg, entry, now = new Date(), watchReachable = true) {
-  if (entry?.gone) return true;
-  const past = now.getTime() - Date.parse(leg.start);
-  const longest = (KAMBI_LONGEST_H[leg.sport] ?? 6) * 3_600_000 + 2 * 3_600_000;
-  // The Worker's copy unreachable: wait longer before calling it void.
-  return !entry?.live && past > (watchReachable ? longest : longest + 12 * 3_600_000);
-}
-
-// A Kambi match in play as an outcome still pending: the score so far.
-export function kambiInPlay(live) {
-  return { status: 'pending', state: 'in', homeScore: live.score.home, awayScore: live.score.away, detail: '' };
-}
 
 // The leagues whose clubs a championship market is about, for their logos
 // (findTeamLogo): the league itself, or for the UEFA competitions every

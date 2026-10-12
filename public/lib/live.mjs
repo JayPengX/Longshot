@@ -367,21 +367,7 @@ export function nextRunOdds(fair) {
   return Math.max(1.01, round2(1 / (priced * NEXT_RUN_OVERROUND)));
 }
 
-// Who scored each run of a game, in order, from ESPN's scoring plays (each
-// carries the score after it): ['home', 'home', 'away', …].
-export function runOrder(plays) {
-  const order = [];
-  let away = 0;
-  let home = 0;
-  for (const play of plays || []) {
-    if (!play.scoringPlay) continue;
-    const a = Number(play.awayScore);
-    const h = Number(play.homeScore);
-    if (!Number.isFinite(a) || !Number.isFinite(h)) continue;
-    for (; away < a; away++) order.push('away');
-    for (; home < h; home++) order.push('home');
-  }
-  return order;
-}
-
 export { round2 };
+// Who scored each run, in order: the shared kit's (settle.mjs).
+import { runOrder } from '#kit/settle.mjs';
+export { runOrder };

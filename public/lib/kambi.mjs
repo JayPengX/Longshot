@@ -8,6 +8,9 @@ import { devigProportional } from './odds.mjs';
 import { LEAGUES, normalizeTeamName, teamZh } from './teams.mjs';
 import { housePrices } from './house.mjs';
 
+// Reading a match's live data and deciding it: the shared kit's (settle.mjs), as the Worker settles.
+import { kambiLiveDataUrl, kambiPeriods, parseKambiLiveData, KAMBI_QUIET_MS, decidedTeamGame } from '#kit/settle.mjs';
+export { kambiLiveDataUrl, kambiPeriods, parseKambiLiveData, KAMBI_QUIET_MS, decidedTeamGame };
 export const KAMBI = 'https://eu-offering-api.kambicdn.com/offering/v2018/ub';
 
 export function kambiUrl(path, kind = 'matches') {
@@ -214,64 +217,3 @@ export async function fetchKeptKambi(ids) {
   return new Map(Object.entries(data.results || {}));
 }
 
-export const kambiLiveDataUrl = id => `${KAMBI}/event/${encodeURIComponent(id)}/livedata.json?lang=en_GB&market=GB`;
-
-// Each period's score, home first ("0-1 | 2-0" for innings, "Q1: 11-16 | Q2: 22-24"
-// for quarters): { home: [...], away: [...] }.
-export function kambiPeriods(info) {
-  const home = [];
-  const away = [];
-  for (const part of String(info || '').split('|')) {
-    const m = /(\d+)\s*-\s*(\d+)\s*$/.exec(part.trim());
-    if (!m) continue;
-    home.push(Number(m[1]));
-    away.push(Number(m[2]));
-  }
-  return { home, away };
-}
-
-// One match's live data: the same shape as parseKambiLive's entries, with
-// each period's score, when the score last changed and the clock.
-export function parseKambiLiveData(data) {
-  const live = Array.isArray(data?.liveData) ? data.liveData[0] : data?.liveData;
-  if (!live?.score) return null;
-  const changed = Number(live.score.version);
-  return {
-    score: { home: Number(live.score.home) || 0, away: Number(live.score.away) || 0 },
-    periods: kambiPeriods(live.score.info),
-    changedAt: Number.isFinite(changed) ? changed : null,
-    clock: live.matchClock ? { period: live.matchClock.periodId || '', left: (Number(live.matchClock.minutesLeftInPeriod) || 0) * 60 + (Number(live.matchClock.secondsLeftInMinute) || 0), running: Boolean(live.matchClock.running) } : null
-  };
-}
-
-// How long a score must stay the same before a finished-looking game counts as over.
-export const KAMBI_QUIET_MS = 30 * 60_000;
-// Innings after which a level baseball game ends level (NPB and CPBL stop at 12, KBO at 11).
-const TIE_INNINGS = { npb: 12, cpbl: 12, kbo: 11 };
-
-// The result of a baseball or basketball game from its live data, or null
-// while it may still be going. `start` is the scheduled start; `ended`: the
-// data is the last Kambi had before dropping the match (kept by the Worker's
-// /kambi watch), so the game is over whenever its score says it can be.
-export function decidedTeamGame(live, sport, start, now = new Date(), { ended = false } = {}) {
-  const family = LEAGUES[sport]?.family;
-  if (!live || (family !== 'baseball' && family !== 'basketball' && family !== 'soccer')) return null;
-  const { home, away } = live.score;
-  const n = live.periods.home.length;
-  const t = now.getTime();
-  const began = Date.parse(start) || 0;
-  // The score's own timestamp when it's a sensible one; if not, a generous
-  // time after the start.
-  const changed = live.changedAt && live.changedAt >= began && live.changedAt <= t + 3_600_000 ? live.changedAt : null;
-  const quiet = ended || (changed ? t - changed >= KAMBI_QUIET_MS : began && t - began >= (family === 'baseball' ? 5 : 3.5) * 3_600_000);
-  let over = false;
-  if (family === 'baseball') over = n >= 9 && quiet && (home !== away || n >= (TIE_INNINGS[sport] ?? 99));
-  // Soccer: a draw stands; over once Kambi has dropped it, or quiet well past full time.
-  else if (family === 'soccer') over = ended || (quiet && began && t - began >= 2.5 * 3_600_000);
-  else {
-    const clockDone = live.clock && !live.clock.running && live.clock.left === 0 && /QUARTER4|OVERTIME|OT/i.test(live.clock.period);
-    over = n >= 4 && home !== away && (ended || (clockDone ? t - (changed ?? 0) >= 5 * 60_000 : quiet));
-  }
-  if (!over) return null;
-  return { status: 'final', homeScore: home, awayScore: away, homeInnings: live.periods.home, awayInnings: live.periods.away };
-}
