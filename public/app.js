@@ -1,5 +1,5 @@
 import {
-  FUTURES_OVERROUND, ODDS_ERROR, estimateF1Odds, f1Phase, estimateFuturesOdds, slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, median, quantile, SLIP_RULES, afterTax, slipErrors, slipSizes, combosBySize, comboCount, estimateLineOdds, MLB_MARKET_OVERROUND
+  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, afterTax, slipErrors, slipSizes, combosBySize, comboCount
 } from './lib/odds.mjs';
 import {
   FANS, STYLES, SPORTS, SIM_SPORTS, sportTemplate, weekOfYear, crowdPools, crowdSize, hashString, simulateCrowd, MONTH_WEEKS, PERIOD_MONTHS, monthWeeks
@@ -10,12 +10,12 @@ import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
 const { personPhoto } = kitPhotos;
-import { inningsLeft, liveBaseball, liveSoccer, liveGoals, livePoints, fitGoals, liveMarkets, liveOdds, pregameRuns, nextRunChances, nextRunOdds, LIVE_MIN_LIQUIDITY, LIVE_THREE_WAY, PERIODS } from './lib/live.mjs';
-import { fitHockey } from './lib/markets.mjs';
+import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
   WEEKLY_GRANT, newAccount, balance, canClaim, claimGrant, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
+import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
 import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
@@ -30,8 +30,8 @@ import { detectLocale, makeT } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
 import { logoPicture, raceName } from '#kit/logos.mjs';
-import { houseRule, houseCut, minLegsProblem, leagueTier, withRules } from './lib/rules.mjs';
-import { gameOptions, offerOptions, crowdPool, f1Podium, f1Markets, f1PoleFromWinner, f1PoleModel } from './lib/board.mjs';
+import { minLegsProblem, leagueTier } from './lib/rules.mjs';
+import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
 
@@ -362,127 +362,45 @@ function optionsOf(game) {
   return options;
 }
 
-const f1MarketsMemo = { key: '', more: null };
+const f1MarketsMemo = {};
+// The board's bets, priced by the kit (play-bets.mjs, the Worker checks a
+// placed bet's price with the same code), each named here.
 function buildBets(data) {
-  const t = state.t;
-  const bets = [];
   for (const game of data.games) {
-    const matchup = matchupText(game);
     // Kambi's own markets of the game once read (loadOffers), whatever read of the board this is.
     if (gameOffers.has(game.id)) game.offers = gameOffers.get(game.id).offers;
     // And its players with their season numbers (players.mjs), once read.
     if (gamePlayers.get(game.id)?.players) game.players = gamePlayers.get(game.id).players;
-    for (const o of optionsOf(game)) bets.push(named(game, o, matchup));
   }
-  if (data.f1) {
-    // Before or after qualifying (said beside the prices; the math is the same).
-    const phase = f1Phase(new Date(), { qualifyingUtc: data.f1.qualifyingUtc, raceUtc: data.f1.startUtc });
-    data.f1.phase = phase;
-    for (const d of data.f1.drivers) {
-      const driver = f1Driver(d.name);
-      const name = state.locale === 'zh' ? driver.zh : d.name;
-      bets.push({
-        id: `f1|${d.name}`,
-        gameId: 'f1',
-        kind: 'f1',
-        sport: 'f1',
-        matchup: raceName(data.f1.title, state.locale),
-        start: data.f1.startUtc,
-        label: `F1 ${name}`,
-        shortLabel: name,
-        driverEn: d.name,
-        driver,
-        fairChance: d.fair,
-        fairMargin: null,
-        errKey: `${phase === 'pre' ? 'f1Pre' : 'f1'}${d.fair < 0.01 ? 'Longshot' : ''}`,
-        estOdds: estimateF1Odds(d.fair)
-      });
-    }
-    // 前三名: the same drivers finishing in the top three.
-    const winners = bets.filter(b => b.kind === 'f1');
-    f1Podium(winners.map(b => ({ fair: b.fairChance, odds: b.estOdds }))).forEach((p, i) => {
-      const w = winners[i];
-      bets.push({ ...w, id: `f1pod|${w.driverEn}`, gameId: `f1pod|${w.driverEn}`, kind: 'f1podium', market: `f1podium|${w.driverEn}`, label: `F1 ${t('f1PodiumShort')} ${w.shortLabel}`, fairChance: p.fair, estOdds: p.odds, errKey: 'extra', lock: p.lock, minLegs: p.minLegs });
-    });
-    // Top six, top ten, teammates head to head and the winning team.
-    const field = winners.map(b => ({ fair: b.fairChance, odds: b.estOdds, team: b.driver.team }));
-    // (40,000 drawn races: once for these prices, not on every redraw.)
-    const fieldKey = JSON.stringify(field);
-    if (f1MarketsMemo.key !== fieldKey) Object.assign(f1MarketsMemo, { key: fieldKey, more: f1Markets(field) });
-    const more = f1MarketsMemo.more;
-    for (const [key, list, short] of [['f1top6', more.top6, 'f1Top6Short'], ['f1top10', more.top10, 'f1Top10Short']])
-      list.forEach((p, i) => {
-        const w = winners[i];
-        bets.push({ ...w, id: `${key}|${w.driverEn}`, gameId: `${key}|${w.driverEn}`, kind: key, market: `${key}|${w.driverEn}`, label: `F1 ${t(short)} ${w.shortLabel}`, fairChance: p.fair, estOdds: p.odds, errKey: 'extra', lock: p.lock, minLegs: p.minLegs });
-      });
-    for (const p of more.h2h) {
-      const w = winners[p.driver];
-      const r = winners[p.rival];
-      bets.push({ ...w, id: `f1h2h|${w.driverEn}|${r.driverEn}`, gameId: `f1h2h|${[w.driverEn, r.driverEn].sort().join('|')}`, kind: 'f1h2h', market: `f1h2h|${[w.driverEn, r.driverEn].sort().join('|')}`, rival: r.driverEn, settle: { rival: r.driverEn }, rivalLabel: r.shortLabel, label: `F1 ${w.shortLabel} ${t('f1H2HBeats')} ${r.shortLabel}`, shortLabel: `${shortDriver(w.driverEn)} ${t('f1H2HBeats')} ${shortDriver(r.driverEn)}`, fairChance: p.fair, estOdds: p.odds, errKey: 'extra', lock: p.lock, minLegs: p.minLegs });
-    }
-    for (const p of more.teams) {
-      bets.push({ id: `f1team|${p.team}`, gameId: 'f1team', kind: 'f1team', sport: 'f1', market: 'f1team', matchup: raceName(data.f1.title, state.locale), start: data.f1.startUtc, team: p.team, label: `F1 ${t('f1TeamShort')} ${p.team}`, shortLabel: p.team, fairChance: p.fair, estOdds: p.odds, errKey: 'extra', lock: p.lock, minLegs: p.minLegs });
-    }
-    // 排位賽第一 (pole position), until qualifying starts: our own estimate
-    // (the season's qualifying form and the race winner's chances), with
-    // Polymarket's or Kambi's prices counted as far as they're traded and
-    // tell the drivers apart (board.mjs f1PoleModel).
-    if (data.f1.qualifyingUtc && (Date.parse(data.f1.qualifyingUtc) > Date.now() || data.f1.qualifyingWaits)) {
-      const model = f1PoleModel({ form: data.f1.qualiForm || [], winners: data.f1.drivers || [], market: data.f1.pole });
-      const pole = model.drivers.length ? model.drivers : f1PoleFromWinner(data.f1.drivers);
-      for (const d of pole) {
-        const w = winners.find(b => normalizeTeamName(b.driverEn) === normalizeTeamName(d.name));
-        const driver = w?.driver ?? f1Driver(d.name);
-        const name = w?.shortLabel ?? (state.locale === 'zh' ? driver.zh : d.name);
-        bets.push({
-          id: `f1pole|${d.name}`,
-          gameId: 'f1pole',
-          kind: 'f1pole',
-          sport: 'f1',
-          market: 'f1pole',
-          // The race alone: the pick's tag already says 排位賽第一.
-          matchup: raceName(data.f1.title, state.locale),
-          start: data.f1.qualifyingUtc,
-          // (Its qualifying late: sold for 2 minutes from the read that saw it hadn't begun; the next read says again.)
-          ...(data.f1.qualifyingWaits ? { waitsUntil: Date.parse(data.loadedAt || '') + 2 * 60_000 || Date.now() + 2 * 60_000 } : {}),
-          label: `F1 ${t('f1PoleShort')} ${name}`,
-          shortLabel: name,
-          driverEn: d.name,
-          driver,
-          poleSource: model.marketWeight >= 0.5 ? data.f1.pole?.source ?? 'model' : 'model',
-          fairChance: d.fair,
-          fairMargin: null,
-          errKey: data.f1.pole ? `f1Pre${d.fair < 0.01 ? 'Longshot' : ''}` : 'extra',
-          estOdds: estimateF1Odds(d.fair)
-        });
-      }
-    }
-    // Safety car, virtual safety car, red flag: yes or no, priced like a
-    // two-way game line.
-    for (const [key, name] of [['sc', 'f1Sc'], ['vsc', 'f1Vsc'], ['red', 'f1Red']]) {
-      const flag = data.f1.flags?.[key];
-      if (!flag) continue;
-      for (const pick of ['yes', 'no']) {
-        const fair = pick === 'yes' ? flag.fair : 1 - flag.fair;
-        const short = `${t(name)} ${t(pick === 'yes' ? 'f1FlagYes' : 'f1FlagNo')}`;
-        bets.push({ id: `f1${key}|${pick}`, gameId: `f1${key}`, kind: `f1${key}`, sport: 'f1', market: `f1${key}`, matchup: raceName(data.f1.title, state.locale), start: data.f1.startUtc, pick, settle: { pick }, flagSource: flag.source, label: `F1 ${short}`, shortLabel: short, fairChance: fair, estOdds: estimateLineOdds(fair, MLB_MARKET_OVERROUND), errKey: 'extra' });
-      }
-    }
-  }
-  // Single-source games: the typical DraftKings-Polymarket gap of that sport.
-  for (const sport of new Set(bets.map(b => b.sport))) {
-    const gaps = bets.filter(b => b.sport === sport && b.fairMargin != null).map(b => b.fairMargin);
-    const typical = median(gaps) ?? 0.02;
-    for (const b of bets) if (b.sport === sport && b.fairMargin == null && (b.kind === 'ml' || b.kind === 'total')) Object.assign(b, { fairMargin: typical, typicalMargin: true });
-  }
-  return withHouseRules(bets);
+  const matchups = new Map();
+  const name = (game, o) => {
+    if (!matchups.has(game.id)) matchups.set(game.id, matchupText(game));
+    return named(game, o, matchups.get(game.id));
+  };
+  return boardBets(data, { optionsOf, name, memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
 }
 
-// The lottery's locks and parlay-only rules (rules.mjs), on every pick
-// (board.mjs already applies them to games; F1 and live picks here).
-function withHouseRules(bets) {
-  for (const b of bets) withRules(b);
-  return bets;
+// An F1 pick's names: drivers in Chinese here, the race's name as its matchup.
+const F1_SHORT = { f1podium: 'f1PodiumShort', f1top6: 'f1Top6Short', f1top10: 'f1Top10Short', f1pole: 'f1PoleShort' };
+const F1_FLAG_NAME = { sc: 'f1Sc', vsc: 'f1Vsc', red: 'f1Red' };
+function nameF1(b, f1) {
+  const t = state.t;
+  const matchup = raceName(f1.title, state.locale);
+  const nameOf = driver => (state.locale === 'zh' ? driver.zh : null);
+  const name = b.driver ? nameOf(b.driver) ?? b.driverEn : '';
+  if (b.kind === 'f1') return { ...b, matchup, label: `F1 ${name}`, shortLabel: name };
+  if (F1_SHORT[b.kind]) return { ...b, matchup, label: `F1 ${t(F1_SHORT[b.kind])} ${name}`, shortLabel: name };
+  if (b.kind === 'f1h2h') {
+    const rival = nameOf(b.rivalDriver) ?? b.rival;
+    return { ...b, matchup, rivalLabel: rival, label: `F1 ${name} ${t('f1H2HBeats')} ${rival}`, shortLabel: `${shortDriver(b.driverEn)} ${t('f1H2HBeats')} ${shortDriver(b.rival)}` };
+  }
+  if (b.kind === 'f1team') return { ...b, matchup, label: `F1 ${t('f1TeamShort')} ${b.team}`, shortLabel: b.team };
+  const flag = F1_FLAG_NAME[b.kind?.slice(2)];
+  if (flag) {
+    const short = `${t(flag)} ${t(b.pick === 'yes' ? 'f1FlagYes' : 'f1FlagNo')}`;
+    return { ...b, matchup, label: `F1 ${short}`, shortLabel: short };
+  }
+  return { ...b, matchup };
 }
 
 // A championship pick's name: drivers as the lottery writes them.
@@ -491,29 +409,14 @@ function futureName(market, team) {
   return teamName(team.name);
 }
 
-// One bet per team of every championship market.
+// One bet per team of every championship market (play-bets.mjs), named here.
 function buildFutures(data) {
   const t = state.t;
-  return withHouseRules((data.futures || []).flatMap(market => {
-    const odds = estimateFuturesOdds(market.teams.map(team => team.fair), FUTURES_OVERROUND[market.key] ?? FUTURES_OVERROUND[market.sport] ?? FUTURES_OVERROUND.other);
-    const title = t(`future_${market.key}`, { season: market.season });
-    return market.teams.map((team, i) => ({
-      id: `fut|${market.key}|${team.name.en}`,
-      gameId: `fut|${market.key}`,
-      kind: 'future',
-      market: market.key,
-      sport: market.sport,
-      matchup: title,
-      label: `${title} ${futureName(market, team)}`,
-      shortLabel: futureName(market, team),
-      teamEn: team.name.en,
-      eventSlug: market.slug,
-      fairChance: team.fair,
-      fairMargin: null,
-      errKey: ODDS_ERROR[`future_${market.key}`] ? (team.fair < 0.004 && market.sport !== 'nba' ? 'futureLongshot' : `future_${market.key}`) : 'futureOther',
-      estOdds: odds[i]
-    }));
-  }));
+  return futureBets(data.futures).map(b => {
+    const title = t(`future_${b.futureMarket.key}`, { season: b.futureMarket.season });
+    const name = futureName(b.futureMarket, b.futureTeam);
+    return { ...b, matchup: title, label: `${title} ${name}`, shortLabel: name };
+  });
 }
 
 function effectiveOdds(bet) {
@@ -1325,151 +1228,27 @@ function liveStateText(live) {
   return live.half === 'top' || live.half === 'bottom' ? `${text} ${t('liveOuts', { n: live.outs })}` : text;
 }
 
-// Kambi's live prices for one match (Asian baseball, EuroLeague, K League),
-// at the house's live cut.
-function kambiLiveBets(game, g, base) {
-  const t = state.t;
-  const bets = [];
-  const k = houseCut({ base: 'live', sport: game.sport });
-  const common = { ...base, fairMargin: null, errKey: 'liveOther', cut: k };
-  if (g.ml) {
-    // Soccer's three results at the live three-way cut.
-    const k3 = houseCut({ base: LIVE_THREE_WAY, sport: game.sport });
-    for (const side of g.ml.draw != null ? ['home', 'draw', 'away'] : ['away', 'home']) {
-      const name = side === 'draw' ? t('draw') : teamName(game[side]);
-      const cut = side === 'draw' || g.ml.draw != null ? k3 : k;
-      bets.push({ ...common, cut, id: `${game.id}|ml|${side}`, kind: 'ml', side, market: 'ml', posted: true, fairChance: g.ml[side], estOdds: liveOdds(g.ml[side], cut), chip: name, label: side === 'draw' ? `${base.matchup} ${name}` : `${name} ${t('win')}`, shortLabel: name });
-    }
-  }
-  if (g.spread) {
-    const { awayLine, awayFair } = g.spread;
-    for (const side of ['away', 'home']) {
-      const line = side === 'away' ? awayLine : -awayLine;
-      const p = side === 'away' ? awayFair : 1 - awayFair;
-      const text = `${teamName(game[side])} ${fmtLine(line)}`;
-      bets.push({ ...common, id: `${game.id}|rl|${line}|${side}`, kind: 'runline', side, market: `rl|${awayLine}`, posted: true, runLine: line, awayLine, giver: awayLine < 0 ? 'away' : 'home', fairChance: p, estOdds: liveOdds(p, k), chip: text, label: text, shortLabel: `${t('runLine')} ${text}` });
-    }
-  }
-  if (g.total) {
-    const { line, overFair } = g.total;
-    for (const side of ['over', 'under']) {
-      const p = side === 'over' ? overFair : 1 - overFair;
-      bets.push({ ...common, id: `${game.id}|tot|${line}|${side}`, kind: 'total', side, market: `total|${line}`, posted: true, totalLine: line, mainLine: true, fairChance: p, estOdds: liveOdds(p, k), chip: t(side), label: `${base.matchup} ${t(side)} ${line}`, shortLabel: `${t(side)} ${line}` });
-    }
-  }
-  return bets;
-}
-
-// An open live game's own Kambi markets (lines, halves, players …), read
-// while it's open (wantOffers): each kind Kambi prices takes the model's place.
-function liveOfferBets(game, bets) {
-  const offers = gameOffers.get(game.id)?.offers;
-  if (!offers) return [];
-  const matchup = matchupText(game);
-  const real = offerOptions(game, offers, { live: true, matchup }).filter(o => o.kind !== 'ml').map(o => named(game, o, matchup));
-  const kinds = new Set(real.map(b => b.kind));
-  for (let i = bets.length - 1; i >= 0; i--) if (bets[i].gameId === game.id && kinds.has(bets[i].kind)) bets.splice(i, 1);
-  return real;
-}
-
-// Every live game as a game card's data, and its bets at live odds.
+// Every live game as a game card's data, and its bets at live odds
+// (play-bets.mjs liveBets), named here.
 function buildLiveBets(data) {
   const t = state.t;
-  const games = [];
-  const bets = [];
-  for (const g of data?.kambi ?? []) {
-    const game = {
-      id: `live|${g.sport}|k${g.kambiId}`,
-      kambiId: g.kambiId,
-      sport: g.sport,
-      startUtc: g.startUtc,
-      away: { en: g.away, zh: teamZh(g.sport, g.away) },
-      home: { en: g.home, zh: teamZh(g.sport, g.home) },
-      group: g.group || '',
-      live: { ...g, book: 'kambi' }
-    };
-    games.push(game);
-    bets.push(...kambiLiveBets(game, g, { gameId: game.id, game, sport: g.sport, matchup: matchupText(game), start: g.startUtc, live: true }));
-    bets.push(...liveOfferBets(game, bets));
-  }
-  for (const g of data?.games ?? []) {
-    const pre = g.pregame;
-    const family = familyOf(g.sport);
-    let dist = null;
-    let markets = null;
-    // No pregame line (the model has nothing to go on): Kambi's live prices alone.
-    if (!pre) {
-      if (!g.kambi) continue;
-    } else if (family === 'baseball') {
-      if (!pre.totalLine && !g.kambi) continue;
-      if (pre.totalLine) {
-        const means = pregameRuns({ homeWin: pre.homeWin, totalLine: pre.totalLine, overFair: pre.overFair });
-        const left = inningsLeft(g);
-        dist = liveBaseball({ means, awayScore: g.awayScore, homeScore: g.homeScore, awayLeft: left.away, homeLeft: left.home });
+  const { games, bets } = liveBets(data, { offersOf: game => gameOffers.get(game.id)?.offers ?? null });
+  const matchups = new Map(games.map(g => [g.id, matchupText(g)]));
+  return {
+    games,
+    bets: bets.map(b => {
+      const matchup = matchups.get(b.gameId);
+      if (b.kind === 'nextrun') {
+        const name = b.side === 'none' ? t('nextRunNone') : teamName(b.game[b.side]);
+        const label = `${t('nextRunN', { n: b.runN })} ${name}`;
+        return { ...b, matchup, marketLabel: t('nextRunN', { n: b.runN }), chip: name, label: `${matchup} ${label}`, shortLabel: label };
       }
-    } else if (family === 'soccer') {
-      if (!(pre.draw > 0) && !g.kambi) continue;
-      if (pre.draw > 0) dist = liveSoccer({ means: fitGoals(pre.homeWin, pre.awayWin), awayScore: g.awayScore, homeScore: g.homeScore, minutesLeft: 90 - g.minute });
-    } else if (family === 'hockey') {
-      const total = pre.totalLine ? { line: pre.totalLine, overFair: pre.overFair } : null;
-      dist = g.left > 0.01 ? liveGoals({ means: fitHockey(pre.homeWin, total), awayScore: g.awayScore, homeScore: g.homeScore, share: g.left }) : null;
-    } else markets = livePoints({ sport: g.sport, pre, awayScore: g.awayScore, homeScore: g.homeScore, left: g.left });
-    const game = {
-      id: `live|${g.sport}|${g.espnId}`,
-      espnId: g.espnId,
-      sport: g.sport,
-      startUtc: g.startUtc,
-      away: { en: g.away, zh: teamZh(g.sport, g.away) },
-      home: { en: g.home, zh: teamZh(g.sport, g.home) },
-      ...(g.kambi?.kambiId ? { kambiId: g.kambi.kambiId } : {}),
-      live: { ...g, pmWin: g.pm?.awayWin ?? null }
-    };
-    games.push(game);
-    // Rain delay or suspended: no live odds until play resumes.
-    if (g.delayed) continue;
-    const matchup = matchupText(game);
-    const base = { gameId: game.id, game, sport: g.sport, matchup, start: g.startUtc, live: true, fairMargin: null, errKey: g.sport === 'mlb' ? 'live' : family === 'soccer' ? 'liveSoccer' : 'liveOther' };
-    // The live cut (soccer's winner at its three-way one), more for the leagues the house knows less.
-    const cut = { ml: houseCut({ base: family === 'soccer' ? LIVE_THREE_WAY : 'live', sport: game.sport }), other: houseCut({ base: 'live', sport: game.sport }) };
-    for (const m of markets ?? (dist ? liveMarkets(dist, { sport: g.sport, awayScore: g.awayScore, homeScore: g.homeScore, pm: g.pm }) : [])) {
-      const k = m.kind === 'ml' ? cut.ml : cut.other;
-      const common = { ...base, kind: m.kind, side: m.side, market: m.market, posted: m.posted, fairChance: m.fair, cut: k, estOdds: liveOdds(m.fair, k) };
-      if (m.kind === 'ml') {
-        const name = m.side === 'draw' ? t('draw') : teamName(game[m.side]);
-        bets.push({ ...common, id: `${game.id}|ml|${m.side}`, chip: name, label: m.side === 'draw' ? `${matchup} ${name}` : `${name} ${t('win')}`, shortLabel: name });
-      } else if (m.kind === 'total') {
-        bets.push({ ...common, id: `${game.id}|tot|${m.line}|${m.side}`, totalLine: m.line, mainLine: m.main, chip: t(m.side), label: `${matchup} ${t(m.side)} ${m.line}`, shortLabel: `${t(m.side)} ${m.line}` });
-      } else if (m.kind === 'runline') {
-        const text = `${teamName(game[m.side])} ${fmtLine(m.line)}`;
-        bets.push({ ...common, id: `${game.id}|rl|${m.line}|${m.side}`, runLine: m.line, awayLine: m.awayLine, giver: m.giver, chip: text, label: text, shortLabel: `${t('runLine')} ${text}` });
-      } else if (m.kind === 'teamtotal') {
-        const text = `${teamName(game[m.team])} ${t(m.side)} ${m.line}`;
-        bets.push({ ...common, id: `${game.id}|tt|${m.team}|${m.line}|${m.side}`, team: m.team, teamLine: m.line, chip: t(m.side), label: text, shortLabel: text });
-      }
-    }
-    // Kambi's live prices take the place of the model's where it has them.
-    if (g.kambi) {
-      const real = kambiLiveBets(game, g.kambi, { gameId: game.id, game, sport: g.sport, matchup, start: g.startUtc, live: true });
-      const kinds = new Set(real.map(b => b.kind));
-      for (let i = bets.length - 1; i >= 0; i--) if (bets[i].gameId === game.id && kinds.has(bets[i].kind)) bets.splice(i, 1);
-      bets.push(...real);
-    }
-    // 第N分: the next two runs of the game.
-    if (g.sport === 'mlb' && pre?.totalLine) {
-      const means = pregameRuns({ homeWin: pre.homeWin, totalLine: pre.totalLine, overFair: pre.overFair });
-      for (const ahead of [1, 2]) {
-        const n = g.awayScore + g.homeScore + ahead;
-        const chances = nextRunChances({ means, state: g, runsAhead: ahead });
-        for (const side of ['away', 'none', 'home']) {
-          const name = side === 'none' ? t('nextRunNone') : teamName(game[side]);
-          const label = `${t('nextRunN', { n })} ${name}`;
-          bets.push({ ...base, id: `${game.id}|nr|${n}|${side}`, kind: 'nextrun', side, runN: n, market: `nr|${n}`, marketLabel: t('nextRunN', { n }), posted: true, fairChance: chances[side], estOdds: nextRunOdds(chances[side]), errKey: 'liveNextRun', chip: name, label: `${matchup} ${label}`, shortLabel: label });
-        }
-      }
-    }
-    bets.push(...liveOfferBets(game, bets));
-  }
-  return { games, bets: withHouseRules(bets) };
+      const out = named(b.game, b, matchup);
+      // The model's and Kambi's live lines go under their market's own heading.
+      if (!b.fromOffers) delete out.marketLabel;
+      return out;
+    })
+  };
 }
 
 function renderLive() {
@@ -2767,7 +2546,6 @@ function legSubLine(leg, st) {
   }
   if (leg.result && leg.final) {
     const f = leg.final;
-    const order = isSoccer(leg.sport) ? ['home', 'away'] : ['away', 'home'];
     const text = f.winner ? `${t('finalWinner')} ${String(f.winner).replace(/^[A-Z]{1,3}\.(?=[\u4e00-\u9fff])/, '')}` : `${t('finalScore')} ${scoreText(leg, f)}`;
     return el('small', { class: 'leg-sub', text });
   }
