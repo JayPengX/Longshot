@@ -285,6 +285,14 @@ on another device never pays twice.
 
 ## Settling
 
+**Placing goes through the Worker** (the owner's lock-down, 2026-10-12:
+the proxy is the only one adding money): 確認下注 sends the slip
+(`placeSlips`); the Worker prices every pick again with the same code and
+takes the stake, or says the price moved (賠率變了, the board read again).
+Cash out (`takeForCashOut`) and lottery tickets and scratch cards
+(`buyTickets`, `buyCard`, `revealCard`) are bought and paid there too; the
+pass refuses money any app adds itself.
+
 **The Worker settles** (Shared-Proxy `settle.js`, `/play`; the owner,
 2026-10-12), whether Play is open or not. Play hands it each open slip
 (`lib/settled.mjs watchOpen`: after placing, and any open slip this device
@@ -304,9 +312,8 @@ slip from the Worker (`takeForCashOut`): a slip it settled meanwhile keeps
 its result (這張已經結算了), and a cashed-out slip is never settled.
 
 On 紀錄 (and home's 你的投注) the open picks' games are still read, at most
-every 90 s, for what's shown: live scores and cash out. This device settles
-a slip itself only when the Worker hasn't 30 hours after its games began
-(`BACKSTOP_MS`: the Worker unreachable), by the same rules and ids.
+every 90 s, for what's shown: live scores and cash out. Only the Worker
+settles and pays.
 
 | What | Settled from |
 | --- | --- |
