@@ -2,8 +2,9 @@
 // scratch cards (lib/scratch.mjs), bought with the Quadra balance. Tickets
 // live on the account next to the slips, settle against the real draws as
 // they come out, and pay into the same pool.
-import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, dueTickets, drawFor, latestResults, choose } from './lib/lottery.mjs';
+import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
 import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize } from './lib/scratch.mjs';
+import { buyTickets, buyCard as sellCard, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
 import { ask, tell } from '#kit/quadra.mjs';
@@ -15,7 +16,7 @@ const T = {
     stars: '星數', sideTitle: '其他玩法', big: '大', small: '小', odd: '單', even: '雙', bullseye: '超級獎號', latest: '最近開獎', open: '待開獎', won: '中獎', lost: '未中獎',
     today: '今天', yesterday: '昨天', filterAll: '全部', filterWins: '只看中獎', noWins: '還沒有中獎', daySum: '花 {spent}', dayNone: '沒中獎', outWon: '中獎 {v}', outNone: '沒中獎', dayNet: '淨 {v}', earlier: '更早的 {n} 天', groupWon: '{n} 張中 {k} 張，共 {v}', groupLost: '{n} 注都沒中', cardsLost: '{n} 張都沒中',
     drawAt: '{when} 開獎', noTickets: '還沒有彩券', buyCard: '購買 {price}', scratchAll: '一次刮開', scratchHint: '刮開銀色區域', youWon: '恭喜中獎！', noWin: '沒有中獎',
-    top: '最高 {v}', winRateShort: '中獎率 {p}%', bought: '已購買', funds: '餘額不足', fundsBody: '需要 {v}', closed: '本期已截止', house: 'Quadra 開獎', perBet: '{v} / 注', how: '玩法', winNumbers: '中獎號碼', yourNumbers: '你的號碼', dealer: '莊家', you: '你', prizeCol: '獎金',
+    top: '最高 {v}', winRateShort: '中獎率 {p}%', bought: '已購買', funds: '餘額不足', fundsBody: '需要 {v}', closed: '本期已截止', failed: '現在無法購買，稍後再試', house: 'Quadra 開獎', perBet: '{v} / 注', how: '玩法', winNumbers: '中獎號碼', yourNumbers: '你的號碼', dealer: '莊家', you: '你', prizeCol: '獎金',
     called: '開出號碼', prizes: '獎項', unscratched: '未刮開', every5: '每 5 分鐘開獎', mult: '倍數 ×{m}', settled: '已開獎',
     quick1: '快選 1 注', quickN: '快選 {n} 注', addLine: '加入這注', lines: '已選 {n} 注', remove: '移除', buyAll: '購買 {n} 注 · {v}', boughtN: '已買 {n} 注，共 {v}', seeTickets: '看我的彩券', again: '再買', inMin: '{n} 分鐘後開獎', inHour: '{h} 小時 {m} 分後開獎', picked: '已選 {k}/{n}', starsN: '{n} 星', pickHint: '點下面的號碼，或用快選', slipN: '第 {n} 注', topPrize: '最高獎金', fillRest: '隨機補滿', addNext: '加入，選下一注', quickLines: '快選整注', clearAll: '全部清除', zone1: '第一區', bingoHint: '點 1–10 個號碼，或下面選大小單雙', lastLegend: '上期開出', anyPrize: '任一獎 1/{n}', odds: '機率', oneIn: '1/{n}', yourPick: '你的號碼', waiting: '等待開獎', drawnList: '已開獎', openSum: '{n} 張待開獎', wonSum: '累計中獎 {v}', basketHint: '可以一次買好幾注', sureTitle: '確定購買？', sureBody: '{what} · {v}', sureOk: '購買 {v}'
   },
@@ -25,7 +26,7 @@ const T = {
     stars: 'Stars', sideTitle: 'Other plays', big: 'Big', small: 'Small', odd: 'Odd', even: 'Even', bullseye: 'Super number', latest: 'Latest draw', open: 'Awaiting draw', won: 'Won', lost: 'No win',
     today: 'Today', yesterday: 'Yesterday', filterAll: 'All', filterWins: 'Wins only', noWins: 'No wins yet', daySum: 'Spent {spent}', dayNone: 'No wins', outWon: 'Won {v}', outNone: 'No prize', dayNet: 'Net {v}', earlier: '{n} earlier days', groupWon: '{k} of {n} won, {v}', groupLost: 'No win on {n} bets', cardsLost: 'No win on {n} cards',
     drawAt: 'Draw {when}', noTickets: 'No tickets yet', buyCard: 'Buy {price}', scratchAll: 'Scratch all', scratchHint: 'Scratch the silver', youWon: 'You won!', noWin: 'No win this time',
-    top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', house: 'Quadra draw', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Winning numbers', yourNumbers: 'Your numbers', dealer: 'Dealer', you: 'You', prizeCol: 'Prize',
+    top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', house: 'Quadra draw', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Winning numbers', yourNumbers: 'Your numbers', dealer: 'Dealer', you: 'You', prizeCol: 'Prize',
     called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'A draw every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
     quick1: 'Quick pick 1', quickN: 'Quick pick {n}', addLine: 'Add this bet', lines: '{n} bets chosen', remove: 'Remove', buyAll: 'Buy {n} · {v}', boughtN: 'Bought {n} bets, {v}', seeTickets: 'My tickets', again: 'Buy more', inMin: 'Draw in {n} min', inHour: 'Draw in {h}h {m}m', picked: '{k}/{n} picked', starsN: '{n} stars', pickHint: 'Tap numbers below, or quick pick', slipN: 'Bet {n}', topPrize: 'Top prize', fillRest: 'Fill the rest', addNext: 'Add, next bet', quickLines: 'Quick-pick bets', clearAll: 'Clear all', zone1: 'Zone 1', bingoHint: 'Tap 1–10 numbers, or pick big/small/odd/even below', lastLegend: 'In the last draw', anyPrize: 'Any prize 1 in {n}', odds: 'Odds', oneIn: '1 in {n}', yourPick: 'Your numbers', waiting: 'Awaiting the draw', drawnList: 'Drawn', openSum: '{n} awaiting a draw', wonSum: 'Won so far {v}', basketHint: 'Buy several at once', sureTitle: 'Buy this?', sureBody: '{what} · {v}', sureOk: 'Buy for {v}'
   }
@@ -92,24 +93,28 @@ export function mountLottery(ctx) {
   // stray tap spent money.
   const confirmBuy = (icon, title, body) => ask({ lang, icon, title, body, ok: t('buy'), cancel: t('cancel') });
   // Buys a list of selections, one ticket each; { bought, cost } or { error }.
-  function buyLines(id, lines, multiple) {
+  // Checked here first (the selection, the draw, the balance), then sold by
+  // the Worker (lib/settled.mjs buyTickets: its draw, the cost from the
+  // pass), and its tickets kept as they are.
+  async function buyLines(id, lines, multiple) {
     let account = ctx.getAccount();
-    let cost = 0;
-    let bought = 0;
+    const asked = [];
     for (const sel of lines) {
       const r = buyTicket(account, { id: newSlipId(), game: id, sel: structuredClone(sel), multiple }, new Date(), { extra: extra(account) });
       if (r.error) {
-        if (!bought) return { error: r.error };
+        if (!asked.length) return { error: r.error };
         break;
       }
       account = r.account;
-      cost += r.ticket.cost;
-      bought++;
+      asked.push(r.ticket);
     }
-    ctx.commitAccount(account);
+    const sold = await buyTickets(asked.map(x => ({ id: x.id, game: x.game, sel: x.sel, multiple: x.multiple }))).catch(() => null);
+    if (!sold?.tickets) return { error: sold?.refused ? (sold.refused.problem === 'funds' ? 'funds' : 'closed') : 'failed' };
+    ctx.setWallet(sold.wallet);
+    ctx.commitAccount(addTickets(ctx.getAccount(), sold.tickets));
     ctx.track([`lotto:${id}`], 1);
     ctx.syncNow();
-    return { bought, cost };
+    return { bought: sold.tickets.length, cost: sold.tickets.reduce((s, x) => s + x.cost, 0) };
   }
 
   // ---- Settling: every open ticket whose draw is out --------------------------------
@@ -278,8 +283,8 @@ export function mountLottery(ctx) {
             disabled: bets && d ? null : '',
             onclick: async () => {
               if (!(await confirmBuy(GAMES[id].icon || '🎱', t('buyAsk', { n: bets, v: money(cost) }), t('buyAskBody', { name: GAMES[id][lang] || '' })))) return;
-              const r = buyLines(id, lines, st.multiple);
-              if (r.error) return void ((st.msg = t(r.error === 'funds' ? 'funds' : 'closed')), paint());
+              const r = await buyLines(id, lines, st.multiple);
+              if (r.error) return void ((st.msg = t(r.error === 'funds' ? 'funds' : r.error === 'failed' ? 'failed' : 'closed')), paint());
               st.done = { ...r, lines: lines.slice(0, r.bought).map(x => structuredClone(x)) };
               st.lines = [];
               st.sel = blankSel(id);
@@ -485,11 +490,16 @@ export function mountLottery(ctx) {
   }
   async function buyCard(id) {
     if (!(await confirmBuy(CARDS[id].icon, t('scratchAsk', { name: CARDS[id][lang] }), t('scratchAskBody', { v: money(CARDS[id].price) })))) return;
+    // Checked here first (the balance), then bought from the Worker, which
+    // draws the card's prize (lib/settled.mjs buyCard).
     const r = buyScratch(ctx.getAccount(), { id: newSlipId(), card: id }, new Date(), { extra: extra() });
     if (r.error) return void tell({ lang, icon: '💸', title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) });
-    ctx.commitAccount(r.account);
+    const sold = await sellCard(r.ticket.id, id).catch(() => null);
+    if (!sold?.ticket) return void (sold?.refused?.problem === 'funds' ? tell({ lang, icon: '💸', title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) }) : tell({ lang, icon: '⏳', title: t('failed') }));
+    ctx.setWallet(sold.wallet);
+    ctx.commitAccount(addTickets(ctx.getAccount(), [sold.ticket]));
     ctx.track([`scratch:${id}`], 1);
-    openScratch(r.ticket.id);
+    openScratch(sold.ticket.id);
   }
 
   function openScratch(ticketId) {
@@ -503,6 +513,8 @@ export function mountLottery(ctx) {
     const done = () => {
       if (ctx.getAccount().tickets.find(x => x.id === ticketId)?.status === 'open') {
         ctx.commitAccount(revealScratch(ctx.getAccount(), ticketId));
+        // The prize paid by the Worker (the same id: once); asked again at the next sync if this one fails.
+        revealCard(ticketId).then(r => r?.wallet && ctx.setWallet(r.wallet)).catch(() => {});
         ctx.syncNow();
         if (pays) navigator.vibrate?.([30, 40, 60]);
       }

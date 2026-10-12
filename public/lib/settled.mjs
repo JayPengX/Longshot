@@ -46,8 +46,10 @@ function markWatched(ids) {
   } catch {}
 }
 // Every open slip not handed over yet (placed here, or on another device, or
-// before the Worker settled them).
+// before the Worker settled them), and every open lottery ticket and scratch
+// card bought before tickets were sold by the Worker.
 export async function watchOpen(account) {
+  await watchTickets(account).catch(() => {});
   const open = (account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
   const watched = readWatched();
   const todo = open.filter(s => !watched.has(s.id));
@@ -66,6 +68,43 @@ export async function placeSlips(slips) {
   // Placed: watched by the Worker already (never handed over again).
   if (res?.placed) markWatched(res.placed);
   return res;
+}
+
+// The lottery (Shared-Proxy lotto.js): tickets sold { tickets, wallet }, a
+// scratch card bought { ticket, wallet } (its prize drawn there), scratched
+// { prize, wallet }; { refused: { problem } } when not.
+export const buyTickets = async tickets => markTickets(await call('POST', { op: 'tickets', tickets }), tickets.map(x => x.id));
+export const buyCard = async (id, card) => markTickets(await call('POST', { op: 'scratch', id, card }), [id]);
+// Sold by the Worker: watched there already, never handed over again.
+function markTickets(res, ids) {
+  if (res?.tickets || res?.ticket)
+    try {
+      localStorage.setItem(TICKETS_KEY, JSON.stringify([...JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]'), ...ids].slice(-500)));
+    } catch {}
+  return res;
+}
+export const revealCard = id => call('POST', { op: 'reveal', id });
+
+const TICKETS_KEY = 'odds.watchedTickets.v1';
+async function watchTickets(account) {
+  let had;
+  try {
+    had = new Set(JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]'));
+  } catch {
+    had = new Set();
+  }
+  const open = (account?.tickets || []).filter(x => x.status === 'open' && !had.has(x.id));
+  if (!open.length) return;
+  await call('POST', { op: 'tickets-open', tickets: open.slice(0, 50) });
+  try {
+    localStorage.setItem(TICKETS_KEY, JSON.stringify([...had, ...open.slice(0, 50).map(x => x.id)].slice(-500)));
+  } catch {}
+}
+// Scratched cards whose prize the pass doesn't have yet (the Worker's
+// reveal didn't get through): asked again.
+export async function revealPending(account, wallet) {
+  const have = new Set((wallet?.entries || []).map(e => e.id));
+  for (const x of (account?.tickets || []).filter(x => x.card && x.status === 'settled' && x.prize > 0 && !have.has(`odds:prize-${x.id}`)).slice(0, 5)) await revealCard(x.id).catch(() => null);
 }
 
 // The Worker's results: { slipId: { results, finals, settled, payout, at } }.

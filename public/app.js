@@ -16,7 +16,7 @@ import {
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
-import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut, placeSlips } from './lib/settled.mjs';
+import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
@@ -1954,8 +1954,10 @@ function syncNow() {
     try {
       await mergeRemote(await q.read({ data: true, inbox: true }));
       state.sync = { ...state.sync, busy: false, at: new Date().toISOString() };
-      // Open slips handed to the Worker to settle; what it settled applied.
+      // Open slips handed to the Worker to settle; what it settled applied;
+      // a scratched card's prize asked for again if its reveal didn't get through.
       watchOpen(state.account).catch(() => {});
+      revealPending(state.account, state.wallet).catch(() => {});
       applySettled();
     } catch (error) {
       state.sync = { ...state.sync, busy: false, error: error.code === 'ECO_SESSION_MOVED' ? '' : state.t(error.code === 'TOO_BIG' ? 'syncTooBig' : 'syncFailed') };
@@ -3829,7 +3831,7 @@ function homeCtx() {
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, slipRange, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, el, svgEl, fmtMoney, fmtInt, fmtPctShort, fmtOdds, fmtTime, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)), youCard, crowdCard, funCard, picksCard, breakdownCard });
-lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets });
+lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w) });
 
 // The saved board, drawn while signing in (a network round trip).
 // The games on now as last read (15 minutes at most): a reopen draws 場中焦點
