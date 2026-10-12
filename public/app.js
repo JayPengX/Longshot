@@ -12,7 +12,7 @@ import * as kitPhotos from '#kit/photos.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
-  WEEKLY_GRANT, newAccount, balance, canClaim, claimGrant, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
+  newAccount, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
@@ -1857,13 +1857,6 @@ function funds(account = state.account) {
   return balance(account) + poolExtra();
 }
 
-// The weekly grant (until Quadra pays the week itself) arrives by itself.
-function applyGrant() {
-  if (!state.accountReady || !canClaim(state.account)) return;
-  commitAccount(claimGrant(state.account));
-  state.grantNote = true;
-}
-
 // Writes go one after another, so an older (slower to compress) save never
 // lands after a newer one.
 let saving = Promise.resolve();
@@ -2210,15 +2203,11 @@ function placeButton(legs, sizes, cost, errors, free = null) {
 
 
 // Slips are settled by the Worker (lib/settled.mjs) when their games end,
-// whether Play is open or not: its results are applied here (the ledger's
-// own ids: nothing paid twice). This device reads the open picks' games only
-// for what's shown (live scores, cash out), and settles a slip itself only
-// if the Worker hasn't, well after its games began (BACKSTOP_MS: the Worker
-// unreachable), by the same rules. A game still not found three days after
-// its start (postponed and never replayed) counts as void, as the lottery does.
+// whether Play is open or not, and only by it (the proxy is the only one
+// paying anything in): its results are applied here (the ledger's own ids:
+// nothing paid twice). This device reads the open picks' games only for
+// what's shown (live scores, cash out).
 const RESULT_CHECK_MS = 90_000;
-const VOID_AFTER_MS = 3 * 86_400_000;
-const BACKSTOP_MS = 30 * 3_600_000;
 const SETTLED_EVERY_MS = 60_000;
 let settledAt = 0;
 async function applySettled(force = false) {
@@ -2264,22 +2253,6 @@ async function checkResults(force = false) {
   try {
     const outcomes = await fetchOutcomes(pending, now);
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
-    let account = state.account;
-    // The Worker's backstop: every pick decided or its game long begun.
-    const late = slip => slip.legs.every(l => l.result || (l.kind !== 'future' && l.start && now.getTime() - Date.parse(l.start) > BACKSTOP_MS));
-    for (const slip of open.filter(late)) {
-      const results = slip.legs.map(leg => {
-        if (leg.result) return leg.result;
-        const result = legResult(leg, outcomes.get(leg.id));
-        if (result) return result;
-        const stale = leg.kind !== 'future' && leg.start && now.getTime() - Date.parse(leg.start) > VOID_AFTER_MS;
-        return stale ? 'void' : null;
-      });
-      const next = applyResults(account, slip.id, results, now, slip.legs.map(leg => finalOf(outcomes.get(leg.id))));
-      if (next !== account && next.slips.find(s => s.id === slip.id).status === 'settled') state.freshSlips.add(slip.id);
-      account = next;
-    }
-    commitAccount(account);
   } catch (error) {
     console.error(error);
   } finally {
@@ -2290,20 +2263,10 @@ async function checkResults(force = false) {
   }
 }
 
-// What to keep of a decided game with its pick: the final score (and each
-// set's), or a race's or championship's winner.
-function finalOf(outcome) {
-  if (outcome?.status !== 'final') return null;
-  if (outcome.winner) return { winner: outcome.winner, ...(outcome.podium ? { podium: outcome.podium } : {}) };
-  if (!Number.isFinite(outcome.awayScore) || !Number.isFinite(outcome.homeScore)) return null;
-  return { away: outcome.awayScore, home: outcome.homeScore };
-}
-
 function renderAccount() {
   if (!state.accountReady || !state.account) return;
   const t = state.t;
   const account = state.account;
-  const now = new Date();
   const money = funds();
   const r = accountRecord(account);
   // The balance; what's in play and the most it can pay, two tiles; then the
@@ -2329,7 +2292,6 @@ function renderAccount() {
             el('p', {}, [el('span', {}, [document.createTextNode(`${t('accountNet')} `), net]), r.back != null ? el('span', { text: `${t('accountBack')} ${Math.round(r.back)}%` }) : null])
           ]
         : [el('p', {}, [el('span', { text: t('accountNoneYet') })])]),
-      canClaim(account, now) || state.grantNote ? el('p', { class: 'muted', text: state.grantNote ? t('grantAdded', { v: fmtMoney(WEEKLY_GRANT, { sign: false }) }) : '' }) : null
     ])
   );
 }
@@ -3940,7 +3902,6 @@ async function boot() {
     state.account = freshAccount();
     saveAccountLocal();
   }
-  applyGrant();
   renderAccount();
   // The slip bar waits for the account (a slip kept on the device shows now).
   renderSlipBar();
@@ -3966,7 +3927,6 @@ document.addEventListener('visibilitychange', () => {
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  applyGrant();
   syncNow();
   // Whatever moved while away, at once.
   livePulse({ force: true });

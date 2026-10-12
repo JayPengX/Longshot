@@ -2,11 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   START_BALANCE,
-  WEEKLY_GRANT,
   newAccount,
   balance,
-  canClaim,
-  claimGrant,
   weekKey,
   placeSlip,
   legResult,
@@ -29,21 +26,8 @@ test('weeks start on Monday, Taiwan time', () => {
   assert.equal(weekKey(at('2026-09-27T16:30:00Z')), '2026-09-28');
 });
 
-test('a new account starts with NT$10,000 and gets its weekly grant once a week, until Quadra\'s payday replaced it', () => {
-  let account = newAccount(at('2026-09-18T00:00:00Z'));
-  assert.equal(balance(account), START_BALANCE);
-  assert.equal(canClaim(account, at('2026-09-19T00:00:00Z')), false);
-  const monday = at('2026-09-21T02:00:00Z');
-  assert.equal(canClaim(account, monday), true);
-  account = claimGrant(account, monday);
-  assert.equal(balance(account), START_BALANCE + WEEKLY_GRANT);
-  assert.equal(canClaim(account, monday), false);
-  assert.equal(claimGrant(account, monday), account);
-  // From the week of 2026-09-28 there are no grants (Quadra's monthly payday).
-  assert.equal(canClaim(account, at('2026-09-29T02:00:00Z')), false);
-  assert.equal(canClaim(account, at('2026-10-06T02:00:00Z')), false);
-  assert.equal(claimGrant(account, at('2026-10-14T02:00:00Z')), account);
-  // A pool-funded account opens empty.
+test('a new account starts with NT$10,000; a pool-funded one opens empty', () => {
+  assert.equal(balance(newAccount(at('2026-09-18T00:00:00Z'))), START_BALANCE);
   assert.equal(balance(newAccount(at('2026-10-01T00:00:00Z'), { start: false })), 0);
 });
 
@@ -364,7 +348,7 @@ test('slip history keeps itself: final scores with each pick, compact picks, bac
 });
 
 test('Quadra pool: extra money to bet with, the weekly limit, entries for the pool', async () => {
-  const { newAccount, placeSlip, poolEntries, stakedThisWeek, mergeDistinct, balance, claimGrant } = await import('../public/lib/account.mjs');
+  const { newAccount, placeSlip, poolEntries, stakedThisWeek, mergeDistinct, balance } = await import('../public/lib/account.mjs');
   const now = new Date('2026-09-23T04:00:00Z');
   const base = newAccount(new Date('2026-09-01T00:00:00Z'));
   const slip = (id, cost) => ({ id, mode: 'single', sizes: [1], stake: cost, cost, legs: [{ id: 'x', odds: 2 }] });
@@ -379,11 +363,11 @@ test('Quadra pool: extra money to bet with, the weekly limit, entries for the po
   assert.equal(stakedThisWeek(account, new Date('2026-09-29T04:00:00Z')), 0);
   const entries = poolEntries(account);
   assert.deepEqual(entries.map(e => [e.id, e.amount, e.app]), [['odds:start', 10_000, 'odds'], ['odds:stake-a', -15_000, 'odds']]);
-  // Two separate accounts folded together keep both starts and grants.
-  const other = claimGrant(newAccount(new Date('2026-08-01T00:00:00Z')), new Date('2026-09-22T01:00:00Z'));
-  const both = mergeDistinct(claimGrant(base, new Date('2026-09-22T01:00:00Z')), other);
-  const { WEEKLY_GRANT } = await import('../public/lib/account.mjs');
-  assert.equal(balance(both), 2 * (10_000 + WEEKLY_GRANT));
+  // Two separate accounts folded together keep both starts and old grants.
+  const grant = a => ({ ...a, ledger: [...a.ledger, { id: 'grant-2026-09-21', t: '2026-09-22T01:00:00.000Z', kind: 'grant', amount: 500 }] });
+  const other = grant(newAccount(new Date('2026-08-01T00:00:00Z')));
+  const both = mergeDistinct(grant(base), other);
+  assert.equal(balance(both), 2 * (10_000 + 500));
   assert.equal(mergeDistinct(both, other).ledger.length, both.ledger.length);
 });
 

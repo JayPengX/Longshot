@@ -10,14 +10,10 @@
 import { mergeTickets } from './lottery.mjs';
 import { taipeiDayKey } from './sources.mjs';
 
-// What Play itself gave before Quadra paid into the pool (from the week of
-// 2026-10-05, GRANTS_UNTIL_WEEK, Quadra pays the week, whichever app is
-// opened; a pass made since then gets its opening money from Quadra).
+// What Play itself gave before Quadra paid into the pool (a pass made since
+// gets its opening money from Quadra; Play's own weekly grants, 'grant-<week>'
+// entries on older accounts, ended with the week of 2026-09-28).
 export const START_BALANCE = 10_000;
-export const WEEKLY_GRANT = 500;
-// Play's own weekly grants ended with the week of 2026-09-28: Quadra's
-// monthly payday is the one income.
-export const GRANTS_UNTIL_WEEK = '2026-09-28';
 
 // start: false for an account funded by the Quadra pool alone.
 export function newAccount(now = new Date(), { start = true } = {}) {
@@ -36,28 +32,8 @@ export function weekKey(now) {
   return d.toISOString().slice(0, 10);
 }
 
-// The next Monday 00:00 Taiwan time after `now`.
-export function nextGrantAt(now) {
-  const monday = new Date(`${weekKey(now)}T00:00:00+08:00`);
-  return new Date(monday.getTime() + 7 * 86_400_000);
-}
-
-// A new account starts with its NT$10,000; the weekly NT$5,000 is there from
-// the next week on, once a week, and doesn't pile up over skipped weeks.
-export function canClaim(account, now = new Date()) {
-  const week = weekKey(now);
-  if (week >= GRANTS_UNTIL_WEEK) return false;
-  return weekKey(new Date(account.created)) !== week && !account.ledger.some(e => e.id === `grant-${week}`);
-}
-
 function touched(account, now) {
   return { ...account, updated: now.toISOString() };
-}
-
-export function claimGrant(account, now = new Date()) {
-  if (!canClaim(account, now)) return account;
-  const entry = { id: `grant-${weekKey(now)}`, t: now.toISOString(), kind: 'grant', amount: WEEKLY_GRANT };
-  return touched({ ...account, ledger: [...account.ledger, entry] }, now);
 }
 
 export function newSlipId(now = new Date()) {
