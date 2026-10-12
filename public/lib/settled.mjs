@@ -30,7 +30,8 @@ export const slipSpec = slip => ({
   ...(slip.free ? { free: slip.free, freeValue: slip.freeValue } : {})
 });
 
-// Open slips this device has handed over already (kept: one hand-over a slip).
+// Open slips this device has handed over already (kept: one hand-over a slip):
+// the ones placed before slips were placed through the Worker.
 const WATCHED_KEY = 'odds.watched.v1';
 const readWatched = () => {
   try {
@@ -39,6 +40,11 @@ const readWatched = () => {
     return new Set();
   }
 };
+function markWatched(ids) {
+  try {
+    localStorage.setItem(WATCHED_KEY, JSON.stringify([...readWatched(), ...ids]));
+  } catch {}
+}
 // Every open slip not handed over yet (placed here, or on another device, or
 // before the Worker settled them).
 export async function watchOpen(account) {
@@ -54,9 +60,17 @@ export async function watchOpen(account) {
   return todo.length;
 }
 
+// Placed: { placed: [id…], wallet } or { refused: { problem, moved: [{ id, odds }] } }.
+export async function placeSlips(slips) {
+  const res = await call('POST', { op: 'place', slips: slips.map(slipSpec) });
+  // Placed: watched by the Worker already (never handed over again).
+  if (res?.placed) markWatched(res.placed);
+  return res;
+}
+
 // The Worker's results: { slipId: { results, finals, settled, payout, at } }.
 export const readSettled = async () => (await call('GET')).settled || {};
 // Applied: the Worker forgets them.
-export const ackSettled = ids => (ids.length ? call('POST', { op: 'ack', ids }) : null);
+export const ackSettled = async ids => (ids.length ? call('POST', { op: 'ack', ids }) : null);
 // Cash out: { ok } (go ahead) or { settled: record } (it was settled first).
 export const takeForCashOut = id => call('POST', { op: 'cashout', id });

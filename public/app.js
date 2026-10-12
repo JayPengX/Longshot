@@ -16,7 +16,7 @@ import {
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
-import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut } from './lib/settled.mjs';
+import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut, placeSlips } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
@@ -2105,7 +2105,7 @@ function placeButton(legs, sizes, cost, errors, free = null) {
   const short = cost > money;
   // Opened on the last board saved: bets wait for today's odds.
   const updating = Boolean(state.fromSnapshot);
-  const blocked = errors.length > 0 || sizes.length === 0 || short || !state.accountReady || updating;
+  const blocked = errors.length > 0 || sizes.length === 0 || short || !state.accountReady || updating || state.placing;
   const paidBy = free && !short && !updating ? (cost > 0 ? t('placeFreePlus', { f: fmtMoney(free.value, { sign: false }), v: fmtMoney(cost, { sign: false }) }) : t('placeFree', { v: fmtMoney(free.value, { sign: false }) })) : '';
   const button = el('button', {
       class: `primary-button place-button${paidBy ? ' two-line' : ''}`,
@@ -2113,7 +2113,7 @@ function placeButton(legs, sizes, cost, errors, free = null) {
       disabled: blocked ? '' : null,
       // One line: what's bought for how much; with a free bet, a smaller
       // second line says how it's paid (free + yours).
-      text: updating ? t('placeUpdating') : free && !short ? t('placeSlip', { v: fmtMoney(free.value + cost, { sign: false }) }) : short ? t('placeShort', { v: fmtMoney(money, { sign: money < 0 }) }) : t('placeSlip', { v: fmtMoney(cost, { sign: false }) }),
+      text: state.placing ? t('placing') : updating ? t('placeUpdating') : free && !short ? t('placeSlip', { v: fmtMoney(free.value + cost, { sign: false }) }) : short ? t('placeShort', { v: fmtMoney(money, { sign: money < 0 }) }) : t('placeSlip', { v: fmtMoney(cost, { sign: false }) }),
       onclick: async () => {
         // Bought in one tap at the board's odds now: the slip redraws with
         // every refresh (moved odds marked there), so what it shows is what's
@@ -2155,6 +2155,25 @@ function placeButton(legs, sizes, cost, errors, free = null) {
         picks = current();
         if (!picks) return stop();
         ({ records, slips } = build(picks));
+        // Placed through the Worker (lib/settled.mjs): every pick's price
+        // checked by the house, the stake taken from the pass, all or none.
+        state.placing = true;
+        renderParlay();
+        const placed = await placeSlips(free ? slips.map(x => ({ ...x, free: free.id, freeValue: free.value })) : slips).catch(() => null);
+        state.placing = false;
+        renderParlay();
+        if (!placed?.placed && !placed?.refused) return tell({ lang: state.locale, icon: '⏳', title: t('placeFailed'), body: t('placeFailedBody') });
+        if (placed.refused) {
+          const moved = placed.refused.moved?.[0];
+          const pick = moved && records.find(r => r.id === moved.id);
+          // A price that moved stops it and says so; the board is read again.
+          if (moved) {
+            load();
+            return tell({ lang: state.locale, icon: '⏳', title: t('priceMoved'), body: moved.odds ? t('priceMovedBody', { pick: pick?.shortLabel || '', odds: fmtOdds(moved.odds) }) : t('pickGoneBody') });
+          }
+          return tell({ lang: state.locale, icon: '⏳', title: t('placeRefused'), body: t(placed.refused.problem === 'funds' ? 'placeRefusedFunds' : 'placeRefusedBody') });
+        }
+        if (placed.wallet) state.wallet = placed.wallet;
         let account = state.account;
         const now = new Date();
         if (free) {
