@@ -1689,7 +1689,7 @@ function kindKey(kind) {
 
 // The market a pick is from, as a small tag: 不讓分, 大小分, 讓分 …
 function marketTag(kind) {
-  const key = { inning: 'topInningShort', f1: 'f1Short' }[kind] ?? kindKey(kind);
+  const key = { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
 }
 
