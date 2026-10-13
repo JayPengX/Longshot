@@ -3729,6 +3729,9 @@ if ('ResizeObserver' in window) {
   });
   // (首頁: a 為你推薦 pick's name, whole in its card.)
   for (const id of ['slip-sheet', 'panel-history', 'account-body', 'panel-home']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
+  // Fitted before the font came, a number widens when it comes while its box
+  // (already at its narrowest) doesn't move: fitted again once fonts load.
+  document.fonts?.addEventListener('loadingdone', () => fitNumbers([...document.querySelectorAll(FIT_SELECTOR)]));
 }
 
 // Tells the page's failsafe (in index.html) that the scripts loaded and started.
