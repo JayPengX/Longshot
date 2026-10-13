@@ -568,6 +568,6 @@ node ../Shared-Proxy/tools/preview.mjs play --webkit
 | A cut, a rule or the boost | The crowd (`sim.mjs` uses the same `board.mjs`), the audit, the kit's `truth.mjs` (it mirrors Play's prices), `help.mjs`'s money topics |
 | A market | Its settling (`market-result`, `props.mjs`), cash out's price for it (`livePrice`), the slip's names, `history.mjs` by market |
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports (the same feed) |
-| Kambi's trims | Shared-Proxy's `sports-proxy-worker.js` and `kambi.js` (`/kambi`), Shared-Data's mirror |
+| Kambi's trims | Shared-Proxy's `sports.js` and `kambi.js` (`/kambi`), Shared-Data's mirror |
 | The account's ledger ids | Merging, the Worker's `ENTRY_APPS`/VIP stakes (kinds `stake`, `lottery`, `refund`), the money report |
 | The league list | `kit/catalog.mjs` (shared with Orbit Sports) |
