@@ -478,13 +478,14 @@ reactions (chasing losses, cashing out, sulking after a near miss).
 
 ## Data sources
 
-All read through the kit's `proxyJson` (the sports proxy; Shared-Data's
-season packs and mirror where they hold the read), `lib/sources.mjs`:
+All read through the kit's `proxyJson` (the data proxy, which answers a
+finished game from what it keeps in R2) and `packJson` (the family's data:
+season packs), `lib/sources.mjs`:
 
 | Source | For |
 | --- | --- |
 | ESPN site API (`dates=YYYYMM` month pages, odds included) | Schedules, DraftKings' lines, results, standings, rosters, players' seasons, box scores |
-| Shared-Data season packs and mirror | Seasons, past days, tables, squads, numbers (Play's leagues) |
+| The family's data (R2: season packs; finished games kept on demand) | Seasons, past days and games |
 | Polymarket (Gamma, trimmed) | Win chances, championships, F1 markets and flags |
 | Kambi (trimmed) | Asian baseball, EuroLeague, NBL, K League odds and live; a game's own markets |
 | The leagues' own month lists (`asia-baseball.quadra`, kit `asiaMonth`) | NPB, KBO, CPBL schedules and finals |
@@ -568,6 +569,6 @@ node ../Shared-Proxy/tools/preview.mjs play --webkit
 | A cut, a rule or the boost | The crowd (`sim.mjs` uses the same `board.mjs`), the audit, the kit's `truth.mjs` (it mirrors Play's prices), `help.mjs`'s money topics |
 | A market | Its settling (`market-result`, `props.mjs`), cash out's price for it (`livePrice`), the slip's names, `history.mjs` by market |
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports (the same feed) |
-| Kambi's trims | Shared-Proxy's `sports.js` and `kambi.js` (`/kambi`), Shared-Data's mirror |
+| Kambi's trims | Shared-Proxy's `sports.js` and `kambi.js` (`/kambi`) |
 | The account's ledger ids | Merging, the Worker's `ENTRY_APPS`/VIP stakes (kinds `stake`, `lottery`, `refund`), the money report |
 | The league list | `kit/catalog.mjs` (shared with Orbit Sports) |
