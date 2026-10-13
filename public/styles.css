@@ -1356,8 +1356,8 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .saved-pay { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; }
 .pay-cells { display: flex; gap: 10px; min-width: 0; }
 .pay-cells > .pay-cell { flex: 1 1 0; }
-.pay-note { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pay-note-icon { width: 15px; height: 15px; color: var(--accent); }
+.pay-note { display: flex; align-items: flex-start; gap: 6px; margin: 2px 0 0; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; line-height: 1.45; color: var(--text-secondary); overflow-wrap: anywhere; }
+.pay-note-icon { flex: none; width: 15px; height: 15px; margin-top: 0.15em; color: var(--accent); }
 
 /* ---- Home: a slip with its picks' pictures; the money a line of its own ---- */
 .bet-row { padding: 12px 12px 12px 14px; }
