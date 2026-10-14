@@ -465,7 +465,7 @@ function rerenderFiltered() {
 }
 
 function chip({ pressed, icon, text, count, onclick }) {
-  return el('button', { class: 'chip', type: 'button', 'aria-pressed': String(pressed), onclick }, [
+  return el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(pressed), onclick }, [
     icon ?? null,
     el('span', { text }),
     count ? el('span', { class: 'chip-count', text: count }) : null
@@ -488,7 +488,7 @@ function renderSportFilter() {
     rerenderFiltered();
   };
   const tile = (value, icon, name, count, pressed) =>
-    el('button', { class: 'sport-tile', type: 'button', 'aria-pressed': String(pressed), onclick: pick(value) }, [icon, el('span', { class: 'tile-name', text: name }), el('span', { class: 'tile-count', text: count })]);
+    el('button', { class: 'q-chip sport-tile', type: 'button', 'aria-pressed': String(pressed), onclick: pick(value) }, [icon, el('span', { class: 'tile-name', text: name }), el('span', { class: 'tile-count', text: count })]);
   const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-tile') : el('span', { class: 'league-badge logo-tile' }, el('span', { class: 'league-img league-icon', 'aria-hidden': 'true', text: SPORT_GROUPS[g].icon })));
   $('sport-filter').replaceChildren(
     tile('all', allIcon(), t('sport_all'), countText(games(() => true)), state.sport === 'all'),
@@ -560,7 +560,7 @@ function renderDayFilter() {
       const [, m, d] = day.split('-').map(Number);
       const label = dayLabel(day);
       return el('button', {
-        class: 'day-tile',
+        class: 'q-chip day-tile',
         type: 'button',
         'aria-pressed': String(day === state.day),
         onclick: () => {
@@ -848,12 +848,12 @@ function gameMore(game, bets) {
   const current = kinds.find(sec => sec.kind === state.marketTab.get(game.id)) ?? kinds[0];
   const tabs =
     kinds.length > 1
-      ? el('div', { class: 'segmented market-tabs', role: 'tablist', 'aria-label': t('moreMarkets') },
+      ? el('div', { class: 'q-chips market-tabs', role: 'tablist', 'aria-label': t('moreMarkets') },
           kinds.map(sec =>
             el('button', {
               type: 'button',
               role: 'tab',
-              class: sec.kind === 'prop' ? 'tab-props' : null,
+              class: `q-chip${sec.kind === 'prop' ? ' tab-props' : ''}`,
               'aria-selected': String(sec === current),
               'aria-pressed': String(sec === current),
               text: t(sec.kind === 'runline' && isSoccer(game.sport) ? 'secHandicap' : sec.short ?? sec.title),
@@ -909,7 +909,7 @@ function propsPanel(game, bets) {
     const text = side === 'yes' ? propText(stat, Number(line) || 1, 'yes') : `${propName(stat, state.locale)} ${line}`;
     return el('button', {
       type: 'button',
-      class: 'chip prop-chip',
+      class: 'q-chip prop-chip',
       'aria-pressed': String(key === chosen[0]),
       text,
       onclick: () => {
@@ -1505,7 +1505,7 @@ function renderParlay() {
         el('div', { class: 'big-emoji', 'aria-hidden': 'true', text: '🎫' }),
         el('p', { text: t('parlayEmpty') }),
         dropped ? el('p', { class: 'back-low', text: t('slipDroppedLive', { n: dropped }) }) : null,
-        el('button', { class: 'primary-button', type: 'button', text: t('goPick'), onclick: () => showTab('games') })
+        el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') })
       ])
     );
     return;
@@ -1516,7 +1516,7 @@ function renderParlay() {
     el('div', { class: 'ticket-head' }, [
       el('strong', { text: t('slipLegs', { n }) }),
       el('button', {
-        class: 'ghost-button',
+        class: 'q-btn',
         type: 'button',
         text: t('clearParlay'),
         onclick: () => {
@@ -1525,7 +1525,7 @@ function renderParlay() {
         }
       })
     ]),
-    el('div', { class: 'segmented slip-modes', role: 'group', 'aria-label': t('slipMode') },
+    el('div', { class: 'q-seg slip-modes', role: 'group', 'aria-label': t('slipMode') },
       ['single', 'parlay', 'system'].map(m =>
         el('button', {
           type: 'button',
@@ -1644,7 +1644,7 @@ function setStake(v) {
 function renderSlipBar() {
   let bar = $('slip-bar');
   if (!bar) {
-    bar = el('button', { id: 'slip-bar', class: 'slip-bar', type: 'button', hidden: '', onclick: () => openSlip() });
+    bar = el('button', { id: 'slip-bar', class: 'q-accessory slip-bar', type: 'button', hidden: '', onclick: () => openSlip() });
     document.body.append(bar);
   }
   // The same bar at the foot of a game's sheet (the page's is under it).
@@ -1720,7 +1720,8 @@ function shortMatchup(leg) {
   const [away, home] = [leg.away ?? leg.game?.away?.en, leg.home ?? leg.game?.home?.en];
   // A race's pick: the race alone (an older ticket's "新加坡站 排位賽第一" said the tag again and was cut).
   if (!away || !home) return leg.sport === 'f1' ? String(leg.matchup || '').replace(/\s+(排位賽|衝刺|正賽|Pole\b|Qualifying\b|Sprint\b).*$/i, '') : leg.matchup;
-  const name = n => shortTeamName(leg.sport, n, n);
+  // (A club with no short name of ours: its last word, "Breakers @ Kings", never cut.)
+  const name = n => shortTeamName(leg.sport, n, '') || EN_TWO_WORD.exec(n)?.[1] || n.split(/\s+/).at(-1);
   return isSoccer(leg.sport) ? `${name(home)} vs ${name(away)}` : `${name(away)} @ ${name(home)}`;
 }
 
@@ -2078,7 +2079,7 @@ function placeButton(legs, sizes, cost, errors, free = null) {
   const blocked = errors.length > 0 || sizes.length === 0 || short || !state.accountReady || updating || state.placing;
   const paidBy = free && !short && !updating ? (cost > 0 ? t('placeFreePlus', { f: fmtMoney(free.value, { sign: false }), v: fmtMoney(cost, { sign: false }) }) : t('placeFree', { v: fmtMoney(free.value, { sign: false }) })) : '';
   const button = el('button', {
-      class: `primary-button place-button${paidBy ? ' two-line' : ''}`,
+      class: `q-btn primary place-button${paidBy ? ' two-line' : ''}`,
       type: 'button',
       disabled: blocked ? '' : null,
       // One line: what's bought for how much; with a free bet, a smaller
@@ -2746,7 +2747,7 @@ function renderSaved() {
   // No slips yet: a line and the way to the games, not an empty page.
   if (!slips.length)
     return void $('saved-body').replaceChildren(
-      el('div', { class: 'card empty-slips' }, [el('p', { text: t('noSlipsYet') }), el('button', { class: 'primary-button', type: 'button', text: t('goPick'), onclick: () => showTab('games') })])
+      el('div', { class: 'card empty-slips' }, [el('p', { text: t('noSlipsYet') }), el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') })])
     );
   const now = Date.now();
   const filtered = slips.filter(HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all);
@@ -2788,7 +2789,7 @@ function renderSaved() {
         )
       ),
       open.length
-        ? el('button', { class: 'ghost-button', type: 'button', disabled: state.checking ? '' : null, text: state.checking ? t('checking') : t('checkResults'), onclick: () => checkResults(true) })
+        ? el('button', { class: 'q-btn', type: 'button', disabled: state.checking ? '' : null, text: state.checking ? t('checking') : t('checkResults'), onclick: () => checkResults(true) })
         : null
     ]),
     ...(order.length
@@ -2800,7 +2801,7 @@ function renderSaved() {
         )
       : [el('p', { class: 'muted', text: t('filterEmpty') })]),
     ...(hidden > 0 && !state.showAllSaved
-      ? [el('button', { class: 'ghost-button', type: 'button', text: t('savedMore', { n: hidden }), onclick: () => ((state.showAllSaved = true), renderSaved()) })]
+      ? [el('button', { class: 'q-btn', type: 'button', text: t('savedMore', { n: hidden }), onclick: () => ((state.showAllSaved = true), renderSaved()) })]
       : [])
   );
 }
@@ -3135,12 +3136,12 @@ function renderF1() {
   const picked = kind => state.parlay.some(id => state.bets.find(b => b.id === id)?.kind === kind);
   const tabRow = el(
     'div',
-    { class: 'segmented market-tabs', role: 'tablist', 'aria-label': t('moreMarkets') },
+    { class: 'q-chips market-tabs', role: 'tablist', 'aria-label': t('moreMarkets') },
     tabs.map(x =>
       el('button', {
         type: 'button',
         role: 'tab',
-        class: picked(x.kind) ? 'has-pick' : '',
+        class: picked(x.kind) ? 'q-chip has-pick' : 'q-chip',
         'aria-selected': String(x === current),
         'aria-pressed': String(x === current),
         text: t(x.tab),
@@ -3613,6 +3614,12 @@ function showTab(tab) {
   livePulse();
 }
 
+// The kit's clear button: empty, as if typed away.
+$('game-search-clear').addEventListener('click', () => {
+  $('game-search').value = '';
+  $('game-search').dispatchEvent(new Event('input'));
+  $('game-search').focus();
+});
 $('game-search').addEventListener('input', event => {
   state.query = event.target.value.trim();
   if (state.data) renderGames();

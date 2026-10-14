@@ -104,10 +104,10 @@
   </div>
 
   <div id="panel-games" class="tab-panel" role="tabpanel" aria-labelledby="tab-games">
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <label class="q-search search-box">
       <input id="game-search" type="search" autocomplete="off" enterkeyhint="search" />
-    </div>
+      <button id="game-search-clear" class="q-search-clear" type="button" aria-label="清除">✕</button>
+    </label>
     <div class="toolbar">
       <nav id="sport-filter" class="chips" aria-label="sport"></nav>
       <nav id="league-filter" class="chips league-chips" aria-label="league" hidden></nav>
@@ -163,7 +163,7 @@
       <h2 id="account-title" class="section-heading"></h2>
       <div id="account-body"></div>
     </section>
-    <div id="history-tabs" class="segmented history-tabs" role="group" hidden></div>
+    <div id="history-tabs" class="q-seg history-tabs" role="group" hidden></div>
     <section id="stats" aria-labelledby="stats-title" hidden>
       <h2 id="stats-title" class="section-heading"></h2>
       <div id="stats-body"></div>

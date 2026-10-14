@@ -160,7 +160,7 @@ export function mountLottery(ctx) {
     if (ui.view === 'mine') ui.view = 'draws';
     const seg = el(
       'div',
-      { class: 'segmented lotto-seg', role: 'group' },
+      { class: 'q-seg lotto-seg', role: 'group' },
       ['draws', 'scratch'].map(v => el('button', { type: 'button', 'aria-pressed': String(ui.view === v), onclick: () => ((ui.view = v), render()) }, [document.createTextNode(t(v))]))
     );
     // Tickets bought live in 紀錄 (next to the slips); a link to them here.
@@ -397,7 +397,7 @@ export function mountLottery(ctx) {
     if (g.digits) {
       const plays = Object.keys(g.plays);
       return el('div', { class: 'lotto-pick' }, [
-        el('div', { class: 'segmented small', role: 'group' }, plays.map(p => el('button', { type: 'button', 'aria-pressed': String(sel.play === p), text: t(p), onclick: () => ((sel.play = p), paint()) }))),
+        el('div', { class: 'q-seg small', role: 'group' }, plays.map(p => el('button', { type: 'button', 'aria-pressed': String(sel.play === p), text: t(p), onclick: () => ((sel.play = p), paint()) }))),
         el(
           'div',
           { class: 'digit-row' },
@@ -414,7 +414,7 @@ export function mountLottery(ctx) {
     if (g.combo) {
       const sizes = Object.keys(g.combo.sizes).map(Number);
       return el('div', { class: 'lotto-pick' }, [
-        el('div', { class: 'segmented small', role: 'group' }, sizes.map(z => el('button', { type: 'button', 'aria-pressed': String(sel.size === z), text: COMBO_NAME[lang][z], onclick: () => ((sel.size = z), paint()) }))),
+        el('div', { class: 'q-seg small', role: 'group' }, sizes.map(z => el('button', { type: 'button', 'aria-pressed': String(sel.size === z), text: COMBO_NAME[lang][z], onclick: () => ((sel.size = z), paint()) }))),
         numberGrid(g.combo.max, sel.numbers, 12, paint, { last: lastOf(id) })
       ]);
     }

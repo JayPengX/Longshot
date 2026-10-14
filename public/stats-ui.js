@@ -150,8 +150,8 @@ export function mountStats(ctx) {
     const rerender = () => render(root);
     const chips = el('div', { class: 'st-periods', role: 'group' }, Object.keys(PERIODS).map(key => el('button', { type: 'button', 'aria-pressed': String(period === key), text: t(key), onclick: () => ((state.statsPeriod = key), rerender()) })));
     const cta = el('div', { class: 'wins-cta' }, [
-      el('button', { class: 'primary-button', type: 'button', text: t('goBet'), onclick: () => ctx.showTab('games') }),
-      el('button', { class: 'ghost-button', type: 'button', text: t('goLotto'), onclick: () => ctx.showTab('lottery') })
+      el('button', { class: 'q-btn primary', type: 'button', text: t('goBet'), onclick: () => ctx.showTab('games') }),
+      el('button', { class: 'q-btn', type: 'button', text: t('goLotto'), onclick: () => ctx.showTab('lottery') })
     ]);
     const hero = el('section', { class: 'wins-hero' }, [
       el('div', { class: 'wins-hero-top' }, [el('span', { class: 'wins-label', text: t('total') }), el('span', { class: 'wins-period', text: t(period) })]),
