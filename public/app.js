@@ -15,8 +15,8 @@ import {
   newAccount, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
-import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
-import { useSettleToken, watchOpen, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
+import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
+import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
@@ -1947,9 +1947,8 @@ function syncNow() {
     try {
       await mergeRemote(await q.read({ data: true, inbox: true }));
       state.sync = { ...state.sync, busy: false, at: new Date().toISOString() };
-      // Open slips handed to the Worker to settle; what it settled applied;
-      // a scratched card's prize asked for again if its reveal didn't get through.
-      watchOpen(state.account).catch(() => {});
+      // What the Worker settled applied; a scratched card's prize asked for
+      // again if its reveal didn't get through.
       revealPending(state.account, state.wallet).catch(() => {});
       applySettled();
     } catch (error) {
@@ -2045,31 +2044,7 @@ function legIcon(leg, size = 'logo-sm') {
 
 // What a pick on the slip needs to be settled later, whatever the board shows then.
 function legRecord(bet) {
-  return {
-    id: bet.id,
-    gameId: bet.gameId ?? undefined,
-    market: bet.gameId ? bet.market ?? bet.kind : undefined,
-    kind: bet.kind,
-    sport: bet.sport,
-    label: bet.label,
-    shortLabel: bet.shortLabel,
-    matchup: bet.matchup,
-    start: bet.start ?? null,
-    odds: effectiveOdds(bet),
-    fairChance: bet.fairChance,
-    side: bet.side ?? null,
-    line: bet.totalLine ?? bet.runLine ?? bet.teamLine ?? bet.runN ?? null,
-    inning: bet.inning ?? null,
-    away: bet.game?.away.en ?? null,
-    home: bet.game?.home.en ?? null,
-    driver: bet.driverEn ?? null,
-    eventSlug: bet.eventSlug ?? null,
-    live: bet.live ? true : undefined,
-    kambiId: bet.game?.kambiId ?? undefined,
-    ...(bet.settle ?? {}),
-    team: bet.kind === 'future' ? bet.teamEn : bet.settle?.team ?? bet.team ?? null,
-    logo: legLogo(bet)
-  };
+  return { ...legOf(bet), odds: effectiveOdds(bet), logo: legLogo(bet) };
 }
 
 // The free bets not yet spent (on this device either).
