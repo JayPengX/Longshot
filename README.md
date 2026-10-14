@@ -289,14 +289,18 @@ on another device never pays twice.
 the proxy is the only one adding money): 確認下注 sends the slip
 (`placeSlips`); the Worker prices every pick again with the same code and
 takes the stake, or says the price moved (賠率變了, the board read again).
+The slip it keeps is made of the house's own bets (the kit's `legOf`, which
+`legRecord` adds the price and picture to): a pick settles on what was
+priced, whatever else a phone sent. A live pick waits 5 s, as a sportsbook's
+in-play bets do, and is priced again on the live board as it is then.
 Cash out (`takeForCashOut`) and lottery tickets and scratch cards
 (`buyTickets`, `buyCard`, `revealCard`) are bought and paid there too; the
 pass refuses money any app adds itself.
 
 **The Worker settles** (Shared-Proxy `settle.js`, `/play`; the owner,
-2026-10-12), whether Play is open or not. Play hands it each open slip
-(`lib/settled.mjs watchOpen`: after placing, and any open slip this device
-hasn't handed over yet, at each sync). When a slip's soonest undecided game
+2026-10-12), whether Play is open or not: every slip it placed. (The
+hand-over of slips and tickets bought before the lock-down closed on
+2026-10-14: none was left waiting.) When a slip's soonest undecided game
 should be over (its start plus its kind's usual length), the Worker reads
 that game once for every slip on it (the kit's `readOutcomes`, the same code
 below), decides each pick (`legResult`), and once the slip is settled
@@ -533,7 +537,7 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 | `lib/schedules.mjs` | Kambi leagues' own schedules |
 | `lib/cashout.mjs` | Cash out |
 | `lib/account.mjs` | The ledger, placing and settling, merging |
-| `lib/settled.mjs` | The Worker's settling: handing it open slips, its results, cash out's lock |
+| `lib/settled.mjs` | The Worker's placing and settling: slips placed, tickets bought, its results, cash out's lock |
 | `lib/history.mjs`, `profile.mjs` | Stats and a bettor's profile |
 | `lib/recommend.mjs`, `foryou.mjs` | Tags and 為你推薦 |
 | `lib/lottery.mjs`, `scratch.mjs` | Draw games and scratch cards |
