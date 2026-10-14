@@ -3614,12 +3614,6 @@ function showTab(tab) {
   livePulse();
 }
 
-// The kit's clear button: empty, as if typed away.
-$('game-search-clear').addEventListener('click', () => {
-  $('game-search').value = '';
-  $('game-search').dispatchEvent(new Event('input'));
-  $('game-search').focus();
-});
 $('game-search').addEventListener('input', event => {
   state.query = event.target.value.trim();
   if (state.data) renderGames();
