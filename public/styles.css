@@ -1307,9 +1307,9 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .fy-text { display: grid; gap: 2px; min-width: 0; }
 .fy-text strong { font-size: 1.02rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fy-text small { font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fy-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px 12px; border-top: 1px solid var(--border); background: var(--surface-raised); }
+.fy-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px 12px; border-top: 1px solid var(--border); background: var(--surface-raised); }
 .fy-foot small { flex: 1; min-width: 0; font-size: 0.76rem; font-weight: 650; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fy-foot .pick { flex: none; min-width: 76px; }
+.fy-foot .pick { flex: none; min-width: 64px; }
 .combo.mine .combo-tag { color: var(--accent); background: var(--accent-wash); }
 
 /* A game's sheet (a tap on a game): the game and every market of it, over

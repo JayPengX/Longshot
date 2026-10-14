@@ -32,7 +32,7 @@ const TXT = {
     vipNone: 'VIP 回饋', vipNoneSub: '本月投注滿 {v} 起，最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipTop: '最高等級', vipPaid: '上月回饋 {v} 已入帳',
     vipTitle: 'VIP 投注回饋', vipBody: '每月投注決定等級，下個月初自動回饋。免費，不用報名。', vipTier: '月投注 {min} 起 · 回饋 {back}',
     welcome: '第一次下注，就送 {v} 免費投注',
-    forYou: '為你推薦', why_follow: '★ 追蹤 · {team}', why_backed: '↺ 押過 · {team}', why_like: '♥ 常看 · {team}', why_league: '你常玩的{league}', why_sport: '你常玩的{league}', why_value: '🔥 划算', why_steady: '✓ 穩', why_shot: '⚡ 值博', payLine: '押 {s} 可贏 {w}', comboMine: '為你串 3 場',
+    forYou: '為你推薦', why_follow: '★ 追蹤 · {team}', why_backed: '↺ 押過 · {team}', why_like: '♥ 常看 · {team}', why_league: '你常玩的{league}', why_sport: '你常玩的{league}', why_value: '🔥 划算', why_steady: '✓ 穩', why_shot: '⚡ 值博', payLine: '押 {s} 贏 {w}', comboMine: '為你串 3 場',
     combos: '精選串關', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboTag: '{n} 串 1', comboTagBoost: '{n} 串 1 · 加成 +{b}%', comboStake: '投注 {v} · 賠率 ×{x}', comboGo: '加入投注單'
   },
   en: {
