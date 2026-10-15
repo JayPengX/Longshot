@@ -282,3 +282,19 @@ test("an F1 race's boards as one: each driver at the most any says, a trade coun
   assert.equal(both.find(d => d.name === 'George Russell').fair, russell.fair, "the firm quote over Kambi's");
   assert.equal(both.find(d => d.name === 'Lewis Hamilton').fair, 0.11, 'not firm: the most any gives');
 });
+
+test("Polymarket's lists are asked by addresses that stay the same a while (the proxy's cache), games long over left out", async () => {
+  const { fetchPolymarketEvents, useReader, endedSince } = await import('../public/lib/sources.mjs');
+  const asked = [];
+  useReader({ proxyJson: async url => (asked.push(url), []) });
+  const at = Date.parse('2026-10-15T12:34:56.789Z');
+  assert.equal(endedSince(at), '2026-10-15T06:00:00Z');
+  assert.equal(endedSince(at + 20 * 60_000), endedSince(at), 'the same address within the hour');
+  await fetchPolymarketEvents(306, 'polymarket-events', at);
+  assert.match(asked[0], /tag_id=306&closed=false&end_date_min=2026-10-15T06:00:00Z&limit=100&offset=0&/);
+  const { fetchPolymarketLiveEvents } = await import('../public/lib/sources.mjs');
+  await fetchPolymarketLiveEvents(100381, new Date(at));
+  await fetchPolymarketLiveEvents(100381, new Date(at + 4 * 60_000));
+  assert.equal(asked[1], asked[2], 'live: the same address within ten minutes');
+  assert.match(asked[1], /start_time_min=2026-10-15T06:30:00\.000Z$/);
+});

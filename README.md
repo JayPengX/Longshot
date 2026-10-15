@@ -547,7 +547,7 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 | `lib/teams.mjs` | Leagues (from the catalogue), names, logos, the F1 grid |
 | `lib/codec.mjs` | gzip saves |
 | `lib/i18n.mjs` | Chinese and English |
-| `scripts/stamp-version.mjs` | `?v=` on every file, `version.json` |
+| `scripts/stamp-version.mjs` | `?v=` on every file, `version.json`, modulepreload for the app's modules and the kit's (the kit's `preload.mjs`) |
 
 ## Develop, test, deploy
 
