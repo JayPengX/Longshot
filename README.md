@@ -516,7 +516,10 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 - **The games on now** (`play.live.v1`, 15 minutes) are drawn at once on a
   reopen, prices dimmed and not taken until today's swaps in.
 - **The first read** asks for every league at once. The other leagues join
-  as each arrives and are swapped in whole.
+  as each arrives and are swapped in whole. The games in play of every
+  league are read the moment the leagues are in (a read of its own, not
+  queued behind one that didn't know them), each game's pregame line from
+  the live page itself, not its summary.
 - **Redraws** keep the pictures already on screen (`recycled`), so logos
   never blink. A game's options are worked out once per contents, never on
   every redraw.
