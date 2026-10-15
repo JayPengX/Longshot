@@ -95,6 +95,22 @@ test('every league with a game on is read live, with the pregame line from its s
   assert.ok(!liveLeagues(new Date('2026-09-29T20:00:00Z')).includes('scotland'));
 });
 
+test("a game that began before the page opened has its pregame line from the live page itself, not its summary", async () => {
+  const { loadLive, useReader } = await import('../public/lib/sources.mjs');
+  const now = new Date('2026-10-15T17:30:00Z');
+  const side = (homeAway, name, score = '0') => ({ homeAway, score, team: { displayName: name } });
+  const close = odds => ({ close: { odds } });
+  const page = { events: [{ id: '401', date: '2026-10-15T16:45Z', competitions: [{ status: { clock: 2700, displayClock: "45'", period: 1, type: { state: 'in', shortDetail: 'HT' } }, competitors: [side('home', 'AZ Alkmaar', '1'), side('away', "Hapoel Be'er Sheva")], odds: [{ moneyline: { home: close('-205'), draw: close('+340'), away: close('+500') }, total: { over: { close: { line: 'o3.5', odds: '+110' } }, under: { close: { line: 'u3.5', odds: '-135' } } } }] }] }] };
+  const asked = [];
+  useReader({ proxyJson: async url => (asked.push(url), /uefa\.europa\/scoreboard/.test(url) ? page : { events: [] }) });
+  const { games } = await loadLive(now, 5000, { also: ['uel'] });
+  const game = games.find(g => g.espnId === '401');
+  assert.ok(game?.pregame, 'drawn with its pregame line');
+  assert.ok(game.pregame.homeWin > 0.55 && game.pregame.homeWin < 0.7, game.pregame.homeWin);
+  assert.equal(game.pregame.totalLine, 3.5);
+  assert.equal(asked.filter(u => u.includes('/summary')).length, 0);
+});
+
 test('hockey, football and basketball in progress', async () => {
   const { shareLeft, livePoints, liveGoals } = await import('../public/lib/live.mjs');
   const { fitHockey } = await import('../public/lib/markets.mjs');

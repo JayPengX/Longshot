@@ -1277,16 +1277,31 @@ function drawLive() {
 const liveMs = () => dev('playLive') * 1000;
 let liveBusy = null;
 let liveAgain = false;
-// Resolves once the games in play are drawn (a read already on its way: that one).
-function refreshLive() {
-  // Asked again while reading (the other leagues just came in): once more after.
-  // (Its promise: that next read's, which the one under way starts as it ends.)
-  if (liveBusy) return ((liveAgain = true), liveBusy.then(() => liveBusy));
-  return (liveBusy = readLive());
+let liveAsked = 0;
+let liveDrawn = 0;
+// Resolves once the games in play are drawn. Asked again while reading:
+// once more after (its promise: that next read's, which the one under way
+// starts as it ends). `now`: a read of its own at once (the other leagues
+// just came in, which the one under way didn't know of: queued behind it,
+// the first screen waited two whole reads, 7.7 s with Europe's evening on).
+function refreshLive({ now = false } = {}) {
+  if (liveBusy && !now) return ((liveAgain = true), liveBusy.then(() => liveBusy));
+  const read = readLive(++liveAsked).finally(() => {
+    if (liveBusy !== read) return;
+    liveBusy = null;
+    if (liveAgain) {
+      liveAgain = false;
+      refreshLive();
+    }
+  });
+  return (liveBusy = read);
 }
-async function readLive() {
+async function readLive(asked) {
   try {
     const data = await loadLive(new Date(), LIVE_MIN_LIQUIDITY);
+    // (A read asked before one already drawn: older, not drawn over it.)
+    if (asked < liveDrawn) return;
+    liveDrawn = asked;
     state.liveData = data;
     state.liveStale = false;
     saveLiveCopy(data);
@@ -1307,12 +1322,6 @@ async function readLive() {
     if (state.tab === 'home') drawHome();
   } catch (error) {
     console.error(error);
-  } finally {
-    liveBusy = null;
-    if (liveAgain) {
-      liveAgain = false;
-      refreshLive();
-    }
   }
 }
 
@@ -3355,7 +3364,8 @@ async function load() {
   // The first screen is the balance and the games on now as well as the
   // board: the loading screen waits for the account (read and merged with
   // the pass) and the live games too.
-  const firstScreen = () => Promise.all([state.accountIn, refreshLive()]);
+  // (The games in play: the read on its way, or one now.)
+  const firstScreen = () => Promise.all([state.accountIn, liveBusy || refreshLive()]);
   if (saved) {
     // Only if today's board is slow (SNAPSHOT_WAIT_MS): the saved one opens.
     setTimeout(() => {
@@ -3392,13 +3402,12 @@ async function load() {
     };
     const extraGames = loadExtraLeagues(now, games => (pending.push(...games), join())).catch(error => (console.error(error), []));
     const extraFutures = loadExtraFutures().catch(error => (console.error(error), []));
+    // Their scoreboards tell which leagues have a game on: the live board
+    // again, as soon as they're in (the main board's often later, and its
+    // drawing a second more). The first screen waits for this one: every
+    // league's games in play.
+    const liveIn = extraGames.then(() => refreshLive({ now: true }));
     const fresh = await freshIn;
-    // Their scoreboards tell which leagues have a game on: the live board again.
-    // (The first screen waits for this one: every league's games in play.)
-    const liveIn = extraGames.then(() => {
-      state.boardComplete = true;
-      return refreshLive();
-    });
     if (saved) {
       // Swapped in whole (every league's games that came in time, the live
       // games too), so the list doesn't shrink to the main leagues and grow
