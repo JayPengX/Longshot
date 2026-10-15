@@ -291,10 +291,35 @@ test("Polymarket's lists are asked by addresses that stay the same a while (the 
   assert.equal(endedSince(at), '2026-10-15T06:00:00Z');
   assert.equal(endedSince(at + 20 * 60_000), endedSince(at), 'the same address within the hour');
   await fetchPolymarketEvents(306, 'polymarket-events', at);
-  assert.match(asked[0], /tag_id=306&closed=false&end_date_min=2026-10-15T06:00:00Z&limit=100&offset=0&/);
+  assert.match(asked[0], /\/events\?tag_id=306&closed=false&end_date_min=2026-10-15T06:00:00Z&.*include_markets=false&limit=100&offset=0$/);
+  assert.match(asked[1], /\/markets\?tag_id=306&closed=false&sports_market_types=moneyline&end_date_min=2026-10-15T06:00:00Z&.*&limit=500&offset=0$/);
   const { fetchPolymarketLiveEvents } = await import('../public/lib/sources.mjs');
+  asked.length = 0;
   await fetchPolymarketLiveEvents(100381, new Date(at));
   await fetchPolymarketLiveEvents(100381, new Date(at + 4 * 60_000));
-  assert.equal(asked[1], asked[2], 'live: the same address within ten minutes');
-  assert.match(asked[1], /start_time_min=2026-10-15T06:30:00\.000Z$/);
+  assert.deepEqual(asked.slice(0, 2), asked.slice(2), 'live: the same addresses within ten minutes');
+  assert.match(asked[0], /start_time_min=2026-10-15T06:30:00\.000Z&/);
+});
+
+test("Polymarket's games come with only their winner markets, read apart (MB lighter), and its championships whole", async () => {
+  const { fetchPolymarketEvents, parsePolymarketEpl, parseFutures, useReader } = await import('../public/lib/sources.mjs');
+  const teams = [{ name: 'Chelsea FC', ordering: 'away' }, { name: 'Everton FC', ordering: 'home' }];
+  const game = { id: 7, title: 'Everton FC vs. Chelsea FC', startTime: '2026-10-17T11:30:00Z', teams };
+  const champion = { id: 9, title: 'EPL: 2026 Champion' };
+  const yes = (question, p) => ({ question, outcomes: '["Yes","No"]', outcomePrices: `["${p}","${1 - p}"]`, liquidity: '9000' });
+  const asked = [];
+  useReader({
+    proxyJson: async (url, { trim }) => {
+      asked.push({ url, trim });
+      if (url.includes('/markets?')) return [{ ...yes('Will Everton FC win on 2026-10-17?', 0.3), event: 7 }, { ...yes('Will Everton FC vs. Chelsea FC end in a draw?', 0.25), event: 7 }, { ...yes('Will Chelsea FC win on 2026-10-17?', 0.45), events: [{ id: 7 }] }];
+      if (url.includes('id=9')) return [{ ...champion, markets: [{ ...yes('Will Arsenal win the 2026 EPL?', 0.5), groupItemTitle: 'Arsenal' }, { ...yes('Will Chelsea win the 2026 EPL?', 0.3), groupItemTitle: 'Chelsea' }] }];
+      return [game, champion];
+    }
+  });
+  const events = await fetchPolymarketEvents(306, 'polymarket-events', Date.parse('2026-10-15T12:00:00Z'));
+  assert.equal(asked.find(a => a.url.includes('/markets?')).trim, 'polymarket-markets');
+  const [g] = parsePolymarketEpl(events, new Date('2026-10-15T12:00:00Z'));
+  assert.deepEqual([g.away, g.home], ['Chelsea FC', 'Everton FC']);
+  assert.ok(Math.abs(g.outcomes.away - 0.45) < 1e-9 && Math.abs(g.outcomes.draw - 0.25) < 1e-9);
+  assert.equal(parseFutures(events, 'epl')[0]?.teams.length, 2);
 });
