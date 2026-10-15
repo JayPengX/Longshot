@@ -203,9 +203,12 @@ today's): a game's options are kept by its contents (`optionsOf` in
 `app.js`), F1's top six, top ten, teammates and teams (40,000 drawn races,
 `f1Markets`) once per field of prices (`f1MarketsMemo`), and soccer's 半全場
 summed by each half's goal difference (`goalMarkets`), not every score of
-one half against every score of the other. A model change keeps these
-cheap: profile an opening (Chromium's profiler, the second opening) before
-and after. Today's board is read while the sign-in is on its way (`boot`),
+one half against every score of the other. Every model fit (team runs,
+totals, goals, hockey) is kept by its inputs on the device (the kit's
+`play.fits`), so a reopen fits nothing again: a whole board prices in about
+a quarter of the time. A model change keeps these cheap: profile an
+opening (`tools/preview.mjs --profile`, the second opening) before and
+after. Today's board is read while the sign-in is on its way (`boot`),
 not under a `#qh=` sign-in link.
 
 **House rules** (`HOUSE_RULES`, for the slip and the simulated crowd alike):
@@ -506,7 +509,8 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 ## Opening fast, staying still
 
 - **The saved board** (kept 3 days, tied to its shape `SNAPSHOT_V`, not
-  the deploy) is drawn while signing in. The loading screen lifts once
+  the deploy) is drawn once today's reads have gone out (drawn before,
+  its pricing held them back a second). The loading screen lifts once
   today's board, the balance and the games on now have replaced it (at
   most `SNAPSHOT_WAIT_MS`, 2 s), so nothing reshuffles.
 - **The games on now** (`play.live.v1`, 15 minutes) are drawn at once on a

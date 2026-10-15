@@ -3793,19 +3793,25 @@ function readLiveCopy() {
     return null;
   }
 }
-function drawSnapshot() {
+// The saved board taken in, not drawn yet (drawSnapshot): today's reads
+// go out before its pricing.
+function takeSnapshot() {
   const saved = storedAccount() ? readSnapshot() : null;
   if (!saved) return;
+  state.data = saved;
+  state.fromSnapshot = true;
+  const live = readLiveCopy();
+  if (live && !state.liveData) {
+    const { games, bets } = buildLiveBets(live);
+    Object.assign(state, { liveData: live, liveStale: true, liveGames: games, liveBets: bets, liveRecs: recommend(bets) });
+  }
+  if (state.wantedTab && tabAvailable(state.wantedTab)) state.tab = state.wantedTab;
+  state.wantedTab = null;
+}
+function drawSnapshot() {
+  // (Today's board already in: nothing to draw.)
+  if (!state.fromSnapshot) return;
   try {
-    state.data = saved;
-    state.fromSnapshot = true;
-    const live = readLiveCopy();
-    if (live && !state.liveData) {
-      const { games, bets } = buildLiveBets(live);
-      Object.assign(state, { liveData: live, liveStale: true, liveGames: games, liveBets: bets, liveRecs: recommend(bets) });
-    }
-    if (state.wantedTab && tabAvailable(state.wantedTab)) state.tab = state.wantedTab;
-    state.wantedTab = null;
     renderAll();
   } catch (error) {
     // A saved board this version can't draw: a normal start.
@@ -3855,22 +3861,23 @@ async function boot() {
   let accountDone;
   state.accountIn = new Promise(resolve => (accountDone = resolve));
   restoreSlip();
-  // Signing in (a round trip) goes out first; the saved board is drawn
-  // while it's on its way, not before it.
+  // Signing in (a round trip) goes out first.
   const starting = q.start();
-  // The saved board is drawn behind the loading screen, which lifts once
-  // today's board, the balance and the games on now have replaced it (load:
-  // SNAPSHOT_WAIT_MS at most), so nothing moves right after it lifts. Drawn
-  // once the sign-in has gone out (start awaits before it asks; drawn at
-  // once, the board's long first pricing held the request back most of a
-  // second).
-  await Promise.race([starting, new Promise(resolve => setTimeout(resolve, 30))]);
-  drawSnapshot();
   // Today's board read while the sign-in is on its way (its reads through
   // the proxy wait for that sign-in, not a second one), not a round trip
   // after it. (Under a sign-in link, after: its hand-off is redeemed first.)
   const handoff = /[#&]q[hp]=/.test(location.hash);
+  takeSnapshot();
   let loading = handoff ? null : load();
+  // The saved board is drawn behind the loading screen, which lifts once
+  // today's board, the balance and the games on now have replaced it (load:
+  // SNAPSHOT_WAIT_MS at most), so nothing moves right after it lifts. Drawn
+  // once today's reads have gone out (they wait for the sign-in's reply):
+  // drawn before, its first pricing (a second on a fast computer) held
+  // them back as long, and the loading screen with them.
+  await Promise.race([starting, new Promise(resolve => setTimeout(resolve, 1_500))]);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  drawSnapshot();
   const first = await starting;
   state.wallet = first.wallet || q.wallet;
   loading ??= load();
