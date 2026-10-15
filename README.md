@@ -14,6 +14,8 @@ The family's rules are `Shared-Proxy/docs/TRUTH.md` (they win over
 anything here). The Quadra Pass, the money pool, Plus, VIP and free bets
 are the kit's and the Worker's (Shared-Proxy README §5–6).
 
+**Without a connection** (the kit's `onlineOnly`): covered (沒有網路連線, 賠率和下注需要網路連線, 重試), never old odds to bet on; back by itself once online. A slow connection opens on the saved board with the kit's 網路連線很慢.
+
 ## Contents
 
 - [The tabs](#the-tabs)

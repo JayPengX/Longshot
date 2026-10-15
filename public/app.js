@@ -22,7 +22,8 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon } from './icons.js';
 import {
-  othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev
+  othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev,
+  keepOffline, onlineOnly
 } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { historyStats, funFacts, crowdPercentile, accountRecord } from './lib/history.mjs';
@@ -3911,14 +3912,7 @@ document.addEventListener('visibilitychange', () => {
   livePulse({ force: true });
 });
 
-// Offline and installable: the page's own files, kept by the service worker.
-if ('serviceWorker' in navigator && window.isSecureContext) {
-  navigator.serviceWorker
-    .register('./sw.js')
-    .then(() => navigator.serviceWorker.ready)
-    .then(reg => {
-      const urls = [location.href.split('#')[0], ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(location.origin));
-      reg.active?.postMessage({ type: 'cache', urls });
-    })
-    .catch(() => {});
-}
+// Opens without a connection: the kit registers the worker and has it keep every file loaded.
+keepOffline();
+// Every screen is live (an old copy would read as now): no connection, the kit's cover, not the saved copy.
+onlineOnly({ zh: '賠率和下注需要網路連線', en: 'Odds and bets need a connection.' });
