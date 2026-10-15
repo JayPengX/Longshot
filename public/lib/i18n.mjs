@@ -191,63 +191,6 @@ export const STRINGS = {
     finalScore: "終場",
     finalWinner: "冠軍",
     syncTooBig: "紀錄太多，雲端同步放不下了。這台裝置上的紀錄都還在。",
-    guideRead: [
-      ['賠率', '每個選項上的大數字是估計的運彩賠率。下 NT$100、中了拿回 NT$100 × 賠率。鎖頭是不開放的選項；「限2關」「限3關」只能串關。角落的「划算」「穩」「值博」是推薦（見下方「推薦」）。'],
-      ['綠色', '選項變綠：每下 NT$100 長期平均拿回的比同類多（沒那麼虧）。排行榜和統計裡，綠字是拿回比較多、紅字是拿回比較少。超過 100 才是賺，實際上幾乎沒有。'],
-      ['每 NT$100 拿回', '排行榜和各種統計裡的「回 87」，意思是每下 NT$100，長期平均拿回 NT$87，另外 NT$13 是運彩的抽成（中獎超過 NT$5,000 還要扣稅）。滑鼠停在選項上可以看到它的公平機率和拿回金額。'],
-      ['公平機率', '把 DraftKings 和 Polymarket 的價格去掉莊家抽成後，這個結果真正發生的機率。運彩的賠率是用這個機率再乘上抽成算出來的。'],
-      ['抽成', '同一個玩法所有選項的「1 ÷ 賠率」加起來超過 1 的部分。運彩兩選一的玩法約 14%，三選一約 17%，比分、最高單局這類更高，串關每多一場就再被抽一次；越冷門、越沒把握的盤抽越多（見「運彩的規則」）。滑鼠停在選項上可以看到這個盤的抽成。'],
-      ['誤差範圍', '公平機率的誤差是 DraftKings 和 Polymarket 差距的一半；估計賠率的誤差是和運彩真實價格比對的平均差距（MLB 約 ±2%，其他還沒驗證）。'],
-      ['投注單的數字', '全中拿多少、平均拿回、有賺的機率，都是用每場的公平機率精確算出來的。如果賠率公平，全中應該拿更多；少掉的部分就是每一場的抽成疊起來。'],
-      ['模擬的誤差', '模擬 10 萬人，「還在贏的比例」抽樣誤差約 ±0.2 個百分點（95%），各習慣、各個性的數字誤差比較大（人少）。估計賠率本身的誤差另計。']
-    ],
-    guide: [
-      ['個性（模擬裡每個人都是幾種個性的組合）', [
-        ['怎麼挑（最多一種）', '押熱門 20%（只押勝率 60% 以上）、爆冷獵人 12%（只押 35% 以下）、精算派 6%（只押本站推薦的選項）、玩法控 12%（專挑比分、勝分差、半全場、局數這類玩法）；其他人隨便挑，越可能贏、越熱門的玩法越多人押。'],
-        ['一張串幾場（最多一種）', '單場派 20%（一張一場，限過關的選項不能單場）、串關狂 15%（一張 3–6 場，串越多每張押越少）；其他人一張 1–2 場。'],
-        ['押多大、多常買（各最多一種）', '大戶 6% 每張押餘額的 8%、小資 22% 押 1%，其他人 3%。天天買 15% 一週約 4 張、偶爾玩 20% 約 3 週一張，其他人一週約 1 張。'],
-        ['遇到輸贏的反應（各自獨立）', '越輸越大、追輸族、見好就收、手感派、乘勝追擊、報復型、玻璃心、不服輸、大獎夢、滾雪球、守本派、停損、小確幸、看心情、三分鐘熱度、孤注一擲、死忠（季外休息）、見異思遷（季外一定改賭別的）。每種各有 8–20% 的人有，同一個人可以同時有好幾種。'],
-        ['為什麼是這個比例', '依法運彩的獎金支出不能超過銷售額的 78%，實際也差不多，所以運彩整體留下約 22%。每多串一場就多被抽一次，只有大部分的錢押在單場和短串關上，整體抽成才會是 22%。模擬照這個比例設定：10 萬人整體給運彩的抽成約 21–23%（稅另計）。'],
-        ['你是哪種人', '「紀錄」會用同一套分析看你的彩券，找出看得出來的個性（押熱門、串關狂、天天買、越輸越大…），再跟模擬裡同樣個性的人比。']
-      ]],
-      ['賭哪些賽事', [
-        ['每個人一疊標籤', '每個人押的賽事是一疊標籤：大部分人只押一個賽事（只押英超、只押中職），有些人押一種運動的全部賽事（所有棒球），有些人跨運動混搭（MLB + NBA），少數人什麼都押。'],
-        ['多少人押', '跟台灣運彩玩家的熱門程度成正比：MLB、NBA 最多，接著是中職、英超、日職，冷門的蘇超、歐協聯最少。'],
-        ['季外', '自己的賽事都休季時，照個性決定休息還是改押當週有的比賽（死忠一定休息、見異思遷一定改押）。只押 F1 的人一張只押一位車手。'],
-        ['看賽事', '「賭什麼」分頁列出每個賽事所有押它的人（不管還押了什麼）的結果。']
-      ]],
-      ['投注種類', [
-        ['不讓分、大小分、讓分、單隊大小', '猜誰贏、總分多或少、讓分後誰贏、某一隊得分多或少。MLB 的線和價格和運彩真實的盤比對過；其他聯賽用莊家的線和同樣的抽成。'],
-        ['新玩法', '足球的半全場（9 種）、總進球數、雙重機會（三個結果猜中兩個之一）、上半場大小、單隊大小；籃球和美足的第一節、上半場大小、單隊總分；冰球的單隊大小；棒球的首分和最高得分局（所有棒球聯賽）；F1 前三名。'],
-        ['更多運動', '日職、韓職、中職、歐洲籃球、韓國職業足球的賠率來自 Kambi（一家歐洲莊家的公開賠率），有比賽時才會出現。'],
-        ['冠軍盤', 'MLB、NBA、英超之外，還有 NFL、NHL、WNBA、大學美足、歐冠、歐霸、西甲、義甲、德甲、法甲、美職足和 F1 車手、車隊年度冠軍（來自 Polymarket）。'],
-        ['F1 分站冠軍', '每位車手的機率取各來源中最高的：Kambi 的盤（去水）、Polymarket 的報價（去水）和它有成交時的最後成交價；但 Polymarket 上成交過 1,000 美元且買賣價差很小的報價，直接照它的買價（它最快反映罰退之類的消息，而且莊家的賠率永遠不比市場高）。賠率 = 1 ÷（機率 × 1.2），最高 500、最低 1.01。排位賽前後算法相同；排位賽時間來自 ESPN 的賽程。']
-      ]],
-      ['運彩的規則', [
-        ['鎖盤', '只鎖幾乎必中（1.03 以下）或離譜的冷門（一般玩法 30 倍以上、比分這類玩法 150 倍以上）。6 倍以上的冷門照賣，但莊家多抽一點（超過 6 倍的部分只付八成五）。F1 和冠軍盤不設上限；1.12 以下的大熱門才鎖。'],
-        ['限過關', '賠率偏低的選項只能串關：1.12 以下限 3 關以上，1.25 以下限 2 關以上（F1 和冠軍盤 1.30 以下限 2 關）。投注單的每個組合都要串夠場數。'],
-        ['抽成看風險', '運彩在越沒把握的地方抽越多：從實測的抽成（MLB 兩項約 14%）開始，資料來源差距越大、聯賽越冷門、線離主線越遠，抽成越高，最多再多 8%。'],
-        ['投注單與稅', '每張最多 12 場、同一場只能選一個結果、NT$100–100,000、彩金上限 NT$2,000 萬；每注獎金超過 NT$5,000 預扣 20.4%。'],
-        ['模擬帳戶', '下注的錢來自 Quadra 共用餘額（每月 1 日固定發薪 NT$6,000）。下注時照當下賠率扣款，比賽結束自動對獎；日職、韓職、中職、歐洲籃球和韓國職業足球看 Kambi 的即時比分，比賽打完就自動對獎；3 天都沒有結果（延賽、取消）就退款。模擬的 10 萬人照一樣的對獎規則（每週 NT$5,000）。'],
-        ['年齡與合法性', '購買運彩須年滿 18 歲；在海外網站（包含 Polymarket）下注在台灣屬於違法賭博。本站只是教學工具。']
-      ]],
-      ['推薦', [
-        ['怎麼推薦', '每個選項都用同一個數字比：每 NT$100 平均拿回多少。今天所有選項裡前 10% 的標「划算」；勝率 65% 以上又不差的標「穩」；勝率 30% 以下但拿回在前四分之一的標「值博」。鎖盤、勝率 85% 以上或 5% 以下的不推薦。'],
-        ['推薦不等於會贏', '推薦只是「比較不虧」：幾乎所有選項每 NT$100 都拿不回 100。模擬裡的精算派只押推薦的選項，結果一樣在虧。']
-      ]],
-      ['模擬怎麼做', [
-        ['10 萬人', '5 種挑法 × 47 種賽事組合，約 10 萬人；其他個性每個人各自抽。每個人有自己的編號和亂數種子，同樣的編號每次都重演一模一樣的人生。'],
-        ['押的是同樣的盤', '模擬的人押的是這一頁上同樣的玩法和賠率（鎖盤的不能押、限過關的只能串），今天沒有比賽的運動用一般比賽的機率分布。'],
-        ['同一個世界', '每週每場比賽只有一個真正的結果，押同一場的人一起中、一起輸；同一場的讓分和大小各條線也彼此一致（大 8.5 中了，大 7.5 一定也中）。'],
-        ['一次算好幾個時段', '跑 1 年時，1、3、6 個月的結果一起記下來；選 3 年時從第 52 週接著玩，結果和從頭跑一模一樣（有測試確認）。'],
-        ['每個人的故事', '查任何一個人，會重演他的每一張彩券，用和「紀錄」一樣的分析：中獎率、平均串幾場、最大一筆、連中連槓、差一場、最好和最慘的一週。']
-      ]],
-      ['資料與誤差', [
-        ['資料來源', '公平機率來自 DraftKings（經 ESPN）、Polymarket 和 Kambi，各自先去掉自己的抽成；全部透過共用代理伺服器抓取並快取（賠率 2 分鐘、冠軍盤 10 分鐘），同時最多 6 個請求，避免被擋。'],
-        ['校準', '估計賠率的公式用運彩的真實價格比對過：MLB 單場 14 場、大小分 12 場、讓分和單隊大小 10 場、冠軍盤、F1 排位前後各一次、場中一次。其他都標「?」。'],
-        ['± 誤差', '公平機率的 ± 是兩個來源差距的一半；估計賠率的 ± 是和真實價格比對的平均誤差；模擬的 ± 是抽樣誤差（95%）。']
-      ]]
-    ],
     inningTie: '一樣多',
     inningN: '第 {n} 局',
     topInning: '得分最高單局',
@@ -257,8 +200,6 @@ export const STRINGS = {
     secTotal: '大小分',
     secMoneyline: '不讓分',
     runLine: '讓分',
-    tab_math: '說明',
-    tab_sim: '模擬',
     tab_slip: '投注單',
     tab_f1: 'F1',
     tab_futures: '冠軍',
@@ -585,18 +526,6 @@ export const STRINGS = {
     playerNoWin: '一張都沒中',
     f1Title: 'F1 分站冠軍',
     f1Intro: "賠率 = 1 ÷（奪冠機率 × 1.2），每位車手抽成一樣，冷門不多抽。",
-    mathSteps: [
-      ['1. 賠率 → 隱含機率', '十進位賠率是「每下 1 元，贏了拿回多少（含本金）」。1.80 代表下 NT$100 贏了拿回 NT$180。它背後假設的機率是 1 ÷ 賠率 = 55.6%。'],
-      ['2. 為什麼加起來超過 100%', '同一場的另一邊 1.70 → 58.8%。兩邊加起來 114.4%，但真實機率一定是 100%。多出來的 14.4% 就是莊家的抽成。'],
-      ['抽成（house take）', '把同一個盤的每個結果的隱含機率加起來（例如 57% + 57% = 114%），抽成 = 1 − 1 ÷ 總和 = 1 − 1 ÷ 1.14 ≈ 12%：如果大家的錢平均押在各個結果上，運彩一定留下這個比例。估計賠率的公式對 MLB 單場假設總和約 1.15，所以抽成約 13%；冠軍盤約 40–50%。投注單的抽成是「1 − 平均拿回 ÷ 投注金額」，串越多場越高。另外台灣的稅：單注（每個組合）獎金超過 NT$5,000，要預扣 20% 所得稅和 0.4% 印花稅，共 20.4%，NT$5,000 以下不扣。投注單的「抽成＋稅」和模擬的結果都已經算進去。'],
-      ['3. 公平機率', 'Polymarket 的價格本身就是機率（0.50 = 50%）。DraftKings 的美式賠率先換成機率，再除以兩邊總和去掉它自己的抽成。兩者平均就是這裡用的公平機率。'],
-      ['4. 期望值', '平均拿回 = 公平機率 × 賠率 × 100。例如 0.502 × 1.80 × 100 = NT$90.4：長期每下 NT$100 平均虧約 NT$10。大於 100 才值得下，運彩幾乎從來不會。'],
-      ['模仿運彩的公式', 'MLB：運彩賠率 ≈ 1 ÷（公平機率 × 1.15）。用 2026/9/25 的 14 場真實價格比對，平均誤差約 0.04。F1：運彩賠率 ≈ 1 ÷ 公平機率^0.69，冷門車手被抽得更多；機率不到 1% 的車手，運彩直接開固定的 65、325 或 500。'],
-      ['足球的和局', '英超有三種結果：主勝、和局、客勝。三個公平機率加起來是 100%，所以一樣可以用「公平機率 × 賠率」算平均拿回。足球的抽成還沒有用運彩真實價格驗證。'],
-      ['MLB 大小分的三條線', '運彩每場開三條大小分線：最接近五五波的那條，再加上下各一分（例如 5.5、6.5、7.5）。我們只有 DraftKings 的一條線，所以用「總得分」的機率分布（負二項分布）去配合那條線，再算出其他線的機率。用 2026/9/25 兩場共 12 個真實價格比對，平均只差約 1 個百分點。'],
-      ['MLB 讓分：運彩自己的機率', '運彩開 DraftKings 的 1.5 分讓分線，再加同一邊的 2.5 分。但價格不是照 DraftKings 的機率：運彩把機率往五五波拉（大約只保留 73% 的差距），2.5 分再固定移 8.6 個百分點。用 2026/9/25 十場、38 個真實價格比對，平均只差 1.6%。結果是：比較可能過盤的那一邊被開得比實際難過，所以比較划算，平均每 NT$100 拿回約 NT$90 以上；另一邊只拿回約 NT$75–80。通常是受讓的冷門隊（+1.5）比較划算，但遇到大熱門（例如道奇），反而是熱門讓分（-1.5）比較划算。'],
-      ['為什麼幾乎都是虧', '如果每個賠率都是公平賠率 ÷ 1.15，那麼 公平機率 × 賠率 ≈ 1 ÷ 1.15 ≈ 0.87。不管選哪一隊，每 NT$100 平均都只拿回約 NT$87。']
-    ],
     footer: ''
   },
   en: {
@@ -791,63 +720,6 @@ export const STRINGS = {
     finalScore: "Final",
     finalWinner: "Won by",
     syncTooBig: "Too much history for the online sync. Everything is still on this device.",
-    guideRead: [
-      ['Odds', 'The big number on each pick is the estimated lottery odds. NT$100 on it pays NT$100 × the odds if it wins. Locked picks aren\'t on sale; "2+ legs" and "3+ legs" ones only in parlays. The corner tags (Value, Steady, Worth a shot) are recommendations (see Recommendations below).'],
-      ['Green', 'A green pick gets back more per NT$100 on average than similar bets (loses less). In rankings and stats, green figures get back more and red ones less. Above 100 would be a win, and almost nothing is.'],
-      ['Back per NT$100', '"Back 87" in the rankings and stats means each NT$100 bet returns NT$87 on average over time; the other NT$13 is the lottery\'s take (and a prize over NT$5,000 is taxed too). Hover a pick to see its fair chance and the amount back.'],
-      ['Fair chance', 'How likely the result really is: DraftKings\' and Polymarket\'s prices with the bookmaker\'s margin taken out. The lottery\'s odds are this chance with its cut added.'],
-      ['House take', 'How far the "1 ÷ odds" of every pick in a market add up beyond 1. About 14% on the lottery\'s two-way markets, 17% on three-way ones, more on correct scores or the top inning, and a parlay pays it once per game; more on markets the house is less sure of (see the lottery\'s rules). Hover a pick to see its market\'s take.'],
-      ['Margins of error', 'For the fair chance, half the gap between DraftKings and Polymarket; for estimated odds, the average gap against real lottery prices (about ±2% for MLB, the rest not checked yet).'],
-      ['The slip\'s numbers', 'All-correct payout, average back and the chance of profit are computed exactly from each game\'s fair chance. At fair odds all-correct would pay more; the difference is every game\'s take stacked up.'],
-      ['Simulation error', 'With 100,000 simulated people, the share still ahead has a sampling error of about ±0.2 percentage points (95%); each habit\'s or trait\'s figures have more (fewer people). The estimated odds add their own error.']
-    ],
-    guide: [
-      ['Traits (everyone in the simulator is a mix)', [
-        ['How they pick (one at most)', 'Backs favourites 20% (60%+ chances only), upset hunter 12% (35% or less), value hunter 6% (only the picks this page recommends), side-market fan 12% (scores, margins, half-time/full-time, sets …); the rest pick anything, the likelier and the more popular the market, the more often.'],
-        ['Picks per ticket (one at most)', 'Singles 20% (one pick, never a parlay-only one), parlay lover 15% (3-6 picks, the more picks the smaller the stake); the rest 1-2.'],
-        ['Stake and pace (one of each at most)', 'High roller 6% stakes 8% of the balance, small stakes 22% 1%, the rest 3%. Every day 15% buys about 4 tickets a week, now and then 20% one every 3 weeks, the rest about one a week.'],
-        ['Reactions (each on its own)', 'Tilts, chaser, cashes out, streaky, presses on, revenge, heartbroken, so close, jackpot dreamer, lets it ride, guards the start, stop-loss, content, moody, easily bored, Hail Mary, loyal (off-season off), hopper (off-season always on). Each 8-20% of people; one person can have several.'],
-        ['Why these shares', 'By law the lottery pays out at most 78% of sales in prizes, and it pays about that, so it keeps about 22%. Every extra pick pays the cut again, so that only works if most money goes on singles and short parlays. The crowd is set that way: as a whole it gives the house 21-23% before tax.'],
-        ['Which one are you', 'History reads your tickets with the same analysis, spots the traits that show (backs favourites, parlays, every day, tilts …) and compares you with the crowd\'s people who have them.']
-      ]],
-      ['What they bet on', [
-        ['A stack of labels', 'Everyone bets on a stack of series: most on one series only (only the Premier League, only CPBL), some on every series of one sport (all baseball), some on a mix across sports (MLB and the NBA), a few on everything.'],
-        ['How many', 'In proportion to how popular each is with Taiwan\'s lottery players: MLB and the NBA the most, then CPBL, the Premier League and NPB; the Scottish Premiership and the Conference League the fewest.'],
-        ['Off-season', 'When all their series are off, their traits decide whether they rest or bet on whatever is on that week (loyal: always rest; hoppers: always switch). F1-only people bet one driver per ticket.'],
-        ['By series', 'The "What they bet on" tab shows, for each series, everyone who bets on it (whatever else they bet on).']
-      ]],
-      ['Kinds of bet', [
-        ['Winner, totals, handicaps, team totals', 'Who wins, more or fewer points than a line, who wins after a handicap, one team\'s points. MLB\'s lines and prices were checked against the lottery\'s board; other leagues use the bookmaker\'s line at the same cut.'],
-        ['New plays', 'Soccer half-time/full-time (9 outcomes), total goals, double chance (either of two results), first-half total and team totals; basketball and football first quarter, first-half total and team totals; hockey team totals; baseball first to score and top-scoring inning (every baseball league); F1 podium.'],
-        ['More sports', 'NPB, KBO, CPBL, EuroLeague and K League from Kambi (a European bookmaker\'s public odds), whenever there are matches.'],
-        ['Championships', 'Besides MLB, the NBA and the Premier League: NFL, NHL, WNBA, college football, Champions League, Europa League, La Liga, Serie A, Bundesliga, Ligue 1, MLS, and the F1 drivers\' and constructors\' titles (from Polymarket).'],
-        ['F1 race winner', 'Each driver\'s chance is the most any source gives: Kambi\'s board (devigged), Polymarket\'s quote (devigged) and its last trade where it has traded; but a Polymarket quote with $1,000 traded and a tight book is taken at its ask (it moves first on news like a grid penalty, and the house never pays longer than the market). The price is 1 / (chance x 1.2), at most 500 and never under 1.01, the same before and after qualifying. Qualifying times come from ESPN\'s schedule.']
-      ]],
-      ['The lottery\'s rules', [
-        ['Locked', 'Only near-certain prices (1.03 or less) and far-out ones (30+ on ordinary markets, 150+ on scores and the like) are locked. Longshots past 6 stay on sale with more margin (85% of the price past 6 is paid). F1 and championships have no upper limit; a favourite under 1.12 is locked.'],
-        ['Parlay only', 'Short prices only in parlays: under 1.12 in 3+ games, under 1.25 in 2+ (F1 and championships under 1.30 in 2+). Every combination on the ticket must have enough games.'],
-        ['A cut by risk', 'The lottery takes more where it knows less: from its measured cut (about 14% on MLB two-way markets), more when the sources disagree, the league is less known, or the line is far from the main one; at most 8% more.'],
-        ['Tickets and tax', 'Up to 12 games, one pick per game, NT$100-100,000 a ticket, payouts capped at NT$20 million; 20.4% withheld from any combination paying over NT$5,000.'],
-        ['Practice account', 'Bets come from the shared Quadra balance (a fixed NT$6,000 pay on the 1st of every month). Stakes come off at the odds of the moment and pay out automatically: Asian baseball, EuroLeague and K League from Kambi\'s live score once the match is over; anything without a result after 3 days (postponed, called off) is refunded. The simulated 100,000 settle by the same rules (with NT$5,000 a week).'],
-        ['Age and the law', 'You must be 18 to buy lottery tickets; betting on overseas sites (Polymarket included) is illegal gambling in Taiwan. This site is a teaching tool only.']
-      ]],
-      ['Recommendations', [
-        ['How picks are recommended', 'Every pick by one number: the average back per NT$100. The day\'s top 10% are tagged Value; 65%+ picks with a fair return Steady; 30%-or-less picks in the top quarter Worth a shot. Locked picks and those over 85% or under 5% never are.'],
-        ['Recommended isn\'t winning', 'It only means losing less: almost nothing returns 100 per NT$100. The simulator\'s value hunters bet only recommended picks, and still lose.']
-      ]],
-      ['How the simulator works', [
-        ['100,000 people', '5 pick styles x 47 stacks of series, about 100,000 people; every other trait drawn person by person. Each person has their own number and random seed: the same number replays the same life.'],
-        ['The same board', 'They bet on this page\'s markets at its odds (never locked picks, parlay-only picks only in parlays); a sport with nothing on today uses a typical week.'],
-        ['One world', 'Each week every game has one real result for everyone; one game\'s handicap and total lines agree too (over 8.5 won means over 7.5 won).'],
-        ['Several periods at once', 'A 1-year run records 1, 3 and 6 months along the way; 3 years carries on from week 52, identical to running straight (tested).'],
-        ['Everyone\'s story', 'Looking anyone up replays every ticket and reads it with the same analysis as your history: hit rate, picks per ticket, biggest win, streaks, near misses, best and worst week.']
-      ]],
-      ['Data and margins', [
-        ['Sources', 'Fair chances from DraftKings (via ESPN), Polymarket and Kambi, each with its own margin removed; everything through the shared proxy and its cache (odds 2 minutes, championships 10), at most 6 requests at once so nothing gets blocked.'],
-        ['Calibration', 'Checked against the lottery\'s real prices: 14 MLB games, 12 of totals, 10 of run lines and team totals, the championships, F1 before and after qualifying, and one live board. Everything else is marked "?".'],
-        ['± margins', 'For the fair chance, half the gap between the sources; for estimated odds, the average error against real prices; in the simulator, sampling error (95%).']
-      ]]
-    ],
     inningTie: 'Tie for most',
     inningN: 'Inning {n}',
     topInning: 'Top inning',
@@ -857,8 +729,6 @@ export const STRINGS = {
     secTotal: 'Total runs',
     secMoneyline: 'Win (moneyline)',
     runLine: 'Run line',
-    tab_math: 'Guide',
-    tab_sim: 'Simulator',
     tab_slip: 'Bet slip',
     tab_f1: 'F1',
     tab_futures: 'Championships',
@@ -1185,18 +1055,6 @@ export const STRINGS = {
     playerNoWin: 'never won',
     f1Title: 'F1 race winner',
     f1Intro: "Odds = 1 ÷ (win chance × 1.2): the same cut on every driver, none extra on long shots.",
-    mathSteps: [
-      ['1. Odds → implied chance', 'Decimal odds are what you get back per NT$1, stake included. 1.80 means NT$100 returns NT$180 on a win. The chance it assumes is 1 ÷ odds = 55.6%.'],
-      ['2. Why it adds up to more than 100%', "The other side at 1.70 → 58.8%. Together that's 114.4%, but real chances must total 100%. The extra 14.4% is the house's cut."],
-      ['The house take', 'Add up the implied chances of every result in one market (say 57% + 57% = 114%). The take is 1 − 1 ÷ that total = 1 − 1 ÷ 1.14 ≈ 12%: if the money came in evenly on every result, the lottery keeps that share no matter who wins. The estimate assumes a total of about 1.15 for single MLB games, so about 13%; championship markets run 40–50%. On the bet slip the take is 1 − average back ÷ amount bet, and it grows with every game added. Then Taiwan\'s tax: any single combination paying over NT$5,000 has 20% income tax and 0.4% stamp duty withheld, 20.4% in all; NT$5,000 or less is untaxed. The bet slip\'s "take + tax" and the simulator both include it.'],
-      ['3. Fair chance', "Polymarket prices already are chances (0.50 = 50%). DraftKings' US odds are converted to chances, then divided by their total to remove DraftKings' own cut. The average of the two is the fair chance used here."],
-      ['4. Expected value', 'Average back = fair chance × odds × 100. For example 0.502 × 1.80 × 100 = NT$90.4: you lose about NT$10 per NT$100 over time. A bet is only worth it above 100; the lottery almost never gets there.'],
-      ['The copying formula', 'MLB: lottery odds ≈ 1 ÷ (fair chance × 1.15). Checked against 14 real games on 2026-09-25, the average error is about 0.04. F1: lottery odds ≈ 1 ÷ fair chance^0.69, which charges longshots more; drivers under 1% get one of the lottery\'s fixed prices, 65, 325 or 500.'],
-      ['Soccer draws', "Premier League matches have three results: home win, draw, away win. Their fair chances add up to 100%, so fair chance × odds works the same way. The lottery's soccer cut hasn't been verified against real prices yet."],
-      ['MLB totals: three lines', 'The lottery posts three total-runs lines per game: the one closest to 50/50 plus one run either side (say 5.5, 6.5, 7.5). DraftKings gives only one line, so the page fits a distribution of total runs (negative binomial) to it and reads the other lines off that. Against 12 real lottery prices from two games on 2026-09-25, it was off by about 1 percentage point on average.'],
-      ['MLB run lines: the lottery\'s own chances', 'The lottery posts DraftKings\' 1.5-run line plus the 2.5 line on the same side, but doesn\'t price them at DraftKings\' chances: it pulls them toward 50/50 (keeping about 73% of the gap), then moves a fixed 8.6 points for the extra run. On 38 real prices from 10 games (2026-09-25) that\'s 1.6% off on average. The upshot: whichever side is more likely to cover is priced as less likely than it is, so it\'s the better deal, about NT$90+ back per NT$100 on average against about NT$75–80 for the other side. Usually that\'s the underdog getting 1.5 runs; for a heavy favourite (the Dodgers, say), it\'s the favourite giving them.'],
-      ['Why nearly everything loses', 'If every price is the fair odds ÷ 1.15, then fair chance × odds ≈ 1 ÷ 1.15 ≈ 0.87. Whichever team you pick, you get back about NT$87 per NT$100 on average.']
-    ],
     footer: ''
   }
 };

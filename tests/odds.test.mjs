@@ -292,18 +292,6 @@ test('ticket analysis: exact figures, where the money goes, each leg, one short'
   close(a.nearMiss, a.byHits[3].chance, 1e-12);
 });
 
-test('every guide entry is a [title, text] pair in both languages', async () => {
-  globalThis.navigator ??= { language: 'en' };
-  const { makeT } = await import('../public/lib/i18n.mjs');
-  for (const locale of ['zh', 'en']) {
-    const t = makeT(locale);
-    for (const [title, items] of [[t('guideMathTitle'), t('mathSteps')], ...t('guide')]) {
-      assert.equal(typeof title, 'string');
-      for (const item of items) assert.ok(Array.isArray(item) && item.length === 2 && item.every(x => typeof x === 'string'), `${locale} ${title}: ${JSON.stringify(item).slice(0, 60)}`);
-    }
-  }
-});
-
 test('wider lines: team totals and run lines from the score model, odds never below 1.01', async () => {
   const { fitTeamRuns, scoreGrid, runLineCover, teamOverChance, estimateLineOdds, totalOverChance, fitTotalRuns } = await import('../public/lib/odds.mjs');
   const means = fitTeamRuns(0.58, 8.5, 0.5);
