@@ -536,13 +536,20 @@ function dayLabel(day) {
 }
 
 // Days as a calendar strip: weekday, date, and what's on.
+// (What the strip was last worked out and drawn from: each live beat asks
+// again, and only a change of these draws it again.)
+let dayMemo = { key: [], days: [] };
+let stripDrawn = [];
+const sameKeys = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 function renderDayFilter() {
   const t = state.t;
   const today = dayKey(new Date().toISOString());
   const liveNow = state.liveGames.filter(g => inSport(g.sport)).length;
   // Today stays on the strip while games are on (場中 lives there), even with
   // every one of today's games already under way.
-  const days = [...new Set([...state.bets.filter(b => inSport(b.sport)).map(b => dayKey(b.start)), ...(liveNow ? [today] : [])])].sort();
+  const dayKeys = [state.bets, state.sport, liveNow > 0, today];
+  if (!sameKeys(dayKeys, dayMemo.key)) dayMemo = { key: dayKeys, days: [...new Set([...state.bets.filter(b => inSport(b.sport)).map(b => dayKey(b.start)), ...(liveNow ? [today] : [])])].sort() };
+  const days = dayMemo.days;
   // The earliest day with games (today, unless today's are all under way),
   // until a day is picked: games arriving later (the other leagues, a
   // refresh after midnight) move it to the new earliest day too.
@@ -554,27 +561,31 @@ function renderDayFilter() {
   $('day-filter').hidden = days.length <= 1;
   const [, gm, gd] = (state.day ?? '').split('-').map(Number);
   $('games-title').textContent = state.day ? `${t('gamesTitle')} · ${dayLabel(state.day)} ${gm}/${gd}` : t('gamesTitle');
-  $('day-filter').replaceChildren(
-    ...days.map(day => {
-      const games = state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === day).length;
-      const hasF1 = inSport('f1') && state.data.f1 && dayKey(state.data.f1.startUtc) === day;
-      const [, m, d] = day.split('-').map(Number);
-      const label = dayLabel(day);
-      return el('button', {
-        class: 'q-chip day-tile',
-        type: 'button',
-        'aria-pressed': String(day === state.day),
-        onclick: () => {
-          state.day = day;
-          state.dayPicked = true;
-          rerenderFiltered();
-        }
-      }, [
-        el('span', { class: 'day-text' }, [el('span', { class: 'day-week', text: label }), el('span', { class: 'day-num', text: `${m}/${d}` })]),
-        el('span', { class: 'day-count', text: [day === today && liveNow ? `${t('liveTitle')} ${liveNow}` : null, games ? t('gamesN', { n: games }) : null, hasF1 ? 'F1' : null].filter(Boolean).join(' + ') })
-      ]);
-    })
-  );
+  const strip = [days, state.bets, state.data, state.day, state.locale, liveNow, today];
+  if (!sameKeys(strip, stripDrawn)) {
+    stripDrawn = strip;
+    $('day-filter').replaceChildren(
+      ...days.map(day => {
+        const games = state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === day).length;
+        const hasF1 = inSport('f1') && state.data.f1 && dayKey(state.data.f1.startUtc) === day;
+        const [, m, d] = day.split('-').map(Number);
+        const label = dayLabel(day);
+        return el('button', {
+          class: 'q-chip day-tile',
+          type: 'button',
+          'aria-pressed': String(day === state.day),
+          onclick: () => {
+            state.day = day;
+            state.dayPicked = true;
+            rerenderFiltered();
+          }
+        }, [
+          el('span', { class: 'day-text' }, [el('span', { class: 'day-week', text: label }), el('span', { class: 'day-num', text: `${m}/${d}` })]),
+          el('span', { class: 'day-count', text: [day === today && liveNow ? `${t('liveTitle')} ${liveNow}` : null, games ? t('gamesN', { n: games }) : null, hasF1 ? 'F1' : null].filter(Boolean).join(' + ') })
+        ]);
+      })
+    );
+  }
   // 場中 shows on today only.
   renderLive();
 }
@@ -1312,13 +1323,16 @@ async function readLive(asked) {
     state.liveAt = data.loadedAt;
     // A live pick whose line is gone (the game moved on, or ended) leaves the slip.
     const ids = new Set(bets.map(b => b.id));
+    const had = state.parlay.length;
     state.parlay = state.parlay.filter(id => !id.startsWith('live|') || ids.has(id));
-    // The day strip (today stays on it while games are on), and 場中 with it.
+    // The day strip (today stays on it while games are on, drawn again only
+    // when that changes), and 場中 with it.
     if (state.data && !state.query) renderDayFilter();
-    renderLive();
+    else renderLive();
     renderGameSheet();
-    renderParlay();
-    renderTabs();
+    // The slip: with a live pick on it (its price now), or one just gone.
+    if (state.parlay.length !== had) slipChanged();
+    else if (state.parlay.some(id => id.startsWith('live|'))) renderParlay();
     if (state.tab === 'home') drawHome();
   } catch (error) {
     console.error(error);
@@ -1437,17 +1451,17 @@ function toggleLeg(bet) {
   slipChanged();
 }
 // The slip changed (a pick added or taken off, the slip cleared or placed):
-// every board, and every pick button anywhere on the page (an open game's
-// sheet too) shows it at once, and so does the slip bar.
+// every pick button anywhere on the page (an open game's sheet too) shows it
+// at once, in place (a tap redrew every board: 118–244 ms), and so do the
+// slip, its bar and F1's market tabs (a dot on a tab with a pick).
+let slipShown = new Set();
 function slipChanged() {
   saveSlip();
-  renderGames();
-  renderLive();
-  renderGameSheet();
-  renderF1();
-  renderFutures();
+  const now = new Set(state.parlay);
+  const moved = [...now, ...slipShown].filter(id => now.has(id) !== slipShown.has(id));
+  slipShown = now;
+  if (moved.some(id => id.startsWith('f1'))) renderF1();
   renderParlay();
-  if (state.tab === 'home') drawHome();
   syncPicks();
   renderSlipBar();
 }
@@ -1455,14 +1469,32 @@ function syncPicks() {
   const on = new Set(state.parlay);
   for (const node of document.querySelectorAll('[data-bet]')) {
     const inSlip = on.has(node.dataset.bet);
+    if (node.classList.contains('in-slip') === inSlip) continue;
     node.classList.toggle('in-slip', inSlip);
-    if (node.tagName === 'BUTTON') node.setAttribute('aria-pressed', String(inSlip));
+    if (node.tagName !== 'BUTTON') continue;
+    node.setAttribute('aria-pressed', String(inSlip));
+    // Its spoken label ends with what a tap does (pickButton, entryRow).
+    const label = node.getAttribute('aria-label') || '';
+    const cut = label.lastIndexOf(' · ');
+    if (!node.disabled && cut >= 0) node.setAttribute('aria-label', `${label.slice(0, cut)} · ${state.t(inSlip ? 'removeLeg' : 'addLeg')}`);
   }
 }
 
 // Everything that can go on the slip: games, F1 and championships.
 function slipCandidates() {
   return [...state.bets, ...state.liveBets, ...state.futures];
+}
+// …by id (the first board's, as a search of them finds it), made again only
+// when a board's bets do.
+let betIndex = { of: [], map: new Map() };
+function betById() {
+  const of = [state.bets, state.liveBets, state.futures];
+  if (of.some((x, i) => x !== betIndex.of[i])) {
+    const map = new Map();
+    for (const b of slipCandidates()) if (!map.has(b.id)) map.set(b.id, b);
+    betIndex = { of, map };
+  }
+  return betIndex.map;
 }
 
 // Championships have no start time: they stay open until the lottery closes them.
@@ -1474,8 +1506,8 @@ function started(bet) {
 // Picks on the slip. Games already under way are dropped: the page doesn't
 // cover live (in-play) betting.
 function slipLegs() {
-  const candidates = slipCandidates();
-  const legs = state.parlay.map(id => candidates.find(b => b.id === id)).filter(Boolean);
+  const byId = betById();
+  const legs = state.parlay.map(id => byId.get(id)).filter(Boolean);
   const live = legs.filter(started);
   if (live.length) state.parlay = state.parlay.filter(id => !live.some(b => b.id === id));
   return { legs: legs.filter(b => !started(b)), dropped: live.length };
@@ -2100,7 +2132,7 @@ function placeButton(legs, sizes, cost, errors, free = null) {
         // every refresh (moved odds marked there), so what it shows is what's
         // bought. Only a pick gone, locked or started stops it.
         const current = () => {
-          const board = new Map(slipCandidates().map(b => [b.id, b]));
+          const board = betById();
           const now = legs.map(b => board.get(b.id));
           return now.every(b => b && !b.lock && b.estOdds > 1 && !started(b)) ? now : null;
         };
@@ -3767,9 +3799,7 @@ function homeCtx() {
     state.parlay = [...ids];
     state.slipMode = 'parlay';
     state.modeChosen = false;
-    saveSlip();
-    renderGames();
-    renderParlay();
+    slipChanged();
     openSlip();
   };
   // A live game's card on the games tab, open with its markets (null: the live list's top).
@@ -3861,7 +3891,7 @@ function saveSlip() {
   // Once the boards are all in, a pick on none of them is gone for good
   // (championships aside: their boards can come later still).
   if (!state.booting) {
-    const found = new Set(slipCandidates().map(b => b.id));
+    const found = betById();
     // A pick on a game whose own markets (a player's, corners) aren't read yet stays.
     const waiting = id => gameWaiting(gameOfPick(id));
     state.parlay = state.parlay.filter(id => id.startsWith('fut|') || found.has(id) || waiting(id));
