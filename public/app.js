@@ -2215,6 +2215,9 @@ async function applySettled(force = false) {
   // Settled in this account now: the Worker forgets them.
   ackSettled(Object.keys(records).filter(id => records[id]?.settled && account.slips.find(s => s.id === id)?.status === 'settled')).catch(() => {});
 }
+// From here on every slip is placed through the Worker, which watches its
+// Kambi matches (Shared-Proxy settle.js watchSlips, eco.js LOCK_SINCE).
+const WORKER_WATCHES_SINCE = Date.parse('2026-10-12T09:00:00Z');
 async function checkResults(force = false) {
   if (!state.accountReady) return;
   await applySettled(force);
@@ -2229,7 +2232,11 @@ async function checkResults(force = false) {
     open = settled.slips.filter(s => s.status === 'open');
     renderSaved();
   }
-  const pending = open.flatMap(s => s.legs.filter(l => !l.result && (l.kind === 'future' || (l.start && Date.parse(l.start) <= now.getTime()))));
+  const started = s => s.legs.filter(l => !l.result && (l.kind === 'future' || (l.start && Date.parse(l.start) <= now.getTime())));
+  const pending = open.flatMap(started);
+  // Kambi's matches for the Worker to keep: only an older slip's (one placed
+  // since the lock-down is watched by the Worker as it's placed).
+  const watch = open.filter(s => !(Date.parse(s.t) >= WORKER_WATCHES_SINCE)).flatMap(started);
   if (!pending.length || state.checking) return;
   // (A beat's own timer runs a little early or late: a second's slack.)
   if (!force && now.getTime() - state.checkedAt < (state.legLive.size ? liveMs() - 1000 : RESULT_CHECK_MS)) return;
@@ -2237,7 +2244,7 @@ async function checkResults(force = false) {
   state.checkedAt = now.getTime();
   renderSaved();
   try {
-    const outcomes = await fetchOutcomes(pending, now);
+    const outcomes = await fetchOutcomes(pending, now, { watch });
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
   } catch (error) {
     console.error(error);
