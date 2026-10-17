@@ -9,6 +9,9 @@ import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
 import { ask, tell } from '#kit/quadra.mjs';
 
+// A card's name in its half-width card: in English, the short one (Daily Cash 539 and BINGO BINGO were cut off).
+const CARD_EN = { daily539: 'Cash 539', bingo: 'BINGO' };
+const cardName = (id, lang) => (lang === 'en' && CARD_EN[id]) || gameName(id, lang);
 const T = {
   zh: {
     draws: '電腦彩券', scratch: '刮刮樂', mine: '我的彩券', nextDraw: '下一期', closes: '截止', jackpot: '頭獎累積', price: '每注', buy: '購買', cancel: '取消', buyAsk: '買 {n} 注，共 {v}？', buyAskBody: '{name}，開獎後自動對獎。', scratchAsk: '買一張「{name}」？', scratchAskBody: '{v}，買了馬上刮。', cost: '共', bets: '注', multiple: '倍數',
@@ -27,7 +30,7 @@ const T = {
     today: 'Today', yesterday: 'Yesterday', filterAll: 'All', filterWins: 'Wins only', noWins: 'No wins yet', daySum: 'Spent {spent}', dayNone: 'No wins', outWon: 'Won {v}', outNone: 'No prize', dayNet: 'Net {v}', earlier: '{n} earlier days', groupWon: '{k} of {n} won, {v}', groupLost: 'No win on {n} bets', cardsLost: 'No win on {n} cards',
     drawAt: 'Draw {when}', noTickets: 'No tickets yet', buyCard: 'Buy {price}', scratchAll: 'Scratch all', scratchHint: 'Scratch the silver', youWon: 'You won!', noWin: 'No win this time',
     top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', house: 'Quadra draw', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Winning numbers', yourNumbers: 'Your numbers', dealer: 'Dealer', you: 'You', prizeCol: 'Prize',
-    called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'A draw every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
+    called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'Every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
     quick1: 'Quick pick 1', quickN: 'Quick pick {n}', addLine: 'Add this bet', lines: '{n} bets chosen', remove: 'Remove', buyAll: 'Buy {n} · {v}', boughtN: 'Bought {n} bets, {v}', seeTickets: 'My tickets', again: 'Buy more', inMin: 'Draw in {n} min', inHour: 'Draw in {h}h {m}m', picked: '{k}/{n} picked', starsN: '{n} stars', pickHint: 'Tap numbers below, or quick pick', slipN: 'Bet {n}', topPrize: 'Top prize', fillRest: 'Fill the rest', addNext: 'Add, next bet', quickLines: 'Quick-pick bets', clearAll: 'Clear all', zone1: 'Zone 1', bingoHint: 'Tap 1–10 numbers, or pick big/small/odd/even below', lastLegend: 'In the last draw', anyPrize: 'Any prize 1 in {n}', odds: 'Odds', oneIn: '1 in {n}', yourPick: 'Your numbers', waiting: 'Awaiting the draw', drawnList: 'Drawn', openSum: '{n} awaiting a draw', wonSum: 'Won so far {v}', basketHint: 'Buy several at once', sureTitle: 'Buy this?', sureBody: '{what} · {v}', sureOk: 'Buy for {v}'
   }
 };
@@ -181,7 +184,7 @@ export function mountLottery(ctx) {
         const latest = ui.latest?.[g.of || id];
         const nums = latest ? (latest.digits || latest.numbers || []).slice(0, id === 'bingo' ? 6 : 7) : [];
         return el('div', { class: 'lotto-card', style: `--lotto:${g.color}`, role: 'button', tabindex: '0', onclick: () => openGame(id) }, [
-          el('div', { class: 'lotto-top' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('div', { class: 'lotto-id' }, [el('span', { class: 'lotto-name', text: gameName(id, lang) }), el('span', { class: 'lotto-price', text: t('perBet', { v: money(g.price) }) })])]),
+          el('div', { class: 'lotto-top' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('div', { class: 'lotto-id' }, [el('span', { class: 'lotto-name', text: cardName(id, lang) }), el('span', { class: 'lotto-price', text: t('perBet', { v: money(g.price) }) })])]),
           latest?.jackpot && !g.of ? el('strong', { class: 'lotto-jackpot num', text: compactMoney(latest.jackpot, lang) }) : el('strong', { class: 'lotto-jackpot small', text: id === 'bingo' ? t('every5') : g.house ? t('house') : topLine(id) }),
           nums.length ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', Boolean(latest.digits)))) : null,
           el('span', { class: 'lotto-when', text: d ? untilText(d.at) : t('closed') })
