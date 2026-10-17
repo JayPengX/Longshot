@@ -869,7 +869,7 @@ function gameMore(game, bets) {
               class: `q-chip${sec.kind === 'prop' ? ' tab-props' : ''}`,
               'aria-selected': String(sec === current),
               'aria-pressed': String(sec === current),
-              text: t(sec.kind === 'runline' && isSoccer(game.sport) ? 'secHandicap' : sec.short ?? sec.title),
+              text: t(secName(sec, game.sport)),
               onclick: () => {
                 state.marketTab.set(game.id, sec.kind);
                 renderGameSheet();
@@ -886,7 +886,7 @@ function gameMore(game, bets) {
     });
   let panel = null;
   if (current === MORE_SECTION)
-    panel = el('div', { class: 'market-more' }, extra.map(sec => el('section', { class: 'more-block' }, [el('h4', { class: 'more-title', text: t(sec.title) }), marketPanel(game, sec, bets.filter(b => b.kind === sec.kind), { titled: true })])));
+    panel = el('div', { class: 'market-more' }, extra.map(sec => el('section', { class: 'more-block' }, [el('h4', { class: 'more-title', text: t(secName(sec, game.sport, true)) }), marketPanel(game, sec, bets.filter(b => b.kind === sec.kind), { titled: true })])));
   else if (current?.kind === 'prop') panel = propsPanel(game, bets.filter(b => b.kind === 'prop'));
   else if (current) panel = marketPanel(game, current, bets.filter(b => b.kind === current.kind));
   // Kambi's full list on its way: say so under the model's markets.
@@ -1097,7 +1097,7 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
         const markets = [...groupBy(bets.filter(b => b.giver === giver), b => b.market).values()].sort((a, b) => Math.abs(a[0].awayLine) - Math.abs(b[0].awayLine));
         if (!markets.length) return null;
         const rows = markets.map(pair => lineRow(fmtLine(-Math.abs(pair[0].awayLine)), [by(pair, giver), by(pair, taker)], { posted: pair[0].posted }));
-        const heading = section.kind === 'runline' ? t(isSoccer(game.sport) ? 'giveGoals' : familyOf(game.sport) === 'baseball' ? 'giveRuns' : 'givePoints', { team: teamName(game[giver]) }) : section.kind === 'gamehcap' ? t('giveGames', { team: teamName(game[giver]) }) : `${teamName(game[giver])} · ${t(section.title)}`;
+        const heading = section.kind === 'runline' ? t(isSoccer(game.sport) || familyOf(game.sport) === 'hockey' ? 'giveGoals' : familyOf(game.sport) === 'baseball' ? 'giveRuns' : 'givePoints', { team: teamName(game[giver]) }) : section.kind === 'gamehcap' ? t('giveGames', { team: teamName(game[giver]) }) : `${teamName(game[giver])} · ${t(section.title)}`;
         return lineTable([t('colLine'), teamName(game[giver]), teamName(game[taker])], rows, heading);
       })
       .filter(Boolean);
@@ -1133,6 +1133,15 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
 
 // Kinds laid out as tables of lines: over/under, and one team giving a line.
 const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners']);
+// A market's name by its sport: a handicap is baseball's run line, hockey's
+// puck line, soccer's 讓球, a spread elsewhere; a total is runs, goals or
+// points (an NHL game's tabs said "Total runs" and "Run line").
+function secName(sec, sport, full = false) {
+  const family = familyOf(sport);
+  if (sec.kind === 'runline') return isSoccer(sport) ? 'secHandicap' : family === 'hockey' ? 'secPuckLine' : family === 'baseball' ? 'secRunLine' : 'secSpread';
+  if (sec.kind === 'total') return family === 'baseball' ? 'secTotal' : isSoccer(sport) || family === 'hockey' ? 'secTotalGoals' : 'secTotalPoints';
+  return full ? sec.title : sec.short ?? sec.title;
+}
 const HCAP_KINDS = new Set(['runline']);
 
 // One section per kind of bet, each market of it with its own take. The
