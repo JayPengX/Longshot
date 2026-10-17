@@ -1331,7 +1331,7 @@ function refreshLive({ now = false } = {}) {
 }
 async function readLive(asked) {
   try {
-    const data = await loadLive(new Date(), LIVE_MIN_LIQUIDITY);
+    const data = await loadLive(new Date(), LIVE_MIN_LIQUIDITY, { also: liveHint });
     // (A read asked before one already drawn: older, not drawn over it.)
     if (asked < liveDrawn) return;
     liveDrawn = asked;
@@ -3314,6 +3314,9 @@ const BOOT_IMAGES_MS = 2_500;
 // (2 s, as Orbit Sports opens on what it had: at 6 s Play was the slowest
 // app to open every time today's board took its time.)
 const SNAPSHOT_WAIT_MS = 2_000;
+// A saved board with games likely on (liveHint) and none of them read yet:
+// the loading screen waits for them, this long at most.
+const SNAPSHOT_LIVE_MS = 6_000;
 const within = (promise, ms, fallback) => Promise.race([Promise.resolve(promise).catch(() => fallback), new Promise(resolve => setTimeout(() => resolve(fallback), ms))]);
 // Every picture on screen in `root` loaded (or failed): no logo pops in as
 // the page opens. Pictures further down wait for their turn (lazy), then
@@ -3372,11 +3375,25 @@ const SNAPSHOT_V = 2;
 // Three days (a phone not opened yesterday still opens at once), the games
 // that have started since left out: they'd only go when today's came in.
 const SNAPSHOT_MAX_AGE_MS = 3 * 24 * 3_600_000;
+let liveHint = [];
 function readSnapshot() {
   try {
     const saved = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || 'null');
     if (!saved?.data?.games || saved.v !== SNAPSHOT_V || !(Date.now() - saved.at < SNAPSHOT_MAX_AGE_MS)) return null;
     const now = Date.now();
+    // The leagues with a game begun in the last five hours (on now, likely):
+    // the loading screen waits for their games in play, and the first live
+    // read asks for them all at once (it knew only MLB's and the Premier
+    // League's until the boards came in, a second read later: 場中焦點
+    // popped in after the saved board opened).
+    // Those on at the last open too (the saved board leaves out a game begun
+    // before it was saved; the live copy names them, five hours at most).
+    let copy = [];
+    try {
+      const kept = JSON.parse(localStorage.getItem(LIVE_COPY_KEY) || 'null');
+      if (kept?.data?.games && now - kept.at < 5 * 3_600_000) copy = kept.data.games.map(g => g.sport);
+    } catch {}
+    liveHint = [...new Set([...copy, ...saved.data.games.filter(g => Date.parse(g.startUtc) <= now && Date.parse(g.startUtc) > now - 5 * 3_600_000).map(g => g.sport)])];
     saved.data.games = saved.data.games.filter(g => !(Date.parse(g.startUtc) <= now));
     return saved.data;
   } catch {
@@ -3427,9 +3444,14 @@ async function load() {
   // the pass) and the live games too.
   // (The games in play: the read on its way, or one now.)
   const firstScreen = () => Promise.all([state.accountIn, liveBusy || refreshLive()]);
+  // Games likely on and none read (the saved copy is a quarter-hour old at most): the first screen waits longer for them.
+  const liveWait = () => (liveHint.length && !state.liveData ? SNAPSHOT_LIVE_MS : SNAPSHOT_WAIT_MS);
   if (saved) {
-    // Only if today's board is slow (SNAPSHOT_WAIT_MS): the saved one opens.
-    setTimeout(() => {
+    // Only if today's board is slow (SNAPSHOT_WAIT_MS): the saved one opens,
+    // with the games on now (those it waits for a little longer).
+    setTimeout(async () => {
+      if (!state.booting) return;
+      if (liveHint.length && !state.liveData) await within(liveBusy || refreshLive(), SNAPSHOT_LIVE_MS - SNAPSHOT_WAIT_MS);
       if (!state.booting) return;
       clearTimeout(limit);
       if (state.tab === 'home') drawHome();
@@ -3476,7 +3498,7 @@ async function load() {
       // Already open on the saved board: today's waits until it's whole
       // (BOOT_FULL_MS at most) and swaps in once, not league by league.
       const elapsed = Date.now() - startedAt;
-      await within(Promise.all([liveIn, firstScreen()]), state.booting ? Math.max(500, SNAPSHOT_WAIT_MS - 300 - elapsed) : Math.max(1_000, BOOT_FULL_MS - elapsed));
+      await within(Promise.all([liveIn, firstScreen()]), state.booting ? Math.max(500, liveWait() - 300 - elapsed) : Math.max(1_000, BOOT_FULL_MS - elapsed));
       const ids = new Set(fresh.games.map(g => g.id));
       fresh.games = [...fresh.games, ...pending.splice(0).filter(g => !ids.has(g.id))].sort((a, b) => a.startUtc.localeCompare(b.startUtc));
       const futures = await within(extraFutures, 300, null);
