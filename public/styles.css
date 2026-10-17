@@ -131,7 +131,8 @@ footer { padding: 10px 0 0; text-align: center; }
 }
 
 /* ---- Game cards --------------------------------------------------------------------- */
-.games-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); align-items: start; }
+/* Two cards a row on an iPad (820px; at 440px each it was one card 790px wide, its middle empty), one on a phone. */
+.games-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); align-items: start; }
 .game { background: var(--surface); border: 1px solid transparent; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .game-top { display: flex; align-items: center; gap: 8px; padding: 10px 14px 4px; font-size: 0.74rem; color: var(--text-muted); }
 .game-series { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
@@ -348,8 +349,11 @@ body.searching #live, body.searching #f1, body.searching #futures, body.searchin
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .toolbar .chips { margin: 0; padding: 2px 0; }
 @media (max-width: 720px) { .toolbar .chips { margin: 0 -16px; padding: 2px 16px; } .toolbar { display: grid; } }
-#day-filter { padding-left: 14px; border-left: 1px solid var(--border); }
-@media (max-width: 720px) { #day-filter { padding-left: 16px; border-left: 0; } }
+/* The days under the sports, lined up with them at every width (beside them
+   with a divider, they never fit on an iPad: the row wrapped and kept the
+   divider's 14px indent). */
+.toolbar { display: grid; }
+@media (max-width: 720px) { #day-filter { padding-left: 16px; } }
 /* The sport and day filters are the kit's chips (q-chip). */
 .sport-tile, .day-tile { font-variant-numeric: tabular-nums; }
 .sport-tile[aria-pressed='true'] .tile-name, .sport-tile[aria-pressed='true'] .tile-count { color: inherit; }
