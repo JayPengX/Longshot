@@ -9,6 +9,7 @@ import { useSourcesSession, loadOdds, loadExtraLeagues, loadExtraFutures, taipei
 import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
+import * as kit from '#kit/quadra.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
@@ -820,7 +821,7 @@ function gameCard(game, bets, { inSheet = false } = {}) {
       leagueImg(game.sport, 'logo-xs'),
       el('span', { class: 'game-series', text: gameSeries(game) }),
       game.live
-        ? el('span', { class: 'game-time live-state' }, [el('span', { class: 'live-dot', text: t('tagLive') }), document.createTextNode(liveStateText(game.live))])
+        ? el('span', { class: 'game-time live-state' }, [el('span', { class: 'live-dot', text: t('tagLive') }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
         : el('span', { class: 'game-time', text: game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : state.query ? `${dayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc) })
     ]),
     el('div', { class: 'team-rows' }, rows),
@@ -1220,7 +1221,28 @@ function groupBy(items, key) {
 
 // ---- Live (場中) --------------------------------------------------------------------
 
-// "4局下 1出局", "中場", "67'", "第3節 5:32", "延長".
+// A game at half-time (ESPN's "HT" for soccer, "Halftime" for the rest).
+const atHalftime = live => !live.delayed && /^(HT\b|Half)/i.test(live.detail || '');
+// 中場休息's countdown (the kit's): a game at half-time's key, its break's
+// end found once from ESPN's summary of it, read fresh; null otherwise.
+function halftimeKey(live, sport) {
+  const path = LEAGUES[sport]?.path;
+  if (!live?.espnId || !path || live.book === 'kambi' || !atHalftime(live)) return null;
+  const key = `play:${sport}:${live.espnId}`;
+  kit.watchHalftime?.(key, { sport: familyOf(sport), league: sport, read: () => kit.proxyJson(`https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${live.espnId}`, { ttl: 2_000, persist: false }) });
+  return key;
+}
+// 中場休息 and its countdown ("中場休息 12:34"), ticking where it's shown.
+function halftimeText(live, sport) {
+  const key = halftimeKey(live, sport);
+  return [state.t('liveHalfTime'), key ? kit.halftimeClock?.(kit.halftimeEnd?.(key)) : ''].filter(Boolean).join(' ');
+}
+const halftimeTick = (live, sport) => {
+  const key = halftimeKey(live, sport);
+  return key && kit.halftimeAttrs ? kit.halftimeAttrs(key, state.t('liveHalfTime')) : {};
+};
+
+// "4局下 1出局", "中場休息 12:34", "67'", "第3節 5:32", "延長".
 function liveStateText(live) {
   const t = state.t;
   if (live.delayed) return `${live.detail} · ${t('livePaused')}`;
@@ -1229,9 +1251,9 @@ function liveStateText(live) {
     if (live.quarter) return t('livePeriodN', { n: live.quarter, clock: '' }).trim();
     return t('liveInPlay');
   }
-  if (isSoccer(live.sport)) return live.minute >= 45 && /half/i.test(live.detail) ? t('liveHalfTime') : `${live.minute}'`;
+  if (atHalftime(live)) return halftimeText(live, live.sport);
+  if (isSoccer(live.sport)) return `${live.minute}'`;
   if (live.period != null) {
-    if (/^half/i.test(live.detail)) return t('liveHalfTime');
     const regulation = PERIODS[live.sport]?.[0] ?? 4;
     if (live.period > regulation) return t('liveOT', { clock: live.clock }).trim();
     return t('livePeriodN', { n: live.period, clock: live.clock }).trim();
@@ -2470,7 +2492,7 @@ function liveDetail(live, sport) {
     const inning = parseInning(live.detail, live.period);
     if (inning) return t(`liveHalf_${inning.half}`, { n: inning.inning });
   }
-  if (/half/i.test(live.detail)) return t('liveHalfTime');
+  if (atHalftime(live)) return halftimeText(live, sport);
   return live.detail;
 }
 
@@ -2550,7 +2572,7 @@ function legSubLine(leg, st) {
       return url ? logoPicture(url, teamLogo(leg.sport, leg[k], true), 'logo leg-team-logo', () => el('span', { class: 'leg-team', text: name(k) })) : el('span', { class: 'leg-team', text: name(k) });
     };
     return el('small', { class: 'leg-sub live leg-score-line' }, [
-      el('span', { class: 'leg-min', text: liveDetail(live, leg.sport) }),
+      el('span', { class: 'leg-min', text: liveDetail(live, leg.sport), ...halftimeTick(live, leg.sport) }),
       side(order[0]),
       el('span', { class: `leg-live-score num${moved ? ' moved' : ''}`, text: score }),
       side(order[1])
