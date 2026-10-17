@@ -249,8 +249,11 @@ export function renderHome(ctx) {
     return el('div', { class: `bet-row${g.tone ? ` ${g.tone}` : ''}` }, [
       one ? el('span', { class: 'bet-pic', 'aria-hidden': 'true' }, [ctx.legIcon(s.legs[0], 'logo-md')]) : el('span', { class: 'bet-count', 'aria-hidden': 'true' }, [el('strong', { class: 'num', text: String(n) }), el('small', { text: T.legsUnit })]),
       el('button', { class: 'bet-main', type: 'button', onclick: () => ctx.showTab('history') }, [
-        // The slip and where it stands on one row; a segment a pick; what's in and what it can pay.
-        el('span', { class: 'bet-title' }, [el('strong', { text: one ? ctx.shortPick(s.legs[0]) : s.mode === 'parlay' ? f('parlayN', { n }) : `${f('legs', { n })} · ${kind}` }), g.text ? el('small', { class: `bet-state${g.tone ? ` ${g.tone}` : ''}`, text: g.text }) : null]),
+        // The slip; where it stands a line of its own (beside a driver's name,
+        // "下一場 10/19 21:00 開打" was cut to "下一場 10/…"); a segment a pick;
+        // what's in and what it can pay.
+        el('span', { class: 'bet-title' }, [el('strong', { text: one ? ctx.shortPick(s.legs[0]) : s.mode === 'parlay' ? f('parlayN', { n }) : `${f('legs', { n })} · ${kind}` })]),
+        g.text ? el('small', { class: `bet-state${g.tone ? ` ${g.tone}` : ''}`, text: g.text }) : null,
         one ? null : el('span', { class: 'bet-segs', 'aria-hidden': 'true' }, g.segs.map(x => el('i', { class: `seg seg-${x.st}${x.tone ? ` ${x.tone}` : ''}` }))),
         el('span', { class: 'bet-money num' }, [el('span', { text: money(s.cost) }), el('span', { class: 'bet-arrow', text: '→' }), el('strong', { text: money(most) })])
       ]),
