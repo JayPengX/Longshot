@@ -84,7 +84,7 @@ export function mountLottery(ctx) {
   // The balls a selection makes.
   function selBalls(id, sel) {
     const g = GAMES[id];
-    if (g.digits) return sel.digits.map(d => ball(d));
+    if (g.digits) return sel.digits.map(d => ball(d, '', true));
     if (sel.side) return [el('span', { class: 'q-chip small', text: t(sel.side) })];
     const main = sel.zones ? sel.zones[0] : sel.numbers;
     return [...main.map(n => ball(n)), ...(sel.zones?.[1] || []).map(n => ball(n, 'special'))];
@@ -183,7 +183,7 @@ export function mountLottery(ctx) {
         return el('div', { class: 'lotto-card', style: `--lotto:${g.color}`, role: 'button', tabindex: '0', onclick: () => openGame(id) }, [
           el('div', { class: 'lotto-top' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('div', { class: 'lotto-id' }, [el('span', { class: 'lotto-name', text: gameName(id, lang) }), el('span', { class: 'lotto-price', text: t('perBet', { v: money(g.price) }) })])]),
           latest?.jackpot && !g.of ? el('strong', { class: 'lotto-jackpot num', text: compactMoney(latest.jackpot, lang) }) : el('strong', { class: 'lotto-jackpot small', text: id === 'bingo' ? t('every5') : g.house ? t('house') : topLine(id) }),
-          nums.length ? el('div', { class: 'balls mini' }, nums.map(n => ball(n))) : null,
+          nums.length ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', Boolean(latest.digits)))) : null,
           el('span', { class: 'lotto-when', text: d ? untilText(d.at) : t('closed') })
         ]);
       })
@@ -354,7 +354,9 @@ export function mountLottery(ctx) {
     ]);
   }
 
-  const ball = (n, cls = '') => el('span', { class: `ball ${cls}`, text: String(n).padStart(2, '0') });
+  // A number two digits (06); a 3星彩 or 4星彩 digit as itself (6: its draw
+  // read 06 01 01).
+  const ball = (n, cls = '', digit = false) => el('span', { class: `ball ${cls}`, text: digit ? String(n) : String(n).padStart(2, '0') });
 
   // A slip's grid: ten numbers a row like the real slip (eight for a second
   // zone), the last draw's numbers marked with a dot. A full zone replaces
@@ -811,7 +813,7 @@ export function mountLottery(ctx) {
     const got = list.reduce((s, x) => s + (x.prize || 0), 0);
     return el('div', { class: 'lt-group', style: `--lotto:${g.color}` }, [
       el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: gameName(x0.game, lang) }), el('small', { class: 'num', text: hourText(x0.draw.at) })]), netChip(got)]),
-      drawn ? el('div', { class: 'lt-drawn' }, [el('span', { class: 'lt-label', text: t('called') }), el('div', { class: 'balls' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim')), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean))]) : null,
+      drawn ? el('div', { class: 'lt-drawn' }, [el('span', { class: 'lt-label', text: t('called') }), el('div', { class: 'balls' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim', Boolean(drawn.digits))), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean))]) : null,
       el('div', { class: 'lt-lines' }, list.map(x => el('div', { class: `lt-line${x.prize > 0 ? ` won out-up` : ''}` }, [el('div', { class: 'balls' }, picksOf(x)), el('span', { class: 'num', text: x.prize > 0 ? `+${money(x.prize)}` : x.sel.play ? t(x.sel.play) : x.sel.size ? COMBO_NAME[lang][x.sel.size] : x.multiple > 1 ? `×${x.multiple}` : '' })]))),
     ]);
   }
@@ -826,7 +828,7 @@ export function mountLottery(ctx) {
   }
   function picksOf(x) {
     const drawn = x.drawn;
-    if (x.sel.digits) return x.sel.digits.map(d => ball(d));
+    if (x.sel.digits) return x.sel.digits.map(d => ball(d, '', true));
     if (x.sel.side) return [el('span', { class: 'q-chip', text: t(x.sel.side) })];
     return [...(x.sel.zones?.[0] || x.sel.numbers || []).map(n => ball(n, drawn?.numbers?.includes(n) ? 'hit' : '')), ...(x.sel.zones?.[1] || []).map(n => ball(n, drawn?.zone2 === n ? 'hit special' : 'special'))];
   }
@@ -840,11 +842,11 @@ export function mountLottery(ctx) {
     }
     const g = GAMES[x.game];
     const drawn = x.drawn;
-    const picked = x.sel.digits ? x.sel.digits.map(d => ball(d, drawn?.digits ? '' : '')) : x.sel.side ? [el('span', { class: 'q-chip', text: t(x.sel.side) })] : [...(x.sel.zones?.[0] || x.sel.numbers || []).map(n => ball(n, drawn?.numbers?.includes(n) ? 'hit' : '')), ...(x.sel.zones?.[1] || []).map(n => ball(n, drawn?.zone2 === n ? 'hit special' : 'special'))];
+    const picked = x.sel.digits ? x.sel.digits.map(d => ball(d, '', true)) : x.sel.side ? [el('span', { class: 'q-chip', text: t(x.sel.side) })] : [...(x.sel.zones?.[0] || x.sel.numbers || []).map(n => ball(n, drawn?.numbers?.includes(n) ? 'hit' : '')), ...(x.sel.zones?.[1] || []).map(n => ball(n, drawn?.zone2 === n ? 'hit special' : 'special'))];
     return el('div', { class: `lotto-ticket${x.status === 'open' ? '' : ` out-${outcome(x.prize || 0)}`}`, style: `--lotto:${g.color}` }, [
       el('div', { class: 'lt-head' }, [el('strong', { text: `${gameName(x.game, lang)}${x.sel.play ? ` · ${t(x.sel.play)}` : x.sel.size ? ` · ${COMBO_NAME[lang][x.sel.size]}` : ''}` }), el('span', { class: 'num', text: money(x.cost) })]),
       el('div', { class: 'balls' }, picked),
-      drawn ? el('div', { class: 'balls drawn' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim')), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean)) : null,
+      drawn ? el('div', { class: 'balls drawn' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim', Boolean(drawn.digits))), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean)) : null,
       el('p', { class: `lt-state ${x.status === 'open' ? '' : `out-${outcome(x.prize || 0)}`}`, text: x.status === 'open' ? t('drawAt', { when: timeText(x.draw.at) }) : outcomeText(x.prize || 0) })
     ]);
   }
