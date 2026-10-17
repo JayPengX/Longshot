@@ -1061,7 +1061,18 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .wallet-vip .vip-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; }
 .wallet-vip .vip-line strong { font-size: 0.86rem; white-space: nowrap; }
 .wallet-vip .vip-line small, .wallet-vip .vip-next { font-size: 0.76rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wallet-vip .vip-bar { display: block; height: 4px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.wallet-vip .vip-bar { display: block; height: 4px; border-radius: 4px; background: color-mix(in srgb, var(--text-primary) 12%, transparent); overflow: hidden; }
+/* A wide screen (an iPad): the balance on the left, the slips and VIP on the
+   right, not three rows stretched across 900 px with the middle empty. */
+@media (min-width: 720px) {
+  .wallet-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 36px; align-items: start; padding: 20px 24px; }
+  .wallet-card > * { grid-column: 1; }
+  .wallet-card > .wallet-stats, .wallet-card > .wallet-vip { grid-column: 2; }
+  .wallet-card > .wallet-stats { grid-row: 1 / 3; margin-top: 0; padding-top: 0; border-top: 0; align-self: center; }
+  .wallet-card > .wallet-vip { grid-row: 3 / 5; }
+  .wallet-card:not(:has(> .wallet-stats)) > .wallet-vip { grid-row: 1 / 3; margin-top: 0; padding-top: 0; border-top: 0; align-self: center; }
+  .wallet-card > .wallet-plus-row { grid-column: 1; }
+}
 .wallet-vip .vip-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .wallet-vip.vip-gold .vip-bar i, .wallet-vip.vip-black .vip-bar i { background: var(--q-plus-gold, #d9b877); }
 .wallet-welcome { margin: 10px 0 0; font-size: 0.84rem; font-weight: 700; color: var(--accent); }

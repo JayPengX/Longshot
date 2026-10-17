@@ -228,7 +228,8 @@ export function renderHome(ctx) {
 
   // ---- 你的投注: open slips and their cash-out prices
   const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
-  const atStake = open.reduce((s, x) => s + x.cost, 0);
+  // A free bet's stake counts (its cost is nothing: NT$0 · 1 張 said nothing was in play).
+  const atStake = open.reduce((s, x) => s + (x.free ? (x.stake ?? x.freeValue ?? 0) : x.cost), 0);
   // A free bet's slip is never cashed out (like a sportsbook's): no price.
   const prices = new Map(open.filter(s => !s.free).map(s => [s.id, ctx.cashOutPrice(s)]));
   const cashable = [...prices.values()].reduce((s, v) => s + (v || 0), 0);
@@ -298,7 +299,7 @@ export function renderHome(ctx) {
     if (!state.wallet) return null;
     const v = vipStatus(state.wallet, now);
     const explain = () =>
-      tell({ lang, icon: '◆', title: T.vipTitle, body: T.vipBody, points: VIP.tiers.map(x => [x.icon, vipName(x, lang), f('vipTier', { min: money(x.min), back: pct(x.back) })]) });
+      tell({ lang, icon: '◆', title: T.vipTitle, body: T.vipBody, points: VIP.tiers.map(x => ['◆', vipName(x, lang), f('vipTier', { min: money(x.min), back: pct(x.back) })]) });
     const top = VIP.tiers.at(-1);
     const share = v.next ? Math.min(1, v.stakes / v.next.min) : 1;
     const paidNow = v.paid && Date.now() - v.paid.t < 7 * 86_400_000 ? f('vipPaid', { v: money(v.paid.amount) }) : '';

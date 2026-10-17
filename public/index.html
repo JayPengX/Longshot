@@ -7,31 +7,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="build-version" content="dev" />
-<script>
-  // Always the newest deploy: when a newer version is out than this page
-  // (a browser can keep an old copy of it), reload once under a new address,
-  // which fetches the page and every file fresh. Checked on open and whenever
-  // the tab comes back.
-  (function () {
-    var mine = document.querySelector('meta[name="build-version"]').content;
-    if (mine === 'dev') return;
-    function check() {
-      fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (latest) {
-          if (!latest || !latest.version || latest.version === mine) return;
-          try {
-            if (sessionStorage.getItem('oddsStudy.reloadedTo') === latest.version) return;
-            sessionStorage.setItem('oddsStudy.reloadedTo', latest.version);
-          } catch (e) {}
-          location.replace(location.pathname + '?v=' + latest.version + location.hash);
-        })
-        .catch(function () {});
-    }
-    check();
-    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') check(); });
-  })();
-</script>
+<!-- A newer deploy is loaded by the kit's boot.js (and kept current by its watchUpdates): a check of the page's own here as well sent an old page to the new one twice. -->
 <!-- brand: Shared-Proxy/brand/generate.mjs writes this block -->
 <title>Quadra Play</title>
 <meta name="description" content="運彩與彩券：所有運動、所有玩法，還有台灣彩券的電腦彩券與刮刮樂。" />
