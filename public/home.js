@@ -318,7 +318,7 @@ export function renderHome(ctx) {
   const header = el('section', { class: 'wallet-card' }, [
     el('div', { class: 'wallet-top' }, [el('span', { class: 'wallet-label', text: T.balance }), member ? el('span', { class: 'wallet-plus', text: '✦ PLUS' }) : null]),
     // Drawn from the saved board before the account has loaded: the balance a moment later.
-    el('strong', { class: `wallet-balance num${cash < 0 ? ' neg' : ''}`, text: cash == null ? '…' : fmtMoney(cash, { sign: cash < 0 }) }),
+    el('strong', { class: `wallet-balance num${cash < 0 ? ' neg' : ''}`, 'data-q-live': 'play:balance', text: cash == null ? '…' : fmtMoney(cash, { sign: cash < 0 }) }),
     cash < 0
       ? el('button', { class: 'wallet-od', type: 'button', onclick: () => ctx.q.go('stock', 'portfolio') }, [el('span', { text: T.overdrawn }), el('strong', { text: `${T.cover} ›` })])
       : null,
