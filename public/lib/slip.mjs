@@ -88,10 +88,16 @@ export function slipRange(slip) {
 export const slipsMost = slips => slips.reduce((n, s) => n + Math.max(0, slipRange(s).most), 0);
 
 // Where a pick stands: won / lost / void, 'live' (its game has started) or
-// 'waiting'.
-export function legState(leg, now = Date.now()) {
+// 'waiting'. Past its listed start, its game's outcome as read (settle.mjs)
+// can say more: 'off', called off (postponed, cancelled, no result: void at
+// odds 1 once settled, 台灣運彩 投注規範 第 32、34 條), or 'late', not begun
+// yet (betting closed at the listed start all the same, 第 20 條).
+export function legState(leg, now = Date.now(), outcome = null) {
   if (leg.result) return leg.result;
-  return leg.start && Date.parse(leg.start) <= now ? 'live' : 'waiting';
+  if (!(leg.start && Date.parse(leg.start) <= now)) return 'waiting';
+  if (outcome?.status === 'void') return 'off';
+  if (outcome?.status === 'pending' && outcome.state === 'pre') return 'late';
+  return 'live';
 }
 
 // When a settled slip's last game was played: the day it's filed under, not
@@ -106,11 +112,12 @@ export function slipEndedAt(slip) {
 // 紀錄's group for a slip: 'live' (a game on), 'waiting', 'dead' (open, but
 // nothing left can pay: a parlay with a pick lost), 'recovered' (no picks),
 // or `day|YYYY-MM-DD` (settled, by the Taiwan day its last game was played).
-export function slipGroupKey(slip, now = Date.now()) {
+// `outcomeOf(legId)`: its game's outcome as read, if any (see legState).
+export function slipGroupKey(slip, now = Date.now(), outcomeOf = () => null) {
   if (slip.recovered || !slip.legs.length) return 'recovered';
   if (slip.status === 'settled') return `day|${taipeiDayKey(slipEndedAt(slip))}`;
   if (slipRange(slip).most <= 0) return 'dead';
-  return slip.legs.some(leg => legState(leg, now) === 'live') ? 'live' : 'waiting';
+  return slip.legs.some(leg => legState(leg, now, outcomeOf(leg.id)) === 'live') ? 'live' : 'waiting';
 }
 
 // Takes picks off a slip ({ parlay: ids, pickedOdds: id -> odds when picked }),

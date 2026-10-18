@@ -185,3 +185,20 @@ test('parlayOdds counts a void pick at 1; allVoid only when every pick is void',
   assert.equal(allVoid({ legs: [{ odds: 2, result: 'void' }, { odds: 3, result: 'void' }] }), true);
   assert.equal(allVoid({ legs: [] }), false);
 });
+
+// 台灣運彩 (投注規範 第 20、32 條, https://article.sportslottery.com.tw/zh-tw/about-us/135):
+// betting closes at the listed start; a game postponed or cancelled has its
+// picks void. Past its listed start, a pick isn't 'live' unless the game is.
+test('legState: a called-off game is off, one not begun past its start is late', () => {
+  const now = Date.parse('2026-10-18T12:00:00Z');
+  const leg = { start: '2026-10-18T11:00:00Z' };
+  assert.equal(legState(leg, now, { status: 'void' }), 'off');
+  assert.equal(legState(leg, now, { status: 'pending', state: 'pre' }), 'late');
+  assert.equal(legState(leg, now, { status: 'pending', state: 'in' }), 'live');
+  assert.equal(legState(leg, now, null), 'live');
+  assert.equal(legState({ ...leg, result: 'won' }, now, { status: 'void' }), 'won');
+  assert.equal(legState({ start: '2026-10-18T13:00:00Z' }, now, { status: 'void' }), 'waiting');
+  const s = { id: 's', status: 'open', mode: 'parlay', sizes: [2], stake: 100, legs: [{ gameId: 'a', odds: 2, ...leg, id: 'x' }, { gameId: 'b', odds: 2, start: '2026-10-19T11:00:00Z', id: 'y' }] };
+  assert.equal(slipGroupKey(s, now), 'live');
+  assert.equal(slipGroupKey(s, now, id => (id === 'x' ? { status: 'void' } : null)), 'waiting');
+});

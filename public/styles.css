@@ -571,7 +571,7 @@ body.searching #live, body.searching #f1, body.searching #futures, body.searchin
 .leg-bar .seg { flex: 1 1 0; border-radius: 3px; background: var(--surface-sunken); }
 .seg-won { background: var(--good) !important; }
 .seg-lost { background: var(--bad) !important; }
-.seg-void { background: var(--axis) !important; }
+.seg-void, .seg-off { background: var(--axis) !important; }
 .seg-live { background: var(--accent) !important; animation: live-pulse 1.4s ease-in-out infinite; }
 .seg-live.winning { background: var(--good) !important; }
 .seg-live.losing { background: var(--bad-strong) !important; }

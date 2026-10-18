@@ -103,6 +103,8 @@ const state = {
   checkedAt: 0,
   // Games in progress on open slips: leg id -> its outcome so far.
   legLive: new Map(),
+  // Open picks' games past their start but not on: called off (status 'void') or not begun ('pre').
+  legOutcome: new Map(),
   showAllSaved: false,
   // 大手筆 (bets grow with the balance) or 真實 (survey-based stakes) in the simulator.
   // The leaderboard shown.
@@ -2297,6 +2299,7 @@ async function checkResults(force = false) {
   try {
     const outcomes = await fetchOutcomes(pending, now, { watch });
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
+    state.legOutcome = new Map([...outcomes].filter(([, o]) => o?.status === 'void' || (o?.status === 'pending' && o.state === 'pre')));
   } catch (error) {
     console.error(error);
   } finally {
@@ -2482,7 +2485,8 @@ function liveDetail(live, sport) {
 function slipVerdict(slip, states) {
   const t = state.t;
   if (slip.status === 'settled' || slip.cashedOut) return null;
-  const now = slip.legs.map((leg, k) => leg.result ?? (states[k] === 'live' ? legStanding(leg) : null));
+  // A called-off game's pick counts at odds 1 (void), as it will settle.
+  const now = slip.legs.map((leg, k) => leg.result ?? (states[k] === 'off' ? 'void' : states[k] === 'live' ? legStanding(leg) : null));
   const count = x => now.filter(v => v === x).length;
   const waiting = states.filter(x => x === 'waiting').length;
   const live = states.filter(x => x === 'live').length;
@@ -2562,7 +2566,7 @@ function legSubLine(leg, st) {
     return el('small', { class: 'leg-sub', text });
   }
   // (Not counted: the game alone, no time to wait for.)
-  return el('small', { class: 'leg-sub', text: [st === 'moot' ? '' : legWhen(leg.start), shortMatchup(leg)].filter(Boolean).join(' · ') });
+  return el('small', { class: 'leg-sub', text: [st === 'moot' ? '' : st === 'off' ? t('legOffNote') : legWhen(leg.start), shortMatchup(leg)].filter(Boolean).join(' · ') });
 }
 const sameName = (a, b) => String(a || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === String(b || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -2574,7 +2578,7 @@ function legChip(leg, st) {
     const [cls, key] = { won: ['winning', 'legNowWinning'], lost: ['losing', 'legNowLosing'], void: ['level', 'legNowLevel'], level: ['level', 'legNowLevel'] }[now] || ['live', 'legChipLive'];
     return el('span', { class: `leg-chip ${cls}`, text: t(key) });
   }
-  if (st === 'won' || st === 'lost' || st === 'void' || st === 'cashed' || st === 'moot') return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
+  if (['won', 'lost', 'void', 'cashed', 'moot', 'off', 'late'].includes(st)) return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
   return null;
 }
 // A saved pick: its picture, the pick and its market on one row, the second
@@ -2617,10 +2621,10 @@ function recoveredSlipCard(slip) {
 function slipGlance(slip) {
   const t = state.t;
   const now = Date.now();
-  const states = slip.legs.map(leg => legState(leg, now));
+  const states = slip.legs.map(leg => legState(leg, now, state.legOutcome.get(leg.id)));
   const order = byStart(slip.legs);
   const segs = order.map(k => ({ st: states[k], tone: states[k] === 'live' ? liveTone(slip.legs[k]) : '' }));
-  const standing = slip.legs.map((leg, k) => leg.result ?? (states[k] === 'live' && state.legLive.has(leg.id) ? legStanding(leg) : null));
+  const standing = slip.legs.map((leg, k) => leg.result ?? (states[k] === 'off' ? 'void' : states[k] === 'live' && state.legLive.has(leg.id) ? legStanding(leg) : null));
   const lost = standing.filter(x => x === 'lost').length;
   const live = states.filter(x => x === 'live').length;
   const next = slip.legs.filter((leg, k) => states[k] === 'waiting' && leg.start).map(leg => leg.start).sort()[0];
@@ -2643,7 +2647,7 @@ function savedSlipCard(slip) {
   const settled = slip.status === 'settled';
   // A lost slip's games not played yet: 不計入 (the slip's over), as if they
   // weren't played (no live score).
-  const states = slip.legs.map(leg => (slip.cashedOut && !leg.result ? 'cashed' : settled && !leg.result ? 'moot' : legState(leg, now)));
+  const states = slip.legs.map(leg => (slip.cashedOut && !leg.result ? 'cashed' : settled && !leg.result ? 'moot' : legState(leg, now, state.legOutcome.get(leg.id))));
   const decided = states.filter(st => ['won', 'lost', 'void'].includes(st)).length;
   const profit = settled ? slip.payout - slip.cost : null;
   const range = settled ? null : slipRange(slip);
@@ -2789,7 +2793,7 @@ function renderSaved() {
   let settledShown = 0;
   const groups = new Map();
   for (const slip of filtered) {
-    const key = slipGroupKey(slip, now);
+    const key = slipGroupKey(slip, now, id => state.legOutcome.get(id));
     if ((key.startsWith('day|') || key === 'recovered') && !state.showAllSaved && settledShown++ >= SAVED_SHOWN) continue;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(slip);
