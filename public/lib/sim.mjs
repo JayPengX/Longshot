@@ -524,7 +524,7 @@ function playSeason(style, weekPicker, weeks, random, path, fallback = null, leg
       played = true;
       spent += stake;
       const gross = Math.min(stake * odds, SLIP_RULES.maxPayout);
-      const paid = won ? afterTax(gross) : 0;
+      const paid = won ? afterTax(gross, stake) : 0;
       const result = paid - stake;
       st.weekStaked += stake;
       if (won) {

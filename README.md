@@ -34,7 +34,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   House rules (`HOUSE_RULES`): very short odds are locked or parlay-only,
   and longshots are shaded.
 - **The slip:** the lottery's ticket rules: singles, parlays and systems;
-  1–12 picks; NT$100–100,000; a 20 M cap; 20.4% tax over NT$5,000. A
+  1–12 picks; NT$100–100,000; a 20 M cap; 20% tax when a NT$10 bet wins over NT$5,000 (台灣運彩 §29, no stamp duty for members). A
   parlay boost of 5–20% for 3+ picks (Plus ×1.5). Free bets need picks at
   1.50 or longer.
 - **Cash out** (`lib/cashout.mjs`): each open pick's fair chance less the

@@ -1803,6 +1803,9 @@ function shortMatchup(leg) {
 // pick's return, for a system each size; then cost, what all correct pays
 // (after tax) and the least a winning ticket pays.
 // `free`: the free bet part of the stake (its stake isn't paid back).
+// The sports tax withheld, as the kit has it (20% since 台灣運彩's members
+// pay no stamp duty; 20.4% with it, as before).
+const taxRateText = () => `${Math.round((SLIP_RULES.taxRate + (SLIP_RULES.stampRate || 0)) * 1000) / 10}%`;
 function payoutBox(legs, sizes, stake, mode, free = 0) {
   const t = state.t;
   const n = legs.length;
@@ -1825,7 +1828,7 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     ]));
     rows.push(payLine(t('payStake'), fmtMoney(stake, { sign: false })));
   } else if (mode === 'single') {
-    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} ${fmtMoney(stake, { sign: false })} × ${fmtOdds(l.odds)}`, fmtMoney(afterTax(stake * l.odds), { sign: false }))));
+    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} ${fmtMoney(stake, { sign: false })} × ${fmtOdds(l.odds)}`, fmtMoney(afterTax(stake * l.odds, stake), { sign: false }))));
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
@@ -1850,7 +1853,7 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     ]),
     // A free bet: the payout, less the free stake that isn't paid back, is what arrives.
     free ? el('p', { class: 'pay-note', text: t('payFreeSum', { gross: fmtMoney(table.net[all], { sign: false }), f: fmtMoney(free, { sign: false }), v: fmtMoney(net[all], { sign: false }) }) }) : null,
-    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { gross: fmtMoney(gross[all], { sign: false }), tax: fmtMoney(gross[all] - table.net[all], { sign: false }) }) }) : null,
+    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { rate: taxRateText(), gross: fmtMoney(gross[all], { sign: false }), tax: fmtMoney(gross[all] - table.net[all], { sign: false }) }) }) : null,
     mode !== 'parlay' && least < net[all] ? el('p', { class: 'pay-note', text: t('payLeast', { v: fmtMoney(least, { sign: false }) }) }) : null
   ]);
 }
