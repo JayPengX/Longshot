@@ -2,8 +2,8 @@
 // the achievements, read from a practice account.
 import { slipAtStake } from './history.mjs';
 
-// A slip that paid. A cash-out for less than the stake took a loss, so it isn't one.
-const paid = s => s.payout > 0 && !(s.cashedOut && s.payout < slipAtStake(s));
+// A slip that paid. A cash-out for no more than the stake won nothing, so it isn't one.
+const paid = s => s.payout > 0 && !(s.cashedOut && s.payout <= slipAtStake(s));
 
 // Every win from `since` (ms): settled slips that paid (cashed out too),
 // lottery tickets and scratch cards that won. Newest first.

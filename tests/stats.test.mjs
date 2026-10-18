@@ -33,9 +33,9 @@ test('achievementsOf: first win, ten-bagger, progress', () => {
   assert.equal(by['10k'].progress, 0.1);
 });
 
-test('a cash-out for less than the stake is not a win', () => {
+test('a cash-out for no more than the stake is not a win', () => {
   const a = acct([slip(1, { cashedOut: true, payout: 40 }), slip(2, { cashedOut: true, payout: 100 }), slip(3, { cashedOut: true, payout: 150 })]);
-  assert.deepEqual(winsOf(a).map(w => w.amount), [150, 100]);
+  assert.deepEqual(winsOf(a).map(w => w.amount), [150]);
   assert.equal(achievementsOf(acct([slip(1, { cashedOut: true, payout: 40 })])).find(x => x.key === 'first').done, false);
   assert.equal(longestRun([slip(1, { cashedOut: true, payout: 40 })]), 0);
 });
