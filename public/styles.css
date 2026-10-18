@@ -1465,3 +1465,16 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
    the lost colour (grey read as a game not started, the slip still going). */
 .seg-moot { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--bad) 70%, transparent) 0 2px, color-mix(in srgb, var(--bad) 22%, transparent) 2px 5px) !important; }
 .saved-legs li.leg-moot { opacity: 0.55; }
+
+/* 彩券: draw time under the cutoff countdown, the 期別 on a tile, the 獎別 beside a win, the 特別號 badge */
+.lotto-draw-at { color: var(--text-muted); font-size: 0.72rem; line-height: 1.3; }
+.lotto-term { color: var(--text-muted); font-size: 0.7rem; }
+.ls-hero small + strong + small { display: block; color: var(--text-muted); font-size: 0.72rem; font-weight: 600; }
+.lt-win { flex: none; display: grid; justify-items: end; line-height: 1.25; }
+.lt-line.won .lt-win .num { color: var(--good); font-weight: 750; font-size: 0.8rem; }
+.lt-tier { color: var(--good); font-size: 0.68rem; font-weight: 700; }
+.ball.sp { position: relative; background: transparent; box-shadow: inset 0 0 0 2px var(--lotto, var(--accent)); color: var(--lotto, var(--accent)); }
+.ball.sp::after { content: attr(data-sp); position: absolute; top: -5px; right: -6px; padding: 0 3px; border-radius: 8px; background: var(--lotto, var(--accent)); color: #fff; font-size: 0.55rem; font-weight: 800; line-height: 1.4; }
+.lotto-side-group { display: grid; gap: 6px; }
+.lotto-side-group .lotto-h { margin: 0; }
+.lotto-prizes td:nth-child(2) { white-space: normal; }
