@@ -3767,7 +3767,7 @@ topActions(q, { refresh: load });
 // it for the first time). Only the slip and simulator
 // have such numbers (and 首頁's picks' names, a ticket's picks and their
 // second lines, and 你的投注's rows: a long name a little smaller, not cut). All reads, then all writes, so the page lays out once.
-const FIT_SELECTOR = '.feature-team, .stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .bet-main strong, .bet-state';
+const FIT_SELECTOR = '.feature-team, .stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong, .fy-text small, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .bet-main strong, .bet-state';
 function fitNumbers(nodes) {
   for (const node of nodes) node.style.fontSize = '';
   const sizes = nodes.map(node => {
