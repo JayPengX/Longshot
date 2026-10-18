@@ -12,6 +12,7 @@ import { ask, tell } from '#kit/quadra.mjs';
 // A card's name in its half-width card: in English, the short one (Daily Cash 539 and BINGO BINGO were cut off).
 const CARD_EN = { daily539: 'Cash 539', bingo: 'BINGO' };
 const cardName = (id, lang) => (lang === 'en' && CARD_EN[id]) || gameName(id, lang);
+// (box 組彩 and pair 對彩 stay: retired in 2024, they name the tickets bought before.)
 const T = {
   zh: {
     draws: '電腦彩券', scratch: '刮刮樂', mine: '我的彩券', nextDraw: '下一期', closes: '截止', jackpot: '頭獎累積', price: '每注', buy: '購買', cancel: '取消', buyAsk: '買 {n} 注，共 {v}？', buyAskBody: '{name}，開獎後自動對獎。', scratchAsk: '買一張「{name}」？', scratchAskBody: '{v}，買了馬上刮。', cost: '共', bets: '注', multiple: '倍數',
@@ -19,7 +20,7 @@ const T = {
     stars: '星數', sideTitle: '其他玩法', big: '大', small: '小', odd: '單', even: '雙', bullseye: '超級獎號', latest: '最近開獎', open: '待開獎', won: '中獎', lost: '未中獎',
     today: '今天', yesterday: '昨天', filterAll: '全部', filterWins: '只看中獎', noWins: '還沒有中獎', daySum: '花 {spent}', dayNone: '沒中獎', outWon: '中獎 {v}', outNone: '沒中獎', dayNet: '淨 {v}', earlier: '更早的 {n} 天', groupWon: '{n} 張中 {k} 張，共 {v}', groupLost: '{n} 注都沒中', cardsLost: '{n} 張都沒中',
     drawAt: '{when} 開獎', noTickets: '還沒有彩券', buyCard: '購買 {price}', scratchAll: '一次刮開', scratchHint: '刮開銀色區域', youWon: '恭喜中獎！', noWin: '沒有中獎',
-    top: '最高 {v}', winRateShort: '中獎率 {p}%', bought: '已購買', funds: '餘額不足', fundsBody: '需要 {v}', closed: '本期已截止', failed: '現在無法購買，稍後再試', house: 'Quadra 開獎', retired: '已停售，本金退回', perBet: '{v} / 注', how: '玩法', winNumbers: '中獎號碼', yourNumbers: '你的號碼', dealer: '莊家', you: '你', prizeCol: '獎金',
+    top: '最高 {v}', winRateShort: '中獎率 {p}%', bought: '已購買', funds: '餘額不足', fundsBody: '需要 {v}', closed: '本期已截止', failed: '現在無法購買，稍後再試', retired: '已停售，本金退回', perBet: '{v} / 注', how: '玩法', winNumbers: '中獎號碼', yourNumbers: '你的號碼', dealer: '莊家', you: '你', prizeCol: '獎金',
     called: '開出號碼', prizes: '獎項', unscratched: '未刮開', every5: '每 5 分鐘開獎', mult: '倍數 ×{m}', settled: '已開獎',
     quick1: '快選 1 注', quickN: '快選 {n} 注', addLine: '加入這注', lines: '已選 {n} 注', remove: '移除', buyAll: '購買 {n} 注 · {v}', boughtN: '已買 {n} 注，共 {v}', seeTickets: '看我的彩券', again: '再買', inMin: '{n} 分鐘後開獎', inHour: '{h} 小時 {m} 分後開獎', picked: '已選 {k}/{n}', starsN: '{n} 星', pickHint: '點下面的號碼，或用快選', slipN: '第 {n} 注', topPrize: '最高獎金', fillRest: '隨機補滿', addNext: '加入，選下一注', quickLines: '快選整注', clearAll: '全部清除', zone1: '第一區', bingoHint: '點 1–10 個號碼，或下面選大小單雙', lastLegend: '上期開出', anyPrize: '任一獎 1/{n}', odds: '機率', oneIn: '1/{n}', yourPick: '你的號碼', waiting: '等待開獎', drawnList: '已開獎', openSum: '{n} 張待開獎', wonSum: '累計中獎 {v}', basketHint: '可以一次買好幾注', sureTitle: '確定購買？', sureBody: '{what} · {v}', sureOk: '購買 {v}'
   },
@@ -29,7 +30,7 @@ const T = {
     stars: 'Stars', sideTitle: 'Other plays', big: 'Big', small: 'Small', odd: 'Odd', even: 'Even', bullseye: 'Super number', latest: 'Latest draw', open: 'Awaiting draw', won: 'Won', lost: 'No win',
     today: 'Today', yesterday: 'Yesterday', filterAll: 'All', filterWins: 'Wins only', noWins: 'No wins yet', daySum: 'Spent {spent}', dayNone: 'No wins', outWon: 'Won {v}', outNone: 'No prize', dayNet: 'Net {v}', earlier: '{n} earlier days', groupWon: '{k} of {n} won, {v}', groupLost: 'No win on {n} bets', cardsLost: 'No win on {n} cards',
     drawAt: 'Draw {when}', noTickets: 'No tickets yet', buyCard: 'Buy {price}', scratchAll: 'Scratch all', scratchHint: 'Scratch the silver', youWon: 'You won!', noWin: 'No win this time',
-    top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', house: 'Quadra draw', retired: 'No longer sold: stake refunded', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Winning numbers', yourNumbers: 'Your numbers', dealer: 'Dealer', you: 'You', prizeCol: 'Prize',
+    top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', retired: 'No longer sold: stake refunded', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Winning numbers', yourNumbers: 'Your numbers', dealer: 'Dealer', you: 'You', prizeCol: 'Prize',
     called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'Every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
     quick1: 'Quick pick 1', quickN: 'Quick pick {n}', addLine: 'Add this bet', lines: '{n} bets chosen', remove: 'Remove', buyAll: 'Buy {n} · {v}', boughtN: 'Bought {n} bets, {v}', seeTickets: 'My tickets', again: 'Buy more', inMin: 'Draw in {n} min', inHour: 'Draw in {h}h {m}m', picked: '{k}/{n} picked', starsN: '{n} stars', pickHint: 'Tap numbers below, or quick pick', slipN: 'Bet {n}', topPrize: 'Top prize', fillRest: 'Fill the rest', addNext: 'Add, next bet', quickLines: 'Quick-pick bets', clearAll: 'Clear all', zone1: 'Zone 1', bingoHint: 'Tap 1–10 numbers, or pick big/small/odd/even below', lastLegend: 'In the last draw', anyPrize: 'Any prize 1 in {n}', odds: 'Odds', oneIn: '1 in {n}', yourPick: 'Your numbers', waiting: 'Awaiting the draw', drawnList: 'Drawn', openSum: '{n} awaiting a draw', wonSum: 'Won so far {v}', basketHint: 'Buy several at once', sureTitle: 'Buy this?', sureBody: '{what} · {v}', sureOk: 'Buy for {v}'
   }
@@ -186,7 +187,7 @@ export function mountLottery(ctx) {
         const nums = latest ? (latest.digits || latest.numbers || []).slice(0, id === 'bingo' ? 6 : 7) : [];
         return el('div', { class: 'lotto-card', style: `--lotto:${g.color}`, role: 'button', tabindex: '0', onclick: () => openGame(id) }, [
           el('div', { class: 'lotto-top' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('div', { class: 'lotto-id' }, [el('span', { class: 'lotto-name', text: cardName(id, lang) }), el('span', { class: 'lotto-price', text: t('perBet', { v: money(g.price) }) })])]),
-          latest?.jackpot && !g.of ? el('strong', { class: 'lotto-jackpot num', text: compactMoney(latest.jackpot, lang) }) : el('strong', { class: 'lotto-jackpot small', text: id === 'bingo' ? t('every5') : g.house ? t('house') : topLine(id) }),
+          latest?.jackpot && !g.of ? el('strong', { class: 'lotto-jackpot num', text: compactMoney(latest.jackpot, lang) }) : el('strong', { class: 'lotto-jackpot small', text: id === 'bingo' ? t('every5') : topLine(id) }),
           nums.length ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', Boolean(latest.digits)))) : null,
           el('span', { class: 'lotto-when', text: d ? untilText(d.at) : t('closed') })
         ]);
