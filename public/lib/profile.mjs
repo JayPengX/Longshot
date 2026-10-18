@@ -9,6 +9,8 @@
 // chance, won: paid anything, missed: picks that lost, paid: payout after
 // tax }.
 
+import { slipAtStake } from './history.mjs';
+
 // A practice-account slip as a ticket (settled slips only).
 export function slipTicket(slip, firstMs) {
   const legs = slip.legs.length;
@@ -16,7 +18,7 @@ export function slipTicket(slip, firstMs) {
   const odds = slip.mode === 'parlay' ? slip.legs.reduce((p, l) => p * l.odds, 1) : slip.legs.reduce((s, l) => s + l.odds, 0) / Math.max(1, legs);
   return {
     w: Math.max(0, Math.floor((Date.parse(slip.t) - firstMs) / (7 * 86_400_000))),
-    stake: slip.cost,
+    stake: slipAtStake(slip),
     legs,
     odds,
     chance,
