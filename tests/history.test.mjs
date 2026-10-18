@@ -153,3 +153,13 @@ test('a cash out is paid once, never on a free bet or a settled slip; saved pick
   assert.equal(cashOut(cashed, 'c', 150, t0), cashed);
   assert.equal(slipSpec(cashed.slips[0]).status, 'open');
 });
+
+test('a cash out the wallet already paid shows what was paid, never the value asked', () => {
+  const t0 = new Date('2026-10-10T00:00:00Z');
+  const placed = placeSlip(newAccount(t0), { id: 'c', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [{ id: 'x', odds: 2 }] }, t0).account;
+  // The Worker paid NT$140 (its value at the time); this device asks with 150.
+  const paid = { ...placed, ledger: [...placed.ledger, { id: 'payout-c', t: t0.toISOString(), kind: 'cashout', amount: 140, slipId: 'c' }] };
+  const cashed = cashOut(paid, 'c', 150, t0);
+  assert.equal(cashed.slips[0].payout, 140);
+  assert.equal(cashed.ledger.filter(e => e.id === 'payout-c').length, 1);
+});
