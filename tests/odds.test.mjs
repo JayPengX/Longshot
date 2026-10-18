@@ -5,6 +5,7 @@ import * as kitOdds from '../public/lib/odds.mjs';
 const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
 import { readFileSync } from 'node:fs';
 import {
+  afterTax,
   americanToProbability,
   devigTwoWay,
   devigPower,
@@ -168,10 +169,10 @@ test('slip payouts, averages and chances are exact', () => {
   close(system.byHits[2].max, 360);
 });
 
-test('slip withholds 20.4% from each combination over NT$5,000 and caps a ticket', () => {
+test('slip withholds the sports tax as the kit has it, and caps a ticket', () => {
   const big = evaluateSlip({ legs: [{ gameId: 1, odds: 3, fairChance: 1 }, { gameId: 2, odds: 3, fairChance: 1 }], sizes: [2], stake: 1000 });
   close(big.expected, 9000);
-  close(big.expectedNet, 9000 * 0.796, 1e-9);
+  close(big.expectedNet, afterTax(9000, 1000), 1e-9);
   // At NT$5,000 or less nothing is withheld.
   close(evaluateSlip({ legs: [{ gameId: 1, odds: 2.5, fairChance: 1 }, { gameId: 2, odds: 2, fairChance: 1 }], sizes: [2], stake: 1000 }).expectedNet, 5000);
   const huge = evaluateSlip({ legs: Array.from({ length: 12 }, (_, i) => ({ gameId: i, odds: 10, fairChance: 1 })), sizes: [12], stake: 100 });

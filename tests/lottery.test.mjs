@@ -1,14 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { GAMES, GAME_ORDER, nextDraw, ticketPrize, expectedReturn, parseDraw, parseBingo, houseDraw, buyTicket, settleTicket, checkSelection, betCount, boxWays, HOUSE_SLOT, dueTickets } from '../public/lib/lottery.mjs';
+import * as L from '../public/lib/lottery.mjs';
+const { GAMES, GAME_ORDER, nextDraw, ticketPrize, expectedReturn, parseDraw, parseBingo, buyTicket, settleTicket, checkSelection, betCount, dueTickets } = L;
+// The kit's 2024 tables (one 3/4星彩 play, no house draws, 38樂合彩 gone)
+// or the older ones: these tests hold for whichever the kit has.
+const since2024 = !L.boxWays;
 import { newAccount, balance, mergeAccounts } from '../public/lib/account.mjs';
 
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/lottery-api/${name}.json`, import.meta.url)));
 const first = (name, list) => fixture(name).content[list][0];
 
-test('eleven computer-drawn games', () => {
-  assert.equal(GAME_ORDER.length, 11);
+test('the computer-drawn games: eleven, or fewer since 2024 (雙贏彩, 大福彩 and 38樂合彩 no longer sold)', () => {
+  if (since2024) assert.ok(GAME_ORDER.length >= 8 && GAME_ORDER.length <= 9);
+  else assert.equal(GAME_ORDER.length, 11);
   for (const id of GAME_ORDER) assert.ok(GAMES[id], id);
 });
 
@@ -28,7 +33,7 @@ test('draw times: evening draws on their days, closing 30 minutes before; BINGO 
   const night = nextDraw('bingo', Date.parse('2026-09-28T23:58:00+08:00'));
   assert.equal(night.date, '2026-09-29');
   assert.equal(night.slot, 0);
-  assert.equal(HOUSE_SLOT, 161);
+  if (L.HOUSE_SLOT != null) assert.equal(L.HOUSE_SLOT, 161);
 });
 
 test('威力彩 prizes from a real draw, pool tiers from what it paid', () => {
@@ -57,16 +62,23 @@ test('大樂透 with its special number; 今彩539', () => {
   assert.equal(ticketPrize({ game: 'daily539', sel: { zones: [[17, 18, 30, 1, 2]] } }, d539).prize, 300);
 });
 
-test('3星彩 and 4星彩: straight, box and pair', () => {
+test('3星彩 and 4星彩: the digits in order (since 2024 paid by the last digits matched; before, box and pair too)', () => {
   const d3 = parseDraw('star3', first('3d', 'lotto3DRes'));
   assert.deepEqual(d3.digits, [3, 5, 9]);
   const t = (digits, play) => ({ game: 'star3', sel: { digits, play } });
+  if (since2024) {
+    assert.equal(ticketPrize(t([3, 5, 9], 'straight'), d3).prize, 5_000);
+    assert.equal(ticketPrize(t([0, 5, 9], 'straight'), d3).prize, 500);
+    assert.equal(ticketPrize(t([0, 0, 9], 'straight'), d3).prize, 50);
+    assert.equal(ticketPrize(t([9, 3, 5], 'straight'), d3).prize, 0);
+    return;
+  }
   assert.equal(ticketPrize(t([3, 5, 9], 'straight'), d3).prize, 12_500);
   assert.equal(ticketPrize(t([9, 3, 5], 'box'), d3).prize, 2_000);
   assert.equal(ticketPrize(t([0, 5, 9], 'pair'), d3).prize, 1_250);
   const d4 = parseDraw('star4', first('4d', 'lotto4DRes'));
   assert.equal(ticketPrize({ game: 'star4', sel: { digits: [7, 7, 4, 1], play: 'box' } }, d4).prize, 10_000);
-  assert.equal(boxWays([7, 7, 4, 1]), 12);
+  assert.equal(L.boxWays([7, 7, 4, 1]), 12);
   assert.equal(checkSelection('star3', { digits: [1, 1, 1], play: 'box' }).error, 'boxSame');
 });
 
@@ -90,7 +102,8 @@ test('BINGO BINGO from a real day of draws', () => {
   assert.equal(ticketPrize({ game: 'bingo', sel: { side: 'bullseye', bull: 62 } }, draw).prize, 25 * 48);
 });
 
-test('house draws are fixed by the BINGO draw they come from', async () => {
+test('house draws are fixed by the BINGO draw they come from', { skip: !L.houseDraw && 'no house draws since the 2024 kit' }, async () => {
+  const { houseDraw, HOUSE_SLOT } = L;
   const list = fixture('bingo').content.bingoQueryResult.sort((a, b) => a.drawTerm - b.drawTerm);
   const b = parseBingo(list[HOUSE_SLOT]);
   const a1 = await houseDraw('lotto1224', b);
@@ -110,6 +123,7 @@ test('fixed-prize tables pay back like a real lottery (40-80% of spend)', () => 
   ];
   for (const s of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) checks.push(['bingo', { stars: s }]);
   for (const [id, extra] of checks) {
+    if (!GAMES[id] || (since2024 && extra?.play && extra.play !== 'straight')) continue;
     const r = expectedReturn(id, extra);
     // 大福彩's real table with its 頭獎 at the guaranteed NT$1億 (a rolling
     // pool made it more in life, and Play has none): about 30%.

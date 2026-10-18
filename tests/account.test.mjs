@@ -16,7 +16,7 @@ import {
   placeFreeSlip,
   cashOut
 } from '../public/lib/account.mjs';
-import { settleSlip, slipOutlook, SLIP_RULES } from '../public/lib/odds.mjs';
+import { settleSlip, slipOutlook, SLIP_RULES, afterTax } from '../public/lib/odds.mjs';
 import { BASE_CUT } from '../public/lib/rules.mjs';
 import { parseEspnResults, parseEspnRace, parseFutureResult } from '../public/lib/sources.mjs';
 
@@ -51,10 +51,10 @@ test('settling pays like a real ticket: voids count at 1.00, tax over NT$5,000',
   assert.equal(settleSlip({ legs: [{ odds: 2, result: 'won' }, { odds: 1.5, result: 'void' }], sizes: [2], stake: 100 }).net, 200);
   // Singles: each leg its own ticket.
   assert.equal(settleSlip({ legs: [{ odds: 2, result: 'won' }, { odds: 1.5, result: 'lost' }], sizes: [1], stake: 100 }).net, 200);
-  // NT$10,000 at 1.8: 18,000 before tax.
+  // NT$10,000 at 1.8: 18,000 before tax; taxed as the kit says (since 台灣運彩 §29: only a NT$10 bet winning over NT$5,000).
   const big = settleSlip({ legs: [{ odds: 1.8, result: 'won' }], sizes: [1], stake: 10_000 });
   assert.equal(big.gross, 18_000);
-  assert.ok(Math.abs(big.net - 18_000 * (1 - SLIP_RULES.taxRate - SLIP_RULES.stampRate)) < 1e-6);
+  assert.ok(Math.abs(big.net - afterTax(18_000, 10_000)) < 1e-6);
 });
 
 test('each kind of leg is judged from the final score', () => {

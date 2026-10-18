@@ -1829,6 +1829,9 @@ function shortMatchup(leg) {
 // pick's return, for a system each size; then cost, what all correct pays
 // (after tax) and the least a winning ticket pays.
 // `free`: the free bet part of the stake (its stake isn't paid back).
+// The sports tax withheld, as the kit has it (20% since 台灣運彩's members
+// pay no stamp duty; 20.4% with it, as before).
+const taxRateText = () => `${Math.round((SLIP_RULES.taxRate + (SLIP_RULES.stampRate || 0)) * 1000) / 10}%`;
 function payoutBox(legs, sizes, stake, mode, free = 0) {
   const t = state.t;
   const { n, combos, bySize, cost, each, allGross, allTaxed, allNet, least, boostRate: boost, boostMore: more, taxed } =
@@ -1863,7 +1866,7 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     ]),
     // A free bet: the payout, less the free stake that isn't paid back, is what arrives.
     free ? el('p', { class: 'pay-note', text: t('payFreeSum', { gross: fmtMoney(allTaxed, { sign: false }), f: fmtMoney(free, { sign: false }), v: fmtMoney(allNet, { sign: false }) }) }) : null,
-    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { gross: fmtMoney(allGross, { sign: false }), tax: fmtMoney(allGross - allTaxed, { sign: false }) }) }) : null,
+    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { rate: taxRateText(), gross: fmtMoney(allGross, { sign: false }), tax: fmtMoney(allGross - allTaxed, { sign: false }) }) }) : null,
     mode !== 'parlay' && least < allNet ? el('p', { class: 'pay-note', text: t('payLeast', { v: fmtMoney(least, { sign: false }) }) }) : null
   ]);
 }
