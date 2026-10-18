@@ -57,10 +57,16 @@ let latest = null;
 
 // Big money, short: NT$1.59億 / NT$158.8M.
 export function compactMoney(x, lang) {
-  if (lang === 'en') return x >= 1e6 ? `NT$${(x / 1e6).toFixed(1)}M` : `NT$${Math.round(x).toLocaleString('en-US')}`;
-  if (x >= 1e8) return `NT$${(x / 1e8).toFixed(2)}億`;
-  if (x >= 1e4) return `NT$${Math.round(x / 1e4).toLocaleString('en-US')}萬`;
-  return `NT$${Math.round(x).toLocaleString('en-US')}`;
+  const plain = `NT$${Math.round(x).toLocaleString('en-US')}`;
+  if (lang === 'en') {
+    if (x >= 999_950_000) return `NT$${(x / 1e9).toFixed(1)}B`;
+    return x >= 999_950 ? `NT$${(x / 1e6).toFixed(1)}M` : plain;
+  }
+  if (x >= 99_995_000) return `NT$${+(x / 1e8).toFixed(2)}億`;
+  if (x >= 99_500) return `NT$${Math.round(x / 1e4).toLocaleString('en-US')}萬`;
+  // Under 10萬 one decimal (1.5萬), dropped when whole (2萬).
+  if (x >= 1e4) return `NT$${+(x / 1e4).toFixed(1)}萬`;
+  return plain;
 }
 
 // A team's key as every Quadra app records it (app.js betKeys, foryou.mjs).
