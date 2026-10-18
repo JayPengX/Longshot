@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as kitOdds from '../public/lib/odds.mjs';
 // The kit with 台灣運彩's settle rules (過1關, 48-hour postponements): its rules tested on it.
 const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
+// The kit that rounds each prize half up to the NT$ (運彩 §18): 100.5 is 101.
+const halfUp = kitOdds.slipPayoutTable({ legs: [{ gameId: 'a', odds: 1.005 }], sizes: [1], stake: 100 }).gross[1] === 101;
 import {
   START_BALANCE,
   newAccount,
@@ -150,11 +152,12 @@ test('Plus’s bigger parlay boost: what it adds is paid as its own entry; the h
   // A member's slip keeps boost 1.5: 3 picks +5% ×1.5 = +7.5% of the winnings.
   ({ account } = placeSlip(account, { ...slip('s', 100, legs), boost: 1.5 }, now));
   const won = applyResults(account, 's', ['won', 'won', 'won'], now);
-  // 100 × 8.00: winnings 700; everyone's +5% pays 835, a member's +7.5% 852.
-  assert.equal(won.slips[0].payout, 852);
+  // 100 × 8.00: winnings 700; everyone's +5% pays 835, a member's +7.5% 852.5 (853 rounded half up, §18).
+  const plusPay = halfUp ? 853 : 852;
+  assert.equal(won.slips[0].payout, plusPay);
   assert.equal(won.ledger.find(e => e.id === 'payout-s').amount, 835);
-  assert.deepEqual(won.ledger.find(e => e.id === 'plus-s'), { id: 'plus-s', t: now.toISOString(), kind: 'plusboost', amount: 17, slipId: 's' });
-  assert.equal(balance(won), START_BALANCE - 100 + 852);
+  assert.deepEqual(won.ledger.find(e => e.id === 'plus-s'), { id: 'plus-s', t: now.toISOString(), kind: 'plusboost', amount: plusPay - 835, slipId: 's' });
+  assert.equal(balance(won), START_BALANCE - 100 + plusPay);
   // A lost slip pays nothing, and no boost entry; nor does everyone's boost.
   assert.ok(!applyResults(account, 's', ['won', 'won', 'lost'], now).ledger.some(e => e.id === 'plus-s'));
   const plain = placeSlip(newAccount(at('2026-09-25T00:00:00Z')), { ...slip('p', 100, legs), boost: 1 }, now).account;

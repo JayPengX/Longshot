@@ -125,12 +125,12 @@ test("where a pick and a slip stand, and the day a settled slip is filed under (
 
 test('singles are paid one ticket each: each its own NT$20M cap, the bar adds them up', () => {
   // Two championship picks at 500.00, NT$100,000 a single: each NT$50M,
-  // capped at NT$20M and taxed (20.4%) on its own ticket. The bar once
-  // capped the two together, as one ticket: NT$15.92M for both.
+  // capped at NT$20M and taxed on its own ticket (as the kit taxes it). The bar
+  // once capped the two together, as one ticket: NT$15.92M for both.
   const legs = [bet('f1', 500, { kind: 'future' }), bet('f2', 500, { kind: 'future' })];
   const q = slipQuote({ bets: legs, mode: 'single', stake: 100_000 });
   assert.deepEqual(q.errors, []);
-  const each = SLIP_RULES.maxPayout * (1 - SLIP_RULES.taxRate - SLIP_RULES.stampRate);
+  const each = Math.round(kitOdds.afterTax(SLIP_RULES.maxPayout, 100_000));
   assert.deepEqual(singlesPays(q).map(Math.round), [each, each]);
   assert.equal(Math.round(quoteAllPays(q)), 2 * each);
   // Under the cap, the same as before: 2 × afterTax(100 × 2).
@@ -163,9 +163,10 @@ test("the pay box's totals: a parlay's tax and boost, singles as their own ticke
   const treble = payoutTotals({ legs: [leg('a', 10), leg('b', 10), leg('c', 2)], sizes: [3], stake: 1000, mode: 'parlay', boost: 1 });
   assert.equal(treble.combos, 1);
   assert.equal(treble.cost, 1000);
-  assert.ok(treble.taxed);
+  // Taxed as the kit taxes it (台灣運彩's: only past NT$5,000 a NT$10 bet, so not this one).
+  assert.equal(treble.taxed, kitOdds.afterTax(treble.allGross, 1000) < treble.allGross - 0.5);
   assert.ok(treble.boostRate > 0 && treble.boostMore > 0);
-  assert.ok(treble.allNet < treble.allGross);
+  assert.equal(treble.allNet < treble.allGross, treble.taxed);
   // Two NT$100,000 singles at 500.00: each its own NT$20M cap, so 40M before tax.
   const singles = payoutTotals({ legs: [leg('a', 500), leg('b', 500)], sizes: [1], stake: 100000, mode: 'single' });
   assert.equal(singles.allGross, 40_000_000);

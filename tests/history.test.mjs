@@ -154,7 +154,7 @@ test('a cash out is paid once, never on a free bet or a settled slip; saved pick
   assert.equal(slipSpec(cashed.slips[0]).status, 'open');
 });
 
-test("a free bet's stake isn't tax and isn't expected back; a near miss and a dream ticket pay as a ticket would", () => {
+test("a free bet's stake isn't tax and isn't expected back; a near miss and a dream ticket pay as a ticket would", async () => {
   // A NT$500 free bet on 3.00, won: 1,500 back, 1,000 of it paid (the free
   // stake isn't). Nothing over NT$5,000, so no tax (it showed NT$500).
   const free = { id: 'f', t: '2026-10-01T00:00:00.000Z', settledAt: '2026-10-01T05:00:00.000Z', status: 'settled', mode: 'single', sizes: [1], stake: 500, cost: 0, free: 'fb1', freeValue: 500, gross: 1500, payout: 1000, legs: [{ gameId: 'g', odds: 3, fairChance: 0.3, result: 'won', kind: 'ml' }] };
@@ -165,7 +165,9 @@ test("a free bet's stake isn't tax and isn't expected back; a near miss and a dr
   // A treble lost by one pick: what it would have paid is a ticket's, boost and tax in (it said 1000 × 200 = 200,000).
   const legs = [{ gameId: 'a', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'b', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'c', odds: 2, result: 'lost', kind: 'ml' }];
   const near = { id: 'n', t: '2026-10-02T00:00:00.000Z', status: 'settled', mode: 'parlay', sizes: [3], stake: 1000, cost: 1000, boost: 1, payout: 0, legs };
-  assert.equal(Math.round(funFacts({ slips: [near] }).nearMiss.missed), Math.round(1000 * (1 + 199 * 1.05) * 0.796));
+  // (Taxed as the kit taxes it: 20.4% over NT$5,000 a ticket, or 台灣運彩's 20% only past NT$5,000 a NT$10 bet.)
+  const { afterTax } = await import('../public/lib/odds.mjs');
+  assert.equal(Math.round(funFacts({ slips: [near] }).nearMiss.missed), Math.round(afterTax(1000 * (1 + 199 * 1.05), 1000)));
   // Two picks of one game never share a combination: the dream ticket counts only what can be paid.
   const sys = { id: 'd', t: '2026-10-03T00:00:00.000Z', status: 'settled', mode: 'system', sizes: [2], stake: 100, cost: 200, payout: 0, legs: [{ gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g2', odds: 2, kind: 'ml' }] };
   assert.equal(funFacts({ slips: [sys] }).dream.times, 6);

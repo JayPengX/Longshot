@@ -344,6 +344,8 @@ function pickName(game, market, pick) {
   if (market.kind === 'dc') return pick.side.split('|').map(x => (x === 'draw' ? t('draw') : teamName(game[x]))).join(' / ');
   if (market.kind === 'htft') return `${t(RESULT_SHORT[pick.ht])}/${t(RESULT_SHORT[pick.ft])}`;
   if (market.kind === 'goalbands') return pick.hi == null ? `${pick.lo}+` : `${pick.lo}-${pick.hi}`;
+  // Hockey's 勝分差 on 60 minutes has a 和局 pick (台灣運彩's), no team.
+  if (market.kind === 'margin' && pick.side === 'draw') return state.t('draw');
   if (market.kind === 'margin') return `${teamName(game[pick.team])} ${pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? pick.lo : `${pick.lo}-${pick.hi}`}`;
   if (market.kind === 'score') return pick.score === 'other' ? t('scoreOther') : pick.score.replace('-', ':');
   if (pick.side === 'away' || pick.side === 'home') return teamName(game[pick.side]);
@@ -1127,7 +1129,7 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
         return lineTable([t('colLine'), t('over'), t('under')], rows, teamName(game[team]));
       })
       .filter(Boolean);
-  } else if (section.kind === 'margin' && bets.length && bets.every(b => b.pick?.team)) {
+  } else if (section.kind === 'margin' && bets.length && bets.every(b => b.pick?.team || b.pick?.side === 'draw')) {
     // One row of bands per team under its name ("1-5", "21+"): the team's
     // name on every button wrapped it onto two rows.
     const band = p => (p.hi == null ? `${p.lo}+` : p.lo === p.hi ? String(p.lo) : `${p.lo}-${p.hi}`);
@@ -1136,6 +1138,9 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
       if (!list.length) return [];
       return [el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: teamName(game[team]) })]), el('div', { class: 'market-picks bands', style: `--n:${list.length <= 5 ? list.length : 4}` }, list.map(b => pickButton(b, band(b.pick))))];
     });
+    // Hockey's 和局 (a 60-minute tie), on its own row after the teams'.
+    const draw = bets.find(b => b.pick?.side === 'draw');
+    if (draw) body.push(el('div', { class: 'market-picks bands', style: '--n:1' }, [pickButton(draw, t('draw'))]));
   } else {
     // One block per market (最高單局 has one; 第N分 one per run).
     const markets = [...groupBy(bets, b => b.market).values()];
