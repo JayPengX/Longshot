@@ -1519,3 +1519,102 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .lotto-day > *, .lotto-tickets > *, .lt-group > * { min-width: 0; }
 .lt-drawn .balls, .lt-line .balls { flex-wrap: wrap; }
 .lt-head .lt-net { flex: none; }
+
+/* ==== Premium pass: the kit's premium layer (hero, rails, tiles, row cards) in Play's blue ==== */
+.q-gl { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; }
+.q-gl svg { width: 100%; height: 100%; }
+.q-tile .q-gl { width: 22px; height: 22px; }
+.q-page-head { padding-top: 4px; }
+.q-hero-card.wallet-card { margin: 0 0 12px; padding: 18px 16px 16px; gap: 6px; border: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 36px -20px color-mix(in srgb, var(--accent) 80%, transparent); }
+.wallet-card .q-hc-eyebrow { color: #fff; }
+.wallet-card .wallet-plus { margin-left: auto; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); color: #fff; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.12em; }
+.wallet-card .q-hc-big.wallet-balance { font-size: 40px; line-height: 46px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-card .q-hc-big.neg { color: #ffd0d0; }
+.wallet-card .wallet-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 6px 0 4px; padding: 0; border: 0; }
+.wallet-card .wallet-stats > div { display: grid; align-content: start; gap: 1px; min-width: 0; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.16); }
+.wallet-card .wallet-stats small { color: rgba(255, 255, 255, 0.78); font-size: 0.74rem; font-weight: 600; }
+.wallet-card .wallet-stats strong { color: #fff; font: 700 19px/24px var(--q-font-rounded); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-card .q-hc-row { margin-top: 6px; flex-wrap: nowrap; }
+.wallet-card .q-hc-btn { flex: 1 1 0; min-width: 0; }
+.wallet-card .q-hc-btn .q-gl { width: 18px; height: 18px; }
+.wallet-card .q-hc-btn:not(.ghost) { color: var(--accent-strong); }
+.wallet-card .wallet-od { margin-top: 4px; background: rgba(255, 255, 255, 0.18); color: #fff; }
+.wallet-card .wallet-welcome { margin: 2px 0 0; color: #fff; }
+.wallet-card .wallet-welcome .pi { color: #fff; }
+.wallet-card > .wallet-stats, .wallet-card > .wallet-vip { grid-column: auto; grid-row: auto; }
+@media (min-width: 721px) { .wallet-card { grid-template-columns: minmax(0, 1fr); padding: 20px; } }
+
+.wallet-vip { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 8px; padding: 12px; border: 0; border-radius: 18px; background: var(--q-surface); color: var(--q-label, var(--text-primary)); text-align: left; }
+.wallet-vip .vip-body { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.wallet-vip .vip-line strong { font-size: 0.95rem; }
+.wallet-vip .vip-next { font-size: 0.74rem; }
+.home-block { margin: 0 0 24px; }
+.wallet-vip + .home-block, .wallet-card + .home-block { margin-top: 24px; }
+.home-head { align-items: center; margin: 0 0 10px; }
+.home-head h2 { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: 0; }
+.home-link { font-size: 15px; font-weight: 500; }
+.home-live .home-head h2::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; vertical-align: 2px; border-radius: 50%; background: var(--bad-strong); animation: live-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .home-live .home-head h2::before { animation: none; } }
+
+/* Rails of match cards */
+.features.q-rail, .fys.q-rail, .combos.q-rail { --q-rail-w: min(86%, 320px); grid-auto-columns: var(--q-rail-w); gap: 12px; align-items: start; margin: 0 -16px; padding: 2px 16px 10px; }
+.features.q-rail .feature { border-radius: 20px; box-shadow: var(--q-shadow-sm); }
+.features.q-rail .feature-top { padding: 14px 14px 6px; }
+.features.q-rail .feature-time { padding: 3px 8px; border-radius: 999px; background: var(--q-fill-3, var(--surface-sunken)); color: var(--q-label-2, var(--text-secondary)); font-size: 0.72rem; font-weight: 600; }
+.features.q-rail .feature-rows { padding: 2px 14px 10px; }
+.features.q-rail .feature-row { padding: 6px 0; }
+.features.q-rail .feature-row + .feature-row { border-top: 0; }
+.features.q-rail .feature-team { font-size: 0.95rem; }
+.feature-row .pick { border-radius: 12px; font-weight: 700; }
+.feature-more { padding: 10px 14px; background: var(--q-fill-4, var(--surface-raised)); }
+.fy { border-radius: 20px; }
+.combos.q-rail .combo { border-radius: 20px; box-shadow: var(--q-shadow-sm); scroll-snap-align: start; }
+.combo-go { border-radius: 999px; }
+
+/* My bets: a row card, a status tag instead of a sentence */
+.bet-rows.q-rowcard { border: 0; border-radius: 20px; box-shadow: none; }
+.bet-row.q-ritem { min-height: 64px; padding: 12px; }
+.bet-row.q-ritem + .bet-row.q-ritem { border-top: 0; }
+.bet-row.q-ritem::before { left: 68px; }
+.bet-main strong { font-size: 1rem; }
+.bet-main .q-tag.bet-state { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.bet-cash { border-radius: 14px; border: 0; background: color-mix(in srgb, var(--good) 14%, transparent); }
+.bet-cash.off { background: var(--q-fill-3, var(--surface-sunken)); }
+
+/* Lottery on home: colour tiles, each game its own colour, the jackpot big */
+.lt-rail.q-rail { --q-rail-w: 176px; grid-auto-columns: var(--q-rail-w); margin: 0 -16px; padding: 2px 16px 10px; gap: 12px; }
+.lt-tile { --lotto: var(--accent); display: grid; align-content: start; gap: 4px; min-width: 0; padding: 14px; border: 0; border-radius: 22px; color: #fff; font: inherit; text-align: left; cursor: pointer; background: radial-gradient(120% 110% at 100% 0%, rgba(255, 255, 255, 0.28), transparent 60%), linear-gradient(150deg, color-mix(in srgb, var(--lotto) 82%, #fff), color-mix(in srgb, var(--lotto) 92%, #000)); box-shadow: 0 14px 26px -18px var(--lotto); }
+.lt-top { display: flex; align-items: center; gap: 8px; min-width: 0; margin-bottom: 8px; }
+.lt-emblem { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; background: rgba(255, 255, 255, 0.24); font-size: 0.8rem; font-weight: 800; }
+.lt-name { flex: 1; min-width: 0; overflow: hidden; font-size: 0.95rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.lt-label { color: rgba(255, 255, 255, 0.85); font-size: 0.72rem; font-weight: 600; }
+.lt-big { overflow: hidden; font: 700 24px/28px var(--q-font-rounded); letter-spacing: -0.02em; text-overflow: ellipsis; white-space: nowrap; }
+.lt-when { margin-top: 2px; color: rgba(255, 255, 255, 0.85); font-size: 0.72rem; font-weight: 600; line-height: 1.35; }
+.lt-balls { display: flex; gap: 2px; margin-top: 6px; }
+.lt-balls .jp-ball { display: grid; place-items: center; flex: none; width: 19px; height: 19px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); color: #fff; font-size: 0.58rem; font-weight: 700; }
+.lt-balls .jp-ball.second { background: #fff; color: var(--lotto); }
+
+/* The lottery tab: the same tiles, in two columns */
+.lotto-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lotto-card { --lotto: var(--accent); padding: 14px; gap: 4px; border: 0; border-radius: 22px; color: #fff; box-shadow: 0 14px 26px -18px var(--lotto); background: radial-gradient(120% 110% at 100% 0%, rgba(255, 255, 255, 0.28), transparent 60%), linear-gradient(150deg, color-mix(in srgb, var(--lotto) 82%, #fff), color-mix(in srgb, var(--lotto) 92%, #000)); }
+.lotto-card::before { display: none; }
+.lotto-card .lotto-emblem { background: rgba(255, 255, 255, 0.24); box-shadow: none; color: #fff; }
+.lotto-card .lotto-name { color: #fff; font-size: 0.98rem; }
+.lotto-card .lotto-price { color: rgba(255, 255, 255, 0.8); }
+.lotto-card .lotto-jp-label, .lotto-card .lotto-term, .lotto-card .lotto-draw-at { color: rgba(255, 255, 255, 0.8); }
+.lotto-card .lotto-jackpot { margin-top: 2px; font: 700 26px/30px var(--q-font-rounded); letter-spacing: -0.02em; }
+.lotto-card .lotto-jackpot.small { color: #fff; font-size: 1.05rem; line-height: 24px; }
+.lotto-card .lotto-when { color: #fff; font-weight: 700; }
+.lotto-card .balls.mini .ball { background: rgba(255, 255, 255, 0.22); color: #fff; box-shadow: none; border: 0; }
+.lotto-card .balls.mini .ball.special, .lotto-card .balls.mini .ball.second { background: #fff; color: var(--lotto); }
+
+.section-heading { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: 0; }
+
+/* 紀錄: the account card is the same hero, on the blue */
+.card.account-card { border: 0; border-radius: 22px; color: #fff; box-shadow: 0 18px 36px -20px color-mix(in srgb, var(--accent) 80%, transparent); background: radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.22), transparent 60%), linear-gradient(135deg, color-mix(in srgb, var(--accent) 62%, #0b1020), var(--accent)); }
+.account-card .muted, .account-card .acct-record, .account-card .acct-tile-label, .account-card .acct-tile small, .account-card .muted.small { color: rgba(255, 255, 255, 0.8); }
+.account-card .account-balance { font: 700 40px/46px var(--q-font-rounded); letter-spacing: -0.02em; }
+.account-card .account-balance.back-low { color: #ffd0d0; }
+.account-card .acct-tile { background: rgba(255, 255, 255, 0.16); }
+.account-card .acct-tile strong { color: #fff; font-family: var(--q-font-rounded); }
+.account-card .acct-record strong { color: #fff; }

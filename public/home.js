@@ -23,6 +23,15 @@ import { GAMES, nextDraw, latestResults, gameName } from './lib/lottery.mjs';
 import * as L from './lib/lottery.mjs';
 import { cutoffAt, jackpotOf } from './lottery-labels.mjs';
 import { icon } from './icons.js';
+// The kit's premium glyphs, by name; none on an older kit (the tile then just has no glyph).
+import * as kitUI from '#kit/ui.mjs';
+const glyph = (name, cls = 'q-gl') => {
+  const s = document.createElement('span');
+  s.className = cls;
+  s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = kitUI.icons?.[name] || '';
+  return s;
+};
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
 import { slipRange, slipsMost } from './lib/slip.mjs';
@@ -30,26 +39,26 @@ import { slipAtStake } from './lib/history.mjs';
 
 const TXT = {
   zh: {
-    balance: 'Quadra 餘額', atStake: '投注中', slipsN: '{n} 張', cashNow: '可兌現', most: '全中最多',
+    balance: 'Quadra 餘額', atStake: '投注中', slipsN: '{n} 張', cashNow: '可兌現', most: '全中最多', pickGames: '去選比賽', mineBtn: '我的投注', jackpot: '頭獎', nextDraw: '下一期',
     live: '場中焦點', allLive: '全部場中 {n} 場',
     featured: '焦點賽事', allGames: '全部賽事', markets: '{n} 種玩法',
     mine: '你的投注', seeAll: '全部', legs: '{n} 場', legsUnit: '場', single: '單場', parlayN: '{n} 場串關', cashOut: '兌現', paused: '兌現暫停', freeBet: '免費投注',
     lottery: '彩券', closeIn: '{when} 截止', none: '賽事載入中，或目前沒有開賣的比賽。', draw: '和',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
-    vipNone: 'VIP 回饋', vipNoneSub: '本月投注滿 {v} 起，最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipTop: '最高等級', vipPaid: '上月回饋 {v} 已入帳',
+    vipNone: 'VIP 回饋', vipNoneSub: '本月投注滿 {v} 起，最高回饋 {top}', vipUpTo: '最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipTop: '最高等級', vipPaid: '上月回饋 {v} 已入帳',
     vipTitle: 'VIP 投注回饋', vipBody: '每月投注決定等級，下個月初自動回饋。免費，不用報名。', vipTier: '月投注 {min} 起 · 回饋 {back}',
     welcome: '第一次下注，就送 {v} 免費投注',
     forYou: '為你推薦', why_follow: '★ 追蹤 · {team}', why_backed: '↺ 押過 · {team}', why_like: '♥ 常看 · {team}', why_league: '你常玩的{league}', why_sport: '你常玩的{league}', why_value: '🔥 划算', why_steady: '✓ 穩', why_shot: '⚡ 值博', payLine: '押 {s} 贏 {w}', comboMine: '為你串 3 場',
     combos: '精選串關', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboTag: '過 {n} 關', comboTagBoost: '過 {n} 關 · 加成 +{b}%', comboStake: '投注 {v} · 賠率 ×{x}', comboGo: '加入投注單'
   },
   en: {
-    balance: 'Quadra balance', atStake: 'In play', slipsN: '{n} slips', cashNow: 'Cash out now', most: 'Most to win',
+    balance: 'Quadra balance', atStake: 'In play', slipsN: '{n} slips', cashNow: 'Cash out now', most: 'Most to win', pickGames: 'Find a game', mineBtn: 'Your bets', jackpot: 'Jackpot', nextDraw: 'Next draw',
     live: 'Live now', allLive: 'All {n} live',
     featured: 'Featured', allGames: 'All games', markets: '{n} markets',
     mine: 'Your bets', seeAll: 'See all', legs: '{n} picks', legsUnit: 'picks', single: 'Single', parlayN: '{n}-pick parlay', cashOut: 'Cash out', paused: 'Suspended', freeBet: 'Free bet',
     lottery: 'Lottery', closeIn: 'Sales close {when}', none: 'Games are loading, or none are on sale right now.', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
-    vipNone: 'VIP cashback', vipNoneSub: 'Up to {top} back from {v}', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipTop: 'Top tier', vipPaid: 'Last month’s {v} paid in',
+    vipNone: 'VIP cashback', vipNoneSub: 'Up to {top} back from {v}', vipUpTo: 'Up to {top} back', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipTop: 'Top tier', vipPaid: 'Last month’s {v} paid in',
     vipTitle: 'VIP cashback', vipBody: 'A month’s stakes set your tier; the cashback arrives early next month. Free, nothing to sign up for.', vipTier: '{min}+ a month · {back} back',
     welcome: 'Place your first bet and get a {v} free bet',
     forYou: 'For you', why_follow: '★ Following · {team}', why_backed: '↺ Backed · {team}', why_like: '♥ Watching · {team}', why_league: 'Your {league}', why_sport: 'Your {league}', why_value: '🔥 Value', why_steady: '✓ Steady', why_shot: '⚡ Long shot', payLine: '{s} wins {w}', comboMine: 'Your treble',
@@ -258,14 +267,14 @@ export function renderHome(ctx) {
     const n = s.legs.length;
     const one = n === 1;
     const kind = s.mode === 'system' ? s.sizes.map(k => ctx.sizeName(k, n)).join('、') : ctx.state.t(`slipMode_${s.mode}`);
-    return el('div', { class: `bet-row${g.tone ? ` ${g.tone}` : ''}` }, [
+    return el('div', { class: `bet-row q-ritem${g.tone ? ` ${g.tone}` : ''}` }, [
       one ? el('span', { class: 'bet-pic', 'aria-hidden': 'true' }, [ctx.legIcon(s.legs[0], 'logo-md')]) : el('span', { class: 'bet-count', 'aria-hidden': 'true' }, [el('strong', { class: 'num', text: String(n) }), el('small', { text: T.legsUnit })]),
       el('button', { class: 'bet-main', type: 'button', onclick: () => ctx.showTab('history') }, [
         // The slip; where it stands a line of its own (beside a driver's name,
         // "下一場 10/19 21:00 開打" was cut to "下一場 10/…"); a segment a pick;
         // what's in and what it can pay.
         el('span', { class: 'bet-title' }, [el('strong', { text: one ? ctx.shortPick(s.legs[0]) : s.mode === 'parlay' ? f('parlayN', { n }) : `${f('legs', { n })} · ${kind}` })]),
-        g.text ? el('small', { class: `bet-state${g.tone ? ` ${g.tone}` : ''}`, text: g.text }) : null,
+        g.text ? el('span', { class: `q-tag bet-state ${g.tone === 'winning' ? 'green' : g.tone === 'losing' ? 'red' : g.tone === 'level' ? 'orange' : 'blue'}`, text: g.text }) : null,
         one ? null : el('span', { class: 'bet-segs', 'aria-hidden': 'true' }, g.segs.map(x => el('i', { class: `seg seg-${x.st}${x.tone ? ` ${x.tone}` : ''}` }))),
         el('span', { class: 'bet-money num' }, [el('span', { text: money(s.cost) }), el('span', { class: 'bet-arrow', text: '→' }), el('strong', { text: money(most) })])
       ]),
@@ -291,7 +300,7 @@ export function renderHome(ctx) {
       .then(r => ((upcoming = r || {}), document.getElementById('panel-home')?.hidden === false && renderHome(ctx)))
       .catch(() => {});
   }
-  const when = at => new Date(at).toLocaleString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Taipei' });
+  const when = at => new Date(at).toLocaleString(lang === 'en' ? 'en-US' : 'zh-TW', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Taipei' });
   // Each game: its ball in its colour, the name and the next draw, the last
   // draw's numbers as small balls, and the jackpot (539: what a ticket costs).
   const ball = (n, cls = '') => el('span', { class: `jp-ball${cls ? ` ${cls}` : ''}`, text: String(n).padStart(2, '0') });
@@ -301,13 +310,12 @@ export function renderHome(ctx) {
     // 「頭獎上看 3.2 億」 as Taiwan Lottery advertises it, else the pool carried over.
     const jp = jackpotOf(upcoming?.[id], last, lang);
     const balls = last?.numbers?.length ? [...last.numbers.map(n => ball(n)), last.zone2 != null && Number.isFinite(last.zone2) ? ball(last.zone2, 'second') : null, last.special != null && Number.isFinite(last.special) ? ball(last.special, 'second') : null].filter(Boolean) : [];
-    return el('button', { class: 'jackpot', type: 'button', style: `--lotto:${GAMES[id].color}`, onclick: () => ((state.lotteryView = 'draws'), ctx.showTab('lottery')) }, [
-      el('span', { class: 'lotto-emblem jp-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }),
-      el('span', { class: 'jackpot-what' }, [
-        el('span', { class: 'jackpot-top' }, [el('span', { class: 'jackpot-name', text: gameName(id, lang) }), el('strong', { class: 'jackpot-amount num', title: jp?.label }, [jp?.short ? el('small', { class: 'jackpot-desc', text: jp.short }) : null, document.createTextNode(jp ? compactMoney(jp.amount, lang) : money(GAMES[id].price))].filter(Boolean))]),
-        el('small', { class: 'jackpot-when', text: d ? f('closeIn', { when: when(cutoffAt(id, d.at)) }) : '' }),
-        balls.length ? el('span', { class: 'jp-balls' }, balls) : null
-      ])
+    return el('button', { class: 'lt-tile q-press', type: 'button', style: `--lotto:${GAMES[id].color}`, onclick: () => ((state.lotteryView = 'draws'), ctx.showTab('lottery')) }, [
+      el('span', { class: 'lt-top' }, [el('span', { class: 'lt-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('span', { class: 'lt-name', text: gameName(id, lang) })]),
+      el('small', { class: 'lt-label', text: jp ? `${T.jackpot}${jp.short ? ` · ${jp.short}` : ''}` : T.nextDraw }),
+      el('strong', { class: 'lt-big num', title: jp?.label, text: jp ? compactMoney(jp.amount, lang) : money(GAMES[id].price) }),
+      el('small', { class: 'lt-when', text: d ? f('closeIn', { when: when(cutoffAt(id, d.at)) }) : '' }),
+      balls.length ? el('span', { class: 'lt-balls' }, balls.slice(0, 7)) : null
     ]);
   });
 
@@ -321,61 +329,69 @@ export function renderHome(ctx) {
     const top = VIP.tiers.at(-1);
     const share = v.next ? Math.min(1, v.stakes / v.next.min) : 1;
     const paidNow = v.paid && Date.now() - v.paid.t < 7 * 86_400_000 ? f('vipPaid', { v: money(v.paid.amount) }) : '';
-    return el('button', { class: `wallet-vip${v.tier ? ` vip-${v.tier.id}` : ''}`, type: 'button', onclick: explain }, [
-      el('span', { class: 'vip-line' }, [
-        el('strong', { text: v.tier ? vipName(v.tier, lang) : T.vipNone }),
-        el('small', { class: 'num', text: v.tier ? f('vipBack', { p: pct(v.tier.back), v: money(v.back) }) : f('vipNoneSub', { v: money(VIP.tiers[0].min), top: pct(top.back) }) })
-      ]),
-      el('span', { class: 'vip-bar', 'aria-hidden': 'true' }, [el('i', { style: `width:${Math.round(share * 100)}%` })]),
-      el('small', { class: 'vip-next num', text: paidNow || (v.next ? f('vipNext', { v: money(v.toNext), name: vipName(v.next, lang) }) : T.vipTop) })
+    return el('button', { class: `wallet-vip q-press${v.tier ? ` vip-${v.tier.id}` : ''}`, type: 'button', onclick: explain }, [
+      el('span', { class: 'q-tile', style: '--t:#d9a441', 'aria-hidden': 'true' }, [glyph('star', 'q-gl')]),
+      el('span', { class: 'vip-body' }, [
+        el('span', { class: 'vip-line' }, [
+          el('strong', { text: v.tier ? vipName(v.tier, lang) : T.vipNone }),
+          el('small', { class: 'num', text: v.tier ? f('vipBack', { p: pct(v.tier.back), v: money(v.back) }) : f('vipUpTo', { top: pct(top.back) }) })
+        ]),
+        el('span', { class: 'vip-bar', 'aria-hidden': 'true' }, [el('i', { style: `width:${Math.round(share * 100)}%` })]),
+        el('small', { class: 'vip-next num', text: paidNow || (v.next ? f('vipNext', { v: money(v.toNext), name: vipName(v.next, lang) }) : T.vipTop) })
+      ])
     ]);
   }
 
-  // ---- The balance
+  // ---- The balance: the hero, on the app's blue
   const member = plusMember(state.wallet);
   const cash = state.account ? ctx.funds() : null;
-  const header = el('section', { class: 'wallet-card' }, [
-    el('div', { class: 'wallet-top' }, [el('span', { class: 'wallet-label', text: T.balance }), member ? el('span', { class: 'wallet-plus', text: '✦ PLUS' }) : null]),
+  const header = el('section', { class: 'q-hero-card wallet-card' }, [
+    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance }), member ? el('span', { class: 'wallet-plus', text: '✦ PLUS' }) : null]),
     // Drawn from the saved board before the account has loaded: the balance a moment later.
-    el('strong', { class: `wallet-balance num${cash < 0 ? ' neg' : ''}`, 'data-q-live': 'play:balance', text: cash == null ? '…' : fmtMoney(cash, { sign: cash < 0 }) }),
+    el('strong', { class: `q-hc-big wallet-balance num${cash < 0 ? ' neg' : ''}`, 'data-q-live': 'play:balance', text: cash == null ? '…' : fmtMoney(cash, { sign: cash < 0 }) }),
     cash < 0
       ? el('button', { class: 'wallet-od', type: 'button', onclick: () => ctx.q.go('stock', 'portfolio') }, [el('span', { text: T.overdrawn }), el('strong', { text: `${T.cover} ›` })])
       : null,
     state.wallet && welcomeDue(state.wallet) ? el('p', { class: 'wallet-welcome' }, [icon('gift'), el('span', { text: f('welcome', { v: money(WELCOME.bet) }) })]) : null,
-    open.length
-      ? el('div', { class: 'wallet-stats' }, [
-          el('div', {}, [el('small', { text: T.atStake }), el('strong', { class: 'num', text: `${money(atStake)} · ${f('slipsN', { n: open.length })}` })]),
-          el('div', {}, cashable > 0 ? [el('small', { text: T.cashNow }), el('strong', { class: 'num', text: money(cashable) })] : [el('small', { text: T.most }), el('strong', { class: 'num', text: money(most) })])
-        ])
-      : null,
-    vipRow()
+    el('div', { class: 'wallet-stats' }, [
+      el('div', {}, [el('small', { text: T.atStake }), el('strong', { class: 'num', text: money(atStake) }), el('small', { class: 'num', text: f('slipsN', { n: open.length }) })]),
+      el('div', {}, cashable > 0 ? [el('small', { text: T.cashNow }), el('strong', { class: 'num', text: money(cashable) })] : [el('small', { text: T.most }), el('strong', { class: 'num', text: money(most) })])
+    ]),
+    el('div', { class: 'q-hc-row' }, [
+      el('button', { class: 'q-hc-btn q-press', type: 'button', onclick: () => ctx.showTab('games') }, [glyph('ball'), el('span', { text: T.pickGames })]),
+      open.length ? el('button', { class: 'q-hc-btn ghost q-press', type: 'button', onclick: () => ctx.showTab('history') }, [glyph('ticket'), el('span', { text: T.mineBtn })]) : null
+    ])
   ]);
+  const vip = vipRow();
 
   // A section's title and its way to everything (no line under it: the cards say enough).
   const head = (title, { action = null } = {}) => el('div', { class: 'home-head' }, [el('div', {}, [el('h2', { text: title })]), action]);
 
+  const dateLine = new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric', weekday: lang === 'en' ? 'short' : 'long', timeZone: 'Asia/Taipei' });
   root.replaceChildren(
     ...[
+      el('header', { class: 'q-page-head' }, [el('p', { class: 'q-over', text: dateLine }), el('h1', { text: 'Quadra Play' })]),
       header,
+      vip,
       liveTop.length
         ? el('section', { class: 'home-block home-live' }, [
-            head(`● ${T.live}`, { action: el('button', { class: 'home-link', type: 'button', text: `${f('allLive', { n: onNow.length })} ›`, onclick: () => ctx.openLive(null) }) }),
-            el('div', { class: 'features' }, liveTop.map(liveCard))
+            head(T.live, { action: el('button', { class: 'home-link', type: 'button', text: `${f('allLive', { n: onNow.length })} ›`, onclick: () => ctx.openLive(null) }) }),
+            el('div', { class: 'features q-rail' }, liveTop.map(liveCard))
           ])
         : null,
-      mine.length ? el('section', { class: 'home-block home-foryou' }, [head(T.forYou), el('div', { class: 'fys' }, mine.map(forYouCard))]) : null,
+      mine.length ? el('section', { class: 'home-block home-foryou' }, [head(T.forYou), el('div', { class: 'fys q-rail' }, mine.map(forYouCard))]) : null,
       el('section', { class: 'home-block' }, [
         head(T.featured, { action: el('button', { class: 'home-link', type: 'button', text: `${T.allGames} ›`, onclick: () => ctx.showTab('games') }) }),
-        featured.length ? el('div', { class: 'features' }, featured.map(featureCard)) : el('p', { class: 'empty', text: T.none })
+        featured.length ? el('div', { class: 'features q-rail' }, featured.map(featureCard)) : el('p', { class: 'empty', text: T.none })
       ]),
-      combos.length ? el('section', { class: 'home-block' }, [head(T.combos), el('div', { class: 'combos' }, combos)]) : null,
+      combos.length ? el('section', { class: 'home-block' }, [head(T.combos), el('div', { class: 'combos q-rail' }, combos)]) : null,
       open.length
         ? el('section', { class: 'home-block' }, [
             head(`${T.mine} · ${open.length}`, { action: el('button', { class: 'home-link', type: 'button', text: `${T.seeAll} ›`, onclick: () => ctx.showTab('history') }) }),
-            el('div', { class: 'bet-rows' }, open.slice(0, 5).map(slipRow))
+            el('div', { class: 'bet-rows q-rowcard' }, open.slice(0, 5).map(slipRow))
           ])
         : null,
-      el('section', { class: 'home-block' }, [head(T.lottery, { action: el('button', { class: 'home-link', type: 'button', text: `${T.seeAll} ›`, onclick: () => ctx.showTab('lottery') }) }), el('div', { class: 'jackpots' }, lottoCards)]),
+      el('section', { class: 'home-block' }, [head(T.lottery, { action: el('button', { class: 'home-link', type: 'button', text: `${T.seeAll} ›`, onclick: () => ctx.showTab('lottery') }) }), el('div', { class: 'lt-rail q-rail' }, lottoCards)]),
       member ? null : el('section', { class: 'home-block' }, [plusCard(ctx.q)])
     ].filter(Boolean)
   );
