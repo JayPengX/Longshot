@@ -152,3 +152,26 @@ test('dropPicks takes picks off the slip and forgets their picked odds', () => {
   const same = { parlay: ['a'], pickedOdds: { a: 1 } };
   assert.deepEqual(dropPicks(same, []), same);
 });
+
+test("the pay box's totals: a parlay's tax and boost, singles as their own tickets, a free bet's stake not paid back", async () => {
+  const { payoutTotals } = await import('../public/lib/slip.mjs');
+  const leg = (gameId, odds) => ({ gameId, odds, kind: 'ml' });
+  // A treble at 10 × 10 × 2 for NT$1,000: 200,000 before tax.
+  const treble = payoutTotals({ legs: [leg('a', 10), leg('b', 10), leg('c', 2)], sizes: [3], stake: 1000, mode: 'parlay', boost: 1 });
+  assert.equal(treble.combos, 1);
+  assert.equal(treble.cost, 1000);
+  assert.ok(treble.taxed);
+  assert.ok(treble.boostRate > 0 && treble.boostMore > 0);
+  assert.ok(treble.allNet < treble.allGross);
+  // Two NT$100,000 singles at 500.00: each its own NT$20M cap, so 40M before tax.
+  const singles = payoutTotals({ legs: [leg('a', 500), leg('b', 500)], sizes: [1], stake: 100000, mode: 'single' });
+  assert.equal(singles.allGross, 40_000_000);
+  assert.equal(singles.boostRate, 0);
+  assert.equal(singles.least, Math.min(...singles.each));
+  assert.equal(singles.allTaxed, singles.each[0] + singles.each[1]);
+  // A NT$500 free bet on 3.00: 1,500 back, 1,000 of it paid; costs nothing from the balance.
+  const free = payoutTotals({ legs: [leg('a', 3)], sizes: [1], stake: 500, mode: 'single', free: 500 });
+  assert.equal(free.cost, 0);
+  assert.equal(free.allNet, 1000);
+  assert.equal(free.taxed, false);
+});

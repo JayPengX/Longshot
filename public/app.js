@@ -36,7 +36,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks } from './lib/slip.mjs';
+import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -1805,28 +1805,8 @@ function shortMatchup(leg) {
 // `free`: the free bet part of the stake (its stake isn't paid back).
 function payoutBox(legs, sizes, stake, mode, free = 0) {
   const t = state.t;
-  const n = legs.length;
-  const combos = comboCount(legs, sizes);
-  const bySize = combosBySize(legs);
-  const cost = combos * stake - free;
-  const table = slipPayoutTable({ legs, sizes, stake, boost: mode === 'single' ? 0 : boostX() });
-  const gross = table.gross;
-  const net = free ? table.net.map(v => Math.max(0, v - free)) : table.net;
-  const all = (1 << n) - 1;
-  let least = Infinity;
-  for (let won = 1; won < gross.length; won++) if (gross[won] > 0) least = Math.min(least, net[won]);
-  // All correct, before and after tax (a free bet's stake not paid back off
-  // the after). Singles are one ticket each (lib/slip.mjs singlesPays): each
-  // its own cap and tax, added up (as one ticket, two big ones shared one cap).
-  const each = mode === 'single' ? singlesPays({ legs, stake }) : null;
-  let allGross = gross[all];
-  let allTaxed = table.net[all];
-  if (each && n > 1) {
-    allGross = legs.reduce((sum, l) => sum + Math.min(SLIP_RULES.maxPayout, stake * l.odds), 0);
-    allTaxed = each.reduce((a, b) => a + b, 0);
-    least = Math.min(...each);
-  }
-  const allNet = free ? Math.max(0, allTaxed - free) : allTaxed;
+  const { n, combos, bySize, cost, each, allGross, allTaxed, allNet, least, boostRate: boost, boostMore: more, taxed } =
+    payoutTotals({ legs, sizes, stake, mode, free, boost: boostX() });
   const rows = [];
   if (mode === 'parlay') {
     const product = legs.reduce((p, l) => p * l.odds, 1);
@@ -1841,17 +1821,12 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
-  const boost = mode === 'single' ? 0 : boostRate(Math.max(...sizes, 0), boostX());
-  // The boost in money too: how much more all correct pays with it than without.
   if (boost > 0) {
-    const plain = slipPayoutTable({ legs, sizes, stake, boost: 0 }).net[all];
-    const more = Math.max(0, Math.round(table.net[all] - plain));
     rows.push(payLine(t('payBoost', { v: `+${Math.round(boost * 100)}%` }), more > 0 ? `+${fmtMoney(more, { sign: false })}` : `+${Math.round(boost * 100)}%`, 'pay-boost'));
   }
   // With a free bet: what's paid from the balance (the free part isn't).
   rows.push(payLine(free ? t('payYouPay', { f: fmtMoney(free, { sign: false }) }) : t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false }), 'pay-cost'));
   // Tax is the payout table's own (the free part taken off isn't tax).
-  const taxed = allGross - allTaxed > 0.5;
   return el('div', { class: 'pay-box' }, [
     el('p', { class: 'pay-title', text: t('payTitle') }),
     ...rows,

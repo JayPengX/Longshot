@@ -3,7 +3,7 @@
 // and problems in all three) and for a slip already bought (what it has
 // locked in and can still pay, where each pick and the slip stand). Pure:
 // the page (app.js, home.js) and the tests both use it.
-import { slipErrors, slipSizes, comboCount, settleSlip, slipPayoutTable } from './odds.mjs';
+import { slipErrors, slipSizes, comboCount, settleSlip, slipPayoutTable, combosBySize, boostRate, SLIP_RULES } from './odds.mjs';
 import { freeOddsOk } from './account.mjs';
 import { taipeiDayKey } from './sources.mjs';
 
@@ -113,4 +113,33 @@ export function slipGroupKey(slip, now = Date.now()) {
 export function dropPicks({ parlay, pickedOdds }, ids) {
   const gone = new Set(ids);
   return { parlay: parlay.filter(id => !gone.has(id)), pickedOdds: Object.fromEntries(Object.entries(pickedOdds).filter(([id]) => !gone.has(id))) };
+}
+
+// The pay box's numbers for the slip being made (app.js payoutBox draws them):
+// what it costs, what every pick won pays before and after tax (a free bet's
+// stake not paid back off the after), the least any win pays, and what the
+// boost adds. Singles are one ticket each, each with its own cap and tax.
+export function payoutTotals({ legs, sizes, stake, mode, free = 0, boost = 1 }) {
+  const n = legs.length;
+  const combos = comboCount(legs, sizes);
+  const bySize = combosBySize(legs);
+  const cost = combos * stake - free;
+  const x = mode === 'single' ? 0 : boost;
+  const table = slipPayoutTable({ legs, sizes, stake, boost: x });
+  const net = free ? table.net.map(v => Math.max(0, v - free)) : table.net;
+  const all = (1 << n) - 1;
+  let least = Infinity;
+  for (let won = 1; won < table.gross.length; won++) if (table.gross[won] > 0) least = Math.min(least, net[won]);
+  const each = mode === 'single' ? singlesPays({ legs, stake }) : null;
+  let allGross = table.gross[all];
+  let allTaxed = table.net[all];
+  if (each && n > 1) {
+    allGross = legs.reduce((sum, l) => sum + Math.min(SLIP_RULES.maxPayout, stake * l.odds), 0);
+    allTaxed = each.reduce((a, b) => a + b, 0);
+    least = Math.min(...each);
+  }
+  const allNet = free ? Math.max(0, allTaxed - free) : allTaxed;
+  const rate = mode === 'single' ? 0 : boostRate(Math.max(...sizes, 0), boost);
+  const boostMore = rate > 0 ? Math.max(0, Math.round(table.net[all] - slipPayoutTable({ legs, sizes, stake, boost: 0 }).net[all])) : 0;
+  return { n, combos, bySize, cost, each, allGross, allTaxed, allNet, least, boostRate: rate, boostMore, taxed: allGross - allTaxed > 0.5 };
 }
