@@ -107,3 +107,10 @@ export function slipGroupKey(slip, now = Date.now()) {
   if (slipRange(slip).most <= 0) return 'dead';
   return slip.legs.some(leg => legState(leg, now) === 'live') ? 'live' : 'waiting';
 }
+
+// Takes picks off a slip ({ parlay: ids, pickedOdds: id -> odds when picked }),
+// forgetting the odds they were picked at.
+export function dropPicks({ parlay, pickedOdds }, ids) {
+  const gone = new Set(ids);
+  return { parlay: parlay.filter(id => !gone.has(id)), pickedOdds: Object.fromEntries(Object.entries(pickedOdds).filter(([id]) => !gone.has(id))) };
+}

@@ -36,7 +36,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey } from './lib/slip.mjs';
+import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -1546,7 +1546,7 @@ function slipLegs() {
   const byId = betById();
   const legs = state.parlay.map(id => byId.get(id)).filter(Boolean);
   const live = legs.filter(started);
-  if (live.length) state.parlay = state.parlay.filter(id => !live.some(b => b.id === id));
+  if (live.length) Object.assign(state, dropPicks(state, live.map(b => b.id)));
   return { legs: legs.filter(b => !started(b)), dropped: live.length };
 }
 

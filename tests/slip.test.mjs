@@ -143,3 +143,12 @@ test('every problem the ticket rules can name has its words in Chinese and Engli
   assert.ok(codes.has('ticketMax'));
   for (const lang of ['zh', 'en']) for (const code of codes) assert.ok(STRINGS[lang][`slipError_${code}`], `${lang} slipError_${code}`);
 });
+
+import { dropPicks } from '../public/lib/slip.mjs';
+test('dropPicks takes picks off the slip and forgets their picked odds', () => {
+  const r = dropPicks({ parlay: ['a', 'b', 'c'], pickedOdds: { a: 1.5, b: 2, c: 3, z: 9 } }, ['a', 'c']);
+  assert.deepEqual(r.parlay, ['b']);
+  assert.deepEqual(r.pickedOdds, { b: 2, z: 9 });
+  const same = { parlay: ['a'], pickedOdds: { a: 1 } };
+  assert.deepEqual(dropPicks(same, []), same);
+});
