@@ -1794,7 +1794,8 @@ function kindKey(kind) {
 
 // The market a pick is from, as a small tag: 不讓分, 大小, 讓分 …
 function marketTag(kind, sport) {
-  const key = kind === 'ml' && familyOf(sport) === 'hockey' && !SETTLE_2026 ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
+  // A total or a line named by its sport (goals, points, runs), as its section is (the short name: no '60 min').
+  const key = kind === 'ml' && familyOf(sport) === 'hockey' && !SETTLE_2026 ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? (kind === 'total' || kind === 'runline' ? secName({ kind }, sport).replace(/60$/, '') : kindKey(kind));
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
 }
 
