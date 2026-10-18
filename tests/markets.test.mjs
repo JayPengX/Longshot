@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as kitMarkets from '../public/lib/markets.mjs';
+// The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
+const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
 import { pointsModel, pointsMarkets, goalMarkets, fitHockey, baseballMarkets, marketOdds, normalCdf, normalQuantile, CUT } from '../public/lib/markets.mjs';
 import { fitGoals } from '../public/lib/live.mjs';
 import { legResult } from '../public/lib/account.mjs';
@@ -39,7 +42,8 @@ test('soccer and hockey goal markets', () => {
   const book = score.picks.reduce((s, p) => s + 1 / marketOdds(score, p.fair), 0);
   assert.ok(book > 1.4 && book < 1.6, book);
   const hockey = goalMarkets(fitHockey(0.58, { line: 5.5, overFair: 0.5 }), { family: 'hockey', totalLine: 5.5 });
-  assert.ok(hockey.some(x => x.kind === 'regulation'));
+  // (台灣運彩's kit: 不讓分 is the 60 minutes', so no separate regulation market.)
+  assert.equal(hockey.some(x => x.kind === 'regulation'), !hockey60);
   close(hockey.find(x => x.kind === 'total' && x.posted).picks[0].fair, 0.5, 0.02);
 });
 

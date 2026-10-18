@@ -128,7 +128,7 @@ export function renderHome(ctx) {
   const liveCard = ({ game: g }) => {
     const bets = liveBetsOf.get(g.id) || [];
     const ml = bets.filter(b => b.kind === 'ml');
-    const sides = ctx.isSoccer(g.sport) ? ['home', 'draw', 'away'] : ['away', 'home'];
+    const sides = ctx.winnerSides(g, ml);
     return el('article', { class: 'feature live' }, [
       el('button', { class: 'feature-top', type: 'button', onclick: () => ctx.openLive(g.id) }, [
         ctx.leagueImg(g.sport, 'logo-xs'),
@@ -151,7 +151,7 @@ export function renderHome(ctx) {
   const featureCard = ({ game: g }) => {
     const bets = betsOf.get(g.id) || [];
     const ml = bets.filter(b => b.kind === 'ml');
-    const sides = ctx.isSoccer(g.sport) ? ['home', 'draw', 'away'] : ['away', 'home'];
+    const sides = ctx.winnerSides(g, ml);
     const others = bets.length - ml.length;
     return el('article', { class: 'feature' }, [
       el('button', { class: 'feature-top', type: 'button', onclick: () => ctx.openGame(g.id) }, [

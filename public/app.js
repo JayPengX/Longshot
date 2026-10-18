@@ -800,10 +800,18 @@ function hhmm(iso) {
 // A game: its teams with logos and win picks. A tap on it (anywhere but a
 // price) opens its sheet with every market (`openGameSheet`); in the sheet
 // (`inSheet`) the markets sit under the teams.
+// A game's winner columns: soccer's 主勝/和/客勝; a three-way winner elsewhere
+// (hockey's 60 minutes with 台灣運彩's settle rules in the kit) keeps the
+// card's away-at-home order with 和 between; else the two teams.
+function winnerSides(game, ml) {
+  if (isSoccer(game.sport)) return ['home', 'draw', 'away'];
+  return ml.some(b => b.side === 'draw') ? ['away', 'draw', 'home'] : ['away', 'home'];
+}
+
 function gameCard(game, bets, { inSheet = false } = {}) {
   const t = state.t;
   const ml = bets.filter(b => b.kind === 'ml');
-  const sides = isSoccer(game.sport) ? ['home', 'draw', 'away'] : ['away', 'home'];
+  const sides = winnerSides(game, ml);
   const rows = sides.map(side => {
     const bet = ml.find(b => b.side === side);
     const who =
@@ -2476,7 +2484,7 @@ function legStanding(leg) {
   // A level winner pick is neither winning nor losing yet where a game can't
   // end level (extra innings, overtime); in football a draw is an outcome of
   // its own, and a win pick on a draw is losing (it showed as level, uncoloured).
-  if (leg.kind === 'ml' && leg.side !== 'draw' && live.homeScore === live.awayScore && !isSoccer(leg.sport)) return 'level';
+  if (leg.kind === 'ml' && leg.side !== 'draw' && live.homeScore === live.awayScore && !isSoccer(leg.sport) && !leg.settle?.threeWay) return 'level';
   return legResult(leg, { ...live, status: 'final' });
 }
 
@@ -3844,7 +3852,7 @@ function homeCtx() {
   };
   return {
     openSlip: () => openSlip(),
-    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
+    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, el, svgEl, fmtMoney, fmtInt, fmtPctShort, fmtOdds, fmtTime, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)), youCard, crowdCard, funCard, picksCard, breakdownCard });
 lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w) });

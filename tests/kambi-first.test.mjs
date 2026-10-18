@@ -2,6 +2,9 @@
 // house's own price only for the winner on a small ticket.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as kitMarkets from '../public/lib/markets.mjs';
+// The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
+const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
 import { attachKambi, mergeGames } from '../public/lib/sources.mjs';
 import { blendOutcomes, BOOKS_APART, slipErrors, SLIP_RULES } from '../public/lib/odds.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
@@ -81,7 +84,9 @@ test('live: Kambi\'s in-play prices on ESPN\'s live games, turned to ESPN\'s sid
       offer('Match', 'Moneyline - Including Overtime and penalty shootout', [{ type: 'OT_ONE', odds: 1800 }, { type: 'OT_TWO', odds: 2000 }])
     ], liveData: { score: { home: 0, away: 0 } } }] };
   const [h] = parseKambiInPlay(nhl, 'nhl');
-  assert.ok(Math.abs(h.ml.home - (1 / 1.8) / (1 / 1.8 + 1 / 2)) < 1e-9);
+  // (台灣運彩's kit: the regular-time 1X2, three ways.)
+  if (hockey60) assert.ok(h.ml.draw > 0.1 && Math.abs(h.ml.home + h.ml.draw + h.ml.away - 1) < 1e-9);
+  else assert.ok(Math.abs(h.ml.home - (1 / 1.8) / (1 / 1.8 + 1 / 2)) < 1e-9);
 });
 
 test('soccer settles on 90 minutes: a cup tie that went to extra time counts its two halves', async () => {

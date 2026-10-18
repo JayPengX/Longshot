@@ -1,14 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as kitMarkets from '../public/lib/markets.mjs';
+// The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
+const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
 import { goalMarkets, fitHockey, baseballMarkets } from '../public/lib/markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
 const sum = picks => picks.reduce((s, p) => s + p.fair, 0);
 
-test('Hockey: both teams to score, total goals, margin and odd/even count the overtime goal', () => {
+test('Hockey: both teams to score, total goals, margin and odd/even (on 60 minutes with 台灣運彩\'s kit)', () => {
   const markets = goalMarkets(fitHockey(0.55, { line: 5.5, overFair: 0.5 }), { family: 'hockey', totalLine: 5.5 });
   const kinds = new Set(markets.map(m => m.kind));
-  for (const k of ['runline', 'teamtotal', 'total', 'regulation', 'btts', 'goalbands', 'margin', 'oddeven']) assert.ok(kinds.has(k), k);
+  for (const k of ['runline', 'teamtotal', 'total', ...(hockey60 ? [] : ['regulation']), 'btts', 'goalbands', 'margin', 'oddeven']) assert.ok(kinds.has(k), k);
   for (const k of ['btts', 'goalbands', 'margin', 'oddeven']) assert.ok(Math.abs(sum(markets.find(m => m.kind === k).picks) - 1) < 1e-6, k);
   // No final ends level.
   assert.equal(markets.filter(m => m.kind === 'oddeven').length, 1);
