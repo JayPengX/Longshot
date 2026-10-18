@@ -11,6 +11,7 @@ import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
 import * as kit from '#kit/quadra.mjs';
 import * as kitOdds from '#kit/play-odds.mjs';
+import * as kitBoard from '#kit/play-board.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
@@ -37,7 +38,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
+import { minLegsWhy, slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -332,7 +333,10 @@ function marketLabelOf(game, m) {
   if (m.kind === 'runline' || m.kind === 'total') return null;
   if (m.kind === 'nextrun') return t('firstScore');
   if (m.kind === 'ml' && familyOf(game.sport) === 'hockey') return t(HOCKEY_ML);
-  return t(SECTIONS.find(sec => sec.kind === m.kind)?.title ?? m.kind);
+  // One inning's market (單局不讓分 / 單局大小) by its inning: [第1局]不讓分.
+  if (m.period != null && (m.kind === 'inningml' || m.kind === 'inningtotal')) return t(m.kind === 'inningml' ? 'inningMlN' : 'inningTotalN', { n: m.period });
+  if (m.market === 'margin6') return t('secMargin6');
+  return t(secName(SECTIONS.find(sec => sec.kind === m.kind) ?? { kind: m.kind, title: m.kind }, game.sport, true));
 }
 
 const RESULT_SHORT = { home: 'homeShort', draw: 'drawShort', away: 'awayShort' };
@@ -340,15 +344,19 @@ const RESULT_SHORT = { home: 'homeShort', draw: 'drawShort', away: 'awayShort' }
 // What a pick is called: a team, a line, a band, a score …
 function pickName(game, market, pick) {
   const t = state.t;
-  if (market.kind === 'runline') return `${teamName(game[pick.side])} ${fmtLine(pick.line)}`;
+  // A handicap (讓分, 半場讓分, [1-5局]讓分, 讓盤, 讓局): the team with its own line.
+  if ((market.kind === 'runline' || HCAP_KINDS.has(market.kind)) && (pick.side === 'away' || pick.side === 'home') && pick.line != null) return `${teamName(game[pick.side])} ${fmtLine(pick.line)}`;
   if (market.kind === 'dc') return pick.side.split('|').map(x => (x === 'draw' ? t('draw') : teamName(game[x]))).join(' / ');
   if (market.kind === 'htft') return `${t(RESULT_SHORT[pick.ht])}/${t(RESULT_SHORT[pick.ft])}`;
-  if (market.kind === 'goalbands') return pick.hi == null ? `${pick.lo}+` : `${pick.lo}-${pick.hi}`;
+  // 總進球數 bands; 正確進球數 one total each (9+ the last).
+  if (market.kind === 'goalbands' || market.kind === 'goalcount') return pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? String(pick.lo) : `${pick.lo}-${pick.hi}`;
   // Hockey's 勝分差 on 60 minutes has a 和局 pick (台灣運彩's), no team.
   if (market.kind === 'margin' && pick.side === 'draw') return state.t('draw');
   if (market.kind === 'margin') return `${teamName(game[pick.team])} ${pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? pick.lo : `${pick.lo}-${pick.hi}`}`;
-  if (market.kind === 'score') return pick.score === 'other' ? t('scoreOther') : pick.score.replace('-', ':');
+  if (market.kind === 'score' || market.kind === 'setscore') return pick.score === 'other' ? t('scoreOther') : pick.score.replace('-', ':');
   if (pick.side === 'away' || pick.side === 'home') return teamName(game[pick.side]);
+  // Over or under with its line (半場大小 大 4.5, 單局大小 小 0.5): a market of several lines read the same without it.
+  if ((pick.side === 'over' || pick.side === 'under') && market.line != null) return `${t(pick.side)} ${market.line}`;
   return t({ draw: 'draw', odd: 'odd', even: 'even', yes: 'yes', no: 'no', over: 'over', under: 'under' }[pick.side] ?? pick.side);
 }
 
@@ -362,6 +370,8 @@ const optionsMemo = new Map();
 // Markets 台灣運彩 doesn't sell (各球種投注玩法), left off the board: soccer's
 // 和局退款, hockey's 兩隊都進球 and goal bands, American football's 勝分差,
 // baseball's 首局得分. A slip already holding one still settles (the kit's).
+// The kit with 運彩's market lists (Shared-Proxy claude/play-rules-r6) no
+// longer makes any of them, so there this filter finds nothing to drop.
 const NOT_SOLD = { soccer: ['dnb'], hockey: ['btts', 'goalbands'], football: ['margin'], baseball: ['firstinning'] };
 const sold = b => !NOT_SOLD[isSoccer(b.sport ?? b.game?.sport) ? 'soccer' : familyOf(b.sport ?? b.game?.sport)]?.includes(b.kind);
 const gameKey = game => JSON.stringify(game, (k, v) => (k === 'offers' || k === 'players' ? undefined : v));
@@ -1109,20 +1119,27 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
   const by = (list, side) => list.find(b => b.side === side);
   let body;
   if (TOTAL_KINDS.has(section.kind)) {
-    const lineOf = b => b.totalLine ?? b.line;
-    const rows = [...groupBy(bets, lineOf).values()]
-      .sort((a, b) => lineOf(a[0]) - lineOf(b[0]))
-      .map(pair => lineRow(String(lineOf(pair[0])), [by(pair, 'over'), by(pair, 'under')], { posted: pair[0].posted, main: pair[0].mainLine }));
-    body = [lineTable([t('colLine'), t('over'), t('under')], rows)];
+    // (A total's line is the option's; a Kambi game total's, its market's.)
+    const lineOf = b => b.totalLine ?? b.line ?? b.m?.line;
+    // One table per period ([第1局]大小); a whole-game total has none.
+    body = [...groupBy(bets, b => b.period ?? b.m?.period ?? '').entries()].map(([period, list]) => {
+      const rows = [...groupBy(list, lineOf).values()]
+        .sort((a, b) => lineOf(a[0]) - lineOf(b[0]))
+        .map(pair => lineRow(String(lineOf(pair[0])), [by(pair, 'over'), by(pair, 'under')], { posted: pair[0].posted, main: pair[0].mainLine }));
+      return lineTable([t('colLine'), t('over'), t('under')], rows, period !== '' && section.kind === 'inningtotal' ? t('inningTotalN', { n: period }) : null);
+    });
   } else if (HCAP_KINDS.has(section.kind)) {
     // One block per team giving the runs: "遊騎兵 讓分" -1.5, -2.5, …
+    const giverOf = b => b.giver ?? b.m?.giver;
+    const awayLineOf = b => b.awayLine ?? b.m?.awayLine;
     body = ['away', 'home']
       .map(giver => {
         const taker = giver === 'away' ? 'home' : 'away';
-        const markets = [...groupBy(bets.filter(b => b.giver === giver), b => b.market).values()].sort((a, b) => Math.abs(a[0].awayLine) - Math.abs(b[0].awayLine));
+        const markets = [...groupBy(bets.filter(b => giverOf(b) === giver), b => b.market).values()].sort((a, b) => Math.abs(awayLineOf(a[0])) - Math.abs(awayLineOf(b[0])));
         if (!markets.length) return null;
-        const rows = markets.map(pair => lineRow(fmtLine(-Math.abs(pair[0].awayLine)), [by(pair, giver), by(pair, taker)], { posted: pair[0].posted }));
-        const heading = section.kind === 'runline' ? t(isSoccer(game.sport) || familyOf(game.sport) === 'hockey' ? 'giveGoals' : familyOf(game.sport) === 'baseball' ? 'giveRuns' : 'givePoints', { team: teamName(game[giver]) }) : section.kind === 'gamehcap' ? t('giveGames', { team: teamName(game[giver]) }) : `${teamName(game[giver])} · ${t(section.title)}`;
+        const rows = markets.map(pair => lineRow(fmtLine(-Math.abs(awayLineOf(pair[0]))), [by(pair, giver), by(pair, taker)], { posted: pair[0].posted }));
+        const team = teamName(game[giver]);
+        const heading = section.kind === 'runline' ? t(isSoccer(game.sport) || familyOf(game.sport) === 'hockey' ? 'giveGoals' : familyOf(game.sport) === 'baseball' ? 'giveRuns' : 'givePoints', { team }) : section.kind === 'gamehcap' ? t(POINT_SETS.has(familyOf(game.sport) ?? game.sport) ? 'givePoints' : 'giveGames', { team }) : section.kind === 'sethcap' ? t('giveSets', { team }) : `${team} · ${t(secName(section, game.sport, true))}`;
         return lineTable([t('colLine'), teamName(game[giver]), teamName(game[taker])], rows, heading);
       })
       .filter(Boolean);
@@ -1139,11 +1156,16 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
     // One row of bands per team under its name ("1-5", "21+"): the team's
     // name on every button wrapped it onto two rows.
     const band = p => (p.hi == null ? `${p.lo}+` : p.lo === p.hi ? String(p.lo) : `${p.lo}-${p.hi}`);
-    body = ['away', 'home'].flatMap(team => {
-      const list = bets.filter(b => b.pick.team === team).sort((a, b) => a.pick.lo - b.pick.lo);
-      if (!list.length) return [];
-      return [el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: teamName(game[team]) })]), el('div', { class: 'market-picks bands', style: `--n:${list.length <= 5 ? list.length : 4}` }, list.map(b => pickButton(b, band(b.pick))))];
-    });
+    // Basketball's two 勝分差 (12 picks, then the 6-pick one: margin6, under its own name).
+    const markets = [...groupBy(bets, b => b.market).entries()].sort(([a], [b]) => (a === 'margin6') - (b === 'margin6'));
+    body = markets.flatMap(([market, of]) => [
+      market === 'margin6' ? el('p', { class: 'line-title', text: t('secMargin6') }) : null,
+      ...['away', 'home'].flatMap(team => {
+        const list = of.filter(b => b.pick.team === team).sort((a, b) => a.pick.lo - b.pick.lo);
+        if (!list.length) return [];
+        return [el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: teamName(game[team]) })]), el('div', { class: 'market-picks bands', style: `--n:${list.length <= 5 ? list.length : list.length === 6 ? 3 : 4}` }, list.map(b => pickButton(b, band(b.pick))))];
+      })
+    ]);
     // Hockey's 和局 (a 60-minute tie), on its own row after the teams'.
     const draw = bets.find(b => b.pick?.side === 'draw');
     if (draw) body.push(el('div', { class: 'market-picks bands', style: '--n:1' }, [pickButton(draw, t('draw'))]));
@@ -1160,7 +1182,9 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
 }
 
 // Kinds laid out as tables of lines: over/under, and one team giving a line.
-const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners']);
+const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners', 'tdtotal', 'inningtotal', 'gametotal']);
+// Set sports scored in points, not games (volleyball, badminton, table tennis): 讓分 and 大小 on points.
+const POINT_SETS = new Set(['volleyball', 'badminton', 'tabletennis']);
 // A market's name by its sport: a handicap is baseball's run line, hockey's
 // puck line, soccer's 讓分 too, a spread elsewhere; a total is runs, goals or
 // points (an NHL game's tabs said "Total runs" and "Run line").
@@ -1172,9 +1196,14 @@ function secName(sec, sport, full = false) {
   // with overtime and the shootout in is named apart (with 台灣運彩's settle
   // rules in the kit, it too is on 60 minutes, a tie void: HOCKEY_ML).
   if (sec.kind === 'ml' && family === 'hockey') return HOCKEY_ML;
+  // A set sport's 讓局 and 大小: on points in volleyball, badminton and table tennis.
+  if (sec.kind === 'gamehcap' && POINT_SETS.has(family ?? sport)) return 'secPointHcap';
+  if (sec.kind === 'gametotal' && POINT_SETS.has(family ?? sport)) return 'secTotalPoints';
   return full ? sec.title : sec.short ?? sec.title;
 }
-const HCAP_KINDS = new Set(['runline']);
+// Handicaps laid out by the team giving the line: the game's own, and the
+// kit's others (半場讓分, [1-5局]讓分, 讓盤, 讓局: play-board.mjs HCAP_KINDS).
+const HCAP_KINDS = new Set(['runline', 'hrunline', 'f5runline', 'sethcap', 'gamehcap', ...(kitBoard.HCAP_KINDS ?? [])]);
 // The kit with 台灣運彩's settle rules (Shared-Proxy claude/play-settle-rules):
 // 過關組合 from 2 games with 過1關, a postponed game void after 48 hours, and
 // hockey's 讓分 and 大小 on 60 minutes. Told apart by its 過1關, so an older
@@ -1197,19 +1226,31 @@ const SECTIONS = [
   { kind: 'dc', title: 'secDoubleChance' },
   { kind: 'btts', title: 'secBtts' },
   { kind: 'half', title: 'secHalf' },
+  { kind: 'hrunline', title: 'secHalfSpread' },
   { kind: 'htotal', title: 'secHalfTotal' },
+  { kind: 'tdtotal', title: 'secTdTotal' },
   { kind: 'corners', title: 'secCorners' },
   { kind: 'f5', title: 'secF5' },
+  { kind: 'f5runline', title: 'secF5RunLine' },
   { kind: 'f5total', title: 'secF5Total' },
   { kind: 'regulation', title: 'secRegulation' },
   { kind: 'firstinning', title: 'secFirstInning' },
+  { kind: 'inningml', title: 'secInningMl' },
+  { kind: 'inningtotal', title: 'secInningTotal' },
   { kind: 'q1', title: 'secQ1' },
   { kind: 'nextrun', title: 'secNextRun' },
+  // Set sports (tennis, volleyball, badminton, table tennis, esports).
+  { kind: 'set1', title: 'secSet1' },
+  { kind: 'sethcap', title: 'secSetHcap' },
+  { kind: 'gamehcap', title: 'secGameHcap' },
+  { kind: 'gametotal', title: 'secGameTotal' },
   // Long shots, together under 更多.
   { kind: 'score', title: 'secScore', extra: true },
+  { kind: 'setscore', title: 'secSetScore', extra: true },
   { kind: 'htft', title: 'secHtft', extra: true },
   { kind: 'margin', title: 'secMargin', extra: true },
   { kind: 'goalbands', title: 'secGoalBands', extra: true },
+  { kind: 'goalcount', title: 'secGoalCount', extra: true },
   { kind: 'inning', title: 'secTopInning', short: 'topInningShort', extra: true }
 ];
 const MORE_SECTION = { kind: 'more', title: 'secMore' };
@@ -1224,10 +1265,17 @@ function pickTitle(bet) {
   return [
     bet.label,
     `${t('legendOdds')} ${fmtOdds(effectiveOdds(bet))}`,
-    bet.lock ? t(`lock_${bet.lock}`) : bet.minLegs > 1 ? t('minLegsNote', { n: bet.minLegs }) : null
+    bet.lock ? t(`lock_${bet.lock}`) : minLegsText(bet)
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+// Why a pick is sold only in a parlay: its game's own 限關, or its short odds (with them).
+function minLegsText(bet) {
+  const why = minLegsWhy(bet, effectiveOdds(bet));
+  if (!why) return null;
+  return why.from === 'event' ? state.t('minLegsNoteEvent', { n: why.n }) : state.t('minLegsNote', { n: why.n, odds: fmtOdds(why.odds) });
 }
 
 // A pick: tap to put it on the bet slip (or take it off). The big number is
@@ -1595,6 +1643,19 @@ function sizeName(k, n) {
 // board's odds now, the mode, sizes and stake chosen, the free bet chosen.
 const currentQuote = (legs, free) => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: effectiveOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake, free, boost: boostX() });
 
+// The slip's 限關 problem, saying why: the pick's short odds ("賠率 1.06 偏低：
+// 只能串 3 關以上") or its game's own minimum ("這場比賽限串 3 關以上"); named
+// when the slip has more than one pick. In 單場 each pick is its own ticket.
+function minLegsError(legs, slip, sizes) {
+  const t = state.t;
+  const need = minLegsProblem(slip, sizes) || Math.max(1, ...slip.map(l => l.minLegs ?? 1));
+  const bet = legs.find(b => (b.minLegs ?? 1) >= need) ?? legs.find(b => b.minLegs > 1);
+  const why = bet && minLegsWhy(bet, effectiveOdds(bet));
+  if (!why) return t('slipError_minLegs', { need });
+  const pick = legs.length > 1 ? `${shortPick(bet)}${state.locale === 'zh' ? '：' : ': '}` : '';
+  return why.from === 'event' ? t('slipError_minLegsEvent', { need: why.n, pick }) : t('slipError_minLegsOdds', { need: why.n, odds: fmtOdds(why.odds), pick });
+}
+
 function renderParlay() {
   renderSlipBar();
   const t = state.t;
@@ -1727,7 +1788,7 @@ function renderParlay() {
     ))
   );
   if (errors.length) {
-    ticket.push(el('ul', { class: 'slip-errors' }, errors.map(e => el('li', { text: t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
+    ticket.push(el('ul', { class: 'slip-errors' }, errors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
   }
   // What comes off the balance: a free bet's top-up only.
   if (sizes.length && !errors.includes('stakeUnit') && (cost > 0 || freeOn)) ticket.push(payoutBox(slip, sizes, stake, mode, freeOn ? free.value : 0));
@@ -1800,9 +1861,9 @@ function kindKey(kind) {
 }
 
 // The market a pick is from, as a small tag: 不讓分, 大小, 讓分 …
-function marketTag(kind, sport) {
+function marketTag(kind, sport, market = null) {
   // A total or a line named by its sport (goals, points, runs), as its section is (the short name: no '60 min').
-  const key = kind === 'ml' && familyOf(sport) === 'hockey' && !SETTLE_2026 ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? (kind === 'total' || kind === 'runline' ? secName({ kind }, sport).replace(/60$/, '') : kindKey(kind));
+  const key = kind === 'ml' && familyOf(sport) === 'hockey' && !SETTLE_2026 ? 'secMoneylineOt' : market === 'margin6' ? 'secMargin6' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? (kind === 'total' || kind === 'runline' || kind === 'gamehcap' || kind === 'gametotal' ? secName(SECTIONS.find(x => x.kind === kind) ?? { kind }, sport).replace(/60$/, '') : kindKey(kind));
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
 }
 
@@ -1812,7 +1873,7 @@ function marketTag(kind, sport) {
 // then when and which game ("10/10 21:00 · 費城人 @ 勇士").
 function legMain(leg) {
   return el('span', { class: 'leg-main' }, [
-    el('span', { class: 'leg-pick' }, [leg.live ? el('span', { class: 'market-tag tag-live', text: state.t('tagLive') }) : null, marketTag(leg.kind, leg.sport), el('strong', { text: shownLabel(leg) })]),
+    el('span', { class: 'leg-pick' }, [leg.live ? el('span', { class: 'market-tag tag-live', text: state.t('tagLive') }) : null, marketTag(leg.kind, leg.sport, leg.market), el('strong', { text: shownLabel(leg) })]),
     el('small', { class: 'slip-leg-game', text: [legWhen(leg.start), shortMatchup(leg)].filter(Boolean).join(' · ') })
   ]);
 }
@@ -2627,7 +2688,7 @@ function savedLegRow(leg, st) {
   const tone = st === 'live' ? liveTone(leg) : '';
   return el('li', { class: `leg-row leg-${st}${tone ? ` ${tone}` : ''}` }, [
     legIcon(leg, 'logo-md'),
-    el('span', { class: 'leg-body' }, [el('span', { class: 'leg-pick' }, [el('strong', { text: shortPick(leg) }), marketTag(leg.kind, leg.sport)]), legSubLine(leg, st)]),
+    el('span', { class: 'leg-body' }, [el('span', { class: 'leg-pick' }, [el('strong', { text: shortPick(leg) }), marketTag(leg.kind, leg.sport, leg.market)]), legSubLine(leg, st)]),
     el('span', { class: 'leg-side' }, [el('span', { class: 'leg-odds num' }, [el('small', { text: '@' }), document.createTextNode(fmtOdds(leg.odds))]), legChip(leg, st)])
   ]);
 }

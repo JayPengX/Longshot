@@ -6,6 +6,8 @@
 import { slipErrors, slipSizes, comboCount, settleSlip, slipPayoutTable, combosBySize, boostRate, SLIP_RULES } from './odds.mjs';
 import { freeOddsOk } from './account.mjs';
 import { taipeiDayKey } from './sources.mjs';
+// (By the module: eventMinLegs is the kit's newer export, absent from an older kit.)
+import * as rules from './rules.mjs';
 
 // A board's bet as the ticket rules read it (odds.mjs slipErrors, the
 // Worker's price.js checkSlip): its game, market, odds and the house's own
@@ -19,6 +21,16 @@ export const ruleLeg = bet => ({
   lock: bet.lock ?? null,
   cap: bet.cap ?? null
 });
+
+// Why a pick is sold only in a parlay of `n`+ games, or null: its game's (or
+// market's) own 限關 when the kit knows one (play-rules.mjs eventMinLegs, 運彩's
+// 投注規範 §21), else the house's price bands, with the odds that put it there.
+export function minLegsWhy(bet, odds = bet?.estOdds) {
+  const n = bet?.minLegs ?? 1;
+  if (!(n > 1)) return null;
+  const event = rules.eventMinLegs?.(bet);
+  return event > 0 ? { from: 'event', n } : { from: 'odds', n, odds };
+}
 
 // What stops a ticket, as the Worker will judge it: singles are placed as one
 // slip a pick (app.js placeButton), so each is checked on its own (its own

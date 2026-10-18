@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { modelMean, modelTotal, withModelLines, LEAGUE_TOTALS } from '../public/lib/lines.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
+import * as kitMarketsR6 from '../public/lib/markets.mjs';
+// The kit with 台灣運彩's market lists (Shared-Proxy claude/play-rules-r6): told
+// apart by its 單局 markets, so these tests pass on the kit before it too.
+const RULES_R6 = typeof kitMarketsR6.inningMarkets === 'function';
 
 const game = (sport, extra = {}) => ({ id: `t-${sport}`, sport, startUtc: '2026-09-28T10:00:00Z', away: { en: 'Away' }, home: { en: 'Home' }, ...extra });
 
@@ -30,7 +34,9 @@ test('a modelled total is a half line near the mean, priced like a bookmaker\'s'
 test('a game with only a winner price gets the full board', () => {
   const kinds = g => new Set(gameOptions(g).map(o => o.kind));
   const mlb = kinds(game('mlb', { polymarket: { home: 0.56, away: 0.44 } }));
-  for (const k of ['ml', 'total', 'runline', 'teamtotal', 'f5', 'margin', 'firstinning']) assert.ok(mlb.has(k), `mlb ${k}`);
+  // (運彩's first inning: 單局大小 and 單局不讓分, and [1-5局]讓分; before, 首局得分.)
+  for (const k of ['ml', 'total', 'runline', 'teamtotal', 'f5', 'margin', ...(RULES_R6 ? ['inningtotal', 'inningml', 'f5runline'] : ['firstinning'])]) assert.ok(mlb.has(k), `mlb ${k}`);
+  assert.equal(mlb.has('firstinning'), !RULES_R6);
   // Odd or even is no longer sold.
   assert.ok(!mlb.has('oddeven'));
   const nba = kinds(game('nba', { polymarket: { home: 0.7, away: 0.3 } }));

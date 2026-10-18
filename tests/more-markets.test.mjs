@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as kitMarkets from '../public/lib/markets.mjs';
 // The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
 const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
+// The kit with 台灣運彩's hockey list (claude/play-rules-r6): 正確進球數 for both teams to score and the goal bands.
+const RULES_R6 = typeof kitMarkets.inningMarkets === 'function';
 import { goalMarkets, fitHockey, baseballMarkets } from '../public/lib/markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
@@ -11,12 +13,16 @@ const sum = picks => picks.reduce((s, p) => s + p.fair, 0);
 test('Hockey: both teams to score, total goals, margin and odd/even (on 60 minutes with 台灣運彩\'s kit)', () => {
   const markets = goalMarkets(fitHockey(0.55, { line: 5.5, overFair: 0.5 }), { family: 'hockey', totalLine: 5.5 });
   const kinds = new Set(markets.map(m => m.kind));
-  for (const k of ['runline', 'teamtotal', 'total', ...(hockey60 ? [] : ['regulation']), 'btts', 'goalbands', 'margin', 'oddeven']) assert.ok(kinds.has(k), k);
-  for (const k of ['btts', 'goalbands', 'margin', 'oddeven']) assert.ok(Math.abs(sum(markets.find(m => m.kind === k).picks) - 1) < 1e-6, k);
+  const goals = RULES_R6 ? ['goalcount'] : ['btts', 'goalbands'];
+  for (const k of ['runline', 'teamtotal', 'total', ...(hockey60 ? [] : ['regulation']), ...goals, 'margin', 'oddeven']) assert.ok(kinds.has(k), k);
+  for (const k of [...goals, 'margin', 'oddeven']) assert.ok(Math.abs(sum(markets.find(m => m.kind === k).picks) - 1) < 1e-6, k);
+  if (RULES_R6) assert.ok(!kinds.has('btts') && !kinds.has('goalbands'));
   // No final ends level.
   assert.equal(markets.filter(m => m.kind === 'oddeven').length, 1);
   assert.equal(legResult({ kind: 'btts', side: 'yes' }, { status: 'final', awayScore: 3, homeScore: 2 }), 'won');
   assert.equal(legResult({ kind: 'goalbands', lo: 5, hi: 6 }, { status: 'final', awayScore: 3, homeScore: 2 }), 'won');
+  // (A ticket bought on the older kit's markets still settles on either.)
+  if (RULES_R6) assert.equal(legResult({ kind: 'goalcount', lo: 5, hi: 5 }, { status: 'final', awayScore: 3, homeScore: 2 }), 'won');
 });
 
 test('Baseball: first five innings total, settled from the innings', () => {

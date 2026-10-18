@@ -41,6 +41,16 @@ Live: https://jaypengx.github.io/Quadra-Play/
   ways, 勝分差 with 和局), 過關組合 from 2 games with 過1關, a postponed game
   void after 48 hours. Markets it doesn't sell are left off the board
   (`NOT_SOLD` in app.js); a slip already holding one still settles.
+  With the kit's 運彩 lists (Shared-Proxy `claude/play-rules-r6`): basketball
+  勝分差 in 運彩's bands (1-5 … 26+) and 勝分差（6 項）; American football
+  半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
+  總進球數); soccer no 和局退款; baseball [第1局]大小, [第1局]不讓分 and
+  [1-5局]讓分 in place of 首局得分. Tennis, volleyball, badminton, table
+  tennis and esports (單盤不讓分, 讓盤, 讓局, 大小, 正確比數) are named and
+  settle but have no league on the board yet.
+- **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
+  3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
+  slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.
 - **Cash out** (`lib/cashout.mjs`), a Quadra extra (real 運彩 can't cancel,
   cash out or edit a bet): each open pick's fair chance less the house's
   margin, every way they can land, less 3% (Plus 2%). Never worth more than

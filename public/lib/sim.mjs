@@ -9,7 +9,8 @@
 // sulking after a near miss …). Each person draws every trait on its own
 // share, one at most from each group of how-they-bet traits.
 import { SLIP_RULES, afterTax, seededRandom, estimateF1Odds } from './odds.mjs';
-import { houseRule } from './rules.mjs';
+import * as rules from './rules.mjs';
+const { houseRule } = rules;
 import { crowdPool, f1Podium, gameOptions } from './board.mjs';
 import { recommend } from './recommend.mjs';
 
@@ -235,8 +236,11 @@ function compile(list) {
       game: Int32Array.from(list, b => (games.has(b.gameId) ? games.get(b.gameId) : games.set(b.gameId, games.size).get(b.gameId))),
       fair: Float64Array.from(list, b => b.fairChance),
       odds: Float64Array.from(list, b => b.odds),
-      // The house's parlay-only rule: this option only on tickets of at least this many.
-      minLegs: Int8Array.from(list, b => b.minLegs ?? houseRule(b.kind ?? 'ml', b.odds).minLegs),
+      // The house's parlay-only rule: this option only on tickets of at least
+      // this many. The bet's own (its game's 限關 or its price band, as the
+      // board set it); else its price band, or its game's own minimum where
+      // the kit reads one (eventMinLegs).
+      minLegs: Int8Array.from(list, b => b.minLegs ?? houseRule(b.kind ?? 'ml', b.odds, { event: rules.eventMinLegs?.(b) ?? null }).minLegs),
       pickCum: new Float64Array(list.length),
       // Where each option sits in its market, for the shared results.
       lo: Float64Array.from(list, b => b.outLo ?? 0),

@@ -8,6 +8,10 @@ import { propOf, boxPlayers, propOutcome, propResult, firstScorer } from '../pub
 import { gameOptions } from '../public/lib/board.mjs';
 import { legResult } from '../public/lib/account.mjs';
 import { slipErrors, SLIP_RULES } from '../public/lib/odds.mjs';
+import * as kitMarketsR6 from '../public/lib/markets.mjs';
+// The kit with 台灣運彩's market lists (Shared-Proxy claude/play-rules-r6): told
+// apart by its 單局 markets, so these tests pass on the kit before it too.
+const RULES_R6 = typeof kitMarketsR6.inningMarkets === 'function';
 
 const offer = (label, type, outcomes, tags = []) => ({ criterion: { englishLabel: label }, betOfferType: { englishName: type }, tags, outcomes });
 const o = (type, odds, extra = {}) => ({ type, odds, status: 'OPEN', ...extra });
@@ -40,7 +44,9 @@ test('Kambi\'s markets: the board\'s sides, margin-free prices, only lines the p
   assert.ok(Math.abs(by('total')[0].picks[0].fair - 2000 / 3800) < 1e-9);
   assert.deepEqual(by('runline')[0].awayLine, 1.5);
   assert.equal(by('teamtotal')[0].team, 'away');
-  assert.deepEqual(by('dnb')[0].picks.map(p => p.side), ['home', 'away']);
+  // Draw No Bet: read on the older kit; 運彩 doesn't sell it, so the kit with its lists doesn't.
+  if (RULES_R6) assert.equal(by('dnb').length, 0);
+  else assert.deepEqual(by('dnb')[0].picks.map(p => p.side), ['home', 'away']);
   assert.deepEqual(by('dc')[0].picks.map(p => p.side), ['home|draw', 'home|away', 'draw|away']);
   assert.deepEqual(by('score')[0].picks.map(p => p.score), ['2-1', '1-1', '0-1']);
   assert.equal(by('corners')[0].line, 9.5);
@@ -62,7 +68,8 @@ test('the board takes Kambi\'s markets over the model\'s; players\' picks cap th
   // The same id for the main total either way: a pick on the slip stays put.
   assert.ok(model.some(x => x.id === 'epl_g|tot|2.5|over') && real.some(x => x.id === 'epl_g|tot|2.5|over' && x.real));
   assert.deepEqual(real.filter(x => x.kind === 'total').map(x => x.totalLine), [2.5, 2.5]);
-  assert.ok(real.some(x => x.kind === 'corners') && real.some(x => x.kind === 'dnb'));
+  assert.ok(real.some(x => x.kind === 'corners'));
+  assert.equal(real.some(x => x.kind === 'dnb'), !RULES_R6);
   const props = real.filter(x => x.kind === 'prop');
   assert.equal(props.length, 4);
   const saka = props.find(x => x.stat === 'goals');

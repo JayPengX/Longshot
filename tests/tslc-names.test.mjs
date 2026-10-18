@@ -55,3 +55,37 @@ test("hockey's 不讓分 is the 60 minutes; the winner with overtime is named ap
   assert.doesNotMatch(zh.secMoneylineOt, /不讓分/);
   assert.ok(STRINGS.en.secMoneylineOt);
 });
+
+// The kit's 2026-10 markets (Shared-Proxy claude/play-rules-r6) under 台灣運彩's
+// own names, and every kind either kit's board makes has a section on the
+// game page (a kind with none was never shown).
+test("the kit's newer markets read as 台灣運彩 names them, and every kind on the board has a section", async () => {
+  assert.equal(zh.secHalfSpread, '半場讓分');
+  assert.equal(zh.secTdTotal, '達陣數大小');
+  assert.equal(zh.secGoalCount, '正確進球數');
+  assert.equal(zh.secInningTotal, '單局大小');
+  assert.equal(zh.secInningMl, '單局不讓分');
+  assert.equal(zh.secF5RunLine, '[1-5局]讓分');
+  assert.equal(zh.secSet1, '單盤不讓分');
+  assert.equal(zh.secSetHcap, '讓盤');
+  assert.equal(zh.secGameHcap, '讓局');
+  assert.match(zh.secMargin6, /^勝分差/);
+  assert.equal(zh.inningTotalN.replace('{n}', '1'), '[第1局]大小');
+  assert.equal(zh.inningMlN.replace('{n}', '1'), '[第1局]不讓分');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const sections = new Map([...src.matchAll(/\{ kind: '([a-z0-9]+)', title: '([A-Za-z0-9]+)'/g)].map(m => [m[1], m[2]]));
+  const notSold = new Set([...(/const NOT_SOLD = \{([^}]*)\}/.exec(src)?.[1] ?? '').matchAll(/'([a-z0-9]+)'/g)].map(m => m[1]));
+  for (const title of sections.values()) for (const l of ['zh', 'en']) assert.ok(STRINGS[l][title], `${l} ${title}`);
+  for (const kind of ['margin', 'hrunline', 'tdtotal', 'goalcount', 'inningtotal', 'inningml', 'f5runline', 'set1', 'sethcap', 'gamehcap', 'gametotal', 'setscore']) assert.ok(sections.has(kind), kind);
+  const { gameOptions } = await import('../public/lib/board.mjs');
+  const g = (sport, extra) => ({ id: sport, sport, startUtc: '2026-10-20T00:00:00Z', home: { en: 'Home' }, away: { en: 'Away' }, draftKings: { home: 0.6, away: 0.4 }, ...extra });
+  const games = [
+    g('mlb', { total: { line: 8.5, overFair: 0.5 }, spread: { awayLine: 1.5, awayFair: 0.6 } }),
+    g('nfl', { total: { line: 44.5, overFair: 0.5 }, spread: { awayLine: 3.5, awayFair: 0.5 } }),
+    g('nba', { total: { line: 224.5, overFair: 0.5 }, spread: { awayLine: 4.5, awayFair: 0.5 } }),
+    g('nhl', { total: { line: 5.5, overFair: 0.5 } }),
+    g('epl', { draftKings: { home: 0.5, draw: 0.27, away: 0.23 }, total: { line: 2.5, overFair: 0.5 } })
+  ];
+  for (const game of games) for (const o of gameOptions(game)) assert.ok(sections.has(o.kind) || notSold.has(o.kind), `${game.sport} ${o.kind}`);
+});
