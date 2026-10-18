@@ -2437,7 +2437,7 @@ function renderAccount() {
       el('div', { class: 'acct-record' }, r.decided
         ? [
             el('p', {}, [el('span', { text: t('accountDecided', { n: r.decided }) }), el('span', { text: `${t('accountWon')} ${fmtMoney(r.won, { sign: false })}` })]),
-            el('p', {}, [el('span', {}, [document.createTextNode(`${t('accountNet')} `), net]), r.back != null ? el('span', { text: `${t('accountBack')} ${Math.round(r.back)}%` }) : null])
+            el('p', {}, [el('span', {}, [document.createTextNode(`${t('accountNet')} `), net]), r.back != null ? el('span', { text: `${t('accountBack')} ${r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`}` }) : null])
           ]
         : [el('p', {}, [el('span', { text: t('accountNoneYet') })])]),
     ])

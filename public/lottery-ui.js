@@ -993,7 +993,7 @@ export function mountLottery(ctx) {
       el('div', { class: 'balls' }, picked),
       x.series && x.status === 'open' ? el('small', { class: 'lt-series', text: t('seriesLeft', { n: x.series.of, k: series.length }) }) : null,
       drawn ? el('div', { class: 'balls drawn' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim', Boolean(drawn.digits))), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean)) : null,
-      el('p', { class: `lt-state ${x.status === 'open' ? '' : `out-${outcome(x.prize || 0)}`}`, text: x.status === 'open' ? (g === RETIRED ? t('retired') : ui.pending.has(x.id) ? [openTerm(x), t('pendingPay')].filter(Boolean).join(' · ') : [openTerm(x), lang === 'en' && openTerm(x) ? timeText(x.draw.at) : t('drawAt', { when: timeText(x.draw.at) })].filter(Boolean).join(' · ')) : [termLabel(termOf(x.drawn, x.draw), lang), tierText(x), outcomeText(x.prize || 0)].filter(Boolean).join(' · ') })
+      el('p', { class: `lt-state ${x.status === 'open' ? '' : `out-${outcome(x.prize || 0)}`}`, text: x.status === 'open' ? (g === RETIRED ? t('retired') : ui.pending.has(x.id) ? [openTerm(x), t('pendingPay')].filter(Boolean).join(' · ') : [openTerm(x), lang === 'en' && openTerm(x) ? timeText(x.draw.at).replace(/,/g, '') : t('drawAt', { when: timeText(x.draw.at) })].filter(Boolean).join(' · ')) : [termLabel(termOf(x.drawn, x.draw), lang), tierText(x), outcomeText(x.prize || 0)].filter(Boolean).join(' · ') })
     ]);
   }
 
