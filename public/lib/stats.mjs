@@ -1,9 +1,12 @@
 // 戰績's numbers, apart from its screen: the wins, the longest winning run and
 // the achievements, read from a practice account.
 import { slipAtStake } from './history.mjs';
+import { allVoid } from './slip.mjs';
 
-// A slip that paid. A cash-out for no more than the stake won nothing, so it isn't one.
-const paid = s => s.payout > 0 && !(s.cashedOut && s.payout <= slipAtStake(s));
+// A slip that paid. A cash-out for no more than the stake won nothing, so it
+// isn't one; nor is a slip with every pick void (台灣運彩 refunds its stake).
+const paid = s => s.payout > 0 && !(s.cashedOut && s.payout <= slipAtStake(s)) && !allVoid(s);
+const refund = s => s.status === 'settled' && !s.cashedOut && allVoid(s);
 
 // Every win from `since` (ms): settled slips that paid (cashed out too),
 // lottery tickets and scratch cards that won. Newest first.
@@ -14,6 +17,8 @@ export function winsOf(account, since = 0) {
     const at = Date.parse(s.settledAt || s.t);
     if (at < since) continue;
     const legs = s.legs || [];
+    // A void pick counts at odds 1 (台灣運彩): not a pick won.
+    const counted = legs.filter(l => l.result !== 'void');
     const sports = [...new Set(legs.map(l => l.sport).filter(Boolean))];
     out.push({
       at,
@@ -21,8 +26,8 @@ export function winsOf(account, since = 0) {
       // What was on it: a free bet's whole stake (its cost is the top-up only: 7× read for 1.17×).
       cost: slipAtStake(s),
       kind: 'slip',
-      legs: legs.length,
-      full: !s.cashedOut && legs.length > 1 && legs.every(l => l.result === 'won' || l.result === 'void'),
+      legs: counted.length,
+      full: !s.cashedOut && counted.length > 1 && counted.every(l => l.result === 'won'),
       cashed: Boolean(s.cashedOut),
       free: Boolean(s.freeBet || s.free),
       sport: sports.length === 1 ? sports[0] : 'mixed',
@@ -38,9 +43,10 @@ export function winsOf(account, since = 0) {
   return out.sort((a, b) => b.at - a.at);
 }
 
-// The longest run of paying slips, in the order they settled.
+// The longest run of paying slips, in the order they settled (a refund, every
+// pick void, neither adds to it nor ends it).
 export function longestRun(slips = []) {
-  const settled = slips.filter(s => s.status === 'settled' && !s.recovered).sort((a, b) => String(a.settledAt).localeCompare(String(b.settledAt)));
+  const settled = slips.filter(s => s.status === 'settled' && !s.recovered && !refund(s)).sort((a, b) => String(a.settledAt).localeCompare(String(b.settledAt)));
   let best = 0;
   let run = 0;
   for (const s of settled) {

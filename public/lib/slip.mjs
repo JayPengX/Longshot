@@ -69,6 +69,11 @@ export function quoteAllPays(quote) {
 
 // ---- A slip bought --------------------------------------------------------------
 
+// 台灣運彩's void pick (投注規範 第 34 條): in a parlay its odds are 1 and it
+// counts as passed; a slip with every pick void just has its stake refunded.
+export const parlayOdds = slip => slip.legs.reduce((p, l) => p * (l.result === 'void' ? 1 : Number(l.odds) || 1), 1);
+export const allVoid = slip => slip.legs.length > 0 && slip.legs.every(l => l.result === 'void');
+
 // What an open slip has locked in (every undecided pick lost) and the most it
 // can still pay (every undecided pick won). A free bet pays its winnings
 // only, not the stake.

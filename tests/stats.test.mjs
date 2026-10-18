@@ -39,3 +39,22 @@ test('a cash-out for no more than the stake is not a win', () => {
   assert.equal(achievementsOf(acct([slip(1, { cashedOut: true, payout: 40 })])).find(x => x.key === 'first').done, false);
   assert.equal(longestRun([slip(1, { cashedOut: true, payout: 40 })]), 0);
 });
+
+// 台灣運彩 (運動彩券投注規範 第 34 條, https://article.sportslottery.com.tw/zh-tw/about-us/135):
+// a void pick counts at odds 1 and as passed; with every pick void the stake is
+// simply refunded. A refund isn't a win, and a void pick isn't a pick won.
+test('a slip with every pick void is a refund: not a win, not a run', () => {
+  const refund = slip(2, { payout: 100, legs: [leg('void'), leg('void'), leg('void')] });
+  assert.deepEqual(winsOf(acct([refund])), []);
+  const s = [slip(1, { payout: 300, legs: [leg('won')] }), refund, slip(3, { payout: 300, legs: [leg('won')] })];
+  assert.equal(longestRun(s), 2);
+});
+
+test('a parlay won with void picks counts the picks won, not the voids', () => {
+  const w = winsOf(acct([slip(1, { payout: 250, legs: [leg('won'), leg('void'), leg('void')] })]));
+  assert.equal(w.length, 1);
+  assert.equal(w[0].legs, 1);
+  assert.equal(w[0].full, false);
+  const by = Object.fromEntries(achievementsOf(acct([slip(1, { payout: 900, legs: [leg('won'), leg('won'), leg('void')] })])).map(x => [x.key, x]));
+  assert.equal(by.parlay3.done, false);
+});

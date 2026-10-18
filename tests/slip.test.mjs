@@ -175,3 +175,13 @@ test("the pay box's totals: a parlay's tax and boost, singles as their own ticke
   assert.equal(free.allNet, 1000);
   assert.equal(free.taxed, false);
 });
+
+// 台灣運彩 (投注規範 第 34 條): a void pick's odds are 1 in a parlay; every pick void, the stake back.
+test('parlayOdds counts a void pick at 1; allVoid only when every pick is void', async () => {
+  const { parlayOdds, allVoid } = await import('../public/lib/slip.mjs');
+  const legs = [{ odds: 2, result: 'won' }, { odds: 3, result: 'void' }, { odds: 1.5 }];
+  assert.equal(parlayOdds({ legs }), 3);
+  assert.equal(allVoid({ legs }), false);
+  assert.equal(allVoid({ legs: [{ odds: 2, result: 'void' }, { odds: 3, result: 'void' }] }), true);
+  assert.equal(allVoid({ legs: [] }), false);
+});

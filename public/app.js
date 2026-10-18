@@ -36,7 +36,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals } from './lib/slip.mjs';
+import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -2651,7 +2651,7 @@ function savedSlipCard(slip) {
   const dead = !settled && range.most <= 0;
   const mode = slip.mode === 'system' ? slip.sizes.map(k => sizeName(k, n)).join('、') : t(`slipMode_${slip.mode}`);
   const pill = settled
-    ? el('span', { class: `slip-pill ${slip.cashedOut ? 'cashed' : profit > 0 ? 'won' : profit < 0 ? 'lost' : ''}`, text: slip.cashedOut ? t(state.account.slips.some(x => x.editedFrom === slip.id) ? 'slipEdited' : 'slipCashed', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
+    ? el('span', { class: `slip-pill ${slip.cashedOut ? 'cashed' : profit > 0 ? 'won' : profit < 0 ? 'lost' : ''}`, text: slip.cashedOut ? t(state.account.slips.some(x => x.editedFrom === slip.id) ? 'slipEdited' : 'slipCashed', { v: fmtMoney(slip.payout, { sign: false }) }) : allVoid(slip) ? t('slipVoided', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
     : dead
       ? el('span', { class: 'slip-pill lost', text: t('slipDead') })
       : el('span', { class: `slip-pill ${states.includes('live') ? 'live' : 'open'}`, text: states.includes('live') ? t('slipLiveNow') : t('slipOpen') });
@@ -2687,7 +2687,7 @@ function savedSlipCard(slip) {
         ]
       : [
           slip.free ? freeCell(slip) : payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
-          slip.mode === 'parlay' ? payCell(t('payOdds'), `×${fmtOdds(slip.legs.reduce((p, l) => p * l.odds, 1))}`) : null,
+          slip.mode === 'parlay' ? payCell(t('payOdds'), `×${fmtOdds(parlayOdds(slip))}`) : null,
           decided && range.locked > 0 ? payCell(t('slipLocked'), fmtMoney(range.locked, { sign: false }), 'back-high') : null,
           payCell(decided ? t('slipMost') : slip.free ? t('payAllFree') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : '')
         ]),
