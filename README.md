@@ -37,16 +37,21 @@ Live: https://jaypengx.github.io/Quadra-Play/
   1–12 picks; NT$100–100,000; a 20 M cap; 20% tax when a NT$10 bet wins over NT$5,000 (台灣運彩 §29, no stamp duty for members). A
   parlay boost of 5–20% for 3+ picks (Plus ×1.5). Free bets need picks at
   1.50 or longer.
-- **Cash out** (`lib/cashout.mjs`): each open pick's fair chance less the
-  house's margin, every way they can land, less 3% (Plus 2%). Never worth
-  more than holding.
+- **Markets as 台灣運彩 sells them:** hockey on 60 minutes (不讓分 three
+  ways, 勝分差 with 和局), 過關組合 from 2 games with 過1關, a postponed game
+  void after 48 hours. Markets it doesn't sell are left off the board
+  (`NOT_SOLD` in app.js); a slip already holding one still settles.
+- **Cash out** (`lib/cashout.mjs`), a Quadra extra (real 運彩 can't cancel,
+  cash out or edit a bet): each open pick's fair chance less the house's
+  margin, every way they can land, less 3% (Plus 2%). Never worth more than
+  holding.
 - **The proxy places and settles** (`Shared-Proxy/settle.js`):
   - Placing re-prices every pick and takes the stake, or says the price
     moved. Live bets wait 5 s.
   - When a game should be over, it is read once for every slip on it, and
     the wallet is paid with a notice. Play only applies the results.
   - Lottery tickets and scratch cards are bought there too.
-- **Lottery** (`lib/lottery.mjs`, `scratch.mjs`): 11 draw games settled
+- **Lottery** (`lib/lottery.mjs`, `scratch.mjs`): 8 draw games settled
   against the real draws, and 12 scratch cards with Taiwan Lottery's 2026
   tables.
 - **紀錄:** slips (live progress), tickets, 戰績 (wins only), 統計分析 (luck
