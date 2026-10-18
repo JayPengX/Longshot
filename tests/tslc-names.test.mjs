@@ -34,3 +34,13 @@ test('a parlay is 過N關, never N串1', () => {
   assert.match(zh.barParlay.replace('{n}', '3'), /過 ?3 ?關/);
   assert.match(zh.slipSize.replace('{k}', '2'), /過 ?2 ?關/);
 });
+
+// 投注規範 第 20 條 (betting closes at the listed start) and 第 32、34 條 (a game
+// postponed or cancelled is void: a single's stake back, a parlay's pick at odds 1).
+test("the slip's 運彩規則 say when betting closes and what a called-off game does", () => {
+  assert.match(zh.slipRulesNote, /開賽時間.*截止/);
+  assert.match(zh.slipRulesNote, /延賽.*取消/);
+  assert.match(zh.slipRulesNote, /退.*賠率算 1/);
+  assert.match(STRINGS.en.slipRulesNote, /listed start/);
+  assert.match(STRINGS.en.slipRulesNote, /odds 1/);
+});
