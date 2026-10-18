@@ -331,7 +331,7 @@ function marketLabelOf(game, m) {
   const t = state.t;
   if (m.kind === 'runline' || m.kind === 'total') return null;
   if (m.kind === 'nextrun') return t('firstScore');
-  if (m.kind === 'ml' && familyOf(game.sport) === 'hockey') return t('secMoneylineOt');
+  if (m.kind === 'ml' && familyOf(game.sport) === 'hockey') return t(HOCKEY_ML);
   return t(SECTIONS.find(sec => sec.kind === m.kind)?.title ?? m.kind);
 }
 
@@ -1150,8 +1150,9 @@ function secName(sec, sport, full = false) {
   if (sec.kind === 'runline') return isSoccer(sport) ? 'secHandicap' : family === 'hockey' ? (SETTLE_2026 ? 'secPuckLine60' : 'secPuckLine') : family === 'baseball' ? 'secRunLine' : 'secSpread';
   if (sec.kind === 'total') return family === 'baseball' ? 'secTotal' : family === 'hockey' && SETTLE_2026 ? 'secTotalGoals60' : isSoccer(sport) || family === 'hockey' ? 'secTotalGoals' : 'secTotalPoints';
   // Hockey's 不讓分 at 台灣運彩 is the 60 minutes ('regulation'); the winner
-  // with overtime and the shootout in is named apart.
-  if (sec.kind === 'ml' && family === 'hockey') return 'secMoneylineOt';
+  // with overtime and the shootout in is named apart (with 台灣運彩's settle
+  // rules in the kit, it too is on 60 minutes, a tie void: HOCKEY_ML).
+  if (sec.kind === 'ml' && family === 'hockey') return HOCKEY_ML;
   return full ? sec.title : sec.short ?? sec.title;
 }
 const HCAP_KINDS = new Set(['runline']);
@@ -1162,6 +1163,8 @@ const HCAP_KINDS = new Set(['runline']);
 const SETTLE_2026 = (kitOdds.slipSizes?.('system', 2, [1]) ?? []).length === 1;
 const SYSTEM_MIN = SETTLE_2026 ? 2 : 3;
 const RULES_NOTE = SETTLE_2026 ? 'slipRulesNote2026' : 'slipRulesNote';
+// Hockey's winner: on 60 minutes too with that kit, a tie then void.
+const HOCKEY_ML = SETTLE_2026 ? 'secMoneyline60' : 'secMoneylineOt';
 
 // One section per kind of bet, each market of it with its own take. The
 // inning market's ten results take a whole row.
@@ -1778,7 +1781,7 @@ function kindKey(kind) {
 
 // The market a pick is from, as a small tag: 不讓分, 大小, 讓分 …
 function marketTag(kind, sport) {
-  const key = kind === 'ml' && familyOf(sport) === 'hockey' ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
+  const key = kind === 'ml' && familyOf(sport) === 'hockey' && !SETTLE_2026 ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
 }
 
