@@ -28,7 +28,7 @@ import {
 } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { historyStats, funFacts, crowdPercentile, accountRecord } from './lib/history.mjs';
-import { detectLocale, makeT } from './lib/i18n.mjs';
+import { detectLocale, makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
 import { logoPicture, raceName } from '#kit/logos.mjs';
@@ -266,7 +266,9 @@ function gameSeries(game) {
   const league = state.t(`sport_${game.sport}`);
   // Leagues whose Kambi group is only the league again ("Chinese Professional Baseball").
   const plain = ['baseball', 'basketball'].includes(familyOf(game.sport));
-  const event = game.group && !plain && normalizeTeamName(game.group) !== normalizeTeamName(league) ? game.group : null;
+  // (Against its English name too: Kambi's "K-League 1" is the league, not a stage, in Chinese as well.)
+  const same = name => [league, STRINGS.en?.[`sport_${game.sport}`]].some(x => x && normalizeTeamName(x).replace(/[\s-]/g, '') === normalizeTeamName(name).replace(/[\s-]/g, ''));
+  const event = game.group && !plain && !same(game.group) ? game.group : null;
   return event ? `${league} · ${event}` : league;
 }
 
@@ -542,6 +544,10 @@ function dayLabel(day) {
 let dayMemo = { key: [], days: [] };
 let stripDrawn = [];
 const sameKeys = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+// The day a bet is shown on: its own, but an F1 weekend's all on race day
+// (its pole closes at qualifying, the day before in Taipei: two days on the
+// strip for one board, 2026-10's 美國站).
+const betDay = b => dayKey(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
 function renderDayFilter() {
   const t = state.t;
   const today = dayKey(new Date().toISOString());
@@ -549,7 +555,7 @@ function renderDayFilter() {
   // Today stays on the strip while games are on (場中 lives there), even with
   // every one of today's games already under way.
   const dayKeys = [state.bets, state.sport, liveNow > 0, today];
-  if (!sameKeys(dayKeys, dayMemo.key)) dayMemo = { key: dayKeys, days: [...new Set([...state.bets.filter(b => inSport(b.sport)).map(b => dayKey(b.start)), ...(liveNow ? [today] : [])])].sort() };
+  if (!sameKeys(dayKeys, dayMemo.key)) dayMemo = { key: dayKeys, days: [...new Set([...state.bets.filter(b => inSport(b.sport)).map(betDay), ...(liveNow ? [today] : [])])].sort() };
   const days = dayMemo.days;
   // The earliest day with games (today, unless today's are all under way),
   // until a day is picked: games arriving later (the other leagues, a
