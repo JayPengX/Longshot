@@ -2,12 +2,15 @@
 // the achievements, read from a practice account.
 import { slipAtStake } from './history.mjs';
 
+// A slip that paid. A cash-out for less than the stake took a loss, so it isn't one.
+const paid = s => s.payout > 0 && !(s.cashedOut && s.payout < slipAtStake(s));
+
 // Every win from `since` (ms): settled slips that paid (cashed out too),
 // lottery tickets and scratch cards that won. Newest first.
 export function winsOf(account, since = 0) {
   const out = [];
   for (const s of account?.slips || []) {
-    if (s.status !== 'settled' || !(s.payout > 0) || s.refunded) continue;
+    if (s.status !== 'settled' || !paid(s) || s.refunded) continue;
     const at = Date.parse(s.settledAt || s.t);
     if (at < since) continue;
     const legs = s.legs || [];
@@ -41,7 +44,7 @@ export function longestRun(slips = []) {
   let best = 0;
   let run = 0;
   for (const s of settled) {
-    run = s.payout > 0 ? run + 1 : 0;
+    run = paid(s) ? run + 1 : 0;
     best = Math.max(best, run);
   }
   return best;
