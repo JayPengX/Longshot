@@ -27,7 +27,7 @@ const T = {
     called: '開出號碼', prizes: '獎項', unscratched: '未刮開', every5: '每 5 分鐘開獎', mult: '倍數 ×{m}', settled: '已開獎',
     quick1: '快選 1 注', quickN: '快選 {n} 注', addLine: '加入這注', lines: '已選 {n} 注', remove: '移除', buyAll: '購買 {n} 注 · {v}', boughtN: '已買 {n} 注，共 {v}', seeTickets: '看我的彩券', again: '再買', inMin: '{n} 分鐘後開獎', inHour: '{h} 小時 {m} 分後開獎', picked: '已選 {k}/{n}', starsN: '{n} 星', pickHint: '點下面的號碼，或用快選', slipN: '第 {n} 注', topPrize: '最高獎金', fillRest: '隨機補滿', addNext: '加入，選下一注', quickLines: '快選整注', clearAll: '全部清除', zone1: '第一區', bingoHint: '點 1–10 個號碼，或下面選大小單雙', lastLegend: '上期開出', anyPrize: '任一獎 1/{n}', odds: '機率', oneIn: '1/{n}', yourPick: '你的號碼', waiting: '等待開獎', drawnList: '已開獎', openSum: '{n} 張待開獎', wonSum: '累計中獎 {v}', basketHint: '可以一次買好幾注', sureTitle: '確定購買？', sureBody: '{what} · {v}', sureOk: '購買 {v}', special: '特', hitsN: '中 {n} 個',
     periods: '期數', periodsN: '{n} 期', buyAskP: '買 {n} 注 × {p} 期，共 {v}？', boughtNP: '已買 {n} 注 × {p} 期，共 {v}', betsP: '{n} 注 × {p} 期', drawsSpan: '{from} 至 {to}，共 {n} 期',
-    pendingPay: '已開獎，等待派彩公告', system: '包牌', systemBets: '包牌 {n} 注', upTo: '包牌最多 {n} 個', lastDraw: '上期開獎', bySize: '大小順序', byOrder: '開出順序', notPaidYet: '獎金尚未公告',
+    pendingPay: '已開獎，等待派彩公告', system: '包牌', systemBets: '包牌 {n} 注', upTo: '包牌至 {n}', lastDraw: '上期開獎', bySize: '大小順序', byOrder: '開出順序', notPaidYet: '獎金尚未公告',
     seriesN: '多期 {k}/{n}', seriesLeft: '連續 {n} 期，還有 {k} 期待開獎', tooMany: '一次最多 {n} 注，請分次購買', perDraw: '{v} / 期', comboNote: '每期獎金以台灣彩券公告為準',
     strongman: '大力士分數', yourScores: '您的分數', roundN: '第{n}局'
   },
@@ -40,8 +40,8 @@ const T = {
     top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', retired: 'No longer sold: stake refunded', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Lucky numbers', yourNumbers: 'Your numbers', dealer: 'Opponent', you: 'You', prizeCol: 'Prize',
     called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'Every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
     quick1: 'Quick pick 1', quickN: 'Quick pick {n}', addLine: 'Add this bet', lines: '{n} bets chosen', remove: 'Remove', buyAll: 'Buy {n} · {v}', boughtN: 'Bought {n} bets, {v}', seeTickets: 'My tickets', again: 'Buy more', inMin: 'Draw in {n} min', inHour: 'Draw in {h}h {m}m', picked: '{k}/{n} picked', starsN: '{n} stars', pickHint: 'Tap numbers below, or quick pick', slipN: 'Bet {n}', topPrize: 'Top prize', fillRest: 'Fill the rest', addNext: 'Add, next bet', quickLines: 'Quick-pick bets', clearAll: 'Clear all', zone1: 'Zone 1', bingoHint: 'Tap 1–10 numbers, or pick big/small/odd/even below', lastLegend: 'In the last draw', anyPrize: 'Any prize 1 in {n}', odds: 'Odds', oneIn: '1 in {n}', yourPick: 'Your numbers', waiting: 'Awaiting the draw', drawnList: 'Drawn', openSum: '{n} awaiting a draw', wonSum: 'Won so far {v}', basketHint: 'Buy several at once', sureTitle: 'Buy this?', sureBody: '{what} · {v}', sureOk: 'Buy for {v}', special: 'SP', hitsN: '{n} hit',
-    periods: 'Draws', periodsN: '{n}', buyAskP: 'Buy {n} × {p} draws for {v}?', boughtNP: 'Bought {n} bets × {p} draws, {v}', betsP: '{n} bets × {p} draws', drawsSpan: '{from} to {to}, {n} draws',
-    pendingPay: 'Drawn: awaiting the prize announcement', system: 'System', systemBets: 'System: {n} bets', upTo: 'system up to {n}', lastDraw: 'Last draw', bySize: 'In order of size', byOrder: 'In order drawn', notPaidYet: 'Prizes not announced yet',
+    periods: 'Draws', periodsN: '{n}', buyAskP: 'Buy {n} × {p} draws for {v}?', boughtNP: 'Bought {n} bets × {p} draws, {v}', betsP: '{n} × {p} draws', drawsSpan: '{from} to {to}, {n} draws',
+    pendingPay: 'Drawn: awaiting the prize announcement', system: 'System', systemBets: 'System: {n} bets', upTo: 'system to {n}', lastDraw: 'Last draw', bySize: 'In order of size', byOrder: 'In order drawn', notPaidYet: 'Prizes not announced yet',
     seriesN: 'Multi-draw {k}/{n}', seriesLeft: '{n} draws in a row, {k} still to come', tooMany: 'At most {n} bets at once: buy the rest after', perDraw: '{v} a draw', comboNote: 'Each draw pays as Taiwan Lottery announces',
     strongman: 'Strongman', yourScores: 'Your scores', roundN: 'Round {n}'
   }
@@ -323,7 +323,7 @@ export function mountLottery(ctx) {
         ]),
         el('div', { class: 'ls-hero' }, [
           el('div', {}, [el('small', { text: jp ? jp.label : t('topPrize') }), el('strong', { class: 'num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) })]),
-          el('div', {}, [el('small', { text: `${t('nextDraw')} · ${t('perBet', { v: money(g.price) })}` }), el('strong', { text: d ? untilText(id, d.at) : t('closed') }), d ? el('small', { text: [term, drawTimeText(d.at)].filter(Boolean).join(' · ') }) : null])
+          el('div', {}, [el('small', { text: `${t('nextDraw')} · ${t('perBet', { v: money(g.price) })}` }), el('strong', { text: d ? untilText(id, d.at) : t('closed') }), d ? el('small', { text: term ? `${term} · ${lang === 'en' ? hourText(d.at) : drawTimeText(d.at)}` : drawTimeText(d.at) }) : null])
         ]),
         el('section', { class: `ls-slip${complete ? ' done' : ''}` }, [
           el('div', { class: 'ls-slip-head' }, [el('strong', { text: t('slipN', { n: st.lines.length + 1 }) }), el('span', { class: 'ls-status', text: status })]),
@@ -353,7 +353,7 @@ export function mountLottery(ctx) {
         el('div', { class: `lotto-buybar sticky ls-buybar${opts.length ? ' has-opts' : ''}` }, [
           opts.length ? el('div', { class: 'ls-opts' }, opts) : null,
           draws.length > 1 ? el('small', { class: 'ls-draws', text: spanText(draws) }) : null,
-          el('div', { class: 'ls-total' }, [el('small', { text: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${t('bets')}` }), el('strong', { class: 'num', text: money(cost) })]),
+          el('div', { class: 'ls-total' }, [el('small', { text: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}` }), el('strong', { class: 'num', text: money(cost) })]),
           el('button', {
             class: 'q-btn primary',
             type: 'button',
@@ -382,9 +382,10 @@ export function mountLottery(ctx) {
   // 「10/20（週一） 至 11/13（週四），共 8 期」: the draws a 多期 ticket covers.
   function spanText(draws) {
     const day = at => new Date(at).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', timeZone: 'Asia/Taipei' });
-    // (BINGO's run every 5 minutes: the times.)
-    const tm = at => (draws[0]?.slot != null ? `${day(at)} ${hourText(at)}` : day(at));
-    return t('drawsSpan', { from: tm(draws[0].at), to: tm(draws.at(-1).at), n: draws.length });
+    const [a, b] = [draws[0].at, draws.at(-1).at];
+    // (BINGO's run every 5 minutes: the times, the day once when it's one.)
+    if (draws[0]?.slot != null) return t('drawsSpan', { from: `${day(a)} ${hourText(a)}`, to: day(a) === day(b) ? hourText(b) : `${day(b)} ${hourText(b)}`, n: draws.length });
+    return t('drawsSpan', { from: day(a), to: day(b), n: draws.length });
   }
   // The latest draw, as the results page prints it: 大小順序, and 開出順序
   // when the kit keeps it (its `order`); its prizes not out yet, said so.
@@ -396,10 +397,10 @@ export function mountLottery(ctx) {
     const digit = Boolean(r.digits);
     const second = r.special != null && Number.isFinite(r.special) ? r.special : r.zone2 != null && Number.isFinite(r.zone2) ? r.zone2 : null;
     const head = [termLabel(termOf(r), lang), String(r.date || '').slice(5).replace('-', '/')].filter(Boolean).join(' · ');
-    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), el('div', { class: 'balls' }, [...list.map(n => ball(n, '', digit)), second != null ? ball(second, 'special') : null].filter(Boolean))]);
+    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), el('div', { class: 'balls mini' }, [...list.map(n => ball(n, '', digit)), second != null ? ball(second, 'special') : null].filter(Boolean))]);
     return el('section', { class: 'ls-last' }, [
       el('p', { class: 'lotto-h' }, [document.createTextNode(t('lastDraw')), head ? el('small', { text: ` ${head}` }) : null].filter(Boolean)),
-      digit ? el('div', { class: 'balls' }, nums.map(n => ball(n, '', true))) : row(t('bySize'), nums),
+      digit ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', true))) : row(t('bySize'), nums),
       !digit && r.order?.length ? row(t('byOrder'), r.order) : null,
       r.paid === false && !g.digits && !g.combo ? el('small', { class: 'muted', text: t('notPaidYet') }) : null
     ]);
@@ -544,7 +545,8 @@ export function mountLottery(ctx) {
       ...g.zones.flatMap((z, i) => [
         el('p', { class: `ls-zone${sel.zones[i].length >= z.n ? ' full' : ''}` }, [
           el('strong', { text: i ? t('zone2') : t('zone1') }),
-          el('span', { text: [t('pickN', { n: z.n }), zoneMax(z) > z.n ? t('upTo', { n: zoneMax(z) }) : '', sel.zones[i].length > z.n ? `${t('system')} ${sel.zones[i].length}` : `${sel.zones[i].length}/${z.n}`].filter(Boolean).join(' · ') })
+          // 「選 6 個號碼 · 包牌至 16 · 3/6」, then once past 6 「包牌 8/16」.
+          el('span', { text: sel.zones[i].length > z.n ? `${t('system')} ${sel.zones[i].length}/${zoneMax(z)}` : [lang === 'en' && z.n === 1 ? 'Pick 1 number' : t('pickN', { n: z.n }), zoneMax(z) > z.n ? t('upTo', { n: zoneMax(z) }) : '', `${sel.zones[i].length}/${z.n}`].filter(Boolean).join(' · ') })
         ]),
         numberGrid(z.max, sel.zones[i], zoneMax(z), paint, { last: last[i] || [], cols: z.max <= 8 ? z.max : 10, bet: z.n })
       ]),

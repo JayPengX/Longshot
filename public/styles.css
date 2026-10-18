@@ -1502,3 +1502,14 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .slot-round { color: var(--text-muted); font-size: 0.66rem; font-weight: 700; white-space: nowrap; }
 .lotto-line .balls { flex-wrap: wrap; }
 .jackpot-desc { margin-right: 3px; color: var(--text-muted); font-size: 0.66rem; font-weight: 700; }
+/* The bar meets the sheet's sides whatever its margin (it was 18 px on a 16 px sheet: 2 px sideways scroll at 320). */
+.lotto-sheet .ls-buybar, .lotto-sheet .lotto-buybar { margin-inline: calc(-1 * var(--q-margin, 16px)); padding-inline: var(--q-margin, 16px); }
+.ls-opts { flex-wrap: nowrap; justify-content: flex-start; gap: 16px; }
+.ls-opts .stepper { gap: 4px; }
+.ls-opts .stepper button { width: 28px; height: 28px; }
+.ls-opts .ls-mult { min-width: 40px; }
+.lotto-buybar > div.ls-opts { display: flex; }
+/* (The kit's .q-sheet bottom padding left a strip of the sheet showing under the sticky bar.) */
+.q-sheet.lotto-sheet:not(:has(.lotto-bought)) { padding-bottom: 0; }
+.ls-buybar:not(.has-opts) { grid-template-columns: minmax(0, 1fr) auto; }
+.ls-buybar:not(.has-opts) .ls-total { justify-items: start; }
