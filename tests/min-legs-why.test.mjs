@@ -5,16 +5,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as rules from '../public/lib/rules.mjs';
-import { minLegsWhy } from '../public/lib/slip.mjs';
+import { minLegsWhy, priceLimits } from '../public/lib/slip.mjs';
 import { STRINGS, makeT } from '../public/lib/i18n.mjs';
 
 const hasEvent = typeof rules.eventMinLegs === 'function';
 
-test("a short price's 限關 says it comes from the odds, with them", () => {
+test("a short price's 限關 says it comes from the odds, with them (a kit that has price bands); else never", () => {
   const bet = rules.withRules({ kind: 'ml', estOdds: 1.06 });
-  assert.equal(bet.minLegs, 3);
-  assert.deepEqual(minLegsWhy(bet), { from: 'odds', n: 3, odds: 1.06 });
   assert.equal(minLegsWhy(rules.withRules({ kind: 'ml', estOdds: 1.9 })), null);
+  assert.equal(priceLimits, bet.minLegs > 1);
+  if (priceLimits) {
+    assert.equal(bet.minLegs, 3);
+    assert.deepEqual(minLegsWhy(bet), { from: 'odds', n: 3, odds: 1.06 });
+  } else {
+    // play-rules-r7: 1.06 sells as a single, and no minimum is ever put down to the odds.
+    assert.equal(bet.minLegs, 1);
+    assert.equal(minLegsWhy(bet), null);
+    assert.deepEqual(minLegsWhy({ kind: 'ml', estOdds: 1.06, minLegs: 3 }), { from: 'event', n: 3 });
+  }
   const zh = makeT('zh');
   assert.equal(zh('minLegsNote', { n: 3, odds: '1.06' }), '賠率 1.06 偏低：只能串 3 關以上');
   assert.equal(zh('slipError_minLegsOdds', { need: 3, odds: '1.06', pick: '' }), '賠率 1.06 偏低：只能串 3 關以上');

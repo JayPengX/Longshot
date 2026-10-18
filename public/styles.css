@@ -1482,3 +1482,23 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .lotto-side-group { display: grid; gap: 6px; }
 .lotto-side-group .lotto-h { margin: 0; }
 .lotto-prizes td:nth-child(2) { white-space: normal; }
+/* Round 8: 倍數 and 多期 as each game takes them, 包牌, 上期開獎 in both orders. */
+.lotto-jp-label { margin-bottom: -4px; color: var(--text-muted); font-size: 0.68rem; font-weight: 700; }
+.ls-buybar.has-opts { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+.ls-opts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 12px; }
+.ls-draws { grid-column: 1 / -1; margin-top: -4px; color: var(--text-muted); font-size: 0.72rem; }
+.ls-buybar.has-opts .ls-total { justify-items: start; }
+.stepper button:disabled { opacity: 0.35; cursor: default; }
+.ls-mult { min-width: 44px; }
+.ls-last { display: grid; gap: 6px; margin: 12px 0 4px; padding: 10px 12px; border-radius: 14px; background: var(--q-surface); }
+.ls-last .lotto-h { margin: 0; }
+.ls-last .lotto-h small { color: var(--text-muted); font-weight: 600; }
+.ls-last-row { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); align-items: center; gap: 8px; }
+.ls-last-row small { color: var(--text-muted); font-size: 0.7rem; }
+.ls-last .balls { flex-wrap: wrap; }
+.lotto-prizes > small { display: block; margin-top: 6px; font-size: 0.72rem; }
+.lt-series { color: var(--text-muted); font-size: 0.72rem; }
+.scratch-face.slots.rounds .slot-row { grid-template-columns: auto repeat(3, minmax(0, 1fr)) minmax(56px, auto); }
+.slot-round { color: var(--text-muted); font-size: 0.66rem; font-weight: 700; white-space: nowrap; }
+.lotto-line .balls { flex-wrap: wrap; }
+.jackpot-desc { margin-right: 3px; color: var(--text-muted); font-size: 0.66rem; font-weight: 700; }

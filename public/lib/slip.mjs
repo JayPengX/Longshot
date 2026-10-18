@@ -22,14 +22,27 @@ export const ruleLeg = bet => ({
   cap: bet.cap ?? null
 });
 
+// Whether the kit still limits a pick by its price (限2關 / 限3關 under 1.25):
+// the older kits did; since play-rules-r7 運彩's own per-game minimum is the
+// only one (asked of houseRule, never of HOUSE_RULES' old keys).
+export const priceLimits = (() => {
+  try {
+    return rules.houseRule('ml', 1.08).minLegs > 1;
+  } catch {
+    return false;
+  }
+})();
+
 // Why a pick is sold only in a parlay of `n`+ games, or null: its game's (or
 // market's) own 限關 when the kit knows one (play-rules.mjs eventMinLegs, 運彩's
-// 投注規範 §21), else the house's price bands, with the odds that put it there.
+// 投注規範 §21), else, on a kit that still has them, the house's price bands
+// with the odds that put it there. On a kit without price bands a minimum is
+// always the game's: 「賠率 x 偏低」 never shows.
 export function minLegsWhy(bet, odds = bet?.estOdds) {
   const n = bet?.minLegs ?? 1;
   if (!(n > 1)) return null;
   const event = rules.eventMinLegs?.(bet);
-  return event > 0 ? { from: 'event', n } : { from: 'odds', n, odds };
+  return event > 0 || !priceLimits ? { from: 'event', n } : { from: 'odds', n, odds };
 }
 
 // What stops a ticket, as the Worker will judge it: singles are placed as one

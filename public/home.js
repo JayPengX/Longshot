@@ -19,7 +19,9 @@
 import { rank, affinity, plusMember, plusCard, vipStatus, vipName, VIP, tell, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
 import { GAMES, nextDraw, latestResults, gameName } from './lib/lottery.mjs';
-import { cutoffAt } from './lottery-labels.mjs';
+// (By the module: upcoming, the 頭獎 Taiwan Lottery advertises, is the newer kit's.)
+import * as L from './lib/lottery.mjs';
+import { cutoffAt, jackpotOf } from './lottery-labels.mjs';
 import { icon } from './icons.js';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
@@ -55,6 +57,8 @@ const TXT = {
   }
 };
 let latest = null;
+// The next draws' advertised jackpots (the kit's upcoming), fetched once.
+let upcoming = null;
 
 // Big money, short: NT$1.59億 / NT$158.8M.
 export function compactMoney(x, lang) {
@@ -281,6 +285,12 @@ export function renderHome(ctx) {
       .then(r => ((latest = r), document.getElementById('panel-home')?.hidden === false && renderHome(ctx)))
       .catch(() => {});
   }
+  if (!upcoming && typeof L.upcoming === 'function') {
+    upcoming = {};
+    L.upcoming()
+      .then(r => ((upcoming = r || {}), document.getElementById('panel-home')?.hidden === false && renderHome(ctx)))
+      .catch(() => {});
+  }
   const when = at => new Date(at).toLocaleString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Taipei' });
   // Each game: its ball in its colour, the name and the next draw, the last
   // draw's numbers as small balls, and the jackpot (539: what a ticket costs).
@@ -288,12 +298,13 @@ export function renderHome(ctx) {
   const lottoCards = ['super638', 'lotto649', 'daily539'].map(id => {
     const d = nextDraw(id);
     const last = latest?.[id];
-    const jp = last?.jackpot;
+    // 「頭獎上看 3.2 億」 as Taiwan Lottery advertises it, else the pool carried over.
+    const jp = jackpotOf(upcoming?.[id], last, lang);
     const balls = last?.numbers?.length ? [...last.numbers.map(n => ball(n)), last.zone2 != null && Number.isFinite(last.zone2) ? ball(last.zone2, 'second') : null, last.special != null && Number.isFinite(last.special) ? ball(last.special, 'second') : null].filter(Boolean) : [];
     return el('button', { class: 'jackpot', type: 'button', style: `--lotto:${GAMES[id].color}`, onclick: () => ((state.lotteryView = 'draws'), ctx.showTab('lottery')) }, [
       el('span', { class: 'lotto-emblem jp-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }),
       el('span', { class: 'jackpot-what' }, [
-        el('span', { class: 'jackpot-top' }, [el('span', { class: 'jackpot-name', text: gameName(id, lang) }), el('strong', { class: 'jackpot-amount num', text: jp ? compactMoney(jp, lang) : money(GAMES[id].price) })]),
+        el('span', { class: 'jackpot-top' }, [el('span', { class: 'jackpot-name', text: gameName(id, lang) }), el('strong', { class: 'jackpot-amount num', title: jp?.label }, [jp?.short ? el('small', { class: 'jackpot-desc', text: jp.short }) : null, document.createTextNode(jp ? compactMoney(jp.amount, lang) : money(GAMES[id].price))].filter(Boolean))]),
         el('small', { class: 'jackpot-when', text: d ? f('closeIn', { when: when(cutoffAt(id, d.at)) }) : '' }),
         balls.length ? el('span', { class: 'jp-balls' }, balls) : null
       ])
