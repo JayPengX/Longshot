@@ -3,7 +3,7 @@
 // saves' codec and the recommendations' tags.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { historyStats, funFacts, crowdPercentile, normalCdf, accountRecord, chanceOf, legsGroup } from '../public/lib/history.mjs';
+import { historyStats, funFacts, crowdPercentile, normalCdf, accountRecord, chanceOf, legsGroup, slipAtStake } from '../public/lib/history.mjs';
 import { accountTickets, ticketProfile } from '../public/lib/profile.mjs';
 import { recommend, RECOMMEND, backOf } from '../public/lib/recommend.mjs';
 import { pack, unpack } from '../public/lib/codec.mjs';
@@ -154,6 +154,23 @@ test('a cash out is paid once, never on a free bet or a settled slip; saved pick
   assert.equal(slipSpec(cashed.slips[0]).status, 'open');
 });
 
+test("a free bet's stake isn't tax and isn't expected back; a near miss and a dream ticket pay as a ticket would", () => {
+  // A NT$500 free bet on 3.00, won: 1,500 back, 1,000 of it paid (the free
+  // stake isn't). Nothing over NT$5,000, so no tax (it showed NT$500).
+  const free = { id: 'f', t: '2026-10-01T00:00:00.000Z', settledAt: '2026-10-01T05:00:00.000Z', status: 'settled', mode: 'single', sizes: [1], stake: 500, cost: 0, free: 'fb1', freeValue: 500, gross: 1500, payout: 1000, legs: [{ gameId: 'g', odds: 3, fairChance: 0.3, result: 'won', kind: 'ml' }] };
+  const s = historyStats({ ledger: [], slips: [free] });
+  assert.equal(s.tax, 0);
+  // Expected back: 30% of the 1,000 it pays, not of the 1,500.
+  assert.equal(Math.round(s.expected), 300);
+  // A treble lost by one pick: what it would have paid is a ticket's, boost and tax in (it said 1000 × 200 = 200,000).
+  const legs = [{ gameId: 'a', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'b', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'c', odds: 2, result: 'lost', kind: 'ml' }];
+  const near = { id: 'n', t: '2026-10-02T00:00:00.000Z', status: 'settled', mode: 'parlay', sizes: [3], stake: 1000, cost: 1000, boost: 1, payout: 0, legs };
+  assert.equal(Math.round(funFacts({ slips: [near] }).nearMiss.missed), Math.round(1000 * (1 + 199 * 1.05) * 0.796));
+  // Two picks of one game never share a combination: the dream ticket counts only what can be paid.
+  const sys = { id: 'd', t: '2026-10-03T00:00:00.000Z', status: 'settled', mode: 'system', sizes: [2], stake: 100, cost: 200, payout: 0, legs: [{ gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g2', odds: 2, kind: 'ml' }] };
+  assert.equal(funFacts({ slips: [sys] }).dream.times, 6);
+});
+
 test('a cash out the wallet already paid shows what was paid, never the value asked', () => {
   const t0 = new Date('2026-10-10T00:00:00Z');
   const placed = placeSlip(newAccount(t0), { id: 'c', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [{ id: 'x', odds: 2 }] }, t0).account;
@@ -162,4 +179,11 @@ test('a cash out the wallet already paid shows what was paid, never the value as
   const cashed = cashOut(paid, 'c', 150, t0);
   assert.equal(cashed.slips[0].payout, 140);
   assert.equal(cashed.ledger.filter(e => e.id === 'payout-c').length, 1);
+});
+
+test("戰績's 'times its stake' reads a free bet by its whole stake", () => {
+  // NT$500 free + NT$100 own at 2.00: pays 700 (1,200 less the free 500): 1.17× the 600 on it, not 7× the 100 paid.
+  const free = { status: 'settled', free: 'fb', freeValue: 500, stake: 600, cost: 100, payout: 700 };
+  assert.equal(slipAtStake(free), 600);
+  assert.equal(slipAtStake({ status: 'settled', stake: 100, cost: 300, payout: 900 }), 300);
 });

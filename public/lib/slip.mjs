@@ -54,8 +54,15 @@ export function slipQuote({ bets, mode, chosen = [], stake, free = null, boost =
 
 // What the slip being made pays with every pick won: after tax and the cap,
 // the boost in, the free bet's own stake out.
+// Singles are placed one slip a pick (app.js placeButton), so each is its own
+// ticket: its own NT$20M cap and its own tax. What each pays when it wins.
+export function singlesPays(quote) {
+  return quote.legs.map(leg => slipPayoutTable({ legs: [leg], sizes: [1], stake: quote.stake }).net[1]);
+}
+
 export function quoteAllPays(quote) {
   if (!quote.sizes.length) return 0;
+  if (quote.mode === 'single' && quote.n > 1) return singlesPays(quote).reduce((a, b) => a + b, 0);
   const table = slipPayoutTable({ legs: quote.legs, sizes: quote.sizes, stake: quote.stake, boost: quote.boost });
   return Math.max(0, table.net[(1 << quote.n) - 1] - quote.freePart);
 }

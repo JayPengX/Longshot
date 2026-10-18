@@ -2,16 +2,37 @@
 // compares with what the odds said to expect (luck versus the lottery's cut),
 // how often picks came in against their chances, breakdowns, streaks and
 // records. Pure: the page and the tests both use it.
-import { slipOutlook, comboCount } from './odds.mjs';
+import { slipOutlook, comboCount, slipPayoutTable, maskChance, exclusiveMasks, settleSlip } from './odds.mjs';
+import { weekKey } from './account.mjs';
 
 // A pick's fair chance as saved; a pick saved without one counts at its odds.
 export const chanceOf = leg => (leg.fairChance >= 0 && leg.fairChance <= 1 ? leg.fairChance : Math.min(1, 1 / leg.odds));
 
 const outlooks = new Map();
-// A slip's outlook when bought, from the chances and odds saved with it.
+// A slip's outlook when bought, from the chances and odds saved with it. A
+// free bet's outlook is of what it pays: its winnings, never the free stake.
 export function outlookOf(slip) {
-  if (!outlooks.has(slip.id)) outlooks.set(slip.id, slipOutlook({ legs: slip.legs.map(leg => ({ gameId: leg.gameId, market: leg.market, odds: leg.odds, fairChance: chanceOf(leg) })), sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 }));
+  if (!outlooks.has(slip.id)) {
+    const legs = slip.legs.map(leg => ({ gameId: leg.gameId, market: leg.market, odds: leg.odds, fairChance: chanceOf(leg) }));
+    const ticket = { legs, sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 };
+    outlooks.set(slip.id, slip.free ? freeOutlook(ticket, slip.freeValue ?? slip.stake) : slipOutlook(ticket));
+  }
   return outlooks.get(slip.id);
+}
+function freeOutlook(ticket, freeValue) {
+  const { net } = slipPayoutTable(ticket);
+  const groups = exclusiveMasks(ticket.legs);
+  let mean = 0;
+  let square = 0;
+  let any = 0;
+  for (let won = 0; won < net.length; won++) {
+    const pays = Math.max(0, net[won] - freeValue);
+    const chance = maskChance(ticket.legs, won, groups);
+    mean += chance * pays;
+    square += chance * pays ** 2;
+    if (pays > 0) any += chance;
+  }
+  return { mean, sd: Math.sqrt(Math.max(0, square - mean * mean)), any };
 }
 
 function money() {
@@ -81,7 +102,9 @@ export function historyStats(account) {
     addMoney(total, slip);
     variance += look.sd ** 2;
     expectedPaid += look.any;
-    tax += Math.max(0, (slip.gross ?? slip.payout) - slip.payout);
+    // Withheld: before tax less after (a free bet's stake, never paid back, isn't tax).
+    const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
+    tax += Math.max(0, (slip.gross ?? back) - back);
     if (slip.payout > 0) paidSlips++;
     const profit = slip.payout - slip.cost;
     if (profit > 0) profitSlips++;
@@ -204,13 +227,8 @@ export function historyStats(account) {
   };
 }
 
-// Monday (YYYY-MM-DD, Taiwan time) of a moment's week.
-function weekOf(iso) {
-  const d = new Date(Date.parse(iso) + 8 * 3_600_000);
-  d.setUTCHours(0, 0, 0, 0);
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-  return d.toISOString().slice(0, 10);
-}
+// Monday (YYYY-MM-DD, Taiwan time) of a moment's week (account.mjs weekKey).
+const weekOf = iso => weekKey(new Date(iso));
 
 // Standard normal CDF (Abramowitz-Stegun 7.1.26 via erf).
 export function normalCdf(z) {
@@ -237,7 +255,9 @@ export function funFacts(account) {
   if (heartbreak && chanceOf(heartbreak) > 0.55) facts.heartbreak = { leg: heartbreak, chance: chanceOf(heartbreak) };
   // Parlays lost by exactly one pick, and what they'd have paid.
   const near = slips.filter(s => s.status === 'settled' && s.mode === 'parlay' && s.legs.filter(l => l.result === 'lost').length === 1);
-  if (near.length) facts.nearMiss = { count: near.length, missed: near.reduce((sum, s) => sum + s.stake * s.legs.reduce((p, l) => p * (l.result === 'void' ? 1 : l.odds), 1), 0) };
+  // (As the ticket would have paid it: the boost, the tax and the cap in.)
+  const allWon = s => settleSlip({ legs: s.legs.map(l => ({ ...l, result: l.result === 'lost' ? 'won' : l.result })), sizes: s.sizes, stake: s.stake, boost: s.boost ?? 0 }).net;
+  if (near.length) facts.nearMiss = { count: near.length, missed: near.reduce((sum, s) => sum + allWon(s), 0) };
   // Team picked most (win picks), with how often it came in.
   const teams = new Map();
   for (const l of legs.filter(l => l.kind === 'ml' && l.side !== 'draw')) {
@@ -267,18 +287,11 @@ export function funFacts(account) {
   return facts;
 }
 
-// What all correct pays for a slip, before tax, as a multiple is enough here.
+// The most a slip can pay, before tax (as a multiple is enough here): the
+// ticket's own table, so two picks of one game never share a combination.
 function outlookTop(slip) {
-  const n = slip.legs.length;
-  let total = 0;
-  const sizes = new Set(slip.sizes);
-  for (let pick = 1; pick < 1 << n; pick++) {
-    let size = 0;
-    let product = 1;
-    for (let i = 0; i < n; i++) if (pick & (1 << i)) (size++, (product *= slip.legs[i].odds));
-    if (sizes.has(size)) total += slip.stake * product;
-  }
-  return total;
+  const { gross } = slipPayoutTable({ legs: slip.legs.map(l => ({ gameId: l.gameId, odds: l.odds })), sizes: slip.sizes, stake: slip.stake });
+  return Math.max(0, ...gross);
 }
 
 // ---- Against the 100,000 ------------------------------------------------------
@@ -331,3 +344,4 @@ export function accountRecord(account) {
     back: spent > 0 ? (paid / spent) * 100 : null
   };
 }
+

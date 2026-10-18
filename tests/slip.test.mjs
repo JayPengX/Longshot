@@ -3,7 +3,7 @@
 // says; a slip bought shows what it has locked in, can pay and where it stands.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { slipQuote, quoteAllPays, ticketErrors, ruleLeg, slipRange, slipsMost, legState, slipEndedAt, slipGroupKey } from '../public/lib/slip.mjs';
+import { slipQuote, quoteAllPays, singlesPays, ticketErrors, ruleLeg, slipRange, slipsMost, legState, slipEndedAt, slipGroupKey } from '../public/lib/slip.mjs';
 import { slipErrors, SLIP_RULES, comboCount } from '../public/lib/odds.mjs';
 
 const bet = (gameId, odds, extra = {}) => ({ id: `${gameId}|ml|home`, gameId, kind: 'ml', side: 'home', estOdds: odds, fairChance: 0.9 / odds, ...extra });
@@ -118,4 +118,28 @@ test("where a pick and a slip stand, and the day a settled slip is filed under (
   assert.equal(slipEndedAt({ ...settled, settledAt: '2026-10-17T05:00:00Z' }), '2026-10-17T05:00:00Z');
   // No settling time: when it was bought.
   assert.equal(slipEndedAt({ t: '2026-10-01T00:00:00Z', legs: [] }), '2026-10-01T00:00:00Z');
+});
+
+test('singles are paid one ticket each: each its own NT$20M cap, the bar adds them up', () => {
+  // Two championship picks at 500.00, NT$100,000 a single: each NT$50M,
+  // capped at NT$20M and taxed (20.4%) on its own ticket. The bar once
+  // capped the two together, as one ticket: NT$15.92M for both.
+  const legs = [bet('f1', 500, { kind: 'future' }), bet('f2', 500, { kind: 'future' })];
+  const q = slipQuote({ bets: legs, mode: 'single', stake: 100_000 });
+  assert.deepEqual(q.errors, []);
+  const each = SLIP_RULES.maxPayout * (1 - SLIP_RULES.taxRate - SLIP_RULES.stampRate);
+  assert.deepEqual(singlesPays(q).map(Math.round), [each, each]);
+  assert.equal(Math.round(quoteAllPays(q)), 2 * each);
+  // Under the cap, the same as before: 2 × afterTax(100 × 2).
+  assert.equal(Math.round(quoteAllPays(slipQuote({ bets: [bet('g1', 2), bet('g2', 2)], mode: 'single', stake: 100 }))), 400);
+});
+
+test('every problem the ticket rules can name has its words in Chinese and English', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { STRINGS } = await import('../public/lib/i18n.mjs');
+  const src = await readFile(new URL('../.kit/play-odds.mjs', import.meta.url), 'utf8');
+  const codes = new Set([...src.matchAll(/errors\.push\('(\w+)'\)/g)].map(m => m[1]));
+  codes.add('empty');
+  assert.ok(codes.has('ticketMax'));
+  for (const lang of ['zh', 'en']) for (const code of codes) assert.ok(STRINGS[lang][`slipError_${code}`], `${lang} slipError_${code}`);
 });

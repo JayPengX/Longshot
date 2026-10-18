@@ -1,5 +1,5 @@
 import {
-  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, afterTax, combosBySize, comboCount
+  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, combosBySize, comboCount
 } from './lib/odds.mjs';
 import {
   FANS, STYLES, SPORTS, SIM_SPORTS, sportTemplate, weekOfYear, crowdPools, crowdSize, hashString, simulateCrowd, MONTH_WEEKS, PERIOD_MONTHS, monthWeeks
@@ -36,7 +36,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey } from './lib/slip.mjs';
+import { slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -1815,6 +1815,18 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
   const all = (1 << n) - 1;
   let least = Infinity;
   for (let won = 1; won < gross.length; won++) if (gross[won] > 0) least = Math.min(least, net[won]);
+  // All correct, before and after tax (a free bet's stake not paid back off
+  // the after). Singles are one ticket each (lib/slip.mjs singlesPays): each
+  // its own cap and tax, added up (as one ticket, two big ones shared one cap).
+  const each = mode === 'single' ? singlesPays({ legs, stake }) : null;
+  let allGross = gross[all];
+  let allTaxed = table.net[all];
+  if (each && n > 1) {
+    allGross = legs.reduce((sum, l) => sum + Math.min(SLIP_RULES.maxPayout, stake * l.odds), 0);
+    allTaxed = each.reduce((a, b) => a + b, 0);
+    least = Math.min(...each);
+  }
+  const allNet = free ? Math.max(0, allTaxed - free) : allTaxed;
   const rows = [];
   if (mode === 'parlay') {
     const product = legs.reduce((p, l) => p * l.odds, 1);
@@ -1825,7 +1837,7 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     ]));
     rows.push(payLine(t('payStake'), fmtMoney(stake, { sign: false })));
   } else if (mode === 'single') {
-    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} ${fmtMoney(stake, { sign: false })} × ${fmtOdds(l.odds)}`, fmtMoney(afterTax(stake * l.odds), { sign: false }))));
+    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} ${fmtMoney(stake, { sign: false })} × ${fmtOdds(l.odds)}`, fmtMoney(each[i], { sign: false }))));
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
@@ -1839,19 +1851,19 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
   // With a free bet: what's paid from the balance (the free part isn't).
   rows.push(payLine(free ? t('payYouPay', { f: fmtMoney(free, { sign: false }) }) : t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false }), 'pay-cost'));
   // Tax is the payout table's own (the free part taken off isn't tax).
-  const taxed = gross[all] - table.net[all] > 0.5;
+  const taxed = allGross - allTaxed > 0.5;
   return el('div', { class: 'pay-box' }, [
     el('p', { class: 'pay-title', text: t('payTitle') }),
     ...rows,
     el('div', { class: 'pay-top' }, [
       el('span', { text: free ? t('payAllFree') : t('payAll') }),
-      el('strong', { text: fmtMoney(net[all], { sign: false }) }),
-      el('small', { class: net[all] > cost ? 'back-high' : 'back-low', text: t('payProfit', { v: fmtMoney(net[all] - cost) }) })
+      el('strong', { text: fmtMoney(allNet, { sign: false }) }),
+      el('small', { class: allNet > cost ? 'back-high' : 'back-low', text: t('payProfit', { v: fmtMoney(allNet - cost) }) })
     ]),
     // A free bet: the payout, less the free stake that isn't paid back, is what arrives.
-    free ? el('p', { class: 'pay-note', text: t('payFreeSum', { gross: fmtMoney(table.net[all], { sign: false }), f: fmtMoney(free, { sign: false }), v: fmtMoney(net[all], { sign: false }) }) }) : null,
-    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { gross: fmtMoney(gross[all], { sign: false }), tax: fmtMoney(gross[all] - table.net[all], { sign: false }) }) }) : null,
-    mode !== 'parlay' && least < net[all] ? el('p', { class: 'pay-note', text: t('payLeast', { v: fmtMoney(least, { sign: false }) }) }) : null
+    free ? el('p', { class: 'pay-note', text: t('payFreeSum', { gross: fmtMoney(allTaxed, { sign: false }), f: fmtMoney(free, { sign: false }), v: fmtMoney(allNet, { sign: false }) }) }) : null,
+    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { gross: fmtMoney(allGross, { sign: false }), tax: fmtMoney(allGross - allTaxed, { sign: false }) }) }) : null,
+    mode !== 'parlay' && least < allNet ? el('p', { class: 'pay-note', text: t('payLeast', { v: fmtMoney(least, { sign: false }) }) }) : null
   ]);
 }
 

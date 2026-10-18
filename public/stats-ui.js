@@ -4,6 +4,7 @@
 // sports that pay, and the way back to the board. A period filter on top.
 import { gameName } from './lib/lottery.mjs';
 import { CARDS } from './lib/scratch.mjs';
+import { slipAtStake } from './lib/history.mjs';
 
 const T = {
   zh: {
@@ -72,7 +73,8 @@ export function mountStats(ctx) {
       out.push({
         at,
         amount: s.payout,
-        cost: s.cost,
+        // What was on it: a free bet's whole stake (its cost is the top-up only: 7× read for 1.17×).
+        cost: slipAtStake(s),
         kind: 'slip',
         legs: legs.length,
         full: !s.cashedOut && legs.length > 1 && legs.every(l => l.result === 'won' || l.result === 'void'),
