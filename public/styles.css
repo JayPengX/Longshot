@@ -1513,3 +1513,9 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .q-sheet.lotto-sheet:not(:has(.lotto-bought)) { padding-bottom: 0; }
 .ls-buybar:not(.has-opts) { grid-template-columns: minmax(0, 1fr) auto; }
 .ls-buybar:not(.has-opts) .ls-total { justify-items: start; }
+/* A won day's cards never grow past the page at 320 px: grid items here may
+   shrink below their content, and the drawn balls wrap like a ticket's. */
+#tickets-body > div, .lotto-done, .lotto-day, .lotto-day .lotto-tickets { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.lotto-day > *, .lotto-tickets > *, .lt-group > * { min-width: 0; }
+.lt-drawn .balls, .lt-line .balls { flex-wrap: wrap; }
+.lt-head .lt-net { flex: none; }
