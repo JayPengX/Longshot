@@ -1,12 +1,13 @@
-// The simulated betting account: play money only. It starts with NT$10,000,
-// gets ECONOMY.oddsWeekly (NT$500) once a week when the app is opened (Taiwan time, weeks from
-// Monday; it was NT$5,000 before the Quadra money pool), and buys
-// saved slips at the lottery's own prices; once every game on a slip is over,
-// the slip pays out like a real ticket (tax and payout cap included).
+// Play's account: play money only, on the Quadra Pass (its money is the
+// pass's one pool; Quadra pays the opening money and the monthly pay). It
+// buys slips and lottery tickets through the Worker (settled.mjs), which
+// settles them and pays into the pool; this keeps them and their ledger.
 //
 // The balance is never stored: it's the sum of a ledger of entries with fixed
-// ids ('start', 'grant-<Monday>', 'stake-<slip>', 'payout-<slip>'), so two
-// devices' copies merge by taking the union, and nothing counts twice.
+// ids ('start' and 'grant-<Monday>' on older accounts, 'stake-<slip>',
+// 'payout-<slip>', 'plus-<slip>', 'refund-<slip>', 'fb-<token>',
+// 'lotto-<id>', 'prize-<id>'), so two devices' copies merge by taking the
+// union, and nothing counts twice.
 import { mergeTickets } from './lottery.mjs';
 import { taipeiDayKey } from './sources.mjs';
 
@@ -21,6 +22,22 @@ export function newAccount(now = new Date(), { start = true } = {}) {
   return { v: 1, created: t, updated: t, ledger: start ? [{ id: 'start', t, kind: 'start', amount: START_BALANCE }] : [], slips: [] };
 }
 
+// A new account for a pass: Play's own opening money only for a pass whose
+// wallet is known and has none of Quadra's ('eco:start'). Every pass made
+// since the Quadra pool opens with Quadra's; a wallet not read yet (offline,
+// signing in) is never taken for one without it (Play's NT$10,000 'start'
+// went into the ledger then, money the pool never had).
+export function accountFor(wallet, now = new Date()) {
+  const known = Array.isArray(wallet?.entries);
+  return newAccount(now, { start: known && !wallet.entries.some(e => e.id === 'eco:start') });
+}
+
+// The lock-down (the owner, 2026-10-12; Shared-Proxy eco.js LOCK_SINCE): from
+// here on every slip is placed, settled and paid by the Worker, which watches
+// its Kambi matches as it's placed, and no app adds money to the pool. The one
+// exception, as the Worker allows it: an older slip whose picks every device
+// lost, refunded once (refundLost).
+export const LOCK_SINCE = Date.parse('2026-10-12T09:00:00Z');
 export function balance(account) {
   return account.ledger.reduce((sum, entry) => sum + entry.amount, 0);
 }
@@ -200,7 +217,9 @@ export function resultByMarket(account) {
 // were, and each bet with no slip left comes back as a recovered slip with
 // its cost, time and payout but no picks (`recovered: true`).
 export function recoverFromWallet(account, wallet) {
-  const mine = (wallet?.entries || []).filter(e => e.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:'));
+  // (An entry that can't be dated or counted is no money to bring back: one
+  // malformed entry stopped every sync with a RangeError.)
+  const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()));
   const have = new Set(account.ledger.map(e => e.id));
   const ledger = [];
   for (const e of mine) {
@@ -215,32 +234,47 @@ export function recoverFromWallet(account, wallet) {
   const slipIds = new Set(account.slips.map(s => s.id));
   const paid = new Map(all.filter(e => (e.kind === 'payout' || e.kind === 'cashout') && e.slipId).map(e => [e.slipId, e]));
   const refunds = new Set(all.filter(e => e.kind === 'refund' && e.slipId).map(e => e.slipId));
+  // What a slip was paid: its payout or cash out, and Plus's boost on it.
+  const plus = new Map(all.filter(e => e.kind === 'plusboost').map(e => [e.slipId || /^plus-(.+)$/.exec(e.id)?.[1], e.amount]));
+  const paidOf = id => paid.get(id).amount + (plus.get(id) || 0);
   const slips = [];
   for (const e of all) {
     if (e.kind !== 'stake' || !e.slipId || slipIds.has(e.slipId)) continue;
     const payout = paid.get(e.slipId);
     const cost = -e.amount;
     const refunded = !payout && refunds.has(e.slipId);
-    slips.push({ id: e.slipId, t: e.t, mode: 'single', sizes: [1], stake: cost, cost, legs: [], status: 'settled', payout: payout ? payout.amount : refunded ? cost : 0, settledAt: payout ? payout.t : e.t, recovered: true, ...(refunded ? { refunded: true } : {}) });
+    slips.push({ id: e.slipId, t: e.t, mode: 'single', sizes: [1], stake: cost, cost, legs: [], status: 'settled', payout: payout ? paidOf(e.slipId) : refunded ? cost : 0, settledAt: payout ? payout.t : e.t, recovered: true, ...(refunded ? { refunded: true } : {}) });
   }
-  if (!ledger.length && !slips.length) return account;
+  // A recovered slip the Worker has paid since (it held the real slip and
+  // settled it): it shows what it paid, not the nothing it showed before.
+  const kept = account.slips.map(s => {
+    if (!s.recovered || s.refunded || !paid.has(s.id)) return s;
+    const payout = paidOf(s.id);
+    return s.payout === payout ? s : { ...s, payout, settledAt: paid.get(s.id).t };
+  });
+  if (!ledger.length && !slips.length && kept.every((s, i) => s === account.slips[i])) return account;
   return {
     ...account,
     ledger: all.sort((x, y) => x.t.localeCompare(y.t)),
-    slips: [...account.slips, ...slips].sort((x, y) => y.t.localeCompare(x.t))
+    slips: [...kept, ...slips].sort((x, y) => y.t.localeCompare(x.t))
   };
 }
 
 // A recovered bet with no payout on record was never settled: its picks are
 // gone, so it can never be. Once it is old enough that no other device can
 // still be holding the real slip (REFUND_AFTER_MS), its cost comes back
-// (`refund-<slip>`) and it shows as refunded.
+// (`refund-<slip>`) and it shows as refunded. Only a bet from before the
+// lock-down (LOCK_SINCE): one placed since is the Worker's, which keeps its
+// picks, settles it and pays it (the wallet refuses a refund of it: refunded
+// here, it was money on this device the pool never had, and paid twice once
+// the Worker's payout came).
 export const REFUND_AFTER_MS = 3 * 86_400_000;
 export function refundLost(account, now = new Date()) {
   const have = new Set(account.ledger.map(e => e.id));
   const add = [];
   const slips = account.slips.map(slip => {
     if (!slip.recovered || slip.refunded || have.has(`payout-${slip.id}`)) return slip;
+    if (!(Date.parse(slip.t) < LOCK_SINCE)) return slip;
     if (now.getTime() - Date.parse(slip.t) < REFUND_AFTER_MS) return slip;
     if (!have.has(`refund-${slip.id}`)) add.push({ id: `refund-${slip.id}`, t: now.toISOString(), kind: 'refund', amount: slip.cost, slipId: slip.id });
     return { ...slip, payout: slip.cost, refunded: true, settledAt: slip.settledAt || now.toISOString() };

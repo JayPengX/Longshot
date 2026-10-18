@@ -20,6 +20,10 @@ import { rank, affinity, plusMember, plusCard, vipStatus, vipName, VIP, tell, we
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
 import { GAMES, nextDraw, latestResults, gameName } from './lib/lottery.mjs';
 import { icon } from './icons.js';
+import { normalizeTeamName } from '#kit/logos.mjs';
+import { familyOf } from './lib/teams.mjs';
+import { slipRange, slipsMost } from './lib/slip.mjs';
+import { slipAtStake } from './lib/history.mjs';
 
 const TXT = {
   zh: {
@@ -59,15 +63,8 @@ export function compactMoney(x, lang) {
   return `NT$${Math.round(x).toLocaleString('en-US')}`;
 }
 
-const norm = name =>
-  String(name || '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/&/g, ' ')
-    .replace(/\b(fc|afc|cf|sc|and)\b/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+// A team's key as every Quadra app records it (app.js betKeys, foryou.mjs).
+const norm = name => normalizeTeamName(String(name || ''));
 
 const TIER_WEIGHT = { major: 0.6, minor: 0.3, thin: 0.05 };
 
@@ -89,6 +86,9 @@ export function renderHome(ctx) {
   const aff = affinity(state.wallet, now, ['odds', 'stock', 'match']);
   const taste = tasteOf({ aff, fixtures: fixturesTaste(cachedPayload, state.wallet), slips: state.account?.slips || [], now });
   const teamKey = (g, side) => `team:${g.sport}:${norm(g[side]?.en ?? g[side])}`;
+  // A game's affinity keys, as a pick on it records them (app.js betKeys:
+  // the sport by its family, 'sport:baseball', never the league again).
+  const gameKeys = g => [`league:${g.sport}`, `sport:${familyOf(g.sport) || g.sport}`, teamKey(g, 'away'), teamKey(g, 'home')];
   const betsOf = new Map();
   for (const b of state.bets || []) {
     if (!b.gameId) continue;
@@ -103,7 +103,7 @@ export function renderHome(ctx) {
   const upcoming = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > now && !taste.held.has(g.id) && !shownIds.has(g.id) && !shownTeams.has(teamKey(g, 'home')) && !shownTeams.has(teamKey(g, 'away')) && (betsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
   const items = upcoming.map(g => {
     const hours = (Date.parse(g.startUtc) - now) / 3_600_000;
-    const keys = [`league:${g.sport}`, `sport:${g.sport}`, teamKey(g, 'away'), teamKey(g, 'home')];
+    const keys = gameKeys(g);
     const quality = TIER_WEIGHT[ctx.leagueTier(g.sport)] + (hours < 18 ? 0.3 : hours < 42 ? 0.15 : 0) + gameInterest(g, taste).score * 0.5;
     return { id: `game:${g.id}`, game: g, keys, quality, group: g.sport };
   });
@@ -117,7 +117,7 @@ export function renderHome(ctx) {
     liveBetsOf.get(b.gameId).push(b);
   }
   const onNow = (state.liveGames || []).filter(g => (liveBetsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
-  const liveItems = onNow.map(g => ({ id: `live:${g.id}`, game: g, keys: [`league:${g.sport}`, `sport:${g.sport}`, teamKey(g, 'away'), teamKey(g, 'home')], quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
+  const liveItems = onNow.map(g => ({ id: `live:${g.id}`, game: g, keys: gameKeys(g), quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
   const liveTop = spreadLeagues(rank(liveItems, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 3 });
   const liveCard = ({ game: g }) => {
     const bets = liveBetsOf.get(g.id) || [];
@@ -229,11 +229,11 @@ export function renderHome(ctx) {
   // ---- 你的投注: open slips and their cash-out prices
   const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
   // A free bet's stake counts (its cost is nothing: NT$0 · 1 張 said nothing was in play).
-  const atStake = open.reduce((s, x) => s + (x.free ? (x.stake ?? x.freeValue ?? 0) : x.cost), 0);
+  const atStake = open.reduce((s, x) => s + slipAtStake(x), 0);
   // A free bet's slip is never cashed out (like a sportsbook's): no price.
   const prices = new Map(open.filter(s => !s.free).map(s => [s.id, ctx.cashOutPrice(s)]));
   const cashable = [...prices.values()].reduce((s, v) => s + (v || 0), 0);
-  const most = open.reduce((s, x) => s + Math.max(0, ctx.slipRange(x).most), 0);
+  const most = slipsMost(open);
   // A slip as itself: one pick, its picture and the pick; several, a badge
   // with how many (6 關) and the kind (全部過關), a segment a pick coloured by
   // where it stands, and a few words on it (1 場目前猜錯 / 比賽中都猜對 /
@@ -242,7 +242,7 @@ export function renderHome(ctx) {
   // 火箭、兵工廠…" said little about a 6-pick parlay.)
   const slipRow = s => {
     const value = prices.get(s.id);
-    const most = Math.max(0, ctx.slipRange(s).most);
+    const most = Math.max(0, slipRange(s).most);
     const g = ctx.slipGlance(s);
     const n = s.legs.length;
     const one = n === 1;

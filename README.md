@@ -42,7 +42,9 @@ are the kit's and the Worker's (Shared-Proxy README §5–6).
 
 Four tabs from the kit's tab bar: 首頁, 賽事, 彩券, 紀錄. **投注單 (the
 slip) is a sheet over any tab**, opened from the slip bar above the tab bar
-(while it has picks: how many, the stake, the most it pays). At the top
+(while it has picks: how many and the kind, 單場 / N 串 1 / 過關組合, what it
+costs and the most it pays: the slip's own numbers, `lib/slip.mjs`
+`slipQuote`, its line shrunk to fit, never cut). At the top
 right are 說明 · 重新整理 · the account.
 
 ### 首頁 Home (`home.js`)
@@ -238,7 +240,15 @@ The slip follows the lottery's ticket rules:
   Quick stakes run NT$100–5,000, and the last stake is remembered on the
   device (`play.stake`).
 - **Limits**: a NT$20 million payout cap, and 20% income tax plus 0.4%
-  stamp duty on any combination paying over NT$5,000.
+  stamp duty on any combination paying over NT$5,000. A ticket with a
+  player's pick or a house-priced game on it costs NT$1,000 at most
+  (`SLIP_RULES.capped`).
+- **Judged as the Worker judges it** (`lib/slip.mjs` `slipQuote`,
+  `ticketErrors`): the slip, its bar and the button read one quote (legs,
+  sizes, stake, cost, free bet, problems), its legs carrying the house's own
+  limits (locked, parlay-only, capped). Singles are placed one slip a pick,
+  so each is checked on its own: NT$50 on two singles is two NT$50 slips
+  (under the minimum), twelve NT$10,000 singles are twelve tickets.
 
 **Each pick** shows its market as a coloured tag, the pick, its game and
 start, and its odds (and how they moved since it was picked).
@@ -360,8 +370,17 @@ JSON → gzip → base64, `gz1:`, 8–10× smaller).
   and nothing counts twice.
 - **Saves.** Writes go one after another, so a slower save never lands
   after a newer one. A copy that can't be read is never saved over.
+- **A new account** (`accountFor`): Play's own NT$10,000 `start` only for a
+  pass whose wallet is known and has no Quadra opening money (`eco:start`);
+  a wallet not read yet is never taken for one without it.
 - **Recovered slips.** A bet the account lost but the pass's money records
-  hold comes back as a recovered slip (cost, time, payout).
+  hold comes back as a recovered slip (cost, time, payout; a payout the
+  Worker makes later shows on it, Plus's boost included). One from before
+  the lock-down (`LOCK_SINCE`, 2026-10-12 09:00 UTC) with no payout is
+  refunded once after three days (`refundLost`, the one refund the wallet
+  takes); one placed since is the Worker's to settle, never refunded here.
+- **Malformed wallet entries** (no date, no amount) are left out of the
+  recovery, never a sync that throws.
 
 **The money is the pass's one pool.**
 - **Income.** Quadra pays the opening NT$30,000 and NT$6,000 every Taiwan
@@ -432,9 +451,10 @@ Tickets live on the account beside the slips and pay into the one pool.
 ## 紀錄: slips, tickets, 戰績 and stats
 
 - **投注單 (slips).**
-  - A summary row, filters (all, open, won, lost) and groups: 比賽進行中,
-    等待開賽, 已確定沒中, then settled by Taiwan day (the day the last game
-    was played).
+  - A summary row, filters (全部, 進行中, 贏) and groups (`lib/slip.mjs`
+    `slipGroupKey`): 比賽進行中, 等待開賽, 已確定沒中, then settled by
+    Taiwan day (the day the last game was played, `slipEndedAt`), then the
+    recovered ones.
   - Each slip: its mode, games, when bought; a bar with one segment per
     pick (green won, red lost, grey void, pulsing in play); each pick's
     state, market tag, odds and, in play, its score and whether it's
@@ -453,7 +473,7 @@ Tickets live on the account beside the slips and pay into the one pool.
   - **Picks**: won against their fair chances (by band and market); by
     sport, mode and number of picks; streaks and records; week by week.
   - **How you bet** (`lib/profile.mjs`): the same card as the crowd's
-    people.
+    people (slips with picks only: a recovered one says nothing about them).
   - **You against 100,000** (§The simulated crowd).
   - **Fun facts.**
 - **Nothing that talks people out of it.** 戰績 shows only wins; slips
@@ -545,6 +565,7 @@ Logos, names and photos come from the kit (`logos.mjs`, `names.mjs`,
 | `lib/players.mjs`, `props.mjs`, `propmodel.mjs` | Players' markets: rosters and seasons, Kambi's props, the house's model |
 | `lib/schedules.mjs` | Kambi leagues' own schedules |
 | `lib/cashout.mjs` | Cash out |
+| `lib/slip.mjs` | The slip in numbers: the slip being made (`slipQuote`, `ticketErrors`, `quoteAllPays`) and a slip bought (`slipRange`, `slipsMost`, `legState`, `slipEndedAt`, `slipGroupKey`) |
 | `lib/account.mjs` | The ledger, placing and settling, merging |
 | `lib/settled.mjs` | The Worker's placing and settling: slips placed, tickets bought, its results, cash out's lock |
 | `lib/history.mjs`, `profile.mjs` | Stats and a bettor's profile |
@@ -567,7 +588,10 @@ node ../Shared-Proxy/tools/preview.mjs play --webkit
 ```
 
 - **Tests**: the odds, cuts and rules, markets, lines, live, house, Kambi,
-  offers, players, F1 (flags, pole), the account and its merging, cash
+  offers, players, F1 (flags, pole), the account and its merging (the
+  lock-down's refunds, malformed wallet entries), the slip's quote against
+  the Worker's rules (`slip.test.mjs`), 紀錄's stats, the codec and the
+  recommendations at their edges (`history.test.mjs`), cash
   out, the lottery, scratch, the simulator and its audit, postseason, and
   sources (on fixtures, including real lottery prices:
   `tests/fixtures/lottery-mlb-2026-09-25.json`,
@@ -584,4 +608,7 @@ node ../Shared-Proxy/tools/preview.mjs play --webkit
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports (the same feed) |
 | Kambi's trims | Shared-Proxy's `sports.js` and `kambi.js` (`/kambi`) |
 | The account's ledger ids | Merging, the Worker's `ENTRY_APPS`/VIP stakes (kinds `stake`, `lottery`, `refund`), the money report |
+| The slip's rules (`lib/slip.mjs`) | Shared-Proxy `price.js` `checkSlip` (the Worker places each single as its own slip and refuses what `slipErrors` refuses on the house's own bets), the slip bar, `placeButton` |
+| `LOCK_SINCE` | Shared-Proxy `eco.js` `LOCK_SINCE`/`appEntries` (the one refund the wallet takes), `checkResults`' Kambi watch for older slips |
+| Affinity keys (`betKeys`) | Home's ranking (`gameKeys`: `sport:<family>`, teams by the kit's `normalizeTeamName`), `foryou.mjs` `tasteOf` |
 | The league list | `kit/catalog.mjs` (shared with Orbit Sports) |

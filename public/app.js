@@ -1,5 +1,5 @@
 import {
-  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, afterTax, slipErrors, slipSizes, combosBySize, comboCount
+  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, afterTax, combosBySize, comboCount
 } from './lib/odds.mjs';
 import {
   FANS, STYLES, SPORTS, SIM_SPORTS, sportTemplate, weekOfYear, crowdPools, crowdSize, hashString, simulateCrowd, MONTH_WEEKS, PERIOD_MONTHS, monthWeeks
@@ -13,7 +13,7 @@ import * as kit from '#kit/quadra.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
-  newAccount, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, freeOddsOk, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
+  accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
 } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
@@ -36,6 +36,7 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions, crowdPool } from './lib/board.mjs';
 import { auditPools } from './lib/audit.mjs';
 import { recommend } from './lib/recommend.mjs';
+import { slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey } from './lib/slip.mjs';
 
 // Simulated people per pick style x series-follow group, on average: each style
 // gets its share of the crowd, 100,000 people in all.
@@ -91,8 +92,6 @@ const state = {
   // The simulated account (play money) and its sync.
   account: null,
   accountReady: false,
-  // Resolves once the account is read and merged with the pass (boot).
-  accountIn: null,
   // Resolves once the account is read and merged with the pass (boot).
   accountIn: null,
   sync: { busy: false, error: '', at: null },
@@ -188,7 +187,7 @@ function fmtShort(iso) {
 // next day's 明天 ("明天 00:30"), later ones their date ("10/14 21:00").
 function legWhen(iso) {
   if (!iso) return '';
-  const day = ms => new Date(ms + 8 * 3_600_000).toISOString().slice(0, 10);
+  const day = ms => taipeiDayKey(new Date(ms));
   const at = Date.parse(iso);
   const hm = new Date(at + 8 * 3_600_000).toISOString().slice(11, 16);
   if (day(at) === day(Date.now())) return hm;
@@ -1219,7 +1218,8 @@ function pickButton(bet, name) {
     title: pickTitle(bet),
     disabled: locked ? true : null,
     'aria-pressed': String(inSlip),
-    'aria-label': `${bet.label} ${fmtOdds(effectiveOdds(bet))} · ${locked ? t(`lock_${bet.lock}`) : inSlip ? t('removeLeg') : t('addLeg')}`,
+    // (A stale live price, not locked by the house: 更新賠率中, never "lock_undefined".)
+    'aria-label': `${bet.label} ${fmtOdds(effectiveOdds(bet))} · ${locked ? t(bet.lock ? `lock_${bet.lock}` : 'placeUpdating') : inSlip ? t('removeLeg') : t('addLeg')}`,
     onclick: locked ? null : () => toggleLeg(bet)
   }, body);
 }
@@ -1554,7 +1554,9 @@ function sizeName(k, n) {
   return k === n ? state.t('slipAll') : state.t('slipSize', { k });
 }
 
-// ---- Bet slip extras: a grade, how rare a win is, and trying a draw ----------
+// The slip being made, by the ticket rules (lib/slip.mjs): its picks at the
+// board's odds now, the mode, sizes and stake chosen, the free bet chosen.
+const currentQuote = (legs, free) => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: effectiveOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake, free, boost: boostX() });
 
 function renderParlay() {
   renderSlipBar();
@@ -1564,18 +1566,12 @@ function renderParlay() {
   const n = legs.length;
   renderTabs();
   const mode = state.slipMode;
-  const chosen = [...state.slipSizes].map(k => (k === 'all' ? n : k));
-  const sizes = slipSizes(mode, n, chosen);
-  // A free bet (Plus's weekly one, the welcome offer): a cut off the stake.
-  // The stake is the person's usual one (never below the free bet); the free
-  // bet pays its part and the rest comes from the balance. One slip.
+  // A free bet (Plus's weekly one, the welcome offer): a cut off the stake
+  // (lib/slip.mjs slipQuote, the same numbers as the slip bar's).
   const tokens = freeBetList();
   const free = tokens.find(x => x.id === state.useFree) || null;
-  const freeShape = Boolean(free) && (mode === 'parlay' || (mode === 'single' && n === 1));
-  const freeOn = freeShape && freeOddsOk(legs.map(b => ({ odds: effectiveOdds(b) })));
-  const stake = freeOn ? Math.max(free.value, state.slipStake) : state.slipStake;
-  const slip = legs.map(b => ({ gameId: b.gameId, market: b.market ?? b.kind, odds: effectiveOdds(b), fairChance: b.fairChance, minLegs: b.minLegs ?? 1, lock: b.lock ?? null }));
-  const errors = slipErrors({ mode, legs: slip, sizes, stake });
+  const quote = currentQuote(legs, free);
+  const { sizes, stake, freeShape, freeOn, errors, cost, legs: slip } = quote;
   const rerender = () => renderParlay();
 
   if (n === 0) {
@@ -1696,7 +1692,6 @@ function renderParlay() {
     ticket.push(el('ul', { class: 'slip-errors' }, errors.map(e => el('li', { text: t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
   }
   // What comes off the balance: a free bet's top-up only.
-  const cost = freeOn ? stake - free.value : comboCount(slip, sizes) * stake;
   if (sizes.length && !errors.includes('stakeUnit') && (cost > 0 || freeOn)) ticket.push(payoutBox(slip, sizes, stake, mode, freeOn ? free.value : 0));
   if (mode !== 'single' && n >= 2 && !errors.includes('stakeUnit')) ticket.push(boostLadder(mode === 'parlay' ? n : Math.max(...sizes, 0)));
   // A free bet chosen that this slip can't take: said plainly by the button
@@ -1733,30 +1728,30 @@ function renderSlipBar() {
   if (sheetBar) sheetBar.hidden = true;
   if (!n || slipOpen() || !state.accountReady) return void (bar.hidden = true);
   const t = state.t;
-  const slip = legs.map(b => ({ gameId: b.gameId, market: b.market ?? b.kind, odds: effectiveOdds(b), fairChance: b.fairChance }));
-  const mode = n >= 2 && state.slipMode !== 'single' ? 'parlay' : 'single';
-  const sizes = slipSizes(mode, n, [n]);
-  // The free bet chosen, as the slip takes it: its stake isn't paid back, and it isn't paid for.
-  const free = freeBetList().find(x => x.id === state.useFree) || null;
-  const freeOn = Boolean(free) && (mode === 'parlay' || n === 1) && freeOddsOk(slip);
-  const stake = freeOn ? Math.max(free.value, state.slipStake) : state.slipStake;
-  const pay = sizes.length ? slipPayoutTable({ legs: slip, sizes, stake, boost: mode === 'single' ? 0 : boostX() }) : null;
-  const all = pay ? Math.max(0, pay.net[(1 << n) - 1] - (freeOn ? free.value : 0)) : 0;
-  const paid = comboCount(slip, sizes) * stake - (freeOn ? free.value : 0);
+  // The slip as it stands (its mode, sizes, free bet): what it costs from the
+  // balance and pays all correct, the same numbers as the slip's own.
+  const quote = currentQuote(legs, freeBetList().find(x => x.id === state.useFree) || null);
+  const { mode } = quote;
+  const all = quoteAllPays(quote);
   bar.hidden = false;
   bar.replaceChildren(
     el('span', { class: 'slip-bar-count num', text: String(n) }),
     el('span', { class: 'slip-bar-main' }, [
-      el('strong', { text: mode === 'parlay' ? t('barParlay', { n }) : t('barSingles', { n }) }),
-      el('small', { class: 'num', text: t('barPays', { stake: fmtMoney(paid, { sign: false }), v: fmtMoney(all, { sign: false }) }) })
+      el('strong', { text: mode === 'parlay' && n >= 2 ? t('barParlay', { n }) : mode === 'system' && n >= 3 ? t('barSystem', { n }) : t('barSingles', { n }) }),
+      el('small', { class: 'num', text: t('barPays', { stake: fmtMoney(quote.cost, { sign: false }), v: fmtMoney(all, { sign: false }) }) })
     ]),
     el('span', { class: 'slip-bar-go', text: `${t('barGo')} ›` })
   );
+  // Its line shrinks to fit, never cut ("最高派彩 NT$7,1…" at 375 px: the bar
+  // sits outside the parts fitNumbers watches).
+  if (typeof ResizeObserver !== 'undefined') fitNumbers([...bar.querySelectorAll(SLIP_BAR_FIT)]);
   if (sheetBar && gameSheetOpen()) {
     sheetBar.replaceChildren(...[...bar.childNodes].map(node => node.cloneNode(true)));
     sheetBar.hidden = false;
+    if (typeof ResizeObserver !== 'undefined') fitNumbers([...sheetBar.querySelectorAll(SLIP_BAR_FIT)]);
   }
 }
+const SLIP_BAR_FIT = '.slip-bar-main small';
 
 // ---- Slip: what each pick is, what the ticket pays ------------------------------
 
@@ -1927,8 +1922,9 @@ async function loadAccount() {
   } catch {}
   return null;
 }
-// A pass that got its opening money from Quadra itself opens an empty ledger.
-const freshAccount = () => newAccount(new Date(), { start: !(state.wallet?.entries || []).some(e => e.id === 'eco:start') });
+// A pass that got its opening money from Quadra itself opens an empty ledger
+// (lib/account.mjs accountFor: a wallet not known yet is never taken for one without it).
+const freshAccount = (wallet = state.wallet) => accountFor(wallet);
 
 function poolExtra() {
   return othersBalance(state.wallet, 'odds');
@@ -2046,13 +2042,13 @@ async function mergeRemote(remote) {
   const theirs = remote.payload ? await unpack(remote.payload).catch(() => null) : null;
   // A copy there that can't be read is never saved over.
   if ((remote.payload && !theirs) || (theirs && !isAccount(theirs))) throw new Error('bad account');
-  let merged = mergeAccounts(state.account || (theirs ? null : freshAccount()), theirs);
-  if (!merged) merged = theirs || freshAccount();
+  const wallet = remote.wallet || state.wallet;
+  let merged = mergeAccounts(state.account || (theirs ? null : freshAccount(wallet)), theirs);
+  if (!merged) merged = theirs || freshAccount(wallet);
   for (const item of remote.inbox || []) {
     const other = await unpack(item.payload).catch(() => null);
     if (isAccount(other)) merged = mergeDistinct(merged, compactAccount(other));
   }
-  const wallet = remote.wallet || state.wallet;
   merged = refundLost(recoverFromWallet(merged, wallet));
   const have = new Set((wallet?.entries || []).map(e => e.id));
   const entries = poolEntries(merged).filter(e => !have.has(e.id));
@@ -2284,9 +2280,8 @@ async function applySettled(force = false) {
   // Settled in this account now: the Worker forgets them.
   ackSettled(Object.keys(records).filter(id => records[id]?.settled && account.slips.find(s => s.id === id)?.status === 'settled')).catch(() => {});
 }
-// From here on every slip is placed through the Worker, which watches its
-// Kambi matches (Shared-Proxy settle.js watchSlips, eco.js LOCK_SINCE).
-const WORKER_WATCHES_SINCE = Date.parse('2026-10-12T09:00:00Z');
+// From the lock-down on (lib/account.mjs LOCK_SINCE) every slip is placed
+// through the Worker, which watches its Kambi matches (Shared-Proxy settle.js watchSlips).
 async function checkResults(force = false) {
   if (!state.accountReady) return;
   await applySettled(force);
@@ -2305,7 +2300,7 @@ async function checkResults(force = false) {
   const pending = open.flatMap(started);
   // Kambi's matches for the Worker to keep: only an older slip's (one placed
   // since the lock-down is watched by the Worker as it's placed).
-  const watch = open.filter(s => !(Date.parse(s.t) >= WORKER_WATCHES_SINCE)).flatMap(started);
+  const watch = open.filter(s => !(Date.parse(s.t) >= LOCK_SINCE)).flatMap(started);
   if (!pending.length || state.checking) return;
   // (A beat's own timer runs a little early or late: a second's slack.)
   if (!force && now.getTime() - state.checkedAt < (state.legLive.size ? liveMs() - 1000 : RESULT_CHECK_MS)) return;
@@ -2335,7 +2330,7 @@ function renderAccount() {
   // record so far in one line (a grid of four cramped numbers, and a second
   // card under it saying the same again, before).
   const open = account.slips.filter(x => x.status === 'open');
-  const most = open.reduce((n, x) => n + Math.max(0, slipRange(x).most), 0);
+  const most = slipsMost(open);
   const tile = (label, value, sub = '', cls = '') => el('div', { class: 'acct-tile' }, [el('span', { class: 'acct-tile-label', text: label }), el('strong', { class: `num stat-value ${cls}`.trim(), text: value }), sub ? el('small', { text: sub }) : null]);
   const net = r.net == null ? null : el('strong', { class: `num ${r.net > 0 ? 'back-high' : r.net < 0 ? 'back-low' : ''}`, text: fmtMoney(r.net, { sign: true }) });
   $('account-body').replaceChildren(
@@ -2358,27 +2353,8 @@ function renderAccount() {
   );
 }
 
-// Where each pick stands: won / lost / void, 'live' (its game is on), or
-// 'waiting' (not started).
-function legState(leg, now = Date.now()) {
-  if (leg.result) return leg.result;
-  return leg.start && Date.parse(leg.start) <= now ? 'live' : 'waiting';
-}
-
-// What an open slip has locked in (every undecided pick lost) and the most it
-// can still pay (every undecided pick won).
-function slipRange(slip) {
-  const as = result => slip.legs.map(leg => ({ gameId: leg.gameId, odds: leg.odds, result: leg.result ?? result }));
-  // A free bet pays its winnings only, not the stake.
-  const less = x => (slip.free ? Math.max(0, x - (slip.freeValue ?? slip.stake)) : x);
-  return {
-    locked: less(settleSlip({ legs: as('lost'), sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 }).net),
-    most: less(settleSlip({ legs: as('won'), sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 }).net)
-  };
-}
-
-
-// A free bet's slip: the free part, and what was put on top.
+// (Where a pick stands, legState, and what an open slip has locked in and can
+// still pay, slipRange: lib/slip.mjs.)
 
 // ---- Cash out ------------------------------------------------------------------------
 
@@ -2741,24 +2717,9 @@ const HISTORY_FILTERS = {
   won: s => s.status === 'settled' && s.payout > 0
 };
 
-// When a settled slip's last game was played: its day is the day to file it
-// under, not the day the app happened to settle it (an F1 result can come
-// in days after the race, or a slip is settled when the app is next opened).
-function slipEndedAt(slip) {
-  const last = slip.legs.map(leg => leg.start || '').filter(Boolean).sort().at(-1);
-  if (last && slip.settledAt && last < slip.settledAt) return last;
-  return slip.settledAt ?? slip.t;
-}
-
-// Groups for the slip list: games on now, waiting to start, already lost
-// (a parlay with a lost pick, waiting for its other games), then settled
-// slips by the Taiwan day they were settled.
-function slipGroupKey(slip, now) {
-  if (slip.recovered || !slip.legs.length) return 'recovered';
-  if (slip.status === 'settled') return `day|${taipeiDayKey(slipEndedAt(slip))}`;
-  if (slipRange(slip).most <= 0) return 'dead';
-  return slip.legs.some(leg => legState(leg, now) === 'live') ? 'live' : 'waiting';
-}
+// Groups for the slip list (lib/slip.mjs slipGroupKey): games on now,
+// waiting to start, already lost (a parlay with a lost pick, waiting for its
+// other games), then settled slips by the Taiwan day their last game was played.
 
 function groupTitle(key) {
   const t = state.t;
@@ -2783,7 +2744,7 @@ function groupSummary(key, slips) {
     return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupSlips', { n: slips.length })), paid > 0 ? el('strong', { class: 'back-high', text: t('groupPaid', { v: fmtMoney(paid, { sign: false }) }) }) : null]);
   }
   if (key === 'dead') return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupSlips', { n: slips.length }))]);
-  const most = slips.reduce((s, x) => s + slipRange(x).most, 0);
+  const most = slipsMost(slips);
   return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupCountCost', { n: slips.length, cost: fmtMoney(cost, { sign: false }) })), el('strong', { text: t('groupMost', { v: fmtMoney(most, { sign: false }) }) })]);
 }
 
@@ -3767,7 +3728,7 @@ topActions(q, { refresh: load });
 // it for the first time). Only the slip and simulator
 // have such numbers (and 首頁's picks' names, a ticket's picks and their
 // second lines, and 你的投注's rows: a long name a little smaller, not cut). All reads, then all writes, so the page lays out once.
-const FIT_SELECTOR = '.feature-team, .stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong, .fy-text small, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .bet-main strong, .bet-state';
+const FIT_SELECTOR = '.slip-bar-main small, .feature-team, .stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong, .fy-text small, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .bet-main strong, .bet-state';
 function fitNumbers(nodes) {
   for (const node of nodes) node.style.fontSize = '';
   const sizes = nodes.map(node => {
@@ -3876,7 +3837,7 @@ function homeCtx() {
   };
   return {
     openSlip: () => openSlip(),
-    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, slipRange, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
+    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, el, svgEl, fmtMoney, fmtInt, fmtPctShort, fmtOdds, fmtTime, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)), youCard, crowdCard, funCard, picksCard, breakdownCard });
 lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w) });

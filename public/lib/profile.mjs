@@ -26,8 +26,10 @@ export function slipTicket(slip, firstMs) {
   };
 }
 
+// (A slip with no picks, brought back from the pass's money records, says
+// nothing about how its picks were made: it read as an underdog single.)
 export function accountTickets(account) {
-  const slips = [...account.slips].filter(s => s.status === 'settled').sort((a, b) => a.t.localeCompare(b.t));
+  const slips = [...account.slips].filter(s => s.status === 'settled' && !s.recovered && s.legs?.length).sort((a, b) => a.t.localeCompare(b.t));
   if (!slips.length) return [];
   const first = Date.parse(slips[0].t);
   return slips.map(s => slipTicket(s, first));

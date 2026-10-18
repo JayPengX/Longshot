@@ -300,9 +300,13 @@ export function crowdPercentile(quantiles, value) {
   return (lo + (value - quantiles[lo]) / span) / (quantiles.length - 1);
 }
 
+// The money riding on an open slip: what it cost, and a free bet's whole
+// stake (its cost is nothing: "NT$0 · 1 張" said nothing was in play).
+export const slipAtStake = slip => (slip.free ? Number(slip.stake ?? slip.freeValue) || 0 : Number(slip.cost) || 0);
+
 // The account card's four numbers, over everything played with the money:
 // bets and lottery tickets alike. `open`: riding now (slips and tickets not
-// drawn yet); `won`: everything paid back (payouts, cash-outs, prizes);
+// drawn yet, a free bet at its stake); `won`: everything paid back (payouts, cash-outs, prizes);
 // `net` and `back` over what's been decided only (a slip settled, a ticket
 // drawn), losses as they are: null while nothing's decided, never a NT$0
 // or 0% that only means "nothing yet" (a lottery prize won counted in
@@ -319,7 +323,7 @@ export function accountRecord(account) {
   const decided = settledSlips.length + drawn.length;
   const won = (account?.ledger || []).filter(e => e.kind === 'payout' || e.kind === 'cashout' || e.kind === 'prize' || e.kind === 'plusboost').reduce((n, e) => n + Math.max(0, e.amount), 0);
   return {
-    open: openSlips.reduce((n, s) => n + (Number(s.cost) || 0), 0) + openTickets.reduce((n, x) => n + (Number(x.cost) || 0), 0),
+    open: openSlips.reduce((n, s) => n + slipAtStake(s), 0) + openTickets.reduce((n, x) => n + (Number(x.cost) || 0), 0),
     openCount: openSlips.length + openTickets.length,
     won,
     decided,

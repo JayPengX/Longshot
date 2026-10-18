@@ -427,3 +427,96 @@ test('a lost slip that was never settled is refunded once it is old enough, and 
   const settled = applyResults(found, 'b', ['won'], later);
   assert.equal(balance(settled), -3000 + settled.slips.find(s => s.id === 'b').payout);
 });
+
+test("a lost slip from since the lock-down is never refunded here: it's the Worker's, which settles and pays it", async () => {
+  const { recoverFromWallet, refundLost, newAccount, balance, REFUND_AFTER_MS, LOCK_SINCE } = await import('../public/lib/account.mjs');
+  const t0 = LOCK_SINCE + 86_400_000;
+  const wallet = { entries: [{ id: 'odds:stake-c', t: t0, app: 'odds', kind: 'stake', amount: -1500 }] };
+  const back = recoverFromWallet(newAccount(new Date(t0), { start: false }), wallet);
+  // Days on: no refund (the wallet refuses one; refunded here, the NT$1,500
+  // was money on this device the pool never had).
+  const later = new Date(t0 + REFUND_AFTER_MS * 3);
+  assert.equal(refundLost(back, later), back);
+  assert.equal(balance(back), -1500);
+  // The Worker settles it and pays: the recovered slip shows what it paid, the money once.
+  const paid = recoverFromWallet(back, { entries: [...wallet.entries, { id: 'odds:payout-c', t: later.getTime(), app: 'odds', kind: 'payout', amount: 2400 }, { id: 'odds:plus-c', t: later.getTime(), app: 'odds', kind: 'plusboost', amount: 60 }] });
+  const c = paid.slips.find(s => s.id === 'c');
+  assert.deepEqual([c.recovered, c.payout, c.refunded], [true, 2460, undefined]);
+  assert.equal(balance(paid), -1500 + 2460);
+  assert.equal(refundLost(paid, later), paid);
+  // Read again: nothing changes.
+  assert.equal(recoverFromWallet(paid, { entries: [...wallet.entries, { id: 'odds:payout-c', t: later.getTime(), app: 'odds', kind: 'payout', amount: 2400 }, { id: 'odds:plus-c', t: later.getTime(), app: 'odds', kind: 'plusboost', amount: 60 }] }), paid);
+  // One from before the lock-down still is, once.
+  const old = recoverFromWallet(newAccount(new Date(LOCK_SINCE - 10 * 86_400_000), { start: false }), { entries: [{ id: 'odds:stake-d', t: LOCK_SINCE - 10 * 86_400_000, app: 'odds', kind: 'stake', amount: -700 }] });
+  assert.equal(balance(refundLost(old, later)), 0);
+});
+
+test("a wallet entry that can't be dated or counted is left out, never a sync that throws", async () => {
+  const { recoverFromWallet, newAccount, balance } = await import('../public/lib/account.mjs');
+  const empty = newAccount(new Date('2026-10-01T00:00:00Z'), { start: false });
+  const wallet = {
+    entries: [
+      null,
+      { id: 'odds:stake-a', app: 'odds', kind: 'stake', amount: -100 },
+      { id: 'odds:stake-b', t: 'soon', app: 'odds', kind: 'stake', amount: -100 },
+      { id: 'odds:stake-c', t: Date.parse('2026-10-02T00:00:00Z'), app: 'odds', kind: 'stake', amount: '-100' },
+      { id: 'odds:stake-d', t: Date.parse('2026-10-02T00:00:00Z'), app: 'odds', kind: 'stake', amount: -300 },
+      { id: 42, t: 1, app: 'odds', kind: 'stake', amount: -1 }
+    ]
+  };
+  const back = recoverFromWallet(empty, wallet);
+  assert.equal(balance(back), -300);
+  assert.deepEqual(back.slips.map(s => s.id), ['d']);
+  assert.equal(recoverFromWallet(empty, null), empty);
+});
+
+test("a new account takes Play's own opening money only for a known wallet without Quadra's", async () => {
+  const { accountFor, balance } = await import('../public/lib/account.mjs');
+  // Not read yet (offline, signing in): no NT$10,000 the pool never had.
+  assert.equal(balance(accountFor(null)), 0);
+  assert.equal(balance(accountFor({})), 0);
+  assert.equal(balance(accountFor({ entries: [{ id: 'eco:start', amount: 30000 }] })), 0);
+  assert.equal(balance(accountFor({ entries: [] })), 10000);
+});
+
+test('two copies merge: a settled copy wins, picks decided on either side are kept, tickets and the ledger by union', async () => {
+  const { mergeAccounts, newAccount, placeSlip, applyResults, balance } = await import('../public/lib/account.mjs');
+  const t0 = new Date('2026-10-10T00:00:00Z');
+  const legs = [
+    { id: 'a', gameId: 'ga', odds: 2, start: '2026-10-10T10:00:00Z' },
+    { id: 'b', gameId: 'gb', odds: 2, start: '2026-10-10T12:00:00Z' },
+    { id: 'c', gameId: 'gc', odds: 2, start: '2026-10-10T14:00:00Z' }
+  ];
+  const base = placeSlip(newAccount(t0, { start: false }), { id: 'p', mode: 'parlay', sizes: [3], stake: 100, cost: 100, legs }, t0, { extra: 1000 }).account;
+  // One device knows the first pick, the other the second, with its score.
+  const one = applyResults(base, 'p', ['won', null, null], new Date('2026-10-10T13:00:00Z'));
+  const two = applyResults(base, 'p', [null, 'won', null], new Date('2026-10-10T15:00:00Z'), [null, { away: 1, home: 2 }]);
+  for (const merged of [mergeAccounts(one, two), mergeAccounts(two, one)]) {
+    const p = merged.slips[0];
+    assert.equal(p.status, 'open');
+    assert.deepEqual(p.legs.map(l => l.result), ['won', 'won', null]);
+    assert.deepEqual(p.legs[1].final, { away: 1, home: 2 });
+    assert.equal(merged.ledger.length, 1);
+  }
+  // Settled on one: the settled copy, from either side, paid once.
+  const done = applyResults(one, 'p', [null, 'won', 'won'], new Date('2026-10-11T00:00:00Z'));
+  for (const merged of [mergeAccounts(done, two), mergeAccounts(two, done)]) {
+    assert.equal(merged.slips[0].status, 'settled');
+    assert.equal(merged.ledger.filter(e => e.id === 'payout-p').length, 1);
+    assert.equal(balance(merged), balance(done));
+  }
+  // Nothing on one side: the other as it is.
+  assert.equal(mergeAccounts(null, done), done);
+  assert.equal(mergeAccounts(done, undefined), done);
+  // The oldest creation and the newest change.
+  const m = mergeAccounts({ ...done, created: '2026-01-01T00:00:00.000Z' }, { ...two, updated: '2027-01-01T00:00:00.000Z' });
+  assert.deepEqual([m.created, m.updated], ['2026-01-01T00:00:00.000Z', '2027-01-01T00:00:00.000Z']);
+});
+
+test("the account card counts a free bet's stake as riding (its cost is nothing)", async () => {
+  const { accountRecord, slipAtStake } = await import('../public/lib/history.mjs');
+  const free = { id: 'f', status: 'open', cost: 0, stake: 200, free: 'fb', freeValue: 200, legs: [] };
+  const topped = { id: 'g', status: 'open', cost: 300, stake: 500, free: 'fb2', freeValue: 200, legs: [] };
+  assert.deepEqual([slipAtStake(free), slipAtStake(topped), slipAtStake({ cost: 100 })], [200, 500, 100]);
+  assert.equal(accountRecord({ slips: [free, topped], tickets: [], ledger: [] }).open, 700);
+});
