@@ -4,7 +4,7 @@
 // sports that pay, and the way back to the board. A period filter on top.
 import { gameName } from './lib/lottery.mjs';
 import { CARDS } from './lib/scratch.mjs';
-import { slipAtStake } from './lib/history.mjs';
+import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
 
 const T = {
   zh: {
@@ -59,75 +59,13 @@ export function mountStats(ctx) {
   const day = at => { const [, m, d] = new Date(at + TPE).toISOString().slice(0, 10).split('-'); return `${+m}/${+d}`; };
   const mult = x => `×${x.toFixed(x >= 10 ? 0 : 2)}`;
 
-  // Every win from `since`: settled slips that paid (cashed out too), lottery
-  // tickets and scratch cards that won.
-  function wins(since = 0) {
-    const account = state.account;
-    const out = [];
-    for (const s of account?.slips || []) {
-      if (s.status !== 'settled' || !(s.payout > 0) || s.refunded) continue;
-      const at = Date.parse(s.settledAt || s.t);
-      if (at < since) continue;
-      const legs = s.legs || [];
-      const sports = [...new Set(legs.map(l => l.sport).filter(Boolean))];
-      out.push({
-        at,
-        amount: s.payout,
-        // What was on it: a free bet's whole stake (its cost is the top-up only: 7× read for 1.17×).
-        cost: slipAtStake(s),
-        kind: 'slip',
-        legs: legs.length,
-        full: !s.cashedOut && legs.length > 1 && legs.every(l => l.result === 'won' || l.result === 'void'),
-        cashed: Boolean(s.cashedOut),
-        free: Boolean(s.freeBet || s.free),
-        sport: sports.length === 1 ? sports[0] : 'mixed',
-        title: legs.map(l => l.shortLabel || l.label).slice(0, 2).join('、') + (legs.length > 2 ? '…' : '')
-      });
-    }
-    for (const x of account?.tickets || []) {
-      if (x.status !== 'settled' || !(x.prize > 0)) continue;
-      const at = Date.parse(x.settledAt || x.t);
-      if (at < since) continue;
-      out.push({ at, amount: x.prize, cost: x.cost, kind: 'lotto', card: Boolean(x.card), title: x.card ? CARDS[x.card]?.[lang() === 'en' ? 'en' : 'zh'] || t('scratch') : gameName(x.game, lang()) });
-    }
-    return out.sort((a, b) => b.at - a.at);
-  }
-  // The longest run of paying slips, in the order they settled.
-  function longestRun() {
-    const settled = (state.account?.slips || []).filter(s => s.status === 'settled' && !s.recovered).sort((a, b) => String(a.settledAt).localeCompare(String(b.settledAt)));
-    let best = 0;
-    let run = 0;
-    for (const s of settled) {
-      run = s.payout > 0 ? run + 1 : 0;
-      best = Math.max(best, run);
-    }
-    return best;
-  }
-
-  // Achievements over the whole history: [key, done, progress 0-1, when].
-  function achievements() {
-    const all = wins();
-    const slips = all.filter(w => w.kind === 'slip');
-    const total = all.reduce((s, w) => s + w.amount, 0);
-    const run = longestRun();
-    const first = list => list.length ? list[list.length - 1].at : null;
-    const topMult = Math.max(0, ...slips.filter(w => w.cost > 0).map(w => w.amount / w.cost));
-    const best = Math.max(0, ...all.map(w => w.amount));
-    const out = [
-      ['first', all.length > 0, Math.min(1, all.length), first(all)],
-      ['run3', run >= 3, Math.min(1, run / 3)],
-      ['parlay3', slips.some(w => w.full && w.legs >= 3), slips.some(w => w.full) ? 0.5 : 0, first(slips.filter(w => w.full && w.legs >= 3))],
-      ['x10', topMult >= 10, Math.min(1, topMult / 10), first(slips.filter(w => w.cost > 0 && w.amount / w.cost >= 10))],
-      ['lotto', all.some(w => w.kind === 'lotto'), 0, first(all.filter(w => w.kind === 'lotto'))],
-      ['cash', slips.some(w => w.cashed && w.amount > w.cost), 0, first(slips.filter(w => w.cashed && w.amount > w.cost))],
-      ['run5', run >= 5, Math.min(1, run / 5)],
-      ['parlay5', slips.some(w => w.full && w.legs >= 5), 0, first(slips.filter(w => w.full && w.legs >= 5))],
-      ['10k', best >= 10_000, Math.min(1, best / 10_000), first(all.filter(w => w.amount >= 10_000))],
-      ['100k', total >= 100_000, Math.min(1, total / 100_000)],
-      ['1m', total >= 1_000_000, Math.min(1, total / 1_000_000)]
-    ];
-    return out.map(([key, done, progress, at]) => ({ key, done, progress: done ? 1 : progress, at: at ?? null }));
-  }
+  // What a win is called on screen.
+  const titleOf = w => (w.kind === 'lotto'
+    ? (w.card ? CARDS[w.card]?.[lang() === 'en' ? 'en' : 'zh'] || t('scratch') : gameName(w.game, lang()))
+    : w.labels.slice(0, 2).join('、') + (w.labels.length > 2 ? '…' : ''));
+  const wins = since => winsOf(state.account, since).map(w => ({ ...w, title: titleOf(w) }));
+  const longestRunNow = () => longestRun(state.account?.slips);
+  const achievements = () => achievementsOf(state.account);
 
   // Winnings over time: weeks (all), 3-day steps (30 days) or days (7 days).
   function rhythm(list, period) {
@@ -188,7 +126,7 @@ export function mountStats(ctx) {
     const tiles = el('div', { class: 'wins-tiles' }, [
       tile(t('month'), money(thisMonth)),
       tile(t('winsN'), t('winsNV', { n: list.length })),
-      tile(t('streak'), t('streakN', { n: longestRun() })),
+      tile(t('streak'), t('streakN', { n: longestRunNow() })),
       top > 1 ? tile(t('top'), mult(top)) : null,
       cashed > 0 ? tile(t('cashed'), money(cashed)) : null,
       lotto ? tile(t('bigLotto'), money(lotto.amount), lotto.title) : null
