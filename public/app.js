@@ -359,6 +359,11 @@ function pickName(game, market, pick) {
 // prices, the saved board's game today, reuses them); its Kambi markets or
 // players arriving work them out again.
 const optionsMemo = new Map();
+// Markets 台灣運彩 doesn't sell (各球種投注玩法), left off the board: soccer's
+// 和局退款, hockey's 兩隊都進球 and goal bands, American football's 勝分差,
+// baseball's 首局得分. A slip already holding one still settles (the kit's).
+const NOT_SOLD = { soccer: ['dnb'], hockey: ['btts', 'goalbands'], football: ['margin'], baseball: ['firstinning'] };
+const sold = b => !NOT_SOLD[isSoccer(b.sport ?? b.game?.sport) ? 'soccer' : familyOf(b.sport ?? b.game?.sport)]?.includes(b.kind);
 const gameKey = game => JSON.stringify(game, (k, v) => (k === 'offers' || k === 'players' ? undefined : v));
 function optionsOf(game) {
   const hit = optionsMemo.get(game.id);
@@ -366,7 +371,7 @@ function optionsOf(game) {
     if (hit.game !== game) Object.assign(hit, { game, options: hit.options.map(o => ({ ...o, game })) });
     return hit.options;
   }
-  const options = gameOptions(game);
+  const options = gameOptions(game).filter(sold);
   optionsMemo.set(game.id, { game, key: gameKey(game), offers: game.offers, players: game.players, options });
   return options;
 }
@@ -1311,7 +1316,8 @@ function liveStateText(live) {
 // (play-bets.mjs liveBets), named here.
 function buildLiveBets(data) {
   const t = state.t;
-  const { games, bets } = liveBets(data, { offersOf: game => gameOffers.get(game.id)?.offers ?? null });
+  const { games, bets: all } = liveBets(data, { offersOf: game => gameOffers.get(game.id)?.offers ?? null });
+  const bets = all.filter(sold);
   const matchups = new Map(games.map(g => [g.id, matchupText(g)]));
   return {
     games,
