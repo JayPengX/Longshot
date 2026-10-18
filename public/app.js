@@ -86,7 +86,7 @@ const state = {
   tab: 'home',
   // The game whose sheet is open (every market), by id.
   sheetGame: null,
-  // Each open game's market tab (大小分, 讓分, 單隊大小, 得分最高單局).
+  // Each open game's market tab (大小, 讓分, 主隊/客隊大小, 得分最高單局).
   marketTab: new Map(),
   propTab: new Map(),
   // The simulated account (play money) and its sync.
@@ -1139,7 +1139,7 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
 // Kinds laid out as tables of lines: over/under, and one team giving a line.
 const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners']);
 // A market's name by its sport: a handicap is baseball's run line, hockey's
-// puck line, soccer's 讓球, a spread elsewhere; a total is runs, goals or
+// puck line, soccer's 讓分 too, a spread elsewhere; a total is runs, goals or
 // points (an NHL game's tabs said "Total runs" and "Run line").
 function secName(sec, sport, full = false) {
   const family = familyOf(sport);
@@ -1761,7 +1761,7 @@ function kindKey(kind) {
   return { f1: 'f1Title', f1pole: 'f1PoleShort', f1podium: 'f1PodiumShort', f1top6: 'f1Top6Short', f1top10: 'f1Top10Short', f1h2h: 'f1H2HShort', f1team: 'f1TeamShort', f1sc: 'f1Sc', f1vsc: 'f1Vsc', f1red: 'f1Red', future: 'futuresTitle' }[kind] ?? sec?.short ?? sec?.title ?? null;
 }
 
-// The market a pick is from, as a small tag: 不讓分, 大小分, 讓分 …
+// The market a pick is from, as a small tag: 不讓分, 大小, 讓分 …
 function marketTag(kind) {
   const key = { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
