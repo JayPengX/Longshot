@@ -517,7 +517,7 @@ body.searching #live, body.searching #f1, body.searching #futures, body.searchin
 /* Slip: what each pick is, what it pays */
 .leg-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .leg-pick strong { overflow-wrap: anywhere; }
-.parlay-legs .slip-leg-game { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.parlay-legs .slip-leg-game { overflow-wrap: anywhere; }
 .market-tag { flex: none; font-size: 0.66rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--surface-sunken); color: var(--text-secondary); }
 .market-tag.tag-ml { background: var(--accent-wash); color: var(--accent); }
 .market-tag.tag-total, .market-tag.tag-teamtotal { background: var(--good-wash); color: var(--good); }
