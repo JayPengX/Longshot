@@ -330,6 +330,7 @@ function marketLabelOf(game, m) {
   const t = state.t;
   if (m.kind === 'runline' || m.kind === 'total') return null;
   if (m.kind === 'nextrun') return t('firstScore');
+  if (m.kind === 'ml' && familyOf(game.sport) === 'hockey') return t('secMoneylineOt');
   return t(SECTIONS.find(sec => sec.kind === m.kind)?.title ?? m.kind);
 }
 
@@ -1147,6 +1148,9 @@ function secName(sec, sport, full = false) {
   const family = familyOf(sport);
   if (sec.kind === 'runline') return isSoccer(sport) ? 'secHandicap' : family === 'hockey' ? 'secPuckLine' : family === 'baseball' ? 'secRunLine' : 'secSpread';
   if (sec.kind === 'total') return family === 'baseball' ? 'secTotal' : isSoccer(sport) || family === 'hockey' ? 'secTotalGoals' : 'secTotalPoints';
+  // Hockey's 不讓分 at 台灣運彩 is the 60 minutes ('regulation'); the winner
+  // with overtime and the shootout in is named apart.
+  if (sec.kind === 'ml' && family === 'hockey') return 'secMoneylineOt';
   return full ? sec.title : sec.short ?? sec.title;
 }
 const HCAP_KINDS = new Set(['runline']);
@@ -1764,8 +1768,8 @@ function kindKey(kind) {
 }
 
 // The market a pick is from, as a small tag: 不讓分, 大小, 讓分 …
-function marketTag(kind) {
-  const key = { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
+function marketTag(kind, sport) {
+  const key = kind === 'ml' && familyOf(sport) === 'hockey' ? 'secMoneylineOt' : { inning: 'topInningShort', f1: 'f1WinnerTab' }[kind] ?? kindKey(kind);
   return key ? el('span', { class: `market-tag tag-${kind}`, text: state.t(key) }) : null;
 }
 
@@ -1775,7 +1779,7 @@ function marketTag(kind) {
 // then when and which game ("10/10 21:00 · 費城人 @ 勇士").
 function legMain(leg) {
   return el('span', { class: 'leg-main' }, [
-    el('span', { class: 'leg-pick' }, [leg.live ? el('span', { class: 'market-tag tag-live', text: state.t('tagLive') }) : null, marketTag(leg.kind), el('strong', { text: shownLabel(leg) })]),
+    el('span', { class: 'leg-pick' }, [leg.live ? el('span', { class: 'market-tag tag-live', text: state.t('tagLive') }) : null, marketTag(leg.kind, leg.sport), el('strong', { text: shownLabel(leg) })]),
     el('small', { class: 'slip-leg-game', text: [legWhen(leg.start), shortMatchup(leg)].filter(Boolean).join(' · ') })
   ]);
 }
@@ -2587,7 +2591,7 @@ function savedLegRow(leg, st) {
   const tone = st === 'live' ? liveTone(leg) : '';
   return el('li', { class: `leg-row leg-${st}${tone ? ` ${tone}` : ''}` }, [
     legIcon(leg, 'logo-md'),
-    el('span', { class: 'leg-body' }, [el('span', { class: 'leg-pick' }, [el('strong', { text: shortPick(leg) }), marketTag(leg.kind)]), legSubLine(leg, st)]),
+    el('span', { class: 'leg-body' }, [el('span', { class: 'leg-pick' }, [el('strong', { text: shortPick(leg) }), marketTag(leg.kind, leg.sport)]), legSubLine(leg, st)]),
     el('span', { class: 'leg-side' }, [el('span', { class: 'leg-odds num' }, [el('small', { text: '@' }), document.createTextNode(fmtOdds(leg.odds))]), legChip(leg, st)])
   ]);
 }

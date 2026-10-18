@@ -44,3 +44,14 @@ test("the slip's 運彩規則 say when betting closes and what a called-off game
   assert.match(STRINGS.en.slipRulesNote, /listed start/);
   assert.match(STRINGS.en.slipRulesNote, /odds 1/);
 });
+
+// Ice hockey's 全場 leaves out overtime and shootouts (投注規範 第 2 條第 17 款):
+// 台灣運彩's hockey 不讓分 is the 60 minutes, three ways. The winner with
+// overtime in is a different market, and named so.
+test("hockey's 不讓分 is the 60 minutes; the winner with overtime is named apart", () => {
+  assert.match(zh.secRegulation, /^不讓分/);
+  assert.match(zh.secRegulation, /60/);
+  assert.match(zh.secMoneylineOt, /延長/);
+  assert.doesNotMatch(zh.secMoneylineOt, /不讓分/);
+  assert.ok(STRINGS.en.secMoneylineOt);
+});
