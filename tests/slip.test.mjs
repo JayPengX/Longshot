@@ -3,6 +3,9 @@
 // says; a slip bought shows what it has locked in, can pay and where it stands.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as kitOdds from '../public/lib/odds.mjs';
+// The kit with 台灣運彩's settle rules (過1關, 48-hour postponements): its rules tested on it.
+const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
 import { slipQuote, quoteAllPays, singlesPays, ticketErrors, ruleLeg, slipRange, slipsMost, legState, slipEndedAt, slipGroupKey } from '../public/lib/slip.mjs';
 import { slipErrors, SLIP_RULES, comboCount } from '../public/lib/odds.mjs';
 
@@ -54,8 +57,8 @@ test('the slip bar and the slip agree: a system bet costs every combination', ()
   assert.equal(q.cost, comboCount(q.legs, q.sizes) * 100);
   // All three won: 3 × 400 + 800 × 1.05 (the treble's boost on its winnings).
   assert.equal(Math.round(quoteAllPays(q)), 3 * 400 + Math.round(100 + 700 * 1.05));
-  // A system needs three; 'all' follows the number of picks.
-  assert.ok(slipQuote({ bets: legs.slice(0, 2), mode: 'system', chosen: ['all'], stake: 100 }).errors.includes('systemNeedsThree'));
+  // A system needs three games (台灣運彩's kit: two); 'all' follows the number of picks.
+  assert.ok(slipQuote({ bets: legs.slice(0, settle2026 ? 1 : 2), mode: 'system', chosen: ['all'], stake: 100 }).errors.includes(settle2026 ? 'systemNeedsTwo' : 'systemNeedsThree'));
   // Singles take no boost.
   assert.equal(slipQuote({ bets: legs, mode: 'single', stake: 100, boost: 1.5 }).boost, 0);
 });

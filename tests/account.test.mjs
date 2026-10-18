@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as kitOdds from '../public/lib/odds.mjs';
+// The kit with 台灣運彩's settle rules (過1關, 48-hour postponements): its rules tested on it.
+const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
 import {
   START_BALANCE,
   newAccount,
@@ -210,7 +213,8 @@ test('ESPN results: final scores and innings, postponed games void', () => {
   assert.equal(played.status, 'final');
   assert.equal(played.homeScore, 2);
   assert.deepEqual(played.homeInnings, [1, 0]);
-  assert.equal(postponed.status, 'void');
+  // A postponed game is void at once on the older kit; 台灣運彩's (48 hours) leaves it to the settler.
+  assert.equal(postponed.status, settle2026 ? 'pending' : 'void');
 });
 
 test('F1 winner from ESPN, championship winner from Polymarket', () => {

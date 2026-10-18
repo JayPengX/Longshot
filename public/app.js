@@ -10,6 +10,7 @@ import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
 import * as kit from '#kit/quadra.mjs';
+import * as kitOdds from '#kit/play-odds.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import {
@@ -1146,14 +1147,21 @@ const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners']);
 // points (an NHL game's tabs said "Total runs" and "Run line").
 function secName(sec, sport, full = false) {
   const family = familyOf(sport);
-  if (sec.kind === 'runline') return isSoccer(sport) ? 'secHandicap' : family === 'hockey' ? 'secPuckLine' : family === 'baseball' ? 'secRunLine' : 'secSpread';
-  if (sec.kind === 'total') return family === 'baseball' ? 'secTotal' : isSoccer(sport) || family === 'hockey' ? 'secTotalGoals' : 'secTotalPoints';
+  if (sec.kind === 'runline') return isSoccer(sport) ? 'secHandicap' : family === 'hockey' ? (SETTLE_2026 ? 'secPuckLine60' : 'secPuckLine') : family === 'baseball' ? 'secRunLine' : 'secSpread';
+  if (sec.kind === 'total') return family === 'baseball' ? 'secTotal' : family === 'hockey' && SETTLE_2026 ? 'secTotalGoals60' : isSoccer(sport) || family === 'hockey' ? 'secTotalGoals' : 'secTotalPoints';
   // Hockey's 不讓分 at 台灣運彩 is the 60 minutes ('regulation'); the winner
   // with overtime and the shootout in is named apart.
   if (sec.kind === 'ml' && family === 'hockey') return 'secMoneylineOt';
   return full ? sec.title : sec.short ?? sec.title;
 }
 const HCAP_KINDS = new Set(['runline']);
+// The kit with 台灣運彩's settle rules (Shared-Proxy claude/play-settle-rules):
+// 過關組合 from 2 games with 過1關, a postponed game void after 48 hours, and
+// hockey's 讓分 and 大小 on 60 minutes. Told apart by its 過1關, so an older
+// kit on a phone keeps its own rules and words.
+const SETTLE_2026 = (kitOdds.slipSizes?.('system', 2, [1]) ?? []).length === 1;
+const SYSTEM_MIN = SETTLE_2026 ? 2 : 3;
+const RULES_NOTE = SETTLE_2026 ? 'slipRulesNote2026' : 'slipRulesNote';
 
 // One section per kind of bet, each market of it with its own take. The
 // inning market's ten results take a whole row.
@@ -1634,9 +1642,10 @@ function renderParlay() {
       )
     )
   ];
-  if (mode === 'system' && n >= 3) {
+  if (mode === 'system' && n >= SYSTEM_MIN) {
     const bySize = combosBySize(slip);
-    const options = [...Array.from({ length: n - 2 }, (_, i) => i + 2), 'all'].filter(k => bySize[k === 'all' ? n : k] > 0 || state.slipSizes.has(k));
+    const from = SETTLE_2026 ? 1 : 2;
+    const options = [...Array.from({ length: n - from }, (_, i) => i + from), 'all'].filter(k => bySize[k === 'all' ? n : k] > 0 || state.slipSizes.has(k));
     ticket.push(
       el('div', { class: 'slip-field' }, [
         el('span', { text: t('slipSizes') }),
@@ -1704,7 +1713,7 @@ function renderParlay() {
   // (what to change), so it never looks as if it just didn't work.
   if (free && !freeOn) ticket.push(el('p', { class: 'note back-low free-off', role: 'status', text: `${t('freeOff')}${state.locale === 'en' ? ' ' : ''}${freeShape ? t('freeBetMinOdds', { v: FREE_MIN_ODDS.toFixed(2) }) : n > 1 && mode === 'single' ? t('freeBetSingles') : t('freeBetOneSlip')}` }));
   ticket.push(placeButton(legs, sizes, cost, errors, freeOn ? free : null));
-  ticket.push(el('details', { class: 'info' }, [el('summary', { text: t('slipRulesTitle') }), el('p', { text: t('slipRulesNote') })]));
+  ticket.push(el('details', { class: 'info' }, [el('summary', { text: t('slipRulesTitle') }), el('p', { text: t(RULES_NOTE) })]));
 
   // The ticket and what it pays: no analysis beside it.
   body.replaceChildren(el('div', { class: 'slip has-legs' }, [el('div', { class: 'card ticket' }, ticket)]));
@@ -1743,7 +1752,7 @@ function renderSlipBar() {
   bar.replaceChildren(
     el('span', { class: 'slip-bar-count num', text: String(n) }),
     el('span', { class: 'slip-bar-main' }, [
-      el('strong', { text: mode === 'parlay' && n >= 2 ? t('barParlay', { n }) : mode === 'system' && n >= 3 ? t('barSystem', { n }) : t('barSingles', { n }) }),
+      el('strong', { text: mode === 'parlay' && n >= 2 ? t('barParlay', { n }) : mode === 'system' && n >= SYSTEM_MIN ? t('barSystem', { n }) : t('barSingles', { n }) }),
       el('small', { class: 'num', text: t('barPays', { stake: fmtMoney(quote.cost, { sign: false }), v: fmtMoney(all, { sign: false }) }) })
     ]),
     el('span', { class: 'slip-bar-go', text: `${t('barGo')} ›` })
