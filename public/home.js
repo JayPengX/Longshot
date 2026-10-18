@@ -19,6 +19,7 @@
 import { rank, affinity, plusMember, plusCard, vipStatus, vipName, VIP, tell, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
 import { GAMES, nextDraw, latestResults, gameName } from './lib/lottery.mjs';
+import { cutoffAt } from './lottery-labels.mjs';
 import { icon } from './icons.js';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
@@ -31,7 +32,7 @@ const TXT = {
     live: '場中焦點', allLive: '全部場中 {n} 場',
     featured: '焦點賽事', allGames: '全部賽事', markets: '{n} 種玩法',
     mine: '你的投注', seeAll: '全部', legs: '{n} 場', legsUnit: '場', single: '單場', parlayN: '{n} 場串關', cashOut: '兌現', paused: '兌現暫停', freeBet: '免費投注',
-    lottery: '彩券', drawIn: '{when} 開獎', none: '賽事載入中，或目前沒有開賣的比賽。', draw: '和',
+    lottery: '彩券', closeIn: '{when} 截止', none: '賽事載入中，或目前沒有開賣的比賽。', draw: '和',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
     vipNone: 'VIP 回饋', vipNoneSub: '本月投注滿 {v} 起，最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipTop: '最高等級', vipPaid: '上月回饋 {v} 已入帳',
     vipTitle: 'VIP 投注回饋', vipBody: '每月投注決定等級，下個月初自動回饋。免費，不用報名。', vipTier: '月投注 {min} 起 · 回饋 {back}',
@@ -44,7 +45,7 @@ const TXT = {
     live: 'Live now', allLive: 'All {n} live',
     featured: 'Featured', allGames: 'All games', markets: '{n} markets',
     mine: 'Your bets', seeAll: 'See all', legs: '{n} picks', legsUnit: 'picks', single: 'Single', parlayN: '{n}-pick parlay', cashOut: 'Cash out', paused: 'Suspended', freeBet: 'Free bet',
-    lottery: 'Lottery', drawIn: 'Draw {when}', none: 'Games are loading, or none are on sale right now.', draw: 'Draw',
+    lottery: 'Lottery', closeIn: 'Sales close {when}', none: 'Games are loading, or none are on sale right now.', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
     vipNone: 'VIP cashback', vipNoneSub: 'Up to {top} back from {v}', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipTop: 'Top tier', vipPaid: 'Last month’s {v} paid in',
     vipTitle: 'VIP cashback', vipBody: 'A month’s stakes set your tier; the cashback arrives early next month. Free, nothing to sign up for.', vipTier: '{min}+ a month · {back} back',
@@ -293,7 +294,7 @@ export function renderHome(ctx) {
       el('span', { class: 'lotto-emblem jp-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }),
       el('span', { class: 'jackpot-what' }, [
         el('span', { class: 'jackpot-top' }, [el('span', { class: 'jackpot-name', text: gameName(id, lang) }), el('strong', { class: 'jackpot-amount num', text: jp ? compactMoney(jp, lang) : money(GAMES[id].price) })]),
-        el('small', { class: 'jackpot-when', text: d ? f('drawIn', { when: when(d.at) }) : '' }),
+        el('small', { class: 'jackpot-when', text: d ? f('closeIn', { when: when(cutoffAt(id, d.at)) }) : '' }),
         balls.length ? el('span', { class: 'jp-balls' }, balls) : null
       ])
     ]);

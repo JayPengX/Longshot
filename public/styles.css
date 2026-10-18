@@ -1330,6 +1330,10 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .leg-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .leg-pick strong { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .leg-pick .market-tag { flex: none; }
+/* On the slip the pick's name comes first: the tags keep their row and the
+   name drops under them whole rather than being cut to "Dr…". */
+.parlay-legs .leg-pick { flex-wrap: wrap; row-gap: 2px; }
+.parlay-legs .leg-pick strong { white-space: normal; overflow: visible; overflow-wrap: break-word; }
 .saved-legs .leg-inplay { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem; }
 .saved-legs .leg-final { font-variant-numeric: tabular-nums; }
 .saved-legs .leg-odds { white-space: nowrap; }
