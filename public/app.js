@@ -715,6 +715,7 @@ function renderStatic() {
   ])
     $(id).textContent = t(key);
   for (const node of document.querySelectorAll('[data-t]')) node.textContent = t(node.dataset.t);
+  for (const id of ['slip-close', 'game-sheet-close']) $(id).setAttribute('aria-label', t('close'));
   for (const tab of TABS) tabNav.label(tab, t(`tab_${tab}`));
 }
 
