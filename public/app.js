@@ -3620,13 +3620,17 @@ function fitNumbers(nodes) {
   // Text doesn't narrow exactly with its size (−NT$1,052 at 13.2px was still
   // 75.9px in a 75px box, so cut): each one shrunk is checked again and
   // stepped down until it fits.
-  nodes.forEach((node, i) => {
-    if (!sizes[i]) return;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const floor = sizes[i] * 0.85;
-    for (let size = sizes[i]; size > floor && range.getBoundingClientRect().width > node.getBoundingClientRect().width - 0.5; ) node.style.fontSize = `${(size -= 0.4)}px`;
-  });
+  // (In rounds, every one read and then every one written: a node at a time
+  // laid the page out again at each step.)
+  let left = nodes.map((node, i) => sizes[i] && { node, size: sizes[i], floor: sizes[i] * 0.85 }).filter(Boolean);
+  while (left.length) {
+    left = left.filter(x => {
+      const range = document.createRange();
+      range.selectNodeContents(x.node);
+      return x.size > x.floor && range.getBoundingClientRect().width > x.node.getBoundingClientRect().width - 0.5;
+    });
+    for (const x of left) x.node.style.fontSize = `${(x.size -= 0.4)}px`;
+  }
 }
 if ('ResizeObserver' in window) {
   const fitted = new WeakSet();
