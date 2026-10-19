@@ -1618,3 +1618,39 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .account-card .acct-tile { background: rgba(255, 255, 255, 0.16); }
 .account-card .acct-tile strong { color: #fff; font-family: var(--q-font-rounded); }
 .account-card .acct-record strong { color: #fff; }
+
+/* ==== Games list: match cards in the premium language ==== */
+.games-grid { gap: 12px; }
+.game { border-radius: 20px; border: 0; box-shadow: var(--q-shadow-sm); }
+.game.live { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--bad-strong) 40%, transparent), var(--q-shadow-sm); border: 0; }
+.game-top { gap: 10px; padding: 14px 14px 6px; font-size: 0.78rem; }
+.game-top > .logo-wrap, .game-top > .logo, .game-top > picture, .game-top > img { display: grid; place-items: center; width: 30px; height: 30px; margin: 0; border-radius: 9px; background: var(--q-fill-3, var(--surface-sunken)); }
+.game-top .logo-xs { width: 22px; height: 22px; object-fit: contain; }
+.game-series { font-size: 0.82rem; font-weight: 600; color: var(--q-label-2, var(--text-secondary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.game-time { padding: 3px 9px; border-radius: 999px; background: var(--q-fill-3, var(--surface-sunken)); font-size: 0.74rem; font-weight: 600; }
+.game-time.live-state { display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; color: var(--bad-strong); font-weight: 700; }
+.team-rows { padding: 4px 14px 12px; }
+.team-row { padding: 6px 0; }
+.team-row + .team-row { border-top: 0; }
+.team-name { font-size: 1rem; font-weight: 600; }
+.pick { border-radius: 12px; min-width: 84px; padding: 8px 10px; }
+.pick-odds { font-family: var(--q-font-rounded); font-weight: 700; }
+.more-toggle { background: var(--q-fill-4, var(--surface-raised)); }
+.games-head { align-items: center; }
+.games-head h2, .section-heading { font-size: 20px; line-height: 26px; font-weight: 700; }
+.chips .chip, .chips .q-chip { border-radius: 999px; }
+
+/* ==== The slip sheet: legs as a row card, big rounded money ==== */
+.slip-sheet .ticket-head { border-bottom: 0; margin-bottom: 8px; padding-bottom: 0; }
+.slip-sheet .parlay-legs { gap: 0; margin: 0 0 16px; padding: 0; overflow: hidden; border-radius: 18px; background: var(--q-surface); }
+.slip-sheet .parlay-legs li { position: relative; gap: 12px; min-height: 60px; padding: 10px 12px; background: none; border-radius: 0; }
+.slip-sheet .parlay-legs li + li::before { content: ''; position: absolute; top: 0; left: 56px; right: 0; border-top: var(--q-hairline, 0.5px) solid var(--q-sep, var(--border)); }
+.slip-sheet .parlay-legs li > .logo, .slip-sheet .parlay-legs li > .logo-wrap, .slip-sheet .parlay-legs li > picture { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 11px; background: var(--q-fill-3, var(--surface-sunken)); }
+.slip-sheet .leg-odds { font: 700 1.1rem var(--q-font-rounded); }
+.slip-sheet .pay-box { gap: 8px; padding: 16px; border-radius: 20px; background: var(--q-surface); }
+.slip-sheet .pay-top { border-top: 0; padding-top: 4px; }
+.slip-sheet .pay-top strong { font: 700 2rem/1.1 var(--q-font-rounded); letter-spacing: -0.02em; color: var(--accent); }
+.slip-sheet .stake-box input { border-radius: 14px; font-family: var(--q-font-rounded); }
+.slip-sheet .stake-quick .q-chip, .slip-sheet .stake-quick button { border-radius: 999px; }
+.slip-sheet .place-button { min-height: 52px; border-radius: 999px; font-size: 1.05rem; font-weight: 700; box-shadow: 0 14px 26px -16px var(--accent); }
+.slip-sheet .place-button:disabled { box-shadow: none; }
