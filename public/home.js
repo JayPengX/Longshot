@@ -27,14 +27,14 @@ const TXT = {
     balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
-    why_follow: '追蹤', why_backed: '押過', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
+    why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注 · 去選一場', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
     balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
-    why_follow: 'Following', why_backed: 'Backed', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
+    why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
     combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet · pick a game', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
@@ -107,7 +107,8 @@ export function renderHome(ctx) {
 
   // A match card: its league and time (or live state) on top, each side with
   // its logo, (score) and win price; a 為你推薦 card's reason as a tag, and
-  // its pick at the foot when it isn't a win price.
+  // (old card only) its pick at the foot when it isn't a win price. The kit
+  // card keeps to the win prices: 2 for basketball/baseball, 3 for soccer.
   const oldMatch = (g, bets, { live = false, why = null, pick = null, wide = false } = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const open = () => (live ? ctx.openLive(g.id) : ctx.openGame(g.id));
@@ -117,8 +118,8 @@ export function renderHome(ctx) {
         el('span', { class: 'pl-mcard-league', text: state.t(`sport_${g.sport}`) }),
         live
           ? el('span', { class: 'pl-when live' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: ctx.liveStateText(g.live) })])
-          : why
-            ? el('span', { class: `q-tag ${why === 'follow' || why === 'backed' || why === 'like' ? 'tint' : 'orange'}`, text: T[`why_${why}`] ?? '' })
+          : why && T[`why_${why}`]
+            ? el('span', { class: `q-tag ${['follow', 'backed', 'like', 'league', 'sport'].includes(why) ? 'tint' : 'orange'}`, text: T[`why_${why}`] ?? '' })
             : el('span', { class: 'pl-when', text: g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc) })
       ]),
       ...ctx.winnerSides(g, ml).map(side => {
@@ -142,12 +143,11 @@ export function renderHome(ctx) {
     const mark = { home: lang === 'zh' ? '主' : 'H', away: lang === 'zh' ? '客' : 'A', draw: T.draw };
     const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), onTap: () => ctx.toggleLeg(b) });
     const prices = ctx.winnerSides(g, ml).map(side => ml.find(b => b.side === side) && price(ml.find(b => b.side === side), mark[side])).filter(Boolean);
-    if (o.pick) prices.push(price(o.pick, ctx.shortPick(o.pick)));
     const open = () => (o.live ? ctx.openLive(g.id) : ctx.openGame(g.id));
     return kitUI.matchCard({
       league: state.t(`sport_${g.sport}`), leagueLogo: ctx.leagueUrl(g.sport), live: o.live, wide: o.wide,
       when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
-      tag: o.why ? { text: T[`why_${o.why}`] ?? '', tone: ['follow', 'backed', 'like'].includes(o.why) ? 'tint' : 'orange' } : null,
+      tag: o.why && T[`why_${o.why}`] ? { text: T[`why_${o.why}`], tone: ['follow', 'backed', 'like', 'league', 'sport'].includes(o.why) ? 'tint' : 'orange' } : null,
       sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
       prices, onOpen: open
     });
