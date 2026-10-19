@@ -1,5 +1,5 @@
 import { slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, SLIP_RULES, combosBySize } from './lib/odds.mjs';
-import { useSourcesSession, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers } from './lib/sources.mjs';
+import { useSourcesSession, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
@@ -1749,7 +1749,15 @@ function renderParlay() {
     type: 'text',
     value: String(stake),
     'aria-label': t('slipStake'),
+    // Each digit typed is the stake at once (the payout and the button follow
+    // a moment later), so a chip tapped before never wins over it.
+    oninput: event => {
+      setStake(Number(event.target.value.replace(/\D/g, '')) || 0);
+      clearTimeout(stakeTimer);
+      stakeTimer = setTimeout(rerender, 250);
+    },
     onchange: event => {
+      clearTimeout(stakeTimer);
       const value = Math.max(0, Math.round((Number(event.target.value) || 0) / SLIP_RULES.unit)) * SLIP_RULES.unit;
       if (value === state.slipStake) return void (event.target.value = String(value));
       setStake(value);
@@ -1777,8 +1785,23 @@ function renderParlay() {
   const placeBtn = placeButton(legs, sizes, cost, errors, freeOn ? free : null);
   parts.push(kitUI.sheetFoot ? el('div', { class: 'q-sheet-foot q-sf' }, [placeBtn]) : placeBtn);
   parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tellK({ lang: state.locale, icon: '📘', title: t('slipRulesTitle'), body: t(RULES_NOTE) }) }));
-  body.replaceChildren(el('div', { class: 'sl' }, parts));
+  const next = el('div', { class: 'sl' }, parts);
+  // Typing a stake: its box stays as it is (a new field would drop the
+  // keyboard and what's typed so far) and everything around it is redrawn,
+  // whether the redraw is the typing's own or the board's.
+  const old = body.firstElementChild;
+  const typing = document.activeElement?.closest?.('.sl-stake-box') && old?.contains(document.activeElement) ? old.querySelector(':scope > .sl-stake') : null;
+  const fresh = next.querySelector(':scope > .sl-stake');
+  if (!typing || !fresh) return void body.replaceChildren(next);
+  for (const child of [...old.children]) if (child !== typing) child.remove();
+  const kids = [...next.children];
+  const at = kids.indexOf(fresh);
+  typing.before(...kids.slice(0, at));
+  typing.after(...kids.slice(at + 1));
+  typing.querySelector('.sl-label')?.replaceWith(fresh.querySelector('.sl-label'));
+  typing.querySelector('.sl-quick')?.replaceWith(fresh.querySelector('.sl-quick'));
 }
+let stakeTimer = 0;
 
 // The stake per combination, kept on the device for next time.
 const QUICK_STAKES = [100, 500, 1000, 2000, 5000];
@@ -2194,6 +2217,7 @@ function placeButton(legs, sizes, cost, errors, free = null) {
   const short = cost > money;
   // Opened on the last board saved: bets wait for today's odds.
   const updating = Boolean(state.fromSnapshot);
+  const drawnStake = state.slipStake;
   const blocked = errors.length > 0 || sizes.length === 0 || short || !state.accountReady || updating || state.placing;
   const paidBy = free && !short && !updating ? (cost > 0 ? t('placeFreePlus', { f: fmtMoney(free.value, { sign: false }), v: fmtMoney(cost, { sign: false }) }) : t('placeFree', { v: fmtMoney(free.value, { sign: false }) })) : '';
   const button = el('button', {
@@ -2204,6 +2228,9 @@ function placeButton(legs, sizes, cost, errors, free = null) {
       // second line says how it's paid (free + yours).
       text: state.placing ? t('placing') : updating ? t('placeUpdating') : free && !short ? t('placeSlip', { v: fmtMoney(free.value + cost, { sign: false }) }) : short ? t('placeShort', { v: fmtMoney(money, { sign: money < 0 }) }) : t('placeSlip', { v: fmtMoney(cost, { sign: false }) }),
       onclick: async () => {
+        // A stake typed since this button was drawn (the tap that left the
+        // field): drawn again with it, never bought at the old amount.
+        if (state.slipStake !== drawnStake) return void (clearTimeout(stakeTimer), renderParlay());
         // Bought in one tap at the board's odds now: the slip redraws with
         // every refresh (moved odds marked there), so what it shows is what's
         // bought. Only a pick gone, locked or started stops it.
@@ -3058,6 +3085,23 @@ function renderAll() {
   renderAccount();
   renderSaved();
   warmImages();
+  loadGameTeams();
+}
+
+// The clubs' logos of the leagues read from Kambi (歐冠, 西甲, 巴甲…): ESPN's
+// scoreboard, which carries them, isn't read for those, so ESPN's team list
+// is, once per league with a side still drawn as a letter, then the board again.
+const teamsAsked = new Set();
+function loadGameTeams() {
+  const games = [...(state.data?.games ?? []), ...(state.liveGames ?? [])];
+  const missing = new Set();
+  for (const g of games) {
+    if (!g?.sport || teamsAsked.has(g.sport) || !LEAGUES[g.sport]?.path) continue;
+    if (['home', 'away'].some(side => g[side]?.en && !/\//.test(g[side].en) && !teamUrl(g.sport, g[side].en))) missing.add(g.sport);
+  }
+  if (!missing.size) return;
+  for (const sport of missing) teamsAsked.add(sport);
+  Promise.all([...missing].map(sport => loadLeagueTeams(sport).catch(() => false))).then(got => got.some(Boolean) && renderAll());
 }
 
 // Start-up keeps the loading screen until the board is really there: the
