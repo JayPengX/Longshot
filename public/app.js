@@ -735,14 +735,14 @@ function drawGames() {
   if (f1) sections.splice(sections.length && shownTier(shown[0][0]) === 'major' ? 1 : 0, 0, f1);
   container.replaceChildren(
     ...sections,
-    rest
+    ...[rest
       ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showThin = true), renderGames()) }, [
           el('span', { class: 'pl-fold-logos', 'aria-hidden': 'true' }, folded.slice(0, 3).map(([s]) => leagueImg(s, 'logo-xs'))),
           el('span', { class: 'pl-fold-text', text: t('moreLeagues', { n: rest }) }),
           el('i', { class: 'pl-chev', 'aria-hidden': 'true' })
         ])
       : null,
-    !sections.length ? el('p', { class: 'pl-empty', text: t('noBets') }) : null
+    !sections.length ? el('p', { class: 'pl-empty', text: t('noBets') }) : null].filter(Boolean)
   );
 }
 function gameSection(title, count, rows) {
@@ -2794,7 +2794,7 @@ function renderSaved() {
   // Right after a bet: the way straight back to the board.
   const placed = state.justPlaced && Date.now() - state.justPlaced.at < 5 * 60_000 ? state.justPlaced : null;
   $('saved-body').replaceChildren(
-    placed
+    ...[placed
       ? el('button', { class: 'q-ritem chevron pl-placed', type: 'button', onclick: () => ((state.justPlaced = null), showTab('games')) }, [
           el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true', text: '✓' }),
           el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
@@ -2826,7 +2826,7 @@ function renderSaved() {
           ])
         )
       : [el('p', { class: 'pl-empty', text: t('filterEmpty') })]),
-    hidden > 0 && !state.showAllSaved ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showAllSaved = true), renderSaved()) }, [el('span', { class: 'pl-fold-text', text: t('savedMore', { n: hidden }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null
+    hidden > 0 && !state.showAllSaved ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showAllSaved = true), renderSaved()) }, [el('span', { class: 'pl-fold-text', text: t('savedMore', { n: hidden }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null].filter(Boolean)
   );
 }
 
