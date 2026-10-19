@@ -273,7 +273,8 @@ export function renderHome(ctx) {
     el('section', { class: `q-section${panel ? ' pl-panel' : ''}` }, [kitUI.sectionHead?.(title, { more: more ? T.seeAll : '', onMore: more, count }) ?? el('div', { class: 'q-section-head' }, [el('h2', { text: title }), count ? el('span', { class: 'q-sh-count num', text: String(count) }) : null, more ? el('button', { class: 'q-sh-more', type: 'button', onclick: more }, [el('span', { text: T.seeAll })]) : null]), body]);
 
   // 4 為你推薦: a rail of cards. K3 matchCard swaps matchCard() for all three card lists.
-  const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet }));
+  // (A price reason, 划算/穩/值博, about a total or spread pick isn't shown over the win row.)
+  const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.bet.kind === 'ml' || !['value', 'steady', 'shot'].includes(x.why) ? x.why : null, pick: x.bet.kind === 'ml' ? null : x.bet }));
   // 5 今日焦點賽事: a vertical list (up to 4), so the page is full; K3 `.wide` variant.
   const wide = featured.slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
   const emptyGames = () => kitUI.empty?.({ icon: 'calendar', tint: 'var(--q-blue)', title: T.none, action: { label: lang === 'zh' ? '看賽事' : 'See games', onTap: () => ctx.showTab('games') } }) ?? el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-blue)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'calendar')]), el('strong', { text: T.none }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '看賽事' : 'See games', onclick: () => ctx.showTab('games') })]);

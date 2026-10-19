@@ -793,7 +793,8 @@ function hhmm(iso) {
 // card's away-at-home order with 和 between; else the two teams.
 function winnerSides(game, ml) {
   if (isSoccer(game.sport)) return ['home', 'draw', 'away'];
-  return ml.some(b => b.side === 'draw') ? ['away', 'draw', 'home'] : ['away', 'home'];
+  // (Basketball and baseball are 不讓分 two-way: never a 和 button, whatever a feed sends.)
+  return ml.some(b => b.side === 'draw') && !['baseball', 'basketball'].includes(familyOf(game.sport)) ? ['away', 'draw', 'home'] : ['away', 'home'];
 }
 // A row's team name: Chinese's full name, English's short one (the city cut).
 const rowTeam = (game, side) => (state.locale === 'zh' ? teamName(game[side]) : shortTeamName(game.sport, game[side].en, teamName(game[side])));
