@@ -1,18 +1,11 @@
-// The home tab asks one thing: what to bet on now.
-//
-// - The balance on the app's blue, with the open bets in one line (to 紀錄)
-//   and a search pill into the games.
-// - One row of starters: 場中 and each kind of sport with its games.
-// - 場中焦點: games on now with live prices (a tap on a price puts it on the slip).
-// - 為你推薦 (foryou.mjs) then 焦點賽事, as one rail of match cards: the
-//   teams and leagues the person follows in Orbit Sports and bets on here,
-//   then the games worth betting on (the shared recommender, quadra.mjs's
-//   rank: their leagues, how soon). One a game.
-// - 精選串關: ready-made parlays, one tap onto the slip.
-// The open bets live in 紀錄, the lottery in 彩券, VIP and Plus in 戰績.
+// The home tab asks one thing: what to bet on now. Eight sections, in order:
+//  1 wallet hero (balance + open bets + most) · 2 quick actions · 3 場中焦點 ·
+//  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
+// Each section is built by one small function below; a `// K<n>` comment marks
+// the spot that swaps to the kit's component of that number (one line each).
 import { rank, affinity, plusMember, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
-import { icon } from './icons.js';
+import { icon, kitGlyph, initialTile } from './icons.js';
 // The kit's premium glyphs, by name; none on an older kit (the place then just has no glyph).
 import * as kitUI from '#kit/ui.mjs';
 import { normalizeTeamName } from '#kit/logos.mjs';
@@ -32,15 +25,15 @@ const TXT = {
     balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
-    why_follow: '★ 追蹤', why_backed: '↺ 押過', why_like: '♥ 常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
-    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單'
+    why_follow: '追蹤', why_backed: '押過', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
+    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注 · 去選一場', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
     balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
-    why_follow: '★ Following', why_backed: '↺ Backed', why_like: '♥ Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
-    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip'
+    why_follow: 'Following', why_backed: 'Backed', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
+    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet · pick a game', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
 
@@ -103,7 +96,7 @@ export function renderHome(ctx) {
     return { id: `game:${g.id}`, game: g, keys: gameKeys(g), quality, group: g.sport };
   });
   // One game a league (two of a league the person likes).
-  const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: Math.max(2, 6 - mine.length) });
+  const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 4 });
 
   // ---- 場中焦點: games on now with a live win price, ranked the same way.
   const onNow = (state.liveGames || []).filter(g => (liveBetsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
@@ -113,10 +106,10 @@ export function renderHome(ctx) {
   // A match card: its league and time (or live state) on top, each side with
   // its logo, (score) and win price; a 為你推薦 card's reason as a tag, and
   // its pick at the foot when it isn't a win price.
-  const matchCard = (g, bets, { live = false, why = null, pick = null } = {}) => {
+  const matchCard = (g, bets, { live = false, why = null, pick = null, wide = false } = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const open = () => (live ? ctx.openLive(g.id) : ctx.openGame(g.id));
-    return el('article', { class: `q-rail-card pl-mcard${live ? ' live' : ''}`, onclick: e => !e.target.closest('button.pick') && open() }, [
+    return el('article', { class: `${wide ? 'pl-mcard wide' : 'q-rail-card pl-mcard'}${live ? ' live' : ''}`, onclick: e => !e.target.closest('button.pick') && open() }, [
       el('div', { class: 'pl-mcard-top' }, [
         ctx.leagueImg(g.sport, 'logo-xs'),
         el('span', { class: 'pl-mcard-league', text: state.t(`sport_${g.sport}`) }),
@@ -180,39 +173,111 @@ export function renderHome(ctx) {
   const mineLegs = mine.filter(x => !x.bet.cap && !(x.bet.minLegs > 3)).slice(0, 3).map(x => x.bet);
   const combos = [mineLegs.length === 3 ? parlayCard(mineLegs, T.comboMine, 'mine') : null, safe.length === 3 ? parlayCard(safe, T.comboSafe, 'safe') : null, bold.length === 3 ? parlayCard(bold, T.comboBold, 'bold') : null].filter(Boolean);
 
-  // ---- The hero: the balance, the open bets in a line, the search pill.
+  // ---- 1 The hero: the balance, two stat cells (open bets, most they pay), the search pill.
   const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
   const most = slipsMost(open);
   const member = plusMember(state.wallet);
   const cash = state.account ? ctx.funds() : null;
+  const cell = (label, value) => el('button', { class: 'pl-hc-cell', type: 'button', onclick: () => ctx.showTab('history') }, [el('small', { text: label }), el('strong', { class: 'num', text: value })]);
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [
-    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance }), member ? el('span', { class: 'pl-plus', text: '✦ PLUS' }) : null]),
+    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance }), member ? el('span', { class: 'q-tag pl-plus', text: 'PLUS' }) : null]),
     // Drawn from the saved board before the account has loaded: the balance a moment later.
-    el('strong', { class: 'q-hc-big num pl-balance', 'data-q-live': 'play:balance', text: cash == null ? '…' : fmtMoney(cash, { sign: cash < 0 }) }),
+    el('strong', { class: 'q-hc-big num pl-balance', 'data-q-live': 'play:balance', text: cash == null ? '—' : fmtMoney(cash, { sign: cash < 0 }) }),
     cash < 0 ? el('button', { class: 'pl-hero-line', type: 'button', onclick: () => ctx.q.go('stock', 'portfolio') }, [el('span', { text: T.overdrawn }), el('strong', { text: `${T.cover} ›` })]) : null,
-    open.length ? el('button', { class: 'pl-hero-line', type: 'button', onclick: () => ctx.showTab('history') }, [el('span', { class: 'num', text: f('openBets', { n: open.length, m: money(most) }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null,
+    el('div', { class: 'pl-hc-stats' }, [cell(T.openN, lang === 'zh' ? `${open.length} ${T.unit}` : String(open.length)), cell(T.most, money(most))]),
     state.wallet && welcomeDue(state.wallet) ? el('p', { class: 'pl-hero-line plain' }, [icon('gift'), el('span', { text: f('welcome', { v: money(WELCOME.bet) }) })]) : null,
     el('button', { class: 'q-hc-pill pl-hero-search', type: 'button', onclick: () => ctx.openSearch() }, [el('span', { text: T.search }), el('i', { 'aria-hidden': 'true' })])
   ]);
-  hero.querySelector('.pl-hero-search i').innerHTML = kitUI.icons?.search || '⌕';
+  hero.querySelector('.pl-hero-search i').innerHTML = kitUI.icons?.search || '';
 
-  // ---- Starters: 場中, then each kind of sport with its games.
-  const starters = [
-    onNow.length ? el('button', { class: 'q-chip pl-starter live', type: 'button', onclick: () => ctx.openLive(null) }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: T.live }), el('span', { class: 'chip-count', text: String(onNow.length) })]) : null,
-    ...ctx.sportStarters().map(x => el('button', { class: 'q-chip pl-starter', type: 'button', onclick: x.go }, [x.icon, el('span', { text: x.label }), el('span', { class: 'chip-count', text: String(x.n) })]))
-  ].filter(Boolean);
+  // ---- 2 Quick actions: colour tiles with kit glyphs (場中, 賽事, 彩券, 投注單).
+  // K5 actionGrid(items) swaps this one function.
+  const slipN = ctx.slipCount();
+  const actions = () =>
+    el('div', { class: 'pl-actions' }, [
+      { icon: 'live', tint: 'var(--q-red)', label: T.actLive, badge: onNow.length, go: () => ctx.openLive(null) },
+      { icon: 'calendar', tint: 'var(--q-blue)', label: T.actGames, badge: 0, go: () => ctx.showTab('games') },
+      { icon: 'ticket', tint: 'var(--q-orange)', label: T.actLottery, badge: 0, go: () => ctx.showTab('lottery') },
+      { icon: 'list', tint: 'var(--q-indigo)', label: T.actSlip, badge: slipN, go: () => ctx.openSlip() }
+    ].map(a => el('button', { class: 'pl-action', type: 'button', onclick: a.go }, [el('span', { class: 'q-tile', style: `--t:${a.tint}`, 'aria-hidden': 'true' }, [kitGlyph(kitUI, a.icon)]), el('span', { text: a.label }), a.badge ? el('b', { class: 'pl-badge num', text: String(a.badge) }) : null])));
 
-  const section = (title, body, more = null) =>
-    el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), more ? el('button', { type: 'button', text: T.seeAll, onclick: more }) : null]), body]);
+  // ---- 3 場中焦點: a compact strip, 28px logos, the minute in red.
+  // K4 liveStrip(items) swaps this one function.
+  const liveStrip = list =>
+    el('div', { class: 'q-rail pl-livestrip' }, list.map(x => {
+      const g = x.game;
+      return el('button', { class: 'q-rail-card pl-live-card', type: 'button', onclick: () => ctx.openLive(g.id) }, [
+        el('span', { class: 'pl-live-min' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: ctx.liveStateText(g.live) })]),
+        ...['away', 'home'].map(side => el('span', { class: 'pl-live-row' }, [ctx.logoImg(g.sport, g[side].en, ctx.teamName(g[side]), 'logo-sm'), el('b', { text: ctx.shortTeam(g.sport, g[side]) }), el('span', { class: 'num', text: String(g.live?.[`${side}Score`] ?? '') })]))
+      ]);
+    }));
 
-  const picks = [...mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet })), ...featured.map(x => matchCard(x.game, betsOf.get(x.game.id) || []))];
+  // ---- 8 最近的投注: the newest slips and tickets as rows.
+  const recentRows = () => {
+    const tag = (cls, text) => el('span', { class: `q-tag ${cls}`, text });
+    const slipRow = s => {
+      const settled = s.status === 'settled';
+      const profit = settled ? s.payout - s.cost : 0;
+      const first = s.legs[0];
+      const title = s.legs.length > 1 ? f('parlayN', { n: s.legs.length }) : ctx.shortPick(first);
+      return { at: s.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTab('history') }, [
+        ctx.legIcon(first, 'logo-md'),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: title }), el('small', { text: [money(s.free ? s.stake : s.cost), ctx.fmtTime(s.t)].join(' · ') })]),
+        settled ? (s.cashedOut ? tag('blue', T.cashed) : profit > 0 ? tag('green', f('won', { v: money(s.payout) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
+      ]) };
+    };
+    const ticketRow = x => ({ at: x.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets?.() }, [
+      initialTile(x.card ? x.card : x.game, 'var(--q-orange)'),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: x.card ? T.scratchT : T.ticket }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
+      x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: money(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
+    ]) });
+    const slips = (state.account?.slips || []).filter(s => !s.recovered && s.legs?.length).map(slipRow);
+    const tickets = (state.account?.tickets || []).map(ticketRow);
+    const byNew = (a, b) => String(b.at).localeCompare(String(a.at));
+    return [...slips.sort(byNew).slice(0, 3), ...tickets.sort(byNew).slice(0, 2)].sort(byNew).map(x => x.node);
+  };
+
+  // K1 sectionHead(title, { more, onMore, count }) swaps the head here.
+  const section = (title, body, more = null, count = null) =>
+    el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), count ? el('span', { class: 'q-sh-count num', text: String(count) }) : null, more ? el('button', { class: 'q-sh-more', type: 'button', onclick: more }, [el('span', { text: T.seeAll })]) : null]), body]);
+
+  // 4 為你推薦: a rail of cards. K3 matchCard swaps matchCard() for all three card lists.
+  const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet }));
+  // 5 今日焦點賽事: a vertical list (up to 4), so the page is full; K3 `.wide` variant.
+  const wide = featured.slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
+  const emptyGames = () => el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-blue)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'calendar')]), el('strong', { text: T.none }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '看賽事' : 'See games', onclick: () => ctx.showTab('games') })]);
+
+  // 7 彩券: the biggest jackpot as a hero card, the next two games under it; a skeleton while the feeds load.
+  const lead = ctx.lotteryHome?.() ?? null;
+  const lotteryCard = () => {
+    if (!lead) return el('div', { class: 'q-skel pl-lottery-skel', 'aria-hidden': 'true' });
+    const card = el('button', { class: 'q-hero-card q-press pl-lottery', type: 'button', style: `--q-hc-b:${lead.color}`, onclick: () => ctx.lotteryOpen?.(lead.id) }, [
+      el('span', { class: 'q-hc-eyebrow' }, [initialTile(lead.name, '#ffffff33', 'sm'), el('span', { text: lead.name })]),
+      el('strong', { class: 'q-hc-big num', text: lead.amount }),
+      el('span', { class: 'q-hc-sub', text: `${lead.label} · ${lead.untilText}` }),
+      el('span', { class: 'q-hc-row' }, [el('span', { class: 'q-hc-btn', text: T.pickNow })])
+    ]);
+    const mini = lead.others.map(o => el('button', { class: 'lt-tile q-press pl-lt-mini', type: 'button', style: `--lotto:${o.color}`, onclick: () => ctx.lotteryOpen?.(o.id) }, [
+      el('span', { class: 'lt-name' }, [initialTile(o.name, o.color, 'lt-logo'), el('span', { text: o.name })]),
+      el('strong', { class: 'lt-big num', text: o.amount }),
+      el('small', { class: 'lt-when', text: o.untilText })
+    ]));
+    return el('div', { class: 'pl-lottery-wrap' }, [card, mini.length ? el('div', { class: 'lt-grid' }, mini) : null]);
+  };
+
+  const recent = recentRows();
+  const recentBody = recent.length ? el('div', { class: 'q-rowcard' }, recent) : el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('strong', { text: T.none2 }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '去選比賽' : 'Pick a game', onclick: () => ctx.showTab('games') })]);
+
   root.replaceChildren(
     ...[
       hero,
-      starters.length ? el('div', { class: 'q-chips pl-chips pl-starters' }, starters) : null,
-      liveTop.length ? section(T.liveTitle, el('div', { class: 'q-rail pl-mcards' }, liveTop.map(x => matchCard(x.game, liveBetsOf.get(x.game.id) || [], { live: true }))), () => ctx.openLive(null)) : null,
-      section(mine.length ? T.forYou : T.featured, picks.length ? el('div', { class: 'q-rail pl-mcards' }, picks) : el('p', { class: 'pl-empty', text: T.none }), () => ctx.showTab('games')),
-      combos.length ? section(T.combos, el('div', { class: 'q-rail pl-combos' }, combos)) : null
+      actions(),
+      liveTop.length ? section(T.liveTitle, liveStrip(liveTop), () => ctx.openLive(null), onNow.length) : null,
+      forYou.length ? section(T.forYou, el('div', { class: 'q-rail pl-mcards' }, forYou), () => ctx.showTab('games')) : null,
+      section(T.featured, wide.length ? el('div', { class: 'pl-wide' }, wide) : emptyGames(), () => ctx.showTab('games')),
+      combos.length ? section(T.combos, el('div', { class: 'q-rail pl-combos' }, combos)) : null,
+      section(T.lottery, lotteryCard(), () => ctx.showTab('lottery')),
+      section(T.recent, recentBody, () => ctx.showTab('history'))
     ].filter(Boolean)
   );
 }

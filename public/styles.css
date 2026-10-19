@@ -798,3 +798,100 @@ body.searching #sport-filter, body.searching #league-filter, body.searching #day
   .pl-score.moved, .gs-score .moved, .leg-live-score.moved, .pl-slip.fresh, .lotto-bought-mark, .sc-result.won { animation: none; }
   .lotto-bought-mark svg { animation: none; stroke-dashoffset: 0; }
 }
+
+/* ---- Round 3 (phase 1): no emoji icons, bigger logos, a full home. ---- */
+.q-ask-icon.kit svg, .q-empty-icon.kit svg { width: 30px; height: 30px; }
+.q-ask-icon.kit { color: var(--q-accent, var(--accent)); }
+.q-empty-icon.kit { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto; border-radius: 16px; background: var(--q-fill-3); color: var(--q-accent, var(--accent)); }
+.q-tile.init { font: 700 17px/1 var(--q-font-rounded, var(--q-font)); color: #fff; }
+.q-tile .q-gl { width: 22px; height: 22px; }
+.chip-glyph.q-gl { width: 18px; height: 18px; }
+.q-chip { min-height: 36px; }
+.league-icon .q-gl { width: 70%; height: 70%; }
+/* Logos: the hero of their row. */
+.pl-game .logo-sm, .pl-game .pl-team .logo, .pl-mcard .logo-sm, .pl-team .logo-sm { width: 32px; height: 32px; }
+.pl-team .logo-sm.logo-fallback { font-size: 12px; }
+.pl-game-top .league-badge.logo-xs, .pl-mcard-top .league-badge.logo-xs { --s: 26px; }
+.q-section-head .league-badge { --s: 28px; }
+.pl-game { min-height: 48px; }
+/* Pages end above the tab bar. */
+#home-body, #lottery-body, #panel-history { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+/* Draw sheet: hero (K6 look), pick card, grid, prizes, buy bar. */
+.ls-hero { display: block; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, var(--lotto) 92%, #000), color-mix(in srgb, var(--lotto) 70%, #fff)); color: #fff; }
+.ls-hero small.ls-eyebrow { display: block; color: #fff; opacity: 0.85; font: 600 13px/1.2 var(--q-font); }
+.ls-hero strong.ls-big { display: block; margin-top: 6px; color: #fff; font: 800 34px/1.1 var(--q-font-rounded, var(--q-font)); white-space: nowrap; overflow: visible; }
+.ls-hero .ls-sub { display: block; margin-top: 4px; font: 500 14px/1.35 var(--q-font); opacity: 0.92; }
+.ls-hero .ls-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ls-hero .q-tag { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.ls-slip { border: 0; background: var(--q-surface); }
+.ls-slip.done { border: 0; box-shadow: inset 0 0 0 1.5px var(--lotto); }
+.ls-slip-head strong { color: var(--q-label); }
+.ls-slot { width: 28px; height: 28px; border: 1.5px solid var(--q-sep); }
+.ls-slot.special { border-color: var(--q-sep); }
+.ls-fill, .ls-add { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
+.ls-fill .q-gl, .ls-add .q-gl { width: 16px; height: 16px; }
+.num-grid { --cols: 7; gap: 6px; }
+.num-cell { min-height: 40px; font-size: 14px; }
+@media (max-width: 340px) { .num-grid { --cols: 6; } }
+.lotto-prizes summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; list-style: none; color: var(--q-label); }
+.lotto-prizes summary::-webkit-details-marker { display: none; }
+.lotto-prizes summary::after { content: ''; width: 18px; height: 18px; background: var(--q-label-2); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; transition: transform 0.2s; }
+.lotto-prizes[open] summary::after { transform: rotate(90deg); }
+.balls.mini .ball, .ball.dim { width: 28px; height: 28px; font-size: 13px; }
+.stepper button { width: 44px; height: 44px; font-size: 20px; }
+.ls-buybar .q-btn.primary { min-height: 50px; border-radius: 14px; }
+.ls-buybar .q-btn.primary:disabled { background: var(--q-fill-3); color: var(--q-label-2); opacity: 1; }
+/* 彩券 tiles: a logo, the amount, the countdown. */
+.lt-grid { gap: 10px; }
+.lt-tile { min-height: 112px; align-content: space-between; }
+.lt-logo { width: 32px; height: 32px; border-radius: 10px; font-size: 15px; }
+.lt-logo + span { flex: 1; }
+.lt-big { color: var(--q-label); font-size: 22px; font-weight: 800; }
+.sc-card-icon.q-tile { width: 48px; height: 48px; font-size: 20px; }
+.sc-band-icon.q-tile { width: 40px; height: 40px; font-size: 18px; }
+.sc-result-icon { width: 28px; height: 28px; }
+/* ---- Home: stat cells, quick actions, live strip, wide cards, 彩券 ---- */
+.pl-hero { gap: 8px; }
+.pl-hero .q-hc-eyebrow .pl-plus { margin-left: auto; padding: 2px 8px; background: rgba(255, 255, 255, 0.2); color: #fff; font-size: 11px; letter-spacing: 0.06em; }
+.pl-hc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.pl-hc-cell { display: grid; gap: 4px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.12); color: #fff; text-align: left; }
+.pl-hc-cell small { font: 600 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }
+.pl-hc-cell strong { font: 700 17px/1.2 var(--q-font); white-space: nowrap; }
+.pl-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.pl-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; border: 0; border-radius: 16px; background: var(--q-surface); color: var(--q-label); font: 500 13px/1.2 var(--q-font); }
+.pl-action .q-tile { width: 36px; height: 36px; border-radius: 10px; }
+.pl-action .q-tile svg { width: 20px; height: 20px; }
+.pl-badge { position: absolute; top: 8px; right: 12px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--q-red); color: #fff; font: 600 11px/18px var(--q-font); text-align: center; }
+@media (max-width: 340px) { .pl-action { min-height: 68px; font-size: 12px; } .pl-badge { right: 8px; } }
+.q-section { margin-top: 24px; }
+.q-section-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px 10px; }
+.q-section-head h2 { margin: 0; font: 700 20px/1.2 var(--q-font); white-space: nowrap; }
+.q-sh-count { color: var(--q-label-2); font: 500 15px/1 var(--q-font); }
+.q-sh-more { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin: -12px 0 -12px auto; padding: 0 0 0 12px; border: 0; background: none; color: var(--q-accent); font: 500 15px/1 var(--q-font); }
+.q-sh-more::after { content: ''; width: 14px; height: 14px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+.pl-livestrip { --q-rail-w: 200px; }
+.pl-live-card { display: grid; gap: 8px; align-content: start; min-height: 96px; padding: 10px 12px; border: 0; text-align: left; color: var(--q-label); }
+.pl-live-min { display: flex; align-items: center; gap: 6px; color: var(--q-red); font: 600 12px/1 var(--q-font); white-space: nowrap; }
+.pl-live-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.pl-live-row .logo { width: 28px; height: 28px; }
+.pl-live-row b { overflow: hidden; font: 600 15px/1.2 var(--q-font); white-space: nowrap; }
+.pl-live-row .num { font: 700 20px/1 var(--q-font); text-align: right; }
+.pl-wide { display: grid; gap: 10px; }
+.pl-mcard.wide { padding: 12px 14px; border-radius: 20px; background: var(--q-surface); }
+.pl-mcard.wide .pl-team { min-height: 52px; }
+.pl-mcard.wide .logo { width: 40px; height: 40px; }
+.pl-combos { --q-rail-w: min(84%, 300px); }
+.pl-combo .logo { width: 32px; height: 32px; }
+.pl-combo-foot { display: grid; grid-template-columns: 1fr auto; }
+.pl-combo-go { min-height: 44px; }
+.pl-lottery { min-height: 132px; }
+.pl-lottery-wrap { display: grid; gap: 10px; }
+.pl-lottery-skel { height: 132px; border-radius: 20px; }
+.pl-lt-mini { min-height: 104px; }
+.pl-empty-row { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; border-radius: 20px; background: var(--q-surface); text-align: center; }
+.pl-empty-row .q-tile { width: 48px; height: 48px; }
+.pl-empty-row .q-tile svg { width: 26px; height: 26px; }
+.q-ritem .logo-md, .q-ritem .q-tile { flex: none; }
+.q-ritem .q-ritem-title, .q-ritem-text .q-ritem-title { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+.lt-name span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
+.lt-name { font-size: 14px; }

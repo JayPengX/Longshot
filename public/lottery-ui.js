@@ -11,6 +11,8 @@ import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
 import { faceDrawer } from './scratch-face.js';
 import { ask, tell } from '#kit/quadra.mjs';
+import * as kitUI from '#kit/ui.mjs';
+import { kitGlyph, initialTile, kitDialog } from './icons.js';
 import { termLabel, termOf, nextTerm, cutoffAt, tierName, tierRule, digitRule, gameLimits, periodsFor, MAX_LINES, zoneMax, comboMax, isSystem, pendingPrize, winsText, jackpotOf, bySeries } from './lottery-labels.mjs';
 
 // A card's name in its half-width card: in English, the short one (Daily Cash 539 and BINGO BINGO were cut off).
@@ -114,7 +116,8 @@ export function mountLottery(ctx) {
   }
   // Every purchase asks first: a tile or button bought on one tap, and a
   // stray tap spent money.
-  const confirmBuy = (icon, title, body) => ask({ lang, icon, title, body, ok: t('buy'), cancel: t('cancel') });
+  const confirmBuy = (mark, title, body) => kitDialog(ask, { lang, title, body, ok: t('buy'), cancel: t('cancel') }, kitUI, mark);
+  const tellK = (o, name) => kitDialog(tell, o, kitUI, name);
   // Buys a list of selections, one ticket each; { bought, cost } or { error }.
   // Checked here first (the selection, the draw, the balance), then sold by
   // the Worker (lib/settled.mjs buyTickets: its draw, the cost from the
@@ -195,19 +198,7 @@ export function mountLottery(ctx) {
   function render() {
     const root = box();
     if (!root || !ctx.getAccount()) return;
-    if (!ui.latest) {
-      ui.latest = {};
-      latestResults()
-        .then(r => ((ui.latest = r), render()))
-        .catch(() => {});
-    }
-    // The next draws as Taiwan Lottery shows them: 期別 and the 頭獎 it advertises.
-    if (!ui.upcoming && typeof L.upcoming === 'function') {
-      ui.upcoming = {};
-      L.upcoming()
-        .then(r => ((ui.upcoming = r || {}), render()))
-        .catch(() => {});
-    }
+    loadFeeds();
     settleDue();
     const jackpots = GAME_ORDER.map(id => ({ id, jp: jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : ui.latest?.[id], lang) })).filter(x => x.jp && nextDraw(x.id));
     const lead = jackpots.sort((a, b) => b.jp.amount - a.jp.amount)[0];
@@ -225,15 +216,45 @@ export function mountLottery(ctx) {
       hero,
       section(t('draws'), drawGames(leadId)),
       section(t('scratch'), el('div', {}, [
-        open.length ? el('div', { class: 'q-rowcard lt-open' }, open.map(x => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(x.id) }, [el('span', { class: 'q-tile', style: `--t:${CARDS[x.card].color}`, text: CARDS[x.card].icon }), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: CARDS[x.card][lang] })]), el('span', { class: 'q-tag orange', text: t('unscratched') })]))) : null,
+        open.length ? el('div', { class: 'q-rowcard lt-open' }, open.map(x => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(x.id) }, [initialTile(CARDS[x.card][lang], CARDS[x.card].color), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: CARDS[x.card][lang] })]), el('span', { class: 'q-tag orange', text: t('unscratched') })]))) : null,
         scratchCards()
       ])),
       el('div', { class: 'q-rowcard lt-mine' }, [
-        el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true', text: '🎟️' }), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('mine') })])])
+        el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('mine') })])])
       ])
     );
   }
 
+  // The latest results and the next draws' advertised jackpots, fetched once; `done` counts the answers.
+  function loadFeeds() {
+    if (!ui.latest) {
+      ui.latest = {};
+      latestResults()
+        .then(r => (ui.latest = r))
+        .catch(() => {})
+        .finally(() => (ui.done = (ui.done || 0) + 1, render(), ctx.redrawHome?.()));
+    }
+    // The next draws as Taiwan Lottery shows them: 期別 and the 頭獎 it advertises.
+    if (!ui.upcoming && typeof L.upcoming === 'function') {
+      ui.upcoming = {};
+      L.upcoming()
+        .then(r => (ui.upcoming = r || {}))
+        .catch(() => {})
+        .finally(() => (ui.done = (ui.done || 0) + 1, render(), ctx.redrawHome?.()));
+    } else if (typeof L.upcoming !== 'function') ui.done = Math.max(ui.done || 0, 2);
+  }
+  // Home's 彩券 card: the biggest jackpot and the next two games; null until the feeds have answered.
+  function homeLead() {
+    loadFeeds();
+    if ((ui.done || 0) < 2) return null;
+    const row = id => {
+      const jp = jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : ui.latest?.[id], lang);
+      const d = nextDraw(id);
+      return { id, jp, name: cardName(id, lang), color: GAMES[id].color, amount: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), untilText: id === 'bingo' ? t('every5') : d ? shortUntil(id, d.at) : t('closed') };
+    };
+    const ranked = GAME_ORDER.filter(id => nextDraw(id)).map(row).sort((a, b) => (b.jp?.amount || 0) - (a.jp?.amount || 0));
+    return ranked.length ? { ...ranked[0], label: ranked[0].jp ? t('jackpot') : t('topPrize'), others: ranked.slice(1, 3) } : null;
+  }
   // A tile a game: its name, its prize big, and one short countdown.
   function drawGames(leadId) {
     return el(
@@ -244,7 +265,7 @@ export function mountLottery(ctx) {
         const d = nextDraw(id);
         const jp = jackpotOf(ui.upcoming?.[id], g.of ? null : ui.latest?.[g.of || id], lang);
         return el('button', { class: 'lt-tile q-press', type: 'button', style: `--lotto:${g.color}`, onclick: () => openGame(id) }, [
-          el('span', { class: 'lt-name' }, [el('i', { class: 'lt-dot', 'aria-hidden': 'true' }), el('span', { text: cardName(id, lang) })]),
+          el('span', { class: 'lt-name' }, [initialTile(cardName(id, lang), g.color, 'lt-logo'), el('span', { text: cardName(id, lang) })]),
           el('strong', { class: 'lt-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
           el('small', { class: 'lt-when', text: id === 'bingo' ? t('every5') : d ? shortUntil(id, d.at) : t('closed') })
         ]);
@@ -327,18 +348,21 @@ export function mountLottery(ctx) {
       ].filter(Boolean);
       fill(
         el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
+        // K6 sheetHero: the jackpot big, the cutoff in one line, the price and draw time as tags.
         el('div', { class: 'ls-hero' }, [
-          el('div', {}, [el('small', { text: jp ? jp.label : t('topPrize') }), el('strong', { class: 'num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) })]),
-          el('div', {}, [el('small', { text: `${t('nextDraw')} · ${t('perBet', { v: money(g.price) })}` }), el('strong', { text: d ? untilText(id, d.at) : t('closed') }), d ? el('small', { text: term ? `${term} · ${lang === 'en' ? hourText(d.at) : drawTimeText(d.at)}` : drawTimeText(d.at) }) : null])
+          el('small', { class: 'ls-eyebrow', text: jp ? jp.label : t('topPrize') }),
+          el('strong', { class: 'ls-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
+          el('span', { class: 'ls-sub', text: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed') }),
+          el('div', { class: 'ls-tags' }, [el('span', { class: 'q-tag', text: t('perBet', { v: money(g.price) }) }), d ? el('span', { class: 'q-tag', text: drawTimeText(d.at) }) : null].filter(Boolean))
         ]),
         el('section', { class: `ls-slip${complete ? ' done' : ''}` }, [
           el('div', { class: 'ls-slip-head' }, [el('strong', { text: t('slipN', { n: st.lines.length + 1 }) }), el('span', { class: 'ls-status', text: status })]),
           // 3/4星彩: the steppers below are the slip's digits already.
           g.digits ? null : el('div', { class: 'ls-slots' }, slots(id, st.sel, paint)),
           el('div', { class: 'ls-actions' }, [
-            el('button', { class: 'q-chip', type: 'button', text: `⚡ ${t('fillRest')}`, onclick: () => ((st.sel = fillRest(id, st.sel)), paint()) }),
+            el('button', { class: 'q-chip ls-fill', type: 'button', onclick: () => ((st.sel = fillRest(id, st.sel)), paint()) }, [kitGlyph(kitUI, 'spark'), el('span', { text: t('fillRest') })]),
             el('button', { class: 'q-chip', type: 'button', text: t('clear'), disabled: pickCount(id, st.sel) ? null : '', onclick: () => ((st.sel = blankSel(id)), paint()) }),
-            complete ? el('button', { class: 'ls-add', type: 'button', text: `✓ ${t('addNext')}`, onclick: addNow }) : null
+            complete ? el('button', { class: 'ls-add', type: 'button', onclick: addNow }, [kitGlyph(kitUI, 'check'), el('span', { text: t('addNext') })]) : null
           ])
         ]),
         picker(id, st, paint),
@@ -367,7 +391,7 @@ export function mountLottery(ctx) {
             disabled: bets && d && !tooMany ? null : '',
             onclick: async () => {
               const ask = st.periods > 1 ? t('buyAskP', { n: bets, p: st.periods, v: money(cost) }) : t('buyAsk', { n: bets, v: money(cost) });
-              if (!(await confirmBuy(GAMES[id].icon || '🎱', ask, t('buyAskBody', { name: GAMES[id][lang] || '' })))) return;
+              if (!(await confirmBuy('ticket', ask, t('buyAskBody', { name: GAMES[id][lang] || '' })))) return;
               const r = await buyLines(id, lines, st.multiple, st.periods);
               if (r.error) return void ((st.msg = t(r.error === 'funds' ? 'funds' : r.error === 'failed' ? 'failed' : 'closed')), paint());
               st.done = { ...r, lines: lines.slice(0, r.bought).map(x => structuredClone(x)) };
@@ -478,7 +502,7 @@ export function mountLottery(ctx) {
   function numberGrid(max, chosen, limit, onPick, { hits = [], last = [], cols = 10, bet = limit } = {}) {
     return el(
       'div',
-      { class: 'num-grid', style: `--cols:${cols}` },
+      { class: 'num-grid' },
       Array.from({ length: max }, (_, i) => {
         const n = i + 1;
         const on = chosen.includes(n);
@@ -611,7 +635,7 @@ export function mountLottery(ctx) {
           const c = CARDS[id];
           const end = soon(id);
           return el('button', { class: 'q-rail-card sc-card q-press', type: 'button', style: `--lotto:${c.color}`, onclick: () => buyCard(id) }, [
-            el('span', { class: 'q-tile lg sc-card-icon', style: `--t:${c.color}`, 'aria-hidden': 'true', text: c.icon }),
+            initialTile(c[lang], c.color, 'lg sc-card-icon'),
             el('span', { class: 'sc-card-name', text: c[lang] }),
             el('strong', { class: 'num', text: compactMoney(topPrize(id), lang) }),
             el('span', { class: `q-tag${end ? ' orange' : ''}`, text: end ? `${money(c.price)} · ${end}` : money(c.price) })
@@ -624,13 +648,13 @@ export function mountLottery(ctx) {
   const onSale = () => CARD_ORDER.filter(id => cardOnSale(id));
   async function buyCard(id) {
     if (!cardOnSale(id)) return;
-    if (!(await confirmBuy(CARDS[id].icon, t('scratchAsk', { name: CARDS[id][lang] }), t('scratchAskBody', { v: money(CARDS[id].price) })))) return;
+    if (!(await confirmBuy(initialTile(CARDS[id][lang], CARDS[id].color), t('scratchAsk', { name: CARDS[id][lang] }), t('scratchAskBody', { v: money(CARDS[id].price) })))) return;
     // Checked here first (the balance), then bought from the Worker, which
     // draws the card's prize (lib/settled.mjs buyCard).
     const r = buyScratch(ctx.getAccount(), { id: newSlipId(), card: id }, new Date(), { extra: extra() });
-    if (r.error) return void tell({ lang, icon: '💸', title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) });
+    if (r.error) return void tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) }, 'coin');
     const sold = await sellCard(r.ticket.id, id).catch(() => null);
-    if (!sold?.ticket) return void (sold?.refused?.problem === 'funds' ? tell({ lang, icon: '💸', title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) }) : tell({ lang, icon: '⏳', title: t('failed') }));
+    if (!sold?.ticket) return void (sold?.refused?.problem === 'funds' ? tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(CARDS[id].price) }) }) : tell({ lang, icon: '⏳', title: t('failed') }));
     ctx.setWallet(sold.wallet);
     ctx.commitAccount(addTickets(ctx.getAccount(), [sold.ticket]));
     ctx.track([`scratch:${id}`], 1);
@@ -655,7 +679,7 @@ export function mountLottery(ctx) {
       }
       ticketEl.classList.add('revealed');
       result.className = `sc-result ${pays ? 'won' : 'lost'}`;
-      result.replaceChildren(...[pays ? el('span', { class: 'sc-result-icon', text: '🎉' }) : null, el('strong', { text: pays ? t('youWon') : t('noWin') }), pays ? el('strong', { class: 'sc-result-amount num', text: money(pays) }) : null].filter(Boolean));
+      result.replaceChildren(...[pays ? kitGlyph(kitUI, 'spark', 'sc-result-icon') : null, el('strong', { text: pays ? t('youWon') : t('noWin') }), pays ? el('strong', { class: 'sc-result-amount num', text: money(pays) }) : null].filter(Boolean));
     };
     const wrap = el('div', { class: 'sc-play' }, [faceEl(ticket.card, f)]);
     const canvas = el('canvas', { class: 'scratch-cover', 'aria-label': t('scratchHint') });
@@ -663,7 +687,7 @@ export function mountLottery(ctx) {
     // The ticket: a band in the card's colour, the play area under silver.
     const ticketEl = el('div', { class: 'sc-ticket' }, [
       el('div', { class: 'sc-band' }, [
-        el('span', { class: 'sc-band-icon', 'aria-hidden': 'true', text: c.icon }),
+        initialTile(c[lang], '#ffffff33', 'sc-band-icon'),
         el('div', { class: 'sc-band-text' }, [el('small', { text: t('scratch') }), el('strong', { text: c[lang] })]),
         el('div', { class: 'sc-band-prize' }, [el('small', { text: t('top', { v: '' }).trim() }), el('strong', { class: 'num', text: compactMoney(topPrize(ticket.card), lang) })])
       ]),
@@ -745,7 +769,7 @@ export function mountLottery(ctx) {
       g.fillStyle = '#fff';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText(`🪙 ${text}`, w / 2, h / 2 + 1);
+      g.fillText(`${text}`, w / 2, h / 2 + 1);
       g.globalCompositeOperation = 'destination-out';
       g.lineCap = 'round';
       g.lineJoin = 'round';
@@ -900,7 +924,7 @@ export function mountLottery(ctx) {
     const c = CARDS[list[0].card];
     const got = list.reduce((s, x) => s + (x.prize || 0), 0);
     return el('div', { class: 'lt-group', style: `--lotto:${c.color}` }, [
-      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: `${c.icon} ${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: t('scratch') })]), netChip(got)]),
+      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: t('scratch') })]), netChip(got)]),
       el('div', { class: 'lt-cards' }, list.map(x => el('button', { type: 'button', class: `lt-card${x.prize > 0 ? ` won out-up` : ''}`, onclick: () => openScratch(x.id), text: x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') }))),
     ]);
   }
@@ -948,5 +972,5 @@ export function mountLottery(ctx) {
     root.replaceChildren(myTickets());
   }
 
-  return { render, settleDue, renderTickets };
+  return { render, settleDue, renderTickets, homeLead, openGame };
 }

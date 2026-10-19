@@ -16,7 +16,8 @@ import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, re
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
-import { icon } from './icons.js';
+import { icon, kitGlyph, kitDialog } from './icons.js';
+
 import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord } from './lib/history.mjs';
@@ -28,6 +29,18 @@ import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions } from './lib/board.mjs';
 import { recommend } from './lib/recommend.mjs';
 import { minLegsWhy, slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
+
+// ask()/tell() draw their icon as text; Play gives them kit glyphs by name (an emoji maps to its glyph).
+// A kit empty state whose icon is a kit glyph name (the kit draws text).
+const emptyK = o => {
+  const n = kitUI.empty?.({ ...o, icon: o.icon ? '•' : '' });
+  const slot = n?.querySelector('.q-empty-icon');
+  if (slot) { slot.innerHTML = kitUI.icons?.[o.icon] || ''; slot.classList.add('kit'); }
+  return n;
+};
+const DIALOG_ICON = { '⏳': 'clock', '🎫': 'ticket', '🎁': 'spark', '💵': 'coin', '📘': 'book', '💸': 'coin' };
+const askK = o => kitDialog(ask, o, kitUI, DIALOG_ICON[o.icon] ?? o.icon);
+const tellK = o => kitDialog(tell, o, kitUI, DIALOG_ICON[o.icon] ?? o.icon);
 
 const ACCOUNT_KEY = 'oddsStudy.account';
 // Saved slips shown before the rest fold away.
@@ -438,12 +451,12 @@ const shownTier = sport => (LEAGUES[sport]?.top ? 'major' : leagueTier(sport));
 
 // The sport filter: everything, a kind of sport (g:<group>), or one league.
 const SPORT_GROUPS_ALL = {
-  baseball: { icon: '⚾', leagues: ['mlb', 'npb', 'kbo', 'cpbl'] },
-  basketball: { icon: '🏀', leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === 'basketball' && !LEAGUES[key].off) },
-  soccer: { icon: '⚽', leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === 'soccer' && !LEAGUES[key].off) },
-  football: { icon: '🏈', leagues: ['nfl', 'ncaaf'] },
-  hockey: { icon: '🏒', leagues: ['nhl'] },
-  f1: { icon: '🏎️', leagues: ['f1'] }
+  baseball: { icon: 'ball', leagues: ['mlb', 'npb', 'kbo', 'cpbl'] },
+  basketball: { icon: 'ball', leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === 'basketball' && !LEAGUES[key].off) },
+  soccer: { icon: 'ball', leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === 'soccer' && !LEAGUES[key].off) },
+  football: { icon: 'flag', leagues: ['nfl', 'ncaaf'] },
+  hockey: { icon: 'target', leagues: ['nhl'] },
+  f1: { icon: 'flag', leagues: ['f1'] }
 };
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
@@ -501,7 +514,7 @@ function renderSportFilter() {
   keepInView($('league-filter'));
 }
 // A kind of sport's picture: its one league's logo, else its glyph.
-const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-xs') : el('span', { class: 'chip-glyph', 'aria-hidden': 'true', text: SPORT_GROUPS[g].icon }));
+const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-xs') : kitGlyph(kitUI, SPORT_GROUPS[g].icon, 'chip-glyph'));
 // A sideways row keeps its chosen chip in view.
 function keepInView(row) {
   const on = row?.querySelector('[aria-pressed="true"]');
@@ -640,7 +653,7 @@ function leagueImg(sport, size = '') {
 }
 function drawLeague(sport, size) {
   const icon = LEAGUES[sport]?.icon;
-  const fallback = () => (icon ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true', text: icon }) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
+  const fallback = () => (icon ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ball')]) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
   return el('span', { class: `league-badge ${size}` }, logoPicture(leagueLogo(sport), null, 'league-img', fallback));
 }
 
@@ -1500,7 +1513,6 @@ function legOdds(b) {
   const moved = was && Math.abs(now - was) >= 0.005 ? (now > was ? 'up' : 'down') : '';
   return el('span', { class: `leg-odds${moved ? ` moved ${moved}` : ''}` }, [
     moved ? el('small', { class: 'leg-was', text: `${moved === 'up' ? '▲' : '▼'} ${fmtOdds(was)}` }) : null,
-    el('small', { text: '@' }),
     document.createTextNode(fmtOdds(now))
   ]);
 }
@@ -1629,7 +1641,7 @@ function renderParlay() {
     const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
     body.replaceChildren(
       el('div', { class: 'sl' }, [
-        kitUI.empty?.({ icon: '🎫', title: t('parlayEmpty'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('parlayEmpty') }), go]),
+        emptyK({ icon: 'ticket', title: t('parlayEmpty'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('parlayEmpty') }), go]),
         droppedTag
       ])
     );
@@ -1725,7 +1737,7 @@ function renderParlay() {
   // A free bet chosen that this slip can't take: said plainly (what to change).
   if (free && !freeOn) parts.push(el('p', { class: 'sl-note', role: 'status' }, [el('span', { class: 'q-tag orange', text: t('freeOff') }), el('span', { text: freeShape ? t('freeBetMinOdds', { v: FREE_MIN_ODDS.toFixed(2) }) : n > 1 && mode === 'single' ? t('freeBetSingles') : t('freeBetOneSlip') })]));
   parts.push(placeButton(legs, sizes, cost, errors, freeOn ? free : null));
-  parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tell({ lang: state.locale, icon: '📘', title: t('slipRulesTitle'), body: t(RULES_NOTE) }) }));
+  parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tellK({ lang: state.locale, icon: '📘', title: t('slipRulesTitle'), body: t(RULES_NOTE) }) }));
   body.replaceChildren(el('div', { class: 'sl' }, parts));
 }
 
@@ -1842,7 +1854,7 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     // The odds multiplied out on one line: up to three picks, past that "6 關賠率相乘".
     rows.push(payLine(n <= 3 ? `${legs.map(l => fmtOdds(l.odds)).join(' × ')}` : t('payOddsTimes', { n }), `×${fmtOdds(product)}`));
   } else if (mode === 'single') {
-    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} × ${fmtOdds(l.odds)}`, fmtMoney(each[i], { sign: false }))));
+    if (legs.length > 1) legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} × ${fmtOdds(l.odds)}`, fmtMoney(each[i], { sign: false }))));
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
@@ -2184,14 +2196,14 @@ function placeButton(legs, sizes, cost, errors, free = null) {
               : [{ id: newSlipId(), mode: state.slipMode, sizes, stake: state.slipStake, cost, legs: records, ...(state.slipMode !== 'single' ? { boost } : {}) }];
           return { records, slips };
         };
-        const stop = () => (renderParlay(), tell({ lang: state.locale, icon: '⏳', title: t('pickGone'), body: t('pickGoneBody') }));
+        const stop = () => (renderParlay(), tellK({ lang: state.locale, icon: '⏳', title: t('pickGone'), body: t('pickGoneBody') }));
         let picks = current();
         if (!picks) return stop();
         let { records, slips } = build(picks);
         if (cost > funds()) return;
         // Every purchase asks first: what it costs, and the most it can pay.
         const most = slips.reduce((sum, one) => sum + Math.max(0, slipRange(free ? { ...one, free: true, freeValue: free.value } : one).most), 0);
-        const asked = await ask({
+        const asked = await askK({
           lang: state.locale,
           icon: free ? '🎁' : '🎫',
           title: free ? (cost > 0 ? t('placeAskFreePlus', { f: fmtMoney(free.value, { sign: false }), v: fmtMoney(cost, { sign: false }) }) : t('placeAskFree', { v: fmtMoney(free.value, { sign: false }) })) : t('placeAsk', { v: fmtMoney(cost, { sign: false }) }),
@@ -2210,16 +2222,16 @@ function placeButton(legs, sizes, cost, errors, free = null) {
         const placed = await placeSlips(free ? slips.map(x => ({ ...x, free: free.id, freeValue: free.value })) : slips).catch(() => null);
         state.placing = false;
         renderParlay();
-        if (!placed?.placed && !placed?.refused) return tell({ lang: state.locale, icon: '⏳', title: t('placeFailed'), body: t('placeFailedBody') });
+        if (!placed?.placed && !placed?.refused) return tellK({ lang: state.locale, icon: '⏳', title: t('placeFailed'), body: t('placeFailedBody') });
         if (placed.refused) {
           const moved = placed.refused.moved?.[0];
           const pick = moved && records.find(r => r.id === moved.id);
           // A price that moved stops it and says so; the board is read again.
           if (moved) {
             load();
-            return tell({ lang: state.locale, icon: '⏳', title: t('priceMoved'), body: moved.odds ? t('priceMovedBody', { pick: pick?.shortLabel || '', odds: fmtOdds(moved.odds) }) : t('pickGoneBody') });
+            return tellK({ lang: state.locale, icon: '⏳', title: t('priceMoved'), body: moved.odds ? t('priceMovedBody', { pick: pick?.shortLabel || '', odds: fmtOdds(moved.odds) }) : t('pickGoneBody') });
           }
-          return tell({ lang: state.locale, icon: '⏳', title: t('placeRefused'), body: t(placed.refused.problem === 'funds' ? 'placeRefusedFunds' : 'placeRefusedBody') });
+          return tellK({ lang: state.locale, icon: '⏳', title: t('placeRefused'), body: t(placed.refused.problem === 'funds' ? 'placeRefusedFunds' : 'placeRefusedBody') });
         }
         if (placed.wallet) state.wallet = placed.wallet;
         let account = state.account;
@@ -2341,6 +2353,8 @@ function renderAccount() {
         r.back != null ? el('span', { class: 'q-tag', text: `${t('accountBack')} ${r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`}` }) : null
       ]
     : [el('span', { class: 'q-tag', text: t('accountNoneYet') })];
+  // No slips yet: no zero tiles, no stray pill (the empty state below says it).
+  if (!account.slips.length) return void $('account-body').replaceChildren();
   $('account-body').replaceChildren(
     el('div', { class: 'q-stats pl-acct', style: '--q-stats-n:2' }, [stat(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })), stat(t('sumMost'), fmtMoney(most, { sign: false }), '', most > 0 ? 'tint' : '')]),
     el('div', { class: 'q-tags pl-record' }, tags)
@@ -2406,14 +2420,14 @@ function cashOutWhy(slip, info) {
 }
 function cashOutRules() {
   const t = state.t;
-  tell({ lang: state.locale, icon: '💵', title: t('cashRulesTitle'), body: t('cashRulesBody'), points: [['◷', t('cashRulePrice'), t('cashRulePriceBody')], ['‖', t('cashRulePause'), t('cashRulePauseBody')], ['✦', t('cashRulePlus'), t('cashRulePlusBody')]] });
+  tellK({ lang: state.locale, icon: '💵', title: t('cashRulesTitle'), body: t('cashRulesBody'), points: [['◷', t('cashRulePrice'), t('cashRulePriceBody')], ['‖', t('cashRulePause'), t('cashRulePauseBody')], ['✦', t('cashRulePlus'), t('cashRulePlusBody')]] });
 }
 async function doCashOut(slip, value) {
   const t = state.t;
   const fresh = cashOutPrice(slip);
   // The price moved since it was shown: ask again at the new one.
   if (fresh == null) return tell({ lang: state.locale, title: t('cashOutGone'), body: t('cashOutGoneBody') });
-  if (!(await ask({ lang: state.locale, icon: '💵', title: t('cashOutAsk', { v: fmtMoney(fresh, { sign: false }) }), body: t('cashOutAskBody', { most: fmtMoney(Math.max(0, slipRange(slip).most), { sign: false }) }), ok: t('cashOutOk'), cancel: t('cashOutKeep') }))) return;
+  if (!(await askK({ lang: state.locale, icon: '💵', title: t('cashOutAsk', { v: fmtMoney(fresh, { sign: false }) }), body: t('cashOutAskBody', { most: fmtMoney(Math.max(0, slipRange(slip).most), { sign: false }) }), ok: t('cashOutOk'), cancel: t('cashOutKeep') }))) return;
   // Cashed out by the Worker: the value checked against the house's own,
   // paid by it (never with settling: a slip it settled meanwhile keeps its result).
   const asked = cashOutPrice(slip) ?? fresh;
@@ -2592,7 +2606,7 @@ function savedLegRow(leg, st) {
   return el('li', { class: `leg-row leg-${st}${tone ? ` ${tone}` : ''}` }, [
     legIcon(leg, 'logo-md'),
     el('span', { class: 'leg-body' }, [el('span', { class: 'leg-pick' }, [el('strong', { text: shortPick(leg) }), marketTag(leg.kind, leg.sport, leg.market)]), legSubLine(leg, st)]),
-    el('span', { class: 'leg-side' }, [el('span', { class: 'leg-odds num' }, [el('small', { text: '@' }), document.createTextNode(fmtOdds(leg.odds))]), legChip(leg, st)])
+    el('span', { class: 'leg-side' }, [el('span', { class: 'leg-odds num' }, [document.createTextNode(fmtOdds(leg.odds))]), legChip(leg, st)])
   ]);
 }
 
@@ -2775,7 +2789,13 @@ function renderSaved() {
   // No slips yet: the way to the games, not an empty page.
   if (!slips.length) {
     const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
-    return void $('saved-body').replaceChildren(kitUI.empty?.({ icon: '🎫', title: t('noSlipsYet'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('noSlipsYet') }), go]));
+    // Under it, today's games (K3 wide cards later), so the tab is never blank.
+    const soon = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > Date.now() && state.bets.some(b => b.gameId === g.id && b.kind === 'ml' && !b.lock)).sort((x, y) => x.startUtc.localeCompare(y.startUtc)).slice(0, 4);
+    const rows = soon.map(g => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openGame(g.id) }, [
+      logoImg(g.sport, g.home.en, teamName(g.home), 'logo-md'),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: `${shortTeamName(g.sport, g.away.en, teamName(g.away))} vs ${shortTeamName(g.sport, g.home.en, teamName(g.home))}` }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${legWhen(g.startUtc)}` })])
+    ]));
+    return void $('saved-body').replaceChildren(emptyK({ icon: 'ticket', title: t('noSlipsYet'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('noSlipsYet') }), go]), ...(rows.length ? [el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: state.locale === 'en' ? 'Featured today' : '今日焦點' })]), el('div', { class: 'q-rowcard' }, rows)])] : []));
   }
   const now = Date.now();
   const filtered = slips.filter(HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all);
@@ -2796,7 +2816,7 @@ function renderSaved() {
   $('saved-body').replaceChildren(
     ...[placed
       ? el('button', { class: 'q-ritem chevron pl-placed', type: 'button', onclick: () => ((state.justPlaced = null), showTab('games')) }, [
-          el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true', text: '✓' }),
+          el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'check')]),
           el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
           el('span', { class: 'q-ritem-value', text: t('placedMore') })
         ])
@@ -3586,13 +3606,16 @@ function homeCtx() {
     scrollTo({ top: 0 });
     requestAnimationFrame(() => $('game-search').focus());
   };
+  // Home's 彩券 card and the way into a game's sheet.
+  const lotteryHome = () => lotteryUi?.homeLead?.() ?? null;
+  const lotteryOpen = id => (showTab('lottery'), lotteryUi?.openGame?.(id));
   return {
-    openSport, sportStarters, openSearch,
+    openSport, sportStarters, openSearch, lotteryHome, lotteryOpen, showTickets,
     openSlip: () => openSlip(),
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, q, el, fmtMoney, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
-lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w) });
+lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome() });
 
 // The saved board, drawn while signing in (a network round trip).
 // The games on now as last read (15 minutes at most): a reopen draws 場中焦點
