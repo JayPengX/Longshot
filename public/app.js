@@ -325,6 +325,7 @@ function marketLabelOf(game, m) {
   const t = state.t;
   if (m.kind === 'runline' || m.kind === 'total') return null;
   if (m.kind === 'nextrun') return t('firstScore');
+  if (m.kind === 'hcap3') return `${teamName(game[m.giver])} ${fmtLine(-Math.abs(m.awayLine))}`;
   if (m.kind === 'ml' && familyOf(game.sport) === 'hockey') return t(HOCKEY_ML);
   // One inning's market (單局不讓分 / 單局大小) by its inning: [第1局]不讓分.
   if (m.period != null && (m.kind === 'inningml' || m.kind === 'inningtotal')) return t(m.kind === 'inningml' ? 'inningMlN' : 'inningTotalN', { n: m.period });
@@ -339,6 +340,8 @@ function pickName(game, market, pick) {
   const t = state.t;
   // A handicap (讓分, 半場讓分, [1-5局]讓分, 讓盤, 讓局): the team with its own line.
   if ((market.kind === 'runline' || HCAP_KINDS.has(market.kind)) && (pick.side === 'away' || pick.side === 'home') && pick.line != null) return `${teamName(game[pick.side])} ${fmtLine(pick.line)}`;
+  // Soccer's three-way 讓分: each team with its own whole-goal line, then 和.
+  if (market.kind === 'hcap3') return pick.side === 'draw' ? t('draw') : `${teamName(game[pick.side])} ${fmtLine(pick.side === 'away' ? market.awayLine : -market.awayLine)}`;
   if (market.kind === 'dc') return pick.side.split('|').map(x => (x === 'draw' ? t('draw') : teamName(game[x]))).join(' / ');
   if (market.kind === 'htft') return `${t(RESULT_SHORT[pick.ht])}/${t(RESULT_SHORT[pick.ft])}`;
   // 總進球數 bands; 正確進球數 one total each (9+ the last).
@@ -1222,6 +1225,8 @@ const SECTIONS = [
   { kind: 'ml', title: 'secMoneyline' },
   { kind: 'total', title: 'secTotal' },
   { kind: 'runline', title: 'secRunLine' },
+  // Soccer's 讓分: three ways on whole goals (主-1 / 讓分和 / 客+1).
+  { kind: 'hcap3', title: 'secHandicap' },
   { kind: 'prop', title: 'secProps' },
   { kind: 'teamtotal', title: 'secTeamTotal' },
   { kind: 'dnb', title: 'secDnb' },

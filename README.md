@@ -46,7 +46,8 @@ Live: https://jaypengx.github.io/Quadra-Play/
   With the kit's 運彩 lists (Shared-Proxy `claude/play-rules-r6`): basketball
   勝分差 in 運彩's bands (1-5 … 26+) and 勝分差（6 項）; American football
   半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
-  總進球數); soccer no 和局退款; baseball [第1局]大小, [第1局]不讓分 and
+  總進球數); soccer no 和局退款, its 讓分 three ways on whole goals (主-1 /
+  讓分和 / 客+1, `hcap3`), no Asian half-goal line; baseball [第1局]大小, [第1局]不讓分 and
   [1-5局]讓分 in place of 首局得分. Tennis, volleyball, badminton, table
   tennis and esports (單盤不讓分, 讓盤, 讓局, 大小, 正確比數) are named and
   settle but have no league on the board yet.

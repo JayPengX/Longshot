@@ -12,6 +12,8 @@ import * as kitMarketsR6 from '../public/lib/markets.mjs';
 // The kit with 台灣運彩's market lists (Shared-Proxy claude/play-rules-r6): told
 // apart by its 單局 markets, so these tests pass on the kit before it too.
 const RULES_R6 = typeof kitMarketsR6.inningMarkets === 'function';
+// The kit with soccer's 讓分 three ways on whole goals: Kambi's Asian handicap isn't read.
+const HCAP3 = typeof kitMarketsR6.soccerHandicaps === 'function';
 
 const offer = (label, type, outcomes, tags = []) => ({ criterion: { englishLabel: label }, betOfferType: { englishName: type }, tags, outcomes });
 const o = (type, odds, extra = {}) => ({ type, odds, status: 'OPEN', ...extra });
@@ -42,7 +44,8 @@ test('Kambi\'s markets: the board\'s sides, margin-free prices, only lines the p
   // The quarter line (2.25) is left out.
   assert.deepEqual(by('total').map(m => m.line), [2.5]);
   assert.ok(Math.abs(by('total')[0].picks[0].fair - 2000 / 3800) < 1e-9);
-  assert.deepEqual(by('runline')[0].awayLine, 1.5);
+  if (HCAP3) assert.equal(by('runline').length, 0, "運彩 sells no Asian handicap");
+  else assert.deepEqual(by('runline')[0].awayLine, 1.5);
   assert.equal(by('teamtotal')[0].team, 'away');
   // Draw No Bet: read on the older kit; 運彩 doesn't sell it, so the kit with its lists doesn't.
   if (RULES_R6) assert.equal(by('dnb').length, 0);
@@ -55,7 +58,7 @@ test('Kambi\'s markets: the board\'s sides, margin-free prices, only lines the p
   // ESPN with the sides the other way: every side turned.
   const flipped = parseOffers(data, game('Leeds United', 'Arsenal')).markets;
   assert.equal(flipped.find(m => m.kind === 'teamtotal').team, 'home');
-  assert.equal(flipped.find(m => m.kind === 'runline').awayLine, -1.5);
+  if (!HCAP3) assert.equal(flipped.find(m => m.kind === 'runline').awayLine, -1.5);
   assert.deepEqual(flipped.find(m => m.kind === 'score').picks.map(p => p.score), ['1-0', '1-1', '1-2']);
   assert.deepEqual(flipped.find(m => m.kind === 'dc').picks.map(p => p.side), ['draw|away', 'home|away', 'home|draw']);
 });
