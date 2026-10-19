@@ -37,7 +37,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   prices to parlays (「賠率 x 偏低」), never shown on that kit or later.
 - **The slip:** the lottery's ticket rules: singles, parlays and systems;
   1–12 picks; NT$100–100,000; a 20 M cap; 20% tax when a NT$10 bet wins over NT$5,000 (台灣運彩 §29, no stamp duty for members). A
-  parlay boost of 5–20% for 3+ picks (Plus ×1.5). Free bets need picks at
+  parlay boost of 5–20% for 3+ picks. Free bets need picks at
   1.50 or longer.
 - **Markets as 台灣運彩 sells them:** hockey on 60 minutes (不讓分 three
   ways, 勝分差 with 和局), 過關組合 from 2 games with 過1關, a postponed game
@@ -55,7 +55,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.
 - **Cash out** (`lib/cashout.mjs`), a Quadra extra (real 運彩 can't cancel,
   cash out or edit a bet): each open pick's fair chance less the house's
-  margin, every way they can land, less 3% (Plus 2%). Never worth more than
+  margin, every way they can land, less 3%. Never worth more than
   holding.
 - **The proxy places and settles** (`Shared-Proxy/settle.js`):
   - Placing re-prices every pick and takes the stake, or says the price

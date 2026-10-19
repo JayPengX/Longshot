@@ -12,10 +12,10 @@ test('cash out: a single sells back at its chance cut by the house’s margin, l
   assert.equal(cashOutValue(slip, [0.51]), Math.floor(1000 * 1.85 * 0.51 * (1 - LEG_CUT.pre) * (1 - CASHOUT_KEEP)));
   // In play, the cut is the live one's.
   assert.equal(cashOutValue(slip, [{ p: 0.51, live: true }]), Math.floor(1000 * 1.85 * 0.51 * (1 - LEG_CUT.live) * (1 - CASHOUT_KEEP)));
-  // Never worth more than holding it, Plus or not, while nothing's changed.
-  for (const keep of [CASHOUT_KEEP, 0.02]) assert.ok(cashOutValue(slip, [0.51], { keep }) < 1000 * 1.85 * 0.51);
+  // Never worth more than holding it, while nothing's changed.
+  assert.ok(cashOutValue(slip, [0.51]) < 1000 * 1.85 * 0.51);
   // Odds that wobble a little don't make a profit; the pick really getting likelier does.
-  assert.ok(cashOutValue(slip, [0.53], { keep: 0.02 }) < 1000);
+  assert.ok(cashOutValue(slip, [0.53]) < 1000);
   assert.ok(cashOutValue(slip, [0.7]) > 1000);
   // No price now: suspended.
   assert.equal(cashOutValue(slip, [null]), null);
@@ -29,8 +29,6 @@ test('cash out: a parlay with a won leg carries that leg; a lost one leaves noth
   // Two undecided picks of one game aren't independent: suspended, and said why.
   assert.deepEqual(cashOutState({ ...slip, legs: [leg('g1', 2), leg('g1', 2)] }, [0.45, 0.45]), { value: null, reason: 'sameGame', leg: 1 });
   assert.deepEqual(cashOutState(slip, [null, null]), { value: null, reason: 'noPrice', leg: 1 });
-  // Plus keeps less.
-  assert.ok(cashOutValue(slip, [null, 0.45], { keep: 0.02 }) > cashOutValue(slip, [null, 0.45]));
 });
 
 test("cash out: a parlay's offer drops with each pick still to play, and is never its payout", () => {
@@ -61,7 +59,7 @@ test('cash out: paid once, as the payout; a late result changes nothing; recover
   assert.equal(lost.slips[0].payout, 470);
 });
 
-test('parlay boost: winnings of 3+ pick combinations raised, doubled for Plus, old slips unchanged', () => {
+test('parlay boost: winnings of 3+ pick combinations raised, old slips unchanged', () => {
   const legs = [leg('a', 2), leg('b', 2), leg('c', 2)].map(l => ({ ...l, result: 'won' }));
   const plain = settleSlip({ legs, sizes: [3], stake: 100 }).gross;
   assert.equal(plain, 800);

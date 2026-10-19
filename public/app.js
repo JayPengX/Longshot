@@ -11,7 +11,7 @@ import * as kitTeams from '#kit/play-teams.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount } from './lib/account.mjs';
-import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
+import { cashOutState, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
@@ -19,7 +19,7 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon, kitGlyph, kitDialog } from './icons.js';
 
-import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, money as kitMoney, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
+import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord } from './lib/history.mjs';
 import { detectLocale, makeT, STRINGS } from './lib/i18n.mjs';
@@ -1634,7 +1634,7 @@ function sizeName(k, n) {
 
 // The slip being made, by the ticket rules (lib/slip.mjs): its picks at the
 // board's odds now, the mode, sizes and stake chosen, the free bet chosen.
-const currentQuote = (legs, free) => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: effectiveOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake, free, boost: boostX() });
+const currentQuote = (legs, free) => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: effectiveOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake, free });
 
 // The slip's 限關 problem, saying why: the pick's short odds ("賠率 1.06 偏低：
 // 只能串 3 關以上") or its game's own minimum ("這場比賽限串 3 關以上"); named
@@ -1660,7 +1660,7 @@ function renderParlay() {
   const n = legs.length;
   renderTabs();
   const mode = state.slipMode;
-  // A free bet (Plus's weekly one, the welcome offer): a cut off the stake
+  // A free bet (the welcome offer, or a weekly one issued earlier): a cut off the stake
   // (lib/slip.mjs slipQuote, the same numbers as the slip bar's).
   const tokens = freeBetList();
   const free = tokens.find(x => x.id === state.useFree) || null;
@@ -1881,7 +1881,7 @@ const taxRateText = () => `${Math.round((SLIP_RULES.taxRate + (SLIP_RULES.stampR
 function payoutBox(legs, sizes, stake, mode, free = 0) {
   const t = state.t;
   const { n, combos, bySize, cost, each, allGross, allTaxed, allNet, least, boostRate: boost, boostMore: more, taxed } =
-    payoutTotals({ legs, sizes, stake, mode, free, boost: boostX() });
+    payoutTotals({ legs, sizes, stake, mode, free });
   const rows = [];
   if (mode === 'parlay') {
     const product = legs.reduce((p, l) => p * l.odds, 1);
@@ -1910,31 +1910,19 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
     el('div', { class: 'sl-pay-rows' }, rows)
   ]);
 }
-// The parlay boost's multiplier for a slip bought now: PLUS.odds.boost for
-// a Quadra Plus member, 1 for everyone else.
-function boostX() {
-  return plusMember(q.wallet) ? PLUS.odds.boost : 1;
-}
 // The parlay boost as a ladder: 3 picks and up, the share the winnings grow
-// by at each size, where this slip stands, and what Plus makes of it (when
-// Plus changes it at all).
+// by at each size, and where this slip stands.
 function boostLadder(size) {
   const t = state.t;
-  const x = boostX();
   const steps = PARLAY_BOOST.map((r, k) => k).filter(k => k >= 3);
   const pct = r => `+${Math.round(r * 100)}%`;
-  const now = boostRate(size, x);
+  const now = boostRate(size);
   const next = steps.find(k => k > size);
   const line = now > 0 ? t('boostNow', { v: pct(now) }) : t('boostFrom', { n: 3 });
-  const more = next ? t('boostNext', { n: next - size, v: pct(boostRate(next, x)) }) : t('boostTop');
+  const more = next ? t('boostNext', { n: next - size, v: pct(boostRate(next)) }) : t('boostTop');
   return el('div', { class: `boost${now > 0 ? ' on' : ''}` }, [
     el('div', { class: 'boost-head' }, [el('strong', { text: line }), el('small', { text: more })]),
-    el('ol', { class: 'boost-steps' }, steps.map(k => el('li', { class: k <= size ? 'hit' : '' }, [el('span', { text: k === steps.at(-1) ? `${k}+` : String(k) }), el('b', { class: 'num', text: pct(boostRate(k, x)) })]))),
-    PLUS.odds.boost <= 1
-      ? null
-      : x > 1
-        ? el('p', { class: 'boost-plus', text: t('boostPlusOn', { x: PLUS.odds.boost }) })
-        : el('button', { class: 'q-plus-hint', type: 'button', onclick: () => openPlus(q), text: t('boostPlusOff', { x: PLUS.odds.boost, v: pct(boostRate(Math.max(size, 3), PLUS.odds.boost)) }) })
+    el('ol', { class: 'boost-steps' }, steps.map(k => el('li', { class: k <= size ? 'hit' : '' }, [el('span', { text: k === steps.at(-1) ? `${k}+` : String(k) }), el('b', { class: 'num', text: pct(boostRate(k)) })])))
   ]);
 }
 
@@ -2188,7 +2176,7 @@ function freeBetRow(tokens, free, freeOn, rerender, freeShape = true) {
       el('button', { type: 'button', class: 'q-chip sl-free-chip', 'aria-pressed': String(free?.id === x.id), onclick: () => ((state.useFree = free?.id === x.id ? null : x.id), rerender()) }, [
         icon('gift', 'sl-gift'),
         el('span', { class: 'num', text: fmtMoney(x.value, { sign: false }) }),
-        el('span', { class: 'chip-count', text: x.id === 'eco:fb:welcome' ? `${t('freeBetWelcome')} · ${t('freeBetDays', { n: days(x) })}` : x.id.startsWith('eco:fb:') ? `${t('freeBetPlus')} · ${t('freeBetDays', { n: days(x) })}` : t('freeBetDays', { n: days(x) }) })
+        el('span', { class: 'chip-count', text: x.id === 'eco:fb:welcome' ? `${t('freeBetWelcome')} · ${t('freeBetDays', { n: days(x) })}` : x.id.startsWith('eco:fb:') ? `${t('freeBetTag')} · ${t('freeBetDays', { n: days(x) })}` : t('freeBetDays', { n: days(x) }) })
       ])
     ))
   ]);
@@ -2223,8 +2211,8 @@ function placeButton(legs, sizes, cost, errors, free = null) {
         // the stake the same on each; the others, one slip.
         const build = picks => {
           const records = picks.map(legRecord);
-          // The parlay boost as it stands now (doubled for Quadra Plus), kept with the slip.
-          const boost = boostX();
+          // The parlay boost as it stands now, kept with the slip.
+          const boost = 1;
           const slips = free
             ? [{ id: newSlipId(), mode: state.slipMode, sizes, stake: free.value + cost, cost, legs: records, ...(state.slipMode !== 'single' ? { boost } : {}) }]
             : state.slipMode === 'single' && records.length > 1
@@ -2429,21 +2417,19 @@ function currentChance(leg, now = Date.now()) {
 const FALLBACK_MARGIN = 0.1;
 // Where cash out stands: { value, reason, leg } (cashout.mjs), each undecided
 // pick's chance with whether its game is in play (its margin's the live one).
-function cashOutInfo(slip, { plus = plusMember(q.wallet) } = {}) {
+function cashOutInfo(slip) {
   // A free bet's slip is never cashed out.
   if (slip.free) return { value: null, reason: 'free' };
-  const keep = plus ? PLUS.odds.cashOutKeep : CASHOUT_KEEP;
   const now = Date.now();
   return cashOutState(
     slip,
     slip.legs.map(leg => {
       const p = currentChance(leg, now);
       return p == null ? null : { p, live: Boolean(leg.start && Date.parse(leg.start) <= now) };
-    }),
-    { keep }
+    })
   );
 }
-const cashOutPrice = (slip, opts) => cashOutInfo(slip, opts).value;
+const cashOutPrice = slip => cashOutInfo(slip).value;
 // Why cash out is paused, in a few words ("國米 vs 帕爾瑪 場中暫停報價"), and the rules behind it.
 function cashOutWhy(slip, info) {
   const t = state.t;
@@ -2456,7 +2442,7 @@ function cashOutWhy(slip, info) {
 }
 function cashOutRules() {
   const t = state.t;
-  tellK({ lang: state.locale, icon: '💵', title: t('cashRulesTitle'), body: t('cashRulesBody'), points: [['◷', t('cashRulePrice'), t('cashRulePriceBody')], ['‖', t('cashRulePause'), t('cashRulePauseBody')], ['✦', t('cashRulePlus'), t('cashRulePlusBody')]] });
+  tellK({ lang: state.locale, icon: '💵', title: t('cashRulesTitle'), body: t('cashRulesBody'), points: [['◷', t('cashRulePrice'), t('cashRulePriceBody')], ['‖', t('cashRulePause'), t('cashRulePauseBody')]] });
 }
 async function doCashOut(slip, value) {
   const t = state.t;
@@ -2488,7 +2474,6 @@ function cashOutRow(slip) {
   const t = state.t;
   const info = cashOutInfo(slip);
   const value = info.value;
-  const plus = plusMember(q.wallet);
   const why = value == null ? cashOutWhy(slip, info) : '';
   return el('div', { class: `pl-cash${value == null ? ' off' : ''}` }, [
     el('button', { class: 'pl-cash-btn q-press', type: 'button', disabled: value == null ? '' : null, onclick: () => doCashOut(slip, value) }, [
@@ -2498,7 +2483,6 @@ function cashOutRow(slip) {
     // Paused: why; the rules a tap away.
     el('div', { class: 'pl-cash-foot' }, [
       why ? el('span', { class: 'pl-cash-why', text: why }) : null,
-      value != null && !plus ? el('button', { class: 'q-tag indigo pl-cash-plus', type: 'button', onclick: () => openPlus(q), text: t('cashOutPlus', { v: fmtMoney(cashOutPrice(slip, { plus: true }) ?? value, { sign: false }) }) }) : null,
       el('button', { class: 'sl-link', type: 'button', onclick: cashOutRules, text: t('cashRulesLink') })
     ])
   ]);
@@ -3691,7 +3675,7 @@ q.on('active', live => {
 // What a parlay of these picks pays if all win (after tax, boost included).
 function parlayPays(bets, stake) {
   const legs = bets.map(b => ({ gameId: b.gameId, market: b.market ?? b.kind, odds: effectiveOdds(b) }));
-  return slipPayoutTable({ legs, sizes: [legs.length], stake, boost: boostX() }).net[(1 << legs.length) - 1];
+  return slipPayoutTable({ legs, sizes: [legs.length], stake }).net[(1 << legs.length) - 1];
 }
 
 // What the home tab and the lottery need from here.
@@ -3759,7 +3743,7 @@ function homeCtx() {
     leagueUrl: sport => leagueLogo(sport),
     lotteryHome, lotteryOpen, showTickets,
     openSlip: () => openSlip(),
-    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
+    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n) * 100) };
 }
 statsUi = mountStats({ state, q, el, fmtMoney, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
 lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome(), boardLottery: () => (state.board ? boardLottery(state.board) : null) });

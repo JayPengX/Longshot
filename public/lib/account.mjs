@@ -88,7 +88,7 @@ export function placeSlip(account, slip, now = new Date(), { extra = 0 } = {}) {
   return { account: touched({ ...account, ledger: [...account.ledger, entry], slips: [saved, ...account.slips] }, now) };
 }
 
-// Buys a slip with a free bet (Plus's weekly bonus bet or the welcome offer, kit freeBets): the token's
+// Buys a slip with a free bet (the welcome offer or a weekly bonus bet issued earlier, kit freeBets): the token's
 // value is (part of) the stake; only a top-up beyond it comes off the
 // balance, and the token is marked spent ('fb-<token id>', so the same token
 // is never staked twice). Winning pays all but the free part's stake
@@ -234,7 +234,7 @@ export function recoverFromWallet(account, wallet) {
   const slipIds = new Set(account.slips.map(s => s.id));
   const paid = new Map(all.filter(e => (e.kind === 'payout' || e.kind === 'cashout') && e.slipId).map(e => [e.slipId, e]));
   const refunds = new Set(all.filter(e => e.kind === 'refund' && e.slipId).map(e => e.slipId));
-  // What a slip was paid: its payout or cash out, and Plus's boost on it.
+  // What a slip was paid: its payout or cash out, and the boost entry old Plus slips carry.
   const plus = new Map(all.filter(e => e.kind === 'plusboost').map(e => [e.slipId || /^plus-(.+)$/.exec(e.id)?.[1], e.amount]));
   const paidOf = id => paid.get(id).amount + (plus.get(id) || 0);
   const slips = [];

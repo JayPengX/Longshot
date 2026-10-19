@@ -3,7 +3,7 @@
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below; a `// K<n>` comment marks
 // the spot that swaps to the kit's component of that number (one line each).
-import { rank, affinity, plusMember, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
+import { rank, affinity, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
 import { icon, kitGlyph, initialTile } from './icons.js';
 // The kit's premium glyphs, by name; none on an older kit (the place then just has no glyph).
@@ -196,11 +196,10 @@ export function renderHome(ctx) {
   // ---- 1 The hero: the balance, two stat cells (open bets, most they pay), the search pill.
   const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
   const most = slipsMost(open);
-  const member = plusMember(state.wallet);
   const cash = state.account ? ctx.funds() : null;
   const cell = (label, value) => el('button', { class: 'pl-hc-cell', type: 'button', onclick: () => ctx.showTab('history') }, [el('small', { text: label }), el('strong', { class: 'num', text: value })]);
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [
-    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance }), member ? el('span', { class: 'q-tag pl-plus', text: 'PLUS' }) : null]),
+    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance })]),
     // Drawn from the saved board before the account has loaded: the balance a moment later.
     el('strong', { class: 'q-hc-big num pl-balance', 'data-q-live': 'play:balance', text: cash == null ? '—' : fmtMoney(cash, { sign: cash < 0 }) }),
     cash < 0 ? el('button', { class: 'pl-hero-line', type: 'button', onclick: () => ctx.q.go('stock', 'portfolio') }, [el('span', { text: T.overdrawn }), el('strong', { text: `${T.cover} ›` })]) : null,

@@ -1,11 +1,11 @@
 // 紀錄 › 戰績: the wins. What's been won (bets paid, cashed out, lottery
 // prizes) with its rhythm over time, the numbers worth bragging about,
 // achievements to chase (each with its progress), the biggest moments, the
-// sports that pay, then 會員 (VIP cashback, Quadra Plus). A period filter on top.
+// sports that pay, then 會員 (VIP cashback). A period filter on top.
 import { gameName } from './lib/lottery.mjs';
 import { CARDS } from './lib/scratch.mjs';
 import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
-import { plusMember, plusCard, vipStatus, vipName, VIP, tell } from '#kit/quadra.mjs';
+import { vipStatus, vipName, VIP, tell } from '#kit/quadra.mjs';
 
 const T = {
   zh: {
@@ -169,8 +169,7 @@ export function mountStats(ctx) {
     );
   }
 
-  // 會員: this month's VIP tier with its cashback, and Quadra Plus for someone
-  // who isn't a member.
+  // 會員: this month's VIP tier with its cashback.
   function membership() {
     if (!state.wallet) return null;
     const L = lang();
@@ -191,8 +190,7 @@ export function mountStats(ctx) {
     ]);
     return el('section', { class: 'q-section' }, [
       el('div', { class: 'q-section-head' }, [el('h2', { text: t('member') })]),
-      el('div', { class: 'q-rowcard' }, [vip]),
-      plusMember(state.wallet) ? null : el('div', { class: 'st-plus' }, [plusCard(ctx.q, { compact: true })])
+      el('div', { class: 'q-rowcard' }, [vip])
     ]);
   }
 

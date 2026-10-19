@@ -115,7 +115,6 @@ button.pick:active { transform: scale(0.95); }
 /* ==== 4 首頁 ==== */
 .pl-hero { gap: 6px; padding-bottom: 14px; }
 .pl-hero .q-hc-eyebrow { gap: 6px; }
-.pl-plus { margin-left: auto; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); font-size: 11px; letter-spacing: 0.06em; }
 .pl-balance { margin: 2px 0 2px; overflow: hidden; white-space: nowrap; }
 .pl-hero-line { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.16); color: #fff; font: 500 14px/1.2 var(--q-font); text-align: left; }
 .pl-hero-line span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -334,8 +333,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .boost-steps li { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; }
 .boost-steps li b { font: 700 13px/1 var(--q-font-rounded); }
 .boost-steps li.hit { background: var(--wash-good); color: var(--good); }
-.boost-plus { color: var(--gold); font: 600 13px/1.3 var(--q-font); }
-.q-plus-hint { justify-self: start; }
 /* The one button, the balance under it. */
 .place-row { display: grid; gap: 8px; justify-items: center; }
 .place-button { width: 100%; min-height: 52px; font-size: 17px; box-shadow: 0 14px 26px -16px var(--accent); }
@@ -435,7 +432,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-cash-btn:disabled { background: var(--q-fill-3); color: var(--q-label-2); cursor: default; }
 .pl-cash-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 0 4px; }
 .pl-cash-why { flex: 1 1 100%; color: var(--q-label-2); font: var(--q-t-footnote); }
-.pl-cash-plus { border: 0; cursor: pointer; }
 .pl-cash-foot .sl-link { margin-left: auto; font-size: 13px; }
 .pl-slip.recovered .pl-slip-money { border-top: 0; padding-top: 0; }
 
@@ -469,7 +465,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .st-track i { display: block; width: var(--w); height: 100%; border-radius: 4px; background: var(--accent); }
 .st-sport strong { font: 600 15px/1 var(--q-font-rounded); }
 .st-vip .q-ritem-text { gap: 3px; }
-.st-plus { margin-top: 12px; }
 
 /* ==== 9 彩券 ==== */
 /* The tab: the biggest jackpot, the games as tiles, the scratch cards as a rail. */
@@ -840,7 +835,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sc-result-icon { width: 28px; height: 28px; }
 /* ---- Home: stat cells, quick actions, live strip, wide cards, 彩券 ---- */
 .pl-hero { gap: 8px; }
-.pl-hero .q-hc-eyebrow .pl-plus { margin-left: auto; padding: 2px 8px; background: rgba(255, 255, 255, 0.2); color: #fff; font-size: 11px; letter-spacing: 0.06em; }
 .pl-hc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
 .pl-hc-cell { display: grid; gap: 4px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.12); color: #fff; text-align: left; }
 .pl-hc-cell small { font: 600 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }

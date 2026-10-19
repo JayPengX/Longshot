@@ -145,24 +145,24 @@ test('a free bet with more on it: the free bet comes off the stake; a win return
   assert.equal(placeFreeSlip(newAccount(at('2026-09-25T00:00:00Z')), slip('u', 0, [{ id: 'c', odds: 2 }], { stake: START_BALANCE + 1_000 }), token).error, 'funds');
 });
 
-test('Plus’s bigger parlay boost: what it adds is paid as its own entry; the house stays ahead', () => {
+test('A slip placed with a bigger stored boost (an old Plus one): what it adds is paid as its own entry; the house stays ahead', () => {
   let account = newAccount(at('2026-09-25T00:00:00Z'));
   const now = at('2026-09-25T04:00:00Z');
   const legs = [{ id: 'a', odds: 2 }, { id: 'b', odds: 2 }, { id: 'c', odds: 2 }];
-  // A member's slip keeps boost 1.5: 3 picks +5% ×1.5 = +7.5% of the winnings.
+  // An old member's slip keeps boost 1.5: 3 picks +5% ×1.5 = +7.5% of the winnings.
   ({ account } = placeSlip(account, { ...slip('s', 100, legs), boost: 1.5 }, now));
   const won = applyResults(account, 's', ['won', 'won', 'won'], now);
-  // 100 × 8.00: winnings 700; everyone's +5% pays 835, a member's +7.5% 852.5 (853 rounded half up, §18).
+  // 100 × 8.00: winnings 700; everyone's +5% pays 835, the old member's +7.5% 852.5 (853 rounded half up, §18).
   const plusPay = halfUp ? 853 : 852;
   assert.equal(won.slips[0].payout, plusPay);
   assert.equal(won.ledger.find(e => e.id === 'payout-s').amount, 835);
   assert.deepEqual(won.ledger.find(e => e.id === 'plus-s'), { id: 'plus-s', t: now.toISOString(), kind: 'plusboost', amount: plusPay - 835, slipId: 's' });
   assert.equal(balance(won), START_BALANCE - 100 + plusPay);
-  // A lost slip pays nothing, and no boost entry; nor does everyone's boost.
+  // A lost slip pays nothing, and no boost entry; nor does the plain boost.
   assert.ok(!applyResults(account, 's', ['won', 'won', 'lost'], now).ledger.some(e => e.id === 'plus-s'));
   const plain = placeSlip(newAccount(at('2026-09-25T00:00:00Z')), { ...slip('p', 100, legs), boost: 1 }, now).account;
   assert.ok(!applyResults(plain, 'p', ['won', 'won', 'won'], now).ledger.some(e => e.id === 'plus-p'));
-  // On any market's cut, a member's boosted parlay still returns less than its stake.
+  // On any market's cut, an old member's boosted parlay still returns less than its stake.
   for (const cut of Object.values(BASE_CUT)) {
     for (const odds of [1.5, 1.85, 3]) {
       const fairChance = 1 / (odds * cut);
