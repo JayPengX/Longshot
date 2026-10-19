@@ -1537,7 +1537,6 @@ body:has(.slip-bar:not([hidden])) main { padding-bottom: 84px; }
 .wallet-card .q-hc-row { margin-top: 6px; flex-wrap: nowrap; }
 .wallet-card .q-hc-btn { flex: 1 1 0; min-width: 0; }
 .wallet-card .q-hc-btn .q-gl { width: 18px; height: 18px; }
-.wallet-card .q-hc-btn:not(.ghost) { color: var(--accent-strong); }
 .wallet-card .wallet-od { margin-top: 4px; background: rgba(255, 255, 255, 0.18); color: #fff; }
 .wallet-card .wallet-welcome { margin: 2px 0 0; color: #fff; }
 .wallet-card .wallet-welcome .pi { color: #fff; }
