@@ -301,11 +301,11 @@ export function mountLottery(ctx) {
     const st = { sel: blankSel(id), lines: [], multiple: 1, periods: 1, msg: '', done: null };
     // 倍數 and 多期 as this game takes them (none: no control).
     const lim = gameLimits(id);
-    const dialog = el('dialog', { class: 'q-sheet lotto-sheet', style: `--lotto:${g.color}` });
-    const close = () => (dialog.close(), dialog.remove(), render());
-    dialog.addEventListener('click', e => e.target === dialog && close());
-    dialog.addEventListener('close', () => dialog.remove());
-    const fill = (...kids) => dialog.replaceChildren(...kids.filter(Boolean));
+    const box = el('div', { class: 'lotto-body' });
+    const sheet = kitUI.sheet({ title: gameName(id, lang), body: [box], cls: 'lotto-sheet', detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });
+    sheet.el.style.setProperty('--lotto', g.color);
+    const close = () => sheet.close();
+    const fill = (...kids) => box.replaceChildren(...kids.filter(Boolean));
     const paint = () => {
       const check = checkSelection(id, st.sel);
       const d = nextDraw(id);
@@ -320,7 +320,6 @@ export function mountLottery(ctx) {
       const tooMany = lines.length > MAX_LINES;
       if (st.done)
         return fill(
-          el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
           // Bought: the tickets as they were picked, when they're drawn, and the two ways on.
           el('div', { class: 'lotto-bought' }, [
             el('div', { class: 'lotto-bought-mark', 'aria-hidden': 'true' }, [checkMark()]),
@@ -371,7 +370,6 @@ export function mountLottery(ctx) {
               paint();
             };
       fill(
-        el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
         // K6 sheetHero: the jackpot big, the cutoff in one line, price and draw time as tags.
         kitUI.sheetHero?.({ eyebrow: jp ? jp.label : t('topPrize'), big: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), sub: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed'), tint: g.color, tags: [t('perBet', { v: money(g.price) }), d ? drawTimeText(d.at) : null].filter(Boolean) }) ??
           el('div', { class: 'ls-hero' }, [
@@ -418,8 +416,6 @@ export function mountLottery(ctx) {
       );
     };
     paint();
-    document.body.append(dialog);
-    dialog.showModal();
   }
 
   // 「10/20（週一） 至 11/13（週四），共 8 期」: the draws a 多期 ticket covers.
@@ -680,7 +676,6 @@ export function mountLottery(ctx) {
     const c = CARDS[ticket.card];
     const f = face(ticket.card, ticket.gross ?? ticket.prize, ticket.seed);
     const pays = facePays(ticket.card, f);
-    const dialog = el('dialog', { class: 'q-sheet lotto-sheet', style: `--lotto:${c.color}` });
     const result = el('div', { class: 'sc-result', role: 'status' }, [el('span', { text: t('scratchHint') })]);
     const done = () => {
       if (ctx.getAccount().tickets.find(x => x.id === ticketId)?.status === 'open') {
@@ -707,23 +702,18 @@ export function mountLottery(ctx) {
       wrap,
       el('p', { class: 'sc-how', text: c.how[lang] })
     ]);
-    const close = () => {
-      dialog.close();
-      dialog.remove();
-      render();
-    };
-    dialog.append(
-      el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: `${c[lang]} · ${money(c.price)}` }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
+    const sheet = kitUI.sheet({ title: `${c[lang]} · ${money(c.price)}`, body: [
       ticketEl,
       result,
       el('div', { class: 'lotto-buybar' }, [
         el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), onclick: () => (clearCover(canvas), done()) }),
         !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => (close(), buyCard(ticket.card)) })
       ])
-    );
-    dialog.addEventListener('close', () => dialog.remove());
-    document.body.append(dialog);
-    dialog.showModal();
+    ], cls: 'lotto-sheet', detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });
+    const dialog = sheet.el;
+    dialog.style.setProperty('--lotto', c.color);
+    const close = () => sheet.close();
+
     if (ticket.status !== 'open') {
       canvas.remove();
       done();
@@ -846,7 +836,7 @@ export function mountLottery(ctx) {
   const netChip = got => el('span', { class: `lt-net num out-${outcome(got)}`, text: got > 0 ? `+${money(got)}` : t('outNone') });
   function myTickets() {
     const tickets = ctx.getAccount().tickets || [];
-    if (!tickets.length) return el('p', { class: 'empty', text: t('noTickets') });
+    if (!tickets.length) return (kitUI.empty?.({ title: t('noTickets') }) ?? el('p', { class: 'empty', text: t('noTickets') }));
     const open = tickets.filter(x => x.status === 'open');
     const done = tickets.filter(x => x.status !== 'open');
     const won = done.reduce((s, x) => s + (x.prize || 0), 0);
@@ -881,7 +871,7 @@ export function mountLottery(ctx) {
     ui.doneFilter ||= 'all';
     ui.doneDays ||= 7;
     const list = (ui.doneFilter === 'wins' ? done.filter(x => x.prize > 0) : done).slice().sort((a, b) => whenOf(b) - whenOf(a));
-    if (!list.length) return [el('p', { class: 'empty', text: t('noWins') })];
+    if (!list.length) return [(kitUI.empty?.({ title: t('noWins') }) ?? el('p', { class: 'empty', text: t('noWins') }))];
     const days = new Map();
     for (const x of list) {
       const k = dayOf(whenOf(x));

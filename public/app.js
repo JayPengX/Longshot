@@ -681,10 +681,19 @@ function renderStatic() {
   $('title').textContent = t('title');
   $('game-search').placeholder = t('searchPlaceholder');
   $('game-search').setAttribute('aria-label', t('searchPlaceholder'));
-  $('parlay-title').textContent = t('parlayTitle');
+  if ($('parlay-title')) $('parlay-title').textContent = t('parlayTitle');
   for (const node of document.querySelectorAll('[data-t]')) node.textContent = t(node.dataset.t);
-  for (const id of ['slip-close', 'game-sheet-close']) $(id).setAttribute('aria-label', t('close'));
   for (const tab of TABS) tabNav.label(tab, t(`tab_${tab}`));
+  // Every tab but the first opens on the kit's large title (Home has none).
+  for (const tab of TABS.slice(1)) {
+    const panel = $(`panel-${tab}`);
+    const own = panel?.querySelector(':scope > .q-nav-title');
+    if (own) own.setTitle?.(t(`tab_${tab}`));
+    else {
+      const title = kitUI.navTitle?.(t(`tab_${tab}`));
+      if (title) panel?.prepend(title);
+    }
+  }
 }
 
 // A board that couldn't be read says so once, in a toast (the page keeps what it has).
@@ -740,7 +749,7 @@ function drawGames() {
     container.replaceChildren(
       games.length
         ? gameSection(el('span', { text: t('searchResults', { q: state.query, n: games.length }) }), null, games.map(g => gameRow(g, byGame.get(g.id), { league: true, day: true })))
-        : el('p', { class: 'pl-empty', text: t('searchNone') })
+        : (kitUI.empty?.({ title: t('searchNone') }) ?? el('p', { class: 'pl-empty', text: t('searchNone') }))
     );
     return;
   }
@@ -762,7 +771,7 @@ function drawGames() {
           el('i', { class: 'pl-chev', 'aria-hidden': 'true' })
         ])
       : null,
-    !sections.length ? el('p', { class: 'pl-empty', text: t('noBets') }) : null].filter(Boolean)
+    !sections.length ? (kitUI.empty?.({ title: t('noBets') }) ?? el('p', { class: 'pl-empty', text: t('noBets') })) : null].filter(Boolean)
   );
 }
 function gameSection(title, count, rows) {
@@ -851,7 +860,7 @@ function gameDetail(game, bets) {
       tint: 'var(--q-blue)'
     }) ?? el('div', { class: 'gs-board' }, [side(left), mid, side(right)]),
     win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side]))))) : null,
-    more ? gameMore(game, others) : el('p', { class: 'pl-empty', text: t('offersNone') })
+    more ? gameMore(game, others) : (kitUI.empty?.({ title: t('offersNone') }) ?? el('p', { class: 'pl-empty', text: t('offersNone') }))
   ]);
 }
 
@@ -1642,6 +1651,7 @@ function renderParlay() {
   renderSlipBar();
   const t = state.t;
   const body = $('parlay-body');
+  if (!body) return;
   const { legs, dropped } = slipLegs();
   const n = legs.length;
   renderTabs();
@@ -2867,7 +2877,7 @@ function renderSaved() {
             el('div', { class: 'pl-slips' }, groups.get(key).map(savedSlipCard))
           ])
         )
-      : [el('p', { class: 'pl-empty', text: t('filterEmpty') })]),
+      : [(kitUI.empty?.({ title: t('filterEmpty') }) ?? el('p', { class: 'pl-empty', text: t('filterEmpty') }))]),
     hidden > 0 && !state.showAllSaved ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showAllSaved = true), renderSaved()) }, [el('span', { class: 'pl-fold-text', text: t('savedMore', { n: hidden }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null].filter(Boolean)
   );
 }
@@ -3260,7 +3270,7 @@ async function load() {
         open();
       }, BOOT_LIMIT_MS)
     : null;
-  $('refresh').disabled = true;
+  setBusy(true);
   // The last board saved opens the page at once (boot drew it while signing
   // in); today's replaces it below.
   // (Opened on the proxy's board, the full read starts later, when a tab, a game or a pick needs it, and swaps in the same way.)
@@ -3405,7 +3415,7 @@ async function load() {
   } finally {
     clearTimeout(limit);
     open();
-    $('refresh').disabled = false;
+    setBusy(false);
   }
 }
 
@@ -3421,24 +3431,39 @@ function tabAvailable() {
 
 const TAB_ICONS = { home: 'home', games: 'calendar', lottery: 'balls', history: 'history' };
 
-const slipSheet = $('slip-sheet');
-const slipOpen = () => Boolean(slipSheet?.open);
+// A sheet of the kit's under the id the app addresses it by (#slip-sheet, #game-sheet): built on open, gone on close.
+function kitSheet(id, { title, cls, body, onClose }) {
+  const old = $(id);
+  if (old?.open) return old;
+  old?.remove();
+  const sh = kitUI.sheet({ title, body, cls, detent: 'large', closeLabel: state.t('close'), onClose });
+  sh.el.id = id;
+  return sh.el;
+}
+// The refresh control (a button on a computer, a pull on a phone): held off while loading.
+let actions = null;
+const setBusy = on => {
+  const r = actions?.refresh ?? $('refresh');
+  if (r) r.disabled = on;
+};
+const slipOpen = () => Boolean($('slip-sheet')?.open);
 function openSlip() {
-  if (!slipSheet) return;
+  const dialog = kitSheet('slip-sheet', {
+    title: state.t('parlayTitle'),
+    cls: 'slip-sheet',
+    body: [Object.assign(el('div'), { id: 'parlay-body' })],
+    onClose: () => renderSlipBar()
+  });
+  dialog.querySelector('.q-sheet-head h2')?.setAttribute('id', 'parlay-title');
   wantFull();
   renderParlay();
-  if (!slipSheet.open) slipSheet.showModal();
-  slipSheet.scrollTop = 0;
+  dialog.scrollTop = 0;
   renderSlipBar();
   if (state.parlay.some(id => id.startsWith('live|'))) refreshLive();
 }
 function closeSlip() {
-  if (slipSheet?.open) slipSheet.close();
+  if ($('slip-sheet')?.open) (globalThis.quadraCloseSheet || (x => x.close()))($('slip-sheet'));
 }
-slipSheet?.addEventListener('close', () => renderSlipBar());
-// A tap on the dimmed page behind closes it.
-slipSheet?.addEventListener('click', e => e.target === slipSheet && closeSlip());
-$('slip-close')?.addEventListener('click', closeSlip);
 
 // ---- A game's sheet: every market of one game, over any tab ---------------------
 //
@@ -3446,8 +3471,7 @@ $('slip-close')?.addEventListener('click', closeSlip);
 // about (more so while its markets and pictures were still arriving). Now a
 // game opens in a sheet like Orbit Sports' match sheet: the board under it
 // never moves, and redraws (markets arriving, live prices) keep the sheet's place.
-const gameSheet = $('game-sheet');
-const gameSheetOpen = () => Boolean(gameSheet?.open);
+const gameSheetOpen = () => Boolean($('game-sheet')?.open);
 // A game by id, live or not, with its picks (null: gone from the board).
 function sheetGameOf(id) {
   const live = state.liveGames?.find(g => g.id === id);
@@ -3458,44 +3482,47 @@ function sheetGameOf(id) {
 function renderGameSheet() {
   if (!gameSheetOpen() || !state.sheetGame) return;
   const t = state.t;
-  const keep = gameSheet.scrollTop;
-  redraw(gameSheet, () => {
+  const keep = $('game-sheet').scrollTop;
+  redraw($('game-sheet'), () => {
     // A board (F1, a championship) or a game.
     const id = state.sheetGame;
     const board = id === 'board:f1' ? f1Board() : id.startsWith('board:fut|') ? futuresBoard(id.slice('board:fut|'.length)) : null;
     const found = board ? null : sheetGameOf(id);
     $('game-sheet-title').replaceChildren(...(board ? board.title : found ? [leagueImg(found.game.sport, 'logo-xs'), el('span', { text: gameSeries(found.game) })] : []));
-    $('game-sheet-body').replaceChildren(board ? board.body : found ? gameDetail(found.game, found.bets) : el('p', { class: 'pl-empty', text: t('gameGone') }));
+    $('game-sheet-body').replaceChildren(board ? board.body : found ? gameDetail(found.game, found.bets) : (kitUI.empty?.({ title: t('gameGone') }) ?? el('p', { class: 'pl-empty', text: t('gameGone') })));
   });
   renderSlipBar();
-  gameSheet.scrollTop = keep;
+  $('game-sheet').scrollTop = keep;
 }
 function openGameSheet(id) {
   const found = id.startsWith('board:') || sheetGameOf(id);
-  if (!gameSheet || !found) return;
+  if (!found) return;
   // The board's game has no markets of its own yet: the full read brings them (the sheet redraws then).
   wantFull();
   closeSlip();
   state.sheetGame = id;
-  if (!gameSheet.open) gameSheet.showModal();
+  const dialog = kitSheet('game-sheet', {
+    title: '',
+    cls: 'game-sheet',
+    body: [Object.assign(el('div'), { id: 'game-sheet-body' }), Object.assign(el('button'), { id: 'game-sheet-bar', className: 'slip-bar in-sheet', type: 'button', hidden: true, onclick: () => (closeGameSheet(), openSlip()) })],
+    onClose: () => {
+      state.sheetGame = null;
+      marketTall.game = null;
+      renderSlipBar();
+    }
+  });
+  const title = dialog.querySelector('.q-sheet-head h2');
+  title?.setAttribute('id', 'game-sheet-title');
+  title?.classList.add('game-sheet-title');
   renderGameSheet();
-  gameSheet.scrollTop = 0;
+  dialog.scrollTop = 0;
   if (found.game?.live) refreshLive();
 }
 // F1's or a championship's board, in the same sheet.
 const openBoard = key => openGameSheet(`board:${key}`);
 function closeGameSheet() {
-  if (gameSheet?.open) gameSheet.close();
+  if ($('game-sheet')?.open) (globalThis.quadraCloseSheet || (x => x.close()))($('game-sheet'));
 }
-gameSheet?.addEventListener('close', () => {
-  state.sheetGame = null;
-  marketTall.game = null;
-  $('game-sheet-body').replaceChildren();
-  renderSlipBar();
-});
-gameSheet?.addEventListener('click', e => e.target === gameSheet && closeGameSheet());
-$('game-sheet-close')?.addEventListener('click', closeGameSheet);
-$('game-sheet-bar')?.addEventListener('click', () => (closeGameSheet(), openSlip()));
 const tabNav = tabBar({ tabs: TABS.map(id => ({ id, label: state.t(`tab_${id}`), icon: TAB_ICONS[id] })), onSelect: (tab, { again }) => !again && showTab(tab) });
 function renderTabs() {
   if (!tabAvailable(state.tab)) state.tab = 'home';
@@ -3572,7 +3599,7 @@ window.addEventListener('resize', () => {
 });
 
 // The same top-right in every Quadra app: help, refresh, then the account.
-topActions(q, { refresh: load });
+actions = topActions(q, { refresh: load });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
 // fit its box, instead of wrapping onto a second row on phones. Checked when

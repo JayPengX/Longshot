@@ -271,7 +271,7 @@ export function renderHome(ctx) {
   const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet }));
   // 5 今日焦點賽事: a vertical list (up to 4), so the page is full; K3 `.wide` variant.
   const wide = featured.slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
-  const emptyGames = () => el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-blue)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'calendar')]), el('strong', { text: T.none }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '看賽事' : 'See games', onclick: () => ctx.showTab('games') })]);
+  const emptyGames = () => kitUI.empty?.({ icon: 'calendar', tint: 'var(--q-blue)', title: T.none, action: { label: lang === 'zh' ? '看賽事' : 'See games', onTap: () => ctx.showTab('games') } }) ?? el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-blue)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'calendar')]), el('strong', { text: T.none }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '看賽事' : 'See games', onclick: () => ctx.showTab('games') })]);
 
   // 7 彩券: the biggest jackpot as a hero card, the next two games under it; a skeleton while the feeds load.
   const lead = ctx.lotteryHome?.() ?? null;
@@ -292,7 +292,7 @@ export function renderHome(ctx) {
   };
 
   const recent = recentRows();
-  const recentBody = recent.length ? el('div', { class: 'q-rowcard' }, recent) : el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('strong', { text: T.none2 }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '去選比賽' : 'Pick a game', onclick: () => ctx.showTab('games') })]);
+  const recentBody = recent.length ? el('div', { class: 'q-rowcard' }, recent) : (kitUI.empty?.({ icon: 'ticket', tint: 'var(--q-indigo)', title: T.none2, action: { label: lang === 'zh' ? '去選比賽' : 'Pick a game', onTap: () => ctx.showTab('games') } }) ?? el('div', { class: 'q-empty pl-empty-row' }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('strong', { text: T.none2 }), el('button', { class: 'q-btn', type: 'button', text: lang === 'zh' ? '去選比賽' : 'Pick a game', onclick: () => ctx.showTab('games') })]));
 
   root.replaceChildren(
     ...[
