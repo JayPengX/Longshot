@@ -543,6 +543,9 @@ export function mountLottery(ctx) {
     return byZone ? [r.numbers, r.special != null ? [r.special] : r.zone2 != null ? [r.zone2] : []] : r.numbers;
   }
 
+  // What the dot on a number means: always drawn under a grid, with a last draw or without one.
+  const lastLegend = () => el('p', { class: 'ls-legend' }, [el('span', { class: 'ls-dot', 'aria-hidden': 'true' }), document.createTextNode(t('lastLegend'))]);
+
   function picker(id, st, paint) {
     const g = GAMES[id];
     const sel = st.sel;
@@ -568,13 +571,15 @@ export function mountLottery(ctx) {
       const sizes = Object.keys(g.combo.sizes).map(Number);
       return el('div', { class: 'lotto-pick' }, [
         el('div', { class: 'q-seg small', role: 'group' }, sizes.map(z => el('button', { type: 'button', 'aria-pressed': String(sel.size === z), text: COMBO_NAME[lang][z], onclick: () => ((sel.size = z), paint()) }))),
-        numberGrid(g.combo.max, sel.numbers, comboMax(g), paint, { last: lastOf(id), bet: sel.size })
+        numberGrid(g.combo.max, sel.numbers, comboMax(g), paint, { last: lastOf(id), bet: sel.size }),
+        lastLegend()
       ]);
     }
     if (id === 'bingo') {
       const sideChips = keys => el('div', { class: 'lotto-sides' }, keys.map(key => el('button', { type: 'button', class: `q-chip${sel.side === key ? ' on' : ''}`, 'aria-pressed': String(sel.side === key), text: t(key), onclick: () => ((sel.side = sel.side === key ? undefined : key), (sel.numbers = []), paint()) })));
       return el('div', { class: 'lotto-pick' }, [
         numberGrid(80, sel.numbers, 10, () => ((sel.side = undefined), paint()), { last: lastOf(id) }),
+        lastLegend(),
         el('div', { class: 'lotto-side-group' }, [el('p', { class: 'lotto-h', text: t('sizeTitle') }), sideChips(['big', 'small'])]),
         el('div', { class: 'lotto-side-group' }, [el('p', { class: 'lotto-h', text: t('parityTitle') }), sideChips(['odd', 'even'])])
       ]);
@@ -589,7 +594,7 @@ export function mountLottery(ctx) {
         ]),
         numberGrid(z.max, sel.zones[i], zoneMax(z), paint, { last: last[i] || [], cols: z.max <= 8 ? z.max : 10, bet: z.n })
       ]),
-      last.length ? el('p', { class: 'ls-legend' }, [el('span', { class: 'ls-dot', 'aria-hidden': 'true' }), document.createTextNode(t('lastLegend'))]) : null
+      lastLegend()
     ]);
   }
 

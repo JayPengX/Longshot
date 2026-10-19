@@ -1,3 +1,4 @@
+import { detectLang } from '#kit/quadra.mjs';
 export const STRINGS = {
   zh: {
     marketsN: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payFreeBack: '免費本金不退', payLeastShort: '有中最少',
@@ -1128,10 +1129,9 @@ export const STRINGS = {
   }
 };
 
-// The browser's language decides: Chinese for any zh-*, English otherwise.
+// The language the reader picked in any Quadra app (kit lang: quadra.lang), else the phone's.
 export function detectLocale() {
-  const languages = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
-  return languages.some(l => /^zh/i.test(l)) ? 'zh' : 'en';
+  return detectLang();
 }
 
 export function makeT(locale) {

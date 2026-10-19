@@ -19,7 +19,7 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon, kitGlyph, kitDialog } from './icons.js';
 
-import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
+import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, money as kitMoney, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord } from './lib/history.mjs';
 import { detectLocale, makeT, STRINGS } from './lib/i18n.mjs';
@@ -165,11 +165,8 @@ function formatter(kind, make) {
 }
 const fmtInt = n => formatter('int', locale => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })).format(n);
 
-function fmtMoney(value, { sign = true } = {}) {
-  const abs = fmtInt(Math.abs(Math.round(value)));
-  if (!sign) return `NT$${abs}`;
-  return `${value < -0.5 ? '−' : value > 0.5 ? '+' : ''}NT$${abs}`;
-}
+// The kit's NT$ money (a sign on a gain or loss that shows a figure; `sign: false` leaves it off).
+const fmtMoney = (value, { sign = true } = {}) => kitMoney(value, { sign });
 
 function fmtOdds(o) {
   return o.toFixed(2);
