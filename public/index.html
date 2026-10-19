@@ -62,10 +62,7 @@
   <div class="q-appbar-inner">
     <div class="q-brand">
       <img class="q-brand-logo" src="./favicon.svg" alt="" width="34" height="34" />
-      <div class="q-brand-text">
-        <h1 id="title">Quadra Play</h1>
-        <p id="status" class="q-status" aria-live="polite"></p>
-      </div>
+      <div class="q-brand-text"><h1 id="title">Quadra Play</h1></div>
     </div>
     <nav id="tabs" class="q-tabbar" role="tablist"></nav>
     <div id="top-actions" class="q-actions"></div>
@@ -78,81 +75,49 @@
   </div>
 
   <div id="panel-games" class="tab-panel" role="tabpanel" aria-labelledby="tab-games">
-    <header class="q-page-head"><p class="q-over">Quadra Play</p><h1 data-t="tab_games">賽事</h1></header>
-    <label class="q-search search-box">
+    <header class="q-page-head pl-head">
+      <div><p class="q-over" data-t="title">Quadra Play</p><h1 data-t="tab_games">賽事</h1></div>
+      <button id="day-pick" class="pl-day q-press" type="button" hidden></button>
+    </header>
+    <label class="q-search">
       <input id="game-search" type="search" autocomplete="off" enterkeyhint="search" />
       <button class="q-search-clear" type="button" aria-label="清除">✕</button>
     </label>
-    <div class="toolbar">
-      <nav id="sport-filter" class="chips" aria-label="sport"></nav>
-      <nav id="league-filter" class="chips league-chips" aria-label="league" hidden></nav>
-      <nav id="day-filter" class="chips" aria-label="day"></nav>
-    </div>
-
-    <section id="live" aria-labelledby="live-title" hidden>
-      <div class="games-head">
-        <h2 id="live-title" class="section-heading"></h2>
-        <span id="live-updated" class="games-hint"></span>
-      </div>
-      <div id="live-list" class="games-grid"></div>
+    <nav id="sport-filter" class="q-chips pl-chips" aria-label="sport"></nav>
+    <nav id="league-filter" class="q-chips pl-chips small" aria-label="league" hidden></nav>
+    <section id="live" class="q-section" hidden>
+      <div class="q-section-head"><h2 class="pl-live-h" data-t="liveTitle">場中</h2><span id="live-count" class="pl-count"></span></div>
+      <div id="live-list" class="q-rowcard pl-games"></div>
     </section>
-
-    <section id="games" aria-labelledby="games-title">
-      <div class="games-head">
-        <h2 id="games-title" class="section-heading"></h2>
-        <span class="games-hint" data-t="legendTap"></span>
-      </div>
-      <div id="games-list" class="games-grid"></div>
+    <div id="games-list"></div>
+    <section id="futures" class="q-section" hidden>
+      <div class="q-section-head"><h2 data-t="futuresTitle">冠軍</h2></div>
+      <div id="futures-list" class="q-rowcard"></div>
     </section>
-
-    <section id="f1" aria-labelledby="f1-title">
-      <h2 id="f1-title" class="section-heading"></h2>
-      <div id="f1-body"></div>
-    </section>
-
-    <section id="futures" aria-labelledby="futures-title">
-      <h2 id="futures-title" class="section-heading"></h2>
-      <div id="futures-list" class="games-grid"></div>
-    </section>
-    <p id="games-footnote" class="footnote" role="note" hidden></p>
-    <p id="notice" hidden></p>
   </div>
 
   <div id="panel-lottery" class="tab-panel" role="tabpanel" aria-labelledby="tab-lottery" hidden>
     <div id="lottery-body"></div>
   </div>
 
+  <div id="panel-history" class="tab-panel" role="tabpanel" aria-labelledby="tab-history">
+    <header class="q-page-head"><p class="q-over" data-t="title">Quadra Play</p><h1 data-t="tab_history">紀錄</h1></header>
+    <div id="history-tabs" class="q-seg big pl-hist-seg" role="group" hidden></div>
+    <section id="saved"><div id="account-body"></div><div id="saved-body"></div></section>
+    <section id="tickets" hidden><div id="tickets-body"></div></section>
+    <section id="stats" hidden><div id="stats-body"></div></section>
+  </div>
+
   <dialog id="slip-sheet" class="q-sheet slip-sheet" aria-labelledby="parlay-title">
-    <div class="q-sheet-head"><h2 id="parlay-title"></h2><button id="slip-close" class="q-close" type="button" aria-label="關閉">×</button></div>
-    <section id="parlay"><div id="parlay-body"></div></section>
+    <div class="q-sheet-head"><span></span><h2 id="parlay-title"></h2><button id="slip-close" class="q-close" type="button" aria-label="關閉">✕</button></div>
+    <div id="parlay-body"></div>
   </dialog>
 
   <dialog id="game-sheet" class="q-sheet game-sheet" aria-labelledby="game-sheet-title">
-    <div class="q-sheet-head"><h2 id="game-sheet-title" class="game-sheet-title"></h2><button id="game-sheet-close" class="q-close" type="button" aria-label="關閉">×</button></div>
+    <div class="q-sheet-head"><span></span><h2 id="game-sheet-title" class="game-sheet-title"></h2><button id="game-sheet-close" class="q-close" type="button" aria-label="關閉">✕</button></div>
     <div id="game-sheet-body"></div>
     <button id="game-sheet-bar" class="slip-bar in-sheet" type="button" hidden></button>
   </dialog>
-
-  <div id="panel-history" class="tab-panel" role="tabpanel" aria-labelledby="tab-history">
-    <section id="account" aria-labelledby="account-title">
-      <h2 id="account-title" class="section-heading"></h2>
-      <div id="account-body"></div>
-    </section>
-    <div id="history-tabs" class="q-seg history-tabs" role="group" hidden></div>
-    <section id="stats" aria-labelledby="stats-title" hidden>
-      <h2 id="stats-title" class="section-heading"></h2>
-      <div id="stats-body"></div>
-    </section>
-    <section id="tickets" aria-label="lottery tickets" hidden>
-      <div id="tickets-body"></div>
-    </section>
-    <section id="saved" aria-labelledby="saved-title" hidden>
-      <h2 id="saved-title" class="section-heading"></h2>
-      <div id="saved-body"></div>
-    </section>
-  </div>
-
-  <footer><p id="footer" class="muted"></p></footer>
 </main>
 <script type="module" src="./app.js" onerror="window.__oddsFail()"></script>
 </body>

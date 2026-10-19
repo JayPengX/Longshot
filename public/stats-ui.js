@@ -1,19 +1,22 @@
 // 紀錄 › 戰績: the wins. What's been won (bets paid, cashed out, lottery
 // prizes) with its rhythm over time, the numbers worth bragging about,
 // achievements to chase (each with its progress), the biggest moments, the
-// sports that pay, and the way back to the board. A period filter on top.
+// sports that pay, then 會員 (VIP cashback, Quadra Plus). A period filter on top.
 import { gameName } from './lib/lottery.mjs';
 import { CARDS } from './lib/scratch.mjs';
 import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
+import { plusMember, plusCard, vipStatus, vipName, VIP, tell } from '#kit/quadra.mjs';
 
 const T = {
   zh: {
     all: '全部', d30: '30 天', d7: '7 天',
-    total: '累計中獎', totalSub: '中獎 {n} 次 · 最大一筆 {v}', none: '還沒有中獎', byWeek: '每週中獎', byDay: '每日中獎',
-    month: '本月中獎', streak: '最長連中', streakN: '{n} 張', top: '最高倍數', cashed: '提前兌現', bigLotto: '彩券最大獎', winsN: '中獎次數', winsNV: '{n} 次',
-    badges: '成就', badgesSub: '已解鎖 {k}/{n}', moments: '中獎時刻', momentsSub: '最大的幾筆', sports: '拿手運動', sportsSub: '依中獎金額',
+    total: '累計中獎', biggestV: '最大一筆 {v}', none: '還沒有中獎', byWeek: '每週中獎', byDay: '每日中獎',
+    month: '本月中獎', streak: '最長連中', streakN: '{n} 張', top: '最高倍數', cashed: '提前兌現', bigLotto: '彩券最大獎', winsNV: '中獎 {n} 次',
+    badges: '成就', moments: '中獎時刻', sports: '拿手運動',
     slipWin: '{n} 場', lottery: '彩券', scratch: '刮刮樂', cashTag: '提前兌現', freeTag: '免費投注',
-    goBet: '看今天的比賽', goLotto: '買彩券', mixed: '混合串關',
+    mixed: '混合串關', member: '會員',
+    vipNone: 'VIP 回饋', vipUpTo: '最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipPaid: '上月回饋 {v} 已入帳',
+    vipTitle: 'VIP 投注回饋', vipBody: '每月投注決定等級，下個月初自動回饋。免費，不用報名。', vipTier: '月投注 {min} 起 · 回饋 {back}',
     b_first: '首勝', b_firstD: '第一筆中獎',
     b_run3: '三連中', b_run3D: '連續 3 張投注單中獎',
     b_run5: '五連中', b_run5D: '連續 5 張投注單中獎',
@@ -28,11 +31,13 @@ const T = {
   },
   en: {
     all: 'All', d30: '30 days', d7: '7 days',
-    total: 'Total won', totalSub: '{n} wins · biggest {v}', none: 'No wins yet', byWeek: 'Won by week', byDay: 'Won by day',
-    month: 'Won this month', streak: 'Longest run', streakN: '{n} slips', top: 'Top multiple', cashed: 'Cashed out', bigLotto: 'Biggest lottery prize', winsN: 'Wins', winsNV: '{n}',
-    badges: 'Achievements', badgesSub: '{k} of {n} unlocked', moments: 'Big moments', momentsSub: 'Your biggest wins', sports: 'Your best sports', sportsSub: 'By winnings',
+    total: 'Total won', biggestV: 'Biggest {v}', none: 'No wins yet', byWeek: 'Won by week', byDay: 'Won by day',
+    month: 'Won this month', streak: 'Longest run', streakN: '{n} slips', top: 'Top multiple', cashed: 'Cashed out', bigLotto: 'Biggest lottery prize', winsNV: '{n} wins',
+    badges: 'Achievements', moments: 'Big moments', sports: 'Your best sports',
     slipWin: '{n} picks', lottery: 'Lottery', scratch: 'Scratch card', cashTag: 'Cashed out', freeTag: 'Free bet',
-    goBet: 'Today’s games', goLotto: 'Play the lottery', mixed: 'Mixed parlays',
+    mixed: 'Mixed parlays', member: 'Membership',
+    vipNone: 'VIP cashback', vipUpTo: 'Up to {top} back', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipPaid: 'Last month’s {v} paid in',
+    vipTitle: 'VIP cashback', vipBody: 'A month’s stakes set your tier; the cashback arrives early next month. Free, nothing to sign up for.', vipTier: '{min}+ a month · {back} back',
     b_first: 'First win', b_firstD: 'Your first win',
     b_run3: 'Hat trick', b_run3D: '3 winning slips in a row',
     b_run5: 'On fire', b_run5D: '5 winning slips in a row',
@@ -51,7 +56,7 @@ const DAY = 86_400_000;
 const TPE = 8 * 3_600_000;
 
 export function mountStats(ctx) {
-  const { state, el, fmtMoney, fmtTime, sportName } = ctx;
+  const { state, el, fmtMoney, sportName } = ctx;
   const lang = () => (state.locale === 'en' ? 'en' : 'zh');
   const t = (key, vars = {}) => String(T[lang()][key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
   const money = v => fmtMoney(v, { sign: false });
@@ -88,86 +93,107 @@ export function mountStats(ctx) {
     const total = list.reduce((s, w) => s + w.amount, 0);
     const biggest = [...list].sort((a, b) => b.amount - a.amount);
     const rerender = () => render(root);
-    const chips = el('div', { class: 'st-periods', role: 'group' }, Object.keys(PERIODS).map(key => el('button', { type: 'button', 'aria-pressed': String(period === key), text: t(key), onclick: () => ((state.statsPeriod = key), rerender()) })));
-    const cta = el('div', { class: 'wins-cta' }, [
-      el('button', { class: 'q-btn primary', type: 'button', text: t('goBet'), onclick: () => ctx.showTab('games') }),
-      el('button', { class: 'q-btn', type: 'button', text: t('goLotto'), onclick: () => ctx.showTab('lottery') })
-    ]);
-    const hero = el('section', { class: 'wins-hero' }, [
-      el('div', { class: 'wins-hero-top' }, [el('span', { class: 'wins-label', text: t('total') }), el('span', { class: 'wins-period', text: t(period) })]),
-      el('strong', { class: 'wins-total num', text: money(total) }),
-      el('span', { class: 'wins-sub', text: list.length ? t('totalSub', { n: list.length, v: money(biggest[0].amount) }) : t('none') }),
+    const section = (title, body, sub = '') => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), sub ? el('span', { class: 'pl-count', text: sub }) : null]), body]);
+    const chips = el('div', { class: 'q-chips pl-chips', role: 'group' }, Object.keys(PERIODS).map(key => el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(period === key), text: t(key), onclick: () => ((state.statsPeriod = key), rerender()) })));
+    // What's been won in the period, big, with its rhythm under it.
+    const hero = el('section', { class: 'q-ambient st-total' }, [
+      el('small', { class: 'st-label', text: t('total') }),
+      el('strong', { class: 'st-big num stat-value', text: money(total) }),
+      list.length ? el('span', { class: 'q-tags' }, [el('span', { class: 'q-tag green', text: t('winsNV', { n: list.length }) }), el('span', { class: 'q-tag', text: t('biggestV', { v: money(biggest[0].amount) }) })]) : el('span', { class: 'q-tags' }, [el('span', { class: 'q-tag', text: t('none') })]),
       rhythm(list, period)
     ]);
 
-    // Achievements: the whole history, whatever the period.
+    // Achievements: the whole history, whatever the period. Unlocked first,
+    // then the nearest ones to unlock.
     const ach = achievements();
     const unlocked = ach.filter(a => a.done).length;
     const badge = a =>
-      el('li', { class: `badge-card${a.done ? ' done' : ''}` }, [
-        el('span', { class: 'badge-mark', 'aria-hidden': 'true', text: a.done ? '★' : '☆' }),
-        el('span', { class: 'badge-text' }, [el('strong', { text: t(`b_${a.key}`) }), el('small', { text: a.done && a.at ? `${t(`b_${a.key}D`)} · ${day(a.at)}` : t(`b_${a.key}D`) })]),
-        a.done ? null : el('span', { class: 'badge-progress', style: `--p:${Math.round(a.progress * 100)}%` })
+      el('div', { class: `q-rail-card st-badge${a.done ? ' done' : ''}`, title: t(`b_${a.key}D`) }, [
+        el('span', { class: `q-tile${a.done ? '' : ' soft'}`, style: '--t:#d9a441', 'aria-hidden': 'true', text: a.done ? '★' : '☆' }),
+        el('strong', { class: 'st-badge-name', text: t(`b_${a.key}`) }),
+        el('small', { text: a.done && a.at ? day(a.at) : t(`b_${a.key}D`) }),
+        a.done ? null : el('span', { class: 'st-progress', style: `--p:${Math.round(a.progress * 100)}%` })
       ]);
-    // Unlocked first, then the nearest ones to unlock.
     const shown = [...ach].sort((x, y) => Number(y.done) - Number(x.done) || y.progress - x.progress);
-    const badges = el('section', { class: 'st-card' }, [
-      el('div', { class: 'st-head' }, [el('h3', { text: t('badges') }), el('p', { text: t('badgesSub', { k: unlocked, n: ach.length }) })]),
-      el('ul', { class: 'badges' }, shown.map(badge))
-    ]);
+    const badges = section(t('badges'), el('div', { class: 'q-rail small st-badges' }, shown.map(badge)), `${unlocked}/${ach.length}`);
+    const member = membership();
 
-    if (!list.length) return root.replaceChildren(chips, hero, badges, cta);
+    if (!list.length) return root.replaceChildren(...[chips, hero, badges, member].filter(Boolean));
 
     const thisMonth = wins(0).filter(w => month(w.at) === month(Date.now())).reduce((s, w) => s + w.amount, 0);
     const top = list.filter(w => w.kind === 'slip' && w.cost > 0).reduce((m, w) => Math.max(m, w.amount / w.cost), 0);
     const cashed = list.filter(w => w.cashed).reduce((s, w) => s + w.amount, 0);
     const lotto = list.filter(w => w.kind === 'lotto').sort((a, b) => b.amount - a.amount)[0];
-    const tile = (label, value, sub = '') => el('div', { class: 'wins-tile' }, [el('small', { text: label }), el('strong', { class: 'num', text: value }), sub ? el('span', { text: sub }) : null]);
-    const tiles = el('div', { class: 'wins-tiles' }, [
-      tile(t('month'), money(thisMonth)),
-      tile(t('winsN'), t('winsNV', { n: list.length })),
-      tile(t('streak'), t('streakN', { n: longestRunNow() })),
-      top > 1 ? tile(t('top'), mult(top)) : null,
-      cashed > 0 ? tile(t('cashed'), money(cashed)) : null,
-      lotto ? tile(t('bigLotto'), money(lotto.amount), lotto.title) : null
+    const stat = (label, value) => el('div', { class: 'q-stat' }, [el('small', { text: label }), el('strong', { class: 'num stat-value', text: value })]);
+    const stats = el('div', { class: 'q-stats st-stats', style: '--q-stats-n:2' }, [
+      stat(t('month'), money(thisMonth)),
+      stat(t('streak'), t('streakN', { n: longestRunNow() })),
+      top > 1 ? stat(t('top'), mult(top)) : null,
+      cashed > 0 ? stat(t('cashed'), money(cashed)) : null,
+      lotto ? stat(t('bigLotto'), money(lotto.amount)) : null
     ].filter(Boolean));
 
     const moment = (w, i) =>
-      el('li', { class: `moment ${w.kind}` }, [
-        el('span', { class: 'moment-rank num', text: String(i + 1) }),
-        el('span', { class: 'moment-main' }, [
-          el('strong', { text: w.title }),
-          el('small', { text: [w.kind === 'lotto' ? t(w.card ? 'scratch' : 'lottery') : t('slipWin', { n: w.legs }), w.cashed ? t('cashTag') : '', w.free ? t('freeTag') : '', fmtTime(new Date(w.at).toISOString())].filter(Boolean).join(' · ') })
+      el('div', { class: `q-ritem st-moment ${w.kind}` }, [
+        el('span', { class: 'q-tile sm', style: `--t:${i === 0 ? '#d9a441' : 'var(--q-accent)'}`, text: String(i + 1) }),
+        el('span', { class: 'q-ritem-text' }, [
+          el('span', { class: 'q-ritem-title', text: w.title }),
+          el('small', { text: [w.kind === 'lotto' ? t(w.card ? 'scratch' : 'lottery') : t('slipWin', { n: w.legs }), w.cashed ? t('cashTag') : '', w.free ? t('freeTag') : '', day(w.at)].filter(Boolean).join(' · ') })
         ]),
-        el('span', { class: 'moment-amt' }, [el('strong', { class: 'num', text: money(w.amount) }), w.cost > 0 && w.amount > w.cost ? el('small', { class: 'num', text: mult(w.amount / w.cost) }) : null])
+        el('span', { class: 'q-ritem-end' }, [el('span', { class: 'num', text: money(w.amount) }), w.cost > 0 && w.amount > w.cost ? el('small', { class: 'num', text: mult(w.amount / w.cost) }) : null])
       ]);
 
     const bySport = new Map();
     for (const w of list) if (w.kind === 'slip') bySport.set(w.sport, (bySport.get(w.sport) || 0) + w.amount);
     const sports = [...bySport.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
     const max = Math.max(1, ...sports.map(s => s[1]));
-    const sportTotal = sports.reduce((s, x) => s + x[1], 0) || 1;
 
     root.replaceChildren(
-      chips,
-      hero,
-      tiles,
-      badges,
-      el('section', { class: 'st-card' }, [el('div', { class: 'st-head' }, [el('h3', { text: t('moments') })]), el('ol', { class: 'moments' }, biggest.slice(0, 6).map(moment))]),
-      sports.length
-        ? el('section', { class: 'st-card' }, [
-            el('div', { class: 'st-head' }, [el('h3', { text: t('sports') })]),
-            el('ul', { class: 'wins-bars' }, sports.map(([sport, v]) =>
-              el('li', {}, [
-                el('span', { class: 'wb-name', text: sport === 'mixed' ? t('mixed') : sportName(sport) }),
-                el('span', { class: 'wb-track' }, [el('i', { style: `--w:${((v / max) * 100).toFixed(1)}%` })]),
-                el('span', { class: 'wb-val' }, [el('strong', { class: 'num', text: money(v) }), el('small', { class: 'num', text: `${Math.round((v / sportTotal) * 100)}%` })])
+      ...[
+        chips,
+        hero,
+        stats,
+        badges,
+        section(t('moments'), el('div', { class: 'q-rowcard' }, biggest.slice(0, 5).map(moment))),
+        sports.length
+          ? section(t('sports'), el('div', { class: 'q-rowcard st-sports' }, sports.map(([sport, v]) =>
+              el('div', { class: 'st-sport' }, [
+                el('span', { class: 'st-sport-name', text: sport === 'mixed' ? t('mixed') : sportName(sport) }),
+                el('span', { class: 'st-track' }, [el('i', { style: `--w:${((v / max) * 100).toFixed(1)}%` })]),
+                el('strong', { class: 'num', text: money(v) })
               ])
-            ))
-          ])
-        : null,
-      cta
+            )))
+          : null,
+        member
+      ].filter(Boolean)
     );
+  }
+
+  // 會員: this month's VIP tier with its cashback, and Quadra Plus for someone
+  // who isn't a member.
+  function membership() {
+    if (!state.wallet) return null;
+    const L = lang();
+    const now = Date.now();
+    const v = vipStatus(state.wallet, now);
+    const pct = x => `${Math.round(x * 1000) / 10}%`;
+    const top = VIP.tiers.at(-1);
+    const share = v.next ? Math.min(1, v.stakes / v.next.min) : 1;
+    const paidNow = v.paid && now - v.paid.t < 7 * DAY ? t('vipPaid', { v: money(v.paid.amount) }) : '';
+    const explain = () => tell({ lang: L, icon: '◆', title: t('vipTitle'), body: t('vipBody'), points: VIP.tiers.map(x => ['◆', vipName(x, L), t('vipTier', { min: money(x.min), back: pct(x.back) })]) });
+    const vip = el('button', { class: 'q-ritem chevron st-vip', type: 'button', onclick: explain }, [
+      el('span', { class: 'q-tile', style: '--t:#d9a441', 'aria-hidden': 'true', text: '◆' }),
+      el('span', { class: 'q-ritem-text' }, [
+        el('span', { class: 'q-ritem-title', text: v.tier ? vipName(v.tier, L) : t('vipNone') }),
+        el('small', { class: 'num', text: paidNow || (v.tier ? t('vipBack', { p: pct(v.tier.back), v: money(v.back) }) : v.next ? t('vipNext', { v: money(v.toNext), name: vipName(v.next, L) }) : t('vipUpTo', { top: pct(top.back) })) }),
+        el('span', { class: 'st-progress', style: `--p:${Math.round(share * 100)}%` })
+      ])
+    ]);
+    return el('section', { class: 'q-section' }, [
+      el('div', { class: 'q-section-head' }, [el('h2', { text: t('member') })]),
+      el('div', { class: 'q-rowcard' }, [vip]),
+      plusMember(state.wallet) ? null : el('div', { class: 'st-plus' }, [plusCard(ctx.q, { compact: true })])
+    ]);
   }
 
   return { render };

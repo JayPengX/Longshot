@@ -1,10 +1,4 @@
-import {
-  slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, quantile, SLIP_RULES, combosBySize, comboCount
-} from './lib/odds.mjs';
-import {
-  FANS, STYLES, SPORTS, SIM_SPORTS, sportTemplate, weekOfYear, crowdPools, crowdSize, hashString, simulateCrowd, MONTH_WEEKS, PERIOD_MONTHS, monthWeeks
-} from './lib/sim.mjs';
-import { ticketProfile, accountTickets } from './lib/profile.mjs';
+import { slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, SLIP_RULES, combosBySize } from './lib/odds.mjs';
 import { useSourcesSession, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
@@ -12,43 +6,29 @@ import * as kitPhotos from '#kit/photos.mjs';
 import * as kit from '#kit/quadra.mjs';
 import * as kitOdds from '#kit/play-odds.mjs';
 import * as kitBoard from '#kit/play-board.mjs';
+import * as kitUI from '#kit/ui.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
-import {
-  accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount
-} from './lib/account.mjs';
+import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
-import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
+import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon } from './icons.js';
-import {
-  othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev,
-  keepOffline, onlineOnly
-} from '#kit/quadra.mjs';
+import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, PLUS, plusMember, openPlus, ask, tell, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
-import { historyStats, funFacts, crowdPercentile, accountRecord } from './lib/history.mjs';
+import { accountRecord } from './lib/history.mjs';
 import { detectLocale, makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
 import { logoPicture, raceName } from '#kit/logos.mjs';
 import { minLegsProblem, leagueTier } from './lib/rules.mjs';
-import { gameOptions, crowdPool } from './lib/board.mjs';
-import { auditPools } from './lib/audit.mjs';
+import { gameOptions } from './lib/board.mjs';
 import { recommend } from './lib/recommend.mjs';
-import { minLegsWhy, slipQuote, quoteAllPays, singlesPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
+import { minLegsWhy, slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
 
-// Simulated people per pick style x series-follow group, on average: each style
-// gets its share of the crowd, 100,000 people in all.
-const PER_GROUP = Math.ceil(100_000 / (STYLES.length * FANS.length));
-const SIM_PLAYERS = crowdSize(PER_GROUP);
-const SIM_SEED = 1;
-// Shown as a round "100,000".
-const SIM_PLAYERS_SHOWN = Math.round(SIM_PLAYERS / 1000) * 1000;
-// Championship teams shown before the rest fold away.
-const FUTURES_SHOWN = 8;
 const ACCOUNT_KEY = 'oddsStudy.account';
 // Saved slips shown before the rest fold away.
 const SAVED_SHOWN = 10;
@@ -485,67 +465,47 @@ function rerenderFiltered() {
   renderGames();
   renderLive();
   renderFutures();
-  renderF1();
 }
 
 function chip({ pressed, icon, text, count, onclick }) {
-  return el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(pressed), onclick }, [
-    icon ?? null,
-    el('span', { text }),
-    count ? el('span', { class: 'chip-count', text: count }) : null
-  ]);
+  return el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(pressed), onclick }, [icon ?? null, el('span', { text }), count ? el('span', { class: 'chip-count', text: count }) : null]);
 }
 
-// Kinds of sport as tiles (an icon, the name, games listed), and once one
-// with several leagues is picked, its leagues as small chips underneath.
+// The kinds of sport as one row of chips (a logo or the sport's glyph, the
+// name, today's games); a kind with several leagues, once picked, its
+// leagues in a second row.
 function renderSportFilter() {
   const t = state.t;
   const present = new Set([...state.bets, ...state.futures].map(b => b.sport));
   const groups = Object.keys(SPORT_GROUPS).filter(g => SPORT_GROUPS[g].leagues.some(l => present.has(l)));
   const valid = state.sport === 'all' || (state.sport.startsWith('g:') && groups.includes(state.sport.slice(2))) || present.has(state.sport);
   if (!valid) state.sport = 'all';
-  const games = inside => state.data.games.filter(g => inside(g.sport)).length;
-  const countText = (n, f1) => (f1 ? t('f1Race') : n > 0 ? t('gamesN', { n }) : t('futuresOnly'));
   const current = state.sport === 'all' ? null : state.sport.startsWith('g:') ? state.sport.slice(2) : groupOfSport(state.sport);
   const pick = value => () => {
     state.sport = value;
     rerenderFiltered();
   };
-  const tile = (value, icon, name, count, pressed) =>
-    el('button', { class: 'q-chip sport-tile', type: 'button', 'aria-pressed': String(pressed), onclick: pick(value) }, [icon, el('span', { class: 'tile-name', text: name }), el('span', { class: 'tile-count', text: count })]);
-  const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-tile') : el('span', { class: 'league-badge logo-tile' }, el('span', { class: 'league-img league-icon', 'aria-hidden': 'true', text: SPORT_GROUPS[g].icon })));
   $('sport-filter').replaceChildren(
-    tile('all', allIcon(), t('sport_all'), countText(games(() => true)), state.sport === 'all'),
+    chip({ pressed: state.sport === 'all', text: t('sport_all'), onclick: pick('all') }),
     ...groups.map(g => {
       const leagues = SPORT_GROUPS[g].leagues.filter(l => present.has(l));
-      const value = leagues.length === 1 ? leagues[0] : `g:${g}`;
-      return tile(value, groupIcon(g), t(`group_${g}`), countText(games(sp => SPORT_GROUPS[g].leagues.includes(sp)), g === 'f1'), current === g);
+      return chip({ pressed: current === g, icon: groupIcon(g), text: t(`group_${g}`), onclick: pick(leagues.length === 1 ? leagues[0] : `g:${g}`) });
     })
   );
-  // Keep the picked tile in view in the scrolling row.
-  {
-    const row = $('sport-filter');
-    const on = row.querySelector('[aria-pressed="true"]');
-    if (on && (on.offsetLeft < row.scrollLeft || on.offsetLeft + on.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = on.offsetLeft - 16;
-  }
-  // The picked kind's leagues.
+  keepInView($('sport-filter'));
   const leagues = current ? SPORT_GROUPS[current].leagues.filter(l => present.has(l)) : [];
   $('league-filter').hidden = leagues.length < 2;
   $('league-filter').replaceChildren(
-    ...(leagues.length < 2
-      ? []
-      : [
-          chip({ pressed: state.sport === `g:${current}`, text: t('leagueAll'), onclick: pick(`g:${current}`) }),
-          ...leagues.map(l => chip({ pressed: state.sport === l, icon: leagueImg(l, 'logo-xs'), text: t(`sport_${l}`), count: games(sp => sp === l) || null, onclick: pick(l) }))
-        ])
+    ...(leagues.length < 2 ? [] : [chip({ pressed: state.sport === `g:${current}`, text: t('leagueAll'), onclick: pick(`g:${current}`) }), ...leagues.map(l => chip({ pressed: state.sport === l, icon: leagueImg(l, 'logo-xs'), text: t(`sport_${l}`), onclick: pick(l) }))])
   );
+  keepInView($('league-filter'));
 }
-
-// "All sports": four small squares.
-function allIcon() {
-  const svg = svgEl('svg', { class: 'logo logo-tile all-icon', viewBox: '0 0 24 24', 'aria-hidden': 'true' });
-  for (const [x, y] of [[3, 3], [13, 3], [3, 13], [13, 13]]) svg.append(svgEl('rect', { x, y, width: 8, height: 8, rx: 2.5 }));
-  return svg;
+// A kind of sport's picture: its one league's logo, else its glyph.
+const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-xs') : el('span', { class: 'chip-glyph', 'aria-hidden': 'true', text: SPORT_GROUPS[g].icon }));
+// A sideways row keeps its chosen chip in view.
+function keepInView(row) {
+  const on = row?.querySelector('[aria-pressed="true"]');
+  if (on && (on.offsetLeft < row.scrollLeft || on.offsetLeft + on.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = on.offsetLeft - 16;
 }
 
 // 今天 / 明天 / the weekday, in Taiwan time.
@@ -558,60 +518,53 @@ function dayLabel(day) {
   return formatter('weekday', locale => new Intl.DateTimeFormat(locale, { weekday: 'short' })).format(new Date(y, m - 1, d));
 }
 
-// Days as a calendar strip: weekday, date, and what's on.
-// (What the strip was last worked out and drawn from: each live beat asks
-// again, and only a change of these draws it again.)
+// The days with games, worked out again only when what they come from changes.
 let dayMemo = { key: [], days: [] };
-let stripDrawn = [];
 const sameKeys = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 // The day a bet is shown on: its own, but an F1 weekend's all on race day
-// (its pole closes at qualifying, the day before in Taipei: two days on the
-// strip for one board, 2026-10's 美國站).
+// (its pole closes at qualifying, the day before in Taipei).
 const betDay = b => dayKey(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
+const f1Day = () => (state.data?.f1?.startUtc ? dayKey(state.data.f1.startUtc) : null);
+// The day the board shows, in the head's button (今天 10/19 ▾): a tap lists
+// every day with its games. One day only: the day, no menu.
 function renderDayFilter() {
   const t = state.t;
   const today = dayKey(new Date().toISOString());
   const liveNow = state.liveGames.filter(g => inSport(g.sport)).length;
-  // Today stays on the strip while games are on (場中 lives there), even with
-  // every one of today's games already under way.
+  // Today stays while games are on (場中 lives there).
   const dayKeys = [state.bets, state.sport, liveNow > 0, today];
   if (!sameKeys(dayKeys, dayMemo.key)) dayMemo = { key: dayKeys, days: [...new Set([...state.bets.filter(b => inSport(b.sport)).map(betDay), ...(liveNow ? [today] : [])])].sort() };
   const days = dayMemo.days;
-  // The earliest day with games (today, unless today's are all under way),
-  // until a day is picked: games arriving later (the other leagues, a
-  // refresh after midnight) move it to the new earliest day too.
+  // The earliest day with games until one is picked.
   if (!state.dayPicked || !days.includes(state.day)) {
     state.day = days[0] ?? null;
     state.dayPicked = false;
   }
-  // One day only (the usual case): no picker, the day goes in the heading.
-  $('day-filter').hidden = days.length <= 1;
-  const [, gm, gd] = (state.day ?? '').split('-').map(Number);
-  $('games-title').textContent = state.day ? `${t('gamesTitle')} · ${dayLabel(state.day)} ${gm}/${gd}` : t('gamesTitle');
-  const strip = [days, state.bets, state.data, state.day, state.locale, liveNow, today];
-  if (!sameKeys(strip, stripDrawn)) {
-    stripDrawn = strip;
-    $('day-filter').replaceChildren(
-      ...days.map(day => {
-        const games = state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === day).length;
-        const hasF1 = inSport('f1') && state.data.f1 && dayKey(state.data.f1.startUtc) === day;
-        const [, m, d] = day.split('-').map(Number);
-        const label = dayLabel(day);
-        return el('button', {
-          class: 'q-chip day-tile',
-          type: 'button',
-          'aria-pressed': String(day === state.day),
-          onclick: () => {
-            state.day = day;
-            state.dayPicked = true;
-            rerenderFiltered();
-          }
-        }, [
-          el('span', { class: 'day-text' }, [el('span', { class: 'day-week', text: label }), el('span', { class: 'day-num', text: `${m}/${d}` })]),
-          el('span', { class: 'day-count', text: [day === today && liveNow ? `${t('liveTitle')} ${liveNow}` : null, games ? t('gamesN', { n: games }) : null, hasF1 ? 'F1' : null].filter(Boolean).join(' + ') })
-        ]);
-      })
-    );
+  const button = $('day-pick');
+  button.hidden = !state.day;
+  if (state.day) {
+    const [, m, d] = state.day.split('-').map(Number);
+    button.replaceChildren(el('span', { text: `${dayLabel(state.day)} ${m}/${d}` }), days.length > 1 ? el('i', { class: 'pl-day-chev', 'aria-hidden': 'true' }) : null);
+    button.disabled = days.length <= 1;
+    button.onclick = () =>
+      kitUI.menu?.(
+        button,
+        days.map(day => {
+          const [, dm, dd] = day.split('-').map(Number);
+          const games = state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === day).length;
+          const extra = [day === today && liveNow ? `${t('liveTitle')} ${liveNow}` : null, games ? t('gamesN', { n: games }) : null, inSport('f1') && f1Day() === day ? 'F1' : null].filter(Boolean).join(' · ');
+          return {
+            label: `${dayLabel(day)} ${dm}/${dd}${extra ? `  ·  ${extra}` : ''}`,
+            icon: day === state.day ? '✓' : '',
+            onClick: () => {
+              state.day = day;
+              state.dayPicked = true;
+              rerenderFiltered();
+              scrollTo({ top: 0 });
+            }
+          };
+        })
+      );
   }
   // 場中 shows on today only.
   renderLive();
@@ -698,8 +651,6 @@ function badge(text, color, size = '') {
 
 // ---- Rendering: static text ------------------------------------------------
 
-// The guide's groups, in order: the odds math, then i18n's `guide` groups.
-
 function renderStatic() {
   const t = state.t;
   document.documentElement.lang = state.locale === 'zh' ? 'zh-Hant' : 'en';
@@ -708,39 +659,17 @@ function renderStatic() {
   const bootTitle = document.querySelector('#loading .q-boot-title');
   if (bootTitle) bootTitle.textContent = t('title');
   $('title').textContent = t('title');
-  $('notice').textContent = t('notice');
   $('game-search').placeholder = t('searchPlaceholder');
   $('game-search').setAttribute('aria-label', t('searchPlaceholder'));
-  $('games-footnote').textContent = t('notice');
-  $('footer').textContent = t('footer');
-  for (const [id, key] of [
-    ['games-title', 'gamesTitle'],
-    ['live-title', 'liveTitle'],
-    ['futures-title', 'futuresTitle'],
-    ['parlay-title', 'parlayTitle'],
-    ['account-title', 'accountTitle'],
-    ['saved-title', 'savedTitle'],
-    ['stats-title', 'statsTitle'],
-    ['f1-title', 'f1Title']
-  ])
-    $(id).textContent = t(key);
+  $('parlay-title').textContent = t('parlayTitle');
   for (const node of document.querySelectorAll('[data-t]')) node.textContent = t(node.dataset.t);
   for (const id of ['slip-close', 'game-sheet-close']) $(id).setAttribute('aria-label', t('close'));
   for (const tab of TABS) tabNav.label(tab, t(`tab_${tab}`));
 }
 
+// A board that couldn't be read says so once, in a toast (the page keeps what it has).
 function renderStatus(kind) {
-  const t = state.t;
-  const status = $('status');
-  if (kind === 'loading') status.textContent = t('loading');
-  else if (kind === 'error') status.textContent = t('loadFailed');
-  else if (state.fromSnapshot) {
-    status.textContent = t('updatingShort', { time: fmtTime(state.data.loadedAt) });
-    status.title = '';
-  } else {
-    status.textContent = t('updatedShort', { time: fmtTime(state.data.loadedAt) });
-    status.title = `${fmtTime(state.data.loadedAt)} · ${t('sources')}`;
-  }
+  if (kind === 'error') kitUI.toast?.(state.t('loadFailed'));
 }
 
 // ---- Ranking ------------------------------------------------------------------
@@ -774,50 +703,59 @@ function searchGames() {
 }
 
 function renderGames() {
-  redraw($('games'), drawGames);
+  redraw($('games-list'), drawGames);
 }
+// The day's games, one section per league (its logo and name, its count),
+// the big leagues first; with every sport shown the thinly traded ones fold
+// behind one row. A search lists every match found, any day, in one section.
 function drawGames() {
   const t = state.t;
   const container = $('games-list');
   const searching = Boolean(state.query);
   document.body.classList.toggle('searching', searching);
-  const games = searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === state.day);
-  if (searching) $('games-title').textContent = t('searchResults', { q: state.query, n: games.length });
-  else renderDayFilter();
-  $('games').hidden = games.length === 0 && !(inSport('f1') && state.data.f1);
-  if (games.length === 0) {
-    container.replaceChildren(el('p', { class: 'muted', text: t(searching ? 'searchNone' : 'noBets') }));
-    if (searching) $('games').hidden = false;
+  if (!searching) renderDayFilter();
+  const byGame = groupBy(state.bets, b => b.gameId);
+  const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
+  if (searching) {
+    container.replaceChildren(
+      games.length
+        ? gameSection(el('span', { text: t('searchResults', { q: state.query, n: games.length }) }), null, games.map(g => gameRow(g, byGame.get(g.id), { league: true, day: true })))
+        : el('p', { class: 'pl-empty', text: t('searchNone') })
+    );
     return;
   }
-  const byGame = groupBy(state.bets, b => b.gameId);
-  const listed = games.filter(g => byGame.get(g.id));
-  // The big leagues first (by time), then the rest; with every sport shown,
-  // the thinly traded ones (Asian baseball, EuroLeague…) fold away
-  // behind one row, so the board opens on the games people know.
   const TIER = { major: 0, minor: 1, thin: 2 };
-  const ordered = searching ? listed : [...listed].sort((a, b) => TIER[shownTier(a.sport)] - TIER[shownTier(b.sport)] || a.startUtc.localeCompare(b.startUtc));
-  const fold = !searching && state.sport === 'all' && !state.showThin && ordered.some(g => shownTier(g.sport) !== 'thin');
-  const shown = fold ? ordered.filter(g => shownTier(g.sport) !== 'thin') : ordered;
-  const rest = ordered.length - shown.length;
+  const leagues = [...groupBy(games, g => g.sport).entries()].sort(([a, x], [b, y]) => TIER[shownTier(a)] - TIER[shownTier(b)] || x[0].startUtc.localeCompare(y[0].startUtc));
+  const fold = state.sport === 'all' && !state.showThin && leagues.some(([s]) => shownTier(s) !== 'thin');
+  const shown = fold ? leagues.filter(([s]) => shownTier(s) !== 'thin') : leagues;
+  const folded = leagues.slice(shown.length);
+  const rest = folded.reduce((n, [, list]) => n + list.length, 0);
+  const sections = shown.map(([sport, list]) => gameSection([leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })], list.length, list.map(g => gameRow(g, byGame.get(g.id)))));
+  const f1 = f1Section();
+  if (f1) sections.splice(sections.length && shownTier(shown[0][0]) === 'major' ? 1 : 0, 0, f1);
   container.replaceChildren(
-    ...shown.map(game => gameCard(game, byGame.get(game.id))),
+    ...sections,
     rest
-      ? el('button', { class: 'more-leagues', type: 'button', onclick: () => ((state.showThin = true), renderGames()) }, [
-          el('span', { text: t('moreLeagues', { n: rest }) }),
-          el('small', { text: [...new Set(ordered.slice(shown.length).map(g => t(`sport_${g.sport}`)))].slice(0, 4).join('・') })
+      ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showThin = true), renderGames()) }, [
+          el('span', { class: 'pl-fold-logos', 'aria-hidden': 'true' }, folded.slice(0, 3).map(([s]) => leagueImg(s, 'logo-xs'))),
+          el('span', { class: 'pl-fold-text', text: t('moreLeagues', { n: rest }) }),
+          el('i', { class: 'pl-chev', 'aria-hidden': 'true' })
         ])
-      : ''
+      : null,
+    !sections.length ? el('p', { class: 'pl-empty', text: t('noBets') }) : null
   );
+}
+function gameSection(title, count, rows) {
+  return el('section', { class: 'q-section' }, [
+    el('div', { class: 'q-section-head' }, [el('h2', { class: 'pl-league-h' }, title), count ? el('span', { class: 'pl-count', text: String(count) }) : null]),
+    el('div', { class: 'q-rowcard pl-games' }, rows)
+  ]);
 }
 
 function hhmm(iso) {
   return formatter('hhmm', locale => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Taipei' })).format(new Date(iso));
 }
 
-// A game: its teams with logos and win picks. A tap on it (anywhere but a
-// price) opens its sheet with every market (`openGameSheet`); in the sheet
-// (`inSheet`) the markets sit under the teams.
 // A game's winner columns: soccer's 主勝/和/客勝; a three-way winner elsewhere
 // (hockey's 60 minutes with 台灣運彩's settle rules in the kit) keeps the
 // card's away-at-home order with 和 between; else the two teams.
@@ -825,44 +763,66 @@ function winnerSides(game, ml) {
   if (isSoccer(game.sport)) return ['home', 'draw', 'away'];
   return ml.some(b => b.side === 'draw') ? ['away', 'draw', 'home'] : ['away', 'home'];
 }
+// A row's team name: Chinese's full name, English's short one (the city cut).
+const rowTeam = (game, side) => (state.locale === 'zh' ? teamName(game[side]) : shortTeamName(game.sport, game[side].en, teamName(game[side])));
+// The event a game is in beyond its league (a tour's stop, a cup's round).
+const eventOf = game => gameSeries(game).split(' · ').slice(1).join(' · ');
+// How many markets a game has beyond the winner.
+const marketCount = bets => new Set(bets.filter(b => b.kind !== 'ml').map(b => b.market ?? b.kind)).size;
 
-function gameCard(game, bets, { inSheet = false } = {}) {
+// A game as a row: the time (or its live state) and its markets' count on
+// top, then each side with its logo, its score and its win price. A tap
+// anywhere but a price opens its sheet with every market.
+function gameRow(game, bets, { league = false, day = false } = {}) {
+  const t = state.t;
+  const ml = bets.filter(b => b.kind === 'ml');
+  const rows = winnerSides(game, ml).map(side => {
+    const bet = ml.find(b => b.side === side);
+    if (side === 'draw') return bet ? el('div', { class: 'pl-team draw' }, [el('span', { class: 'pl-draw-mark', 'aria-hidden': 'true', text: '=' }), el('span', { class: 'pl-team-name', text: t('draw') }), pickButton(bet, '')]) : null;
+    const score = game.live ? el('span', { class: `pl-score${scoreMoved(`${game.id}|${side}`, game.live[`${side}Score`]) ? ' moved' : ''}`, text: String(game.live[`${side}Score`]) }) : null;
+    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name', text: rowTeam(game, side) }), score, bet ? pickButton(bet, '') : el('span', { class: 'pick-none' })]);
+  });
+  const n = marketCount(bets);
+  const event = league ? gameSeries(game) : eventOf(game);
+  const when = game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : day ? `${dayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc);
+  return el('article', { class: `pl-game${game.live ? ' live' : ''}`, 'data-game': game.id, onclick: e => !e.target.closest('button') && openGameSheet(game.id) }, [
+    el('div', { class: 'pl-game-top' }, [
+      league ? leagueImg(game.sport, 'logo-xs') : null,
+      game.live
+        ? el('span', { class: 'pl-when live' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
+        : el('span', { class: 'pl-when', text: when }),
+      event ? el('span', { class: 'pl-event', text: event }) : null,
+      el('span', { class: 'pl-more', text: n ? t('marketsN', { n }) : '' }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
+    ]),
+    ...rows
+  ]);
+}
+
+// A game in its sheet: the scoreboard (both sides' logos and names, the
+// time or the live score between), the win prices in one row, then every
+// other market under its tabs.
+function gameDetail(game, bets) {
   const t = state.t;
   const ml = bets.filter(b => b.kind === 'ml');
   const sides = winnerSides(game, ml);
-  const rows = sides.map(side => {
-    const bet = ml.find(b => b.side === side);
-    const who =
-      side === 'draw'
-        ? [badge('=', 'var(--text-muted)'), el('span', { class: 'team-name', text: t('draw') })]
-        : [
-            logoImg(game.sport, game[side].en, teamName(game[side])),
-            el('span', { class: 'team-name' }, [document.createTextNode(teamName(game[side])), el('small', { text: t(side === 'home' ? 'homeTag' : 'awayTag') })])
-          ];
-    const score = game.live && side !== 'draw' ? el('span', { class: `live-score${scoreMoved(`${game.id}|${side}`, game.live[`${side}Score`]) ? ' moved' : ''}`, text: String(game.live[`${side}Score`]) }) : null;
-    return el('div', { class: 'team-row' }, [...who, score, bet ? pickButton(bet, '') : null]);
-  });
+  const [left, right] = sides.filter(s => s !== 'draw');
+  const side = s => el('div', { class: 'gs-side' }, [logoImg(game.sport, game[s].en, teamName(game[s]), 'logo-lg'), el('span', { class: 'gs-name', text: shortTeamName(game.sport, game[s].en, teamName(game[s])) }), el('small', { text: t(s === 'home' ? 'homeTag' : 'awayTag') })]);
+  const day = dayKey(game.startUtc);
+  const [, m, d] = day.split('-').map(Number);
+  const mid = game.live
+    ? el('div', { class: 'gs-mid live' }, [
+        el('span', { class: 'gs-score' }, [el('b', { class: scoreMoved(`${game.id}|${left}`, game.live[`${left}Score`]) ? 'moved' : '', text: String(game.live[`${left}Score`]) }), el('i', { text: '–' }), el('b', { class: scoreMoved(`${game.id}|${right}`, game.live[`${right}Score`]) ? 'moved' : '', text: String(game.live[`${right}Score`]) })]),
+        el('span', { class: 'gs-state' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
+      ])
+    : el('div', { class: 'gs-mid' }, [el('span', { class: 'gs-time', text: game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : hhmm(game.startUtc) }), el('span', { class: 'gs-day', text: `${dayLabel(day)} ${m}/${d}` })]);
   const others = bets.filter(b => b.kind !== 'ml');
-  // A live game Kambi lists has more once it's opened (its own markets).
-  // (In the sheet, a game whose lists are still coming has more on the way: its shape, never 沒有其他玩法 then the tabs.)
-  const more = others.length > 0 || Boolean(game.live && game.kambiId) || (inSheet && !moreShown.has(game.id) && (Boolean(game.kambiId) || (Boolean(game.espnTeams) && hasPlayers(game.sport))));
-  const open = () => openGameSheet(game.id);
-  return el('article', {
-    class: `game ${inSheet ? 'in-sheet' : 'tappable'} ${game.live ? 'live' : ''}`,
-    'data-game': inSheet ? null : game.id,
-    onclick: inSheet ? null : e => !e.target.closest('button') && open()
-  }, [
-    el('div', { class: 'game-top' }, [
-      leagueImg(game.sport, 'logo-xs'),
-      el('span', { class: 'game-series', text: gameSeries(game) }),
-      game.live
-        ? el('span', { class: 'game-time live-state' }, [el('span', { class: 'live-dot', text: t('tagLive') }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
-        : el('span', { class: 'game-time', text: game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : state.query ? `${dayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc) })
-    ]),
-    el('div', { class: 'team-rows' }, rows),
-    inSheet ? (more ? gameMore(game, others) : el('p', { class: 'muted offers-wait sheet-none', text: t('offersNone') })) : el('button', { class: 'more-toggle', type: 'button', 'aria-haspopup': 'dialog', onclick: open }, [
-      document.createTextNode(more ? t('moreMarkets') : t('gameDetails'))
-    ])
+  // A game Kambi lists, or with players' markets, has more on the way while its lists are read.
+  const more = others.length > 0 || Boolean(game.live && game.kambiId) || (!moreShown.has(game.id) && (Boolean(game.kambiId) || (Boolean(game.espnTeams) && hasPlayers(game.sport))));
+  const win = sides.map(s => ml.find(b => b.side === s)).filter(Boolean);
+  return el('div', { class: 'gs' }, [
+    el('div', { class: 'gs-board' }, [side(left), mid, side(right)]),
+    win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side]))))) : null,
+    more ? gameMore(game, others) : el('p', { class: 'pl-empty', text: t('offersNone') })
   ]);
 }
 
@@ -1388,18 +1348,17 @@ function buildLiveBets(data) {
 function renderLive() {
   redraw($('live'), drawLive);
 }
+// 場中: every game on now, the big leagues first, each row with its league's logo.
 function drawLive() {
-  const t = state.t;
-  // The big leagues first, then by start.
   const TIER = { major: 0, minor: 1, thin: 2 };
   const games = state.liveGames.filter(g => inSport(g.sport)).sort((a, b) => TIER[shownTier(a.sport)] - TIER[shownTier(b.sport)] || a.startUtc.localeCompare(b.startUtc));
-  // Only on today's board: another day's games haven't started.
+  // Only on today's board (another day's games haven't started), and not while searching.
   const onToday = state.day === dayKey(new Date().toISOString());
-  $('live').hidden = !games.length || !onToday;
-  if (!games.length || !onToday) return;
+  $('live').hidden = !games.length || !onToday || Boolean(state.query);
+  if ($('live').hidden) return;
   const byGame = groupBy(state.liveBets, b => b.gameId);
-  $('live-updated').textContent = state.liveAt ? t('liveUpdated', { time: formatter('hms', locale => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Taipei' })).format(new Date(state.liveAt)) }) : '';
-  $('live-list').replaceChildren(...games.map(g => gameCard(g, byGame.get(g.id) ?? [])));
+  $('live-count').textContent = String(games.length);
+  $('live-list').replaceChildren(...games.map(g => gameRow(g, byGame.get(g.id) ?? [], { league: true })));
 }
 
 // Live games refresh every 30 seconds while the games tab is on screen.
@@ -1480,64 +1439,55 @@ everyDev('playLive', () => livePulse());
 const constructorBadge = (name, size = '') => (kitPhotos.teamPic ? kitPhotos.teamPic(name, { cls: size }) : badge(f1Constructor(name).short, f1Constructor(name).color, `badge-text ${size}`));
 const driverBadge = (bet, size = '') => (kitPhotos.driverPic ? kitPhotos.driverPic(bet.driverEn, { cls: size }) : el('span', { class: `driver-badge ${size}`, style: `--team:${bet.driver.color}`, 'aria-hidden': 'true', text: bet.driverEn.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() }));
 
-// One row per team or driver: picture, name, chance, then the estimated odds
-// and average back as a button that puts the pick on the slip.
+// One row per team or driver: its rank, picture, name (a line under it),
+// and its price, the same button as every pick on the board.
 function entryRow(bet, i, picture, sub, name = bet.shortLabel) {
-  const t = state.t;
   const inSlip = state.parlay.includes(bet.id);
-  const locked = Boolean(bet.lock);
-  return el('div', { class: `entry ${inSlip ? 'in-slip' : ''} ${locked ? 'locked' : ''}`, 'data-bet': bet.id, title: pickTitle(bet) }, [
-    el('span', { class: 'entry-rank', text: String(i + 1) }),
+  return el('div', { class: `pl-entry${inSlip ? ' in-slip' : ''}${bet.lock ? ' locked' : ''}`, 'data-bet': bet.id, title: pickTitle(bet) }, [
+    el('span', { class: 'pl-entry-rank', text: String(i + 1) }),
     picture,
-    // sub === null: the name alone (no chance, no second line).
-    el('span', { class: 'entry-name' }, [el('span', { class: 'entry-title', text: name }), sub === null ? null : sub ? el('small', { text: sub }) : null]),
-    el('button', {
-      class: `entry-odds ${inSlip ? 'in-slip' : ''}`,
-      type: 'button',
-      'data-bet': bet.id,
-      'aria-pressed': String(inSlip),
-      'aria-label': `${bet.label} ${fmtOdds(effectiveOdds(bet))} · ${locked ? t(`lock_${bet.lock}`) : inSlip ? t('removeLeg') : t('addLeg')}`,
-      disabled: locked ? true : null,
-      onclick: locked ? null : () => toggleLeg(bet)
-    }, [locked ? icon('lock', 'lock') : document.createTextNode(fmtOdds(effectiveOdds(bet))), !locked && bet.minLegs > 1 ? el('small', { class: 'min-legs', text: t('minLegsTag', { n: bet.minLegs }) }) : null])
+    el('span', { class: 'pl-entry-name' }, [el('span', { text: name }), sub ? el('small', { text: sub }) : null]),
+    pickButton(bet, '')
   ]);
 }
 
-// A board of prices (F1, championships): its picks and nothing else.
-function board({ emblem, title, sub, bets, rows, id, shown = Infinity, tabs = null, lead = null }) {
-  const t = state.t;
-  const entries = bets.map((b, i) => rows(b, i));
-  const rest = entries.slice(shown);
-  return el('article', { class: 'board' }, [
-    el('div', { class: 'board-head' }, [
-      el('span', { class: 'board-emblem' }, leagueImg(emblem)),
-      el('div', {}, [el('p', { class: 'board-title', text: title }), el('p', { class: 'board-sub', text: sub })])
-    ]),
-    tabs ? el('div', { class: 'board-tabs' }, tabs) : null,
-    lead ? el('p', { class: 'board-lead', text: lead }) : null,
-    el('div', { class: 'entries' }, entries.slice(0, shown)),
-    rest.length ? el('details', { class: 'board-more' }, [el('summary', { text: t('futureMore', { n: rest.length }) }), el('div', { class: 'entries' }, rest)]) : null
+// A board of prices (F1, a championship) in the game sheet: its emblem, name
+// and when it settles, its market tabs, then every entry.
+function boardBody({ emblem, title, sub, tabs = null, lead = null, entries }) {
+  return el('div', { class: 'gs' }, [
+    el('div', { class: 'gs-boardhead' }, [leagueImg(emblem, 'logo-lg'), el('div', {}, [el('p', { class: 'gs-btitle', text: title }), el('p', { class: 'gs-bsub', text: sub })])]),
+    tabs,
+    lead ? el('p', { class: 'gs-lead', text: lead }) : null,
+    el('div', { class: 'q-rowcard pl-entries' }, entries)
   ]);
 }
 
+// 冠軍: one row per market (its league, its name, the two favourites'
+// prices), each opening its board.
 function renderFutures() {
-  const t = state.t;
   const markets = groupBy(state.futures.filter(b => inSport(b.sport)), b => b.market);
-  $('futures').hidden = markets.size === 0;
+  $('futures').hidden = markets.size === 0 || Boolean(state.query);
   $('futures-list').replaceChildren(
-    ...[...markets.values()].map(bets => {
-      const { market, matchup, sport } = bets[0];
-      return board({
-        emblem: sport,
-        title: matchup,
-        sub: `${t('futureSettles')} ${t(`futureSettle_${market}`)}`,
-        bets,
-        id: `fut|${market}`,
-        shown: FUTURES_SHOWN,
-        rows: (b, i) => entryRow(b, i, market === 'f1drivers' ? driverBadge({ driverEn: b.teamEn, driver: f1Driver(b.teamEn) }) : market === 'f1constructors' ? constructorBadge(b.teamEn) : logoImg(b.sport, b.teamEn, b.shortLabel))
-      });
+    ...[...markets.entries()].map(([market, bets]) => {
+      const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 2);
+      return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
+        el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
+        el('span', { class: 'q-ritem-value', text: String(bets.length) })
+      ]);
     })
   );
+}
+function futuresBoard(market) {
+  const t = state.t;
+  const bets = state.futures.filter(b => b.market === market);
+  if (!bets.length) return null;
+  const { matchup, sport } = bets[0];
+  const picture = b => (market === 'f1drivers' ? driverBadge({ driverEn: b.teamEn, driver: f1Driver(b.teamEn) }) : market === 'f1constructors' ? constructorBadge(b.teamEn) : logoImg(b.sport, b.teamEn, b.shortLabel));
+  return {
+    title: [leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })],
+    body: boardBody({ emblem: sport, title: matchup, sub: `${t('futureSettles')} ${t(`futureSettle_${market}`)}`, entries: bets.map((b, i) => entryRow(b, i, picture(b))) })
+  };
 }
 
 // ---- Bet slip -----------------------------------------------------------------
@@ -1582,7 +1532,7 @@ function slipChanged() {
   const now = new Set(state.parlay);
   const moved = [...now, ...slipShown].filter(id => now.has(id) !== slipShown.has(id));
   slipShown = now;
-  if (moved.some(id => id.startsWith('f1'))) renderF1();
+  if (moved.some(id => id.startsWith('f1')) && state.sheetGame === 'board:f1') renderGameSheet();
   renderParlay();
   syncPicks();
   renderSlipBar();
@@ -1656,6 +1606,8 @@ function minLegsError(legs, slip, sizes) {
   return why.from === 'event' ? t('slipError_minLegsEvent', { need: why.n, pick }) : t('slipError_minLegsOdds', { need: why.n, odds: fmtOdds(why.odds), pick });
 }
 
+// The slip sheet: the way it's bought (單場, 過關, 過關組合), its picks, the
+// stake in NT$, then what it pays all correct, big, and the one button.
 function renderParlay() {
   renderSlipBar();
   const t = state.t;
@@ -1671,57 +1623,48 @@ function renderParlay() {
   const quote = currentQuote(legs, free);
   const { sizes, stake, freeShape, freeOn, errors, cost, legs: slip } = quote;
   const rerender = () => renderParlay();
+  const droppedTag = dropped ? el('p', { class: 'sl-note' }, [el('span', { class: 'q-tag orange', text: t('slipDroppedLive', { n: dropped }) })]) : null;
 
   if (n === 0) {
+    const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
     body.replaceChildren(
-      el('div', { class: 'card slip-empty' }, [
-        el('div', { class: 'big-emoji', 'aria-hidden': 'true', text: '🎫' }),
-        el('p', { text: t('parlayEmpty') }),
-        dropped ? el('p', { class: 'back-low', text: t('slipDroppedLive', { n: dropped }) }) : null,
-        el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') })
+      el('div', { class: 'sl' }, [
+        kitUI.empty?.({ icon: '🎫', title: t('parlayEmpty'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('parlayEmpty') }), go]),
+        droppedTag
       ])
     );
     return;
   }
 
-  // Left: the ticket itself. Right: what it can pay and what it costs on average.
-  const ticket = [
-    el('div', { class: 'ticket-head' }, [
-      el('strong', { text: t('slipLegs', { n }) }),
+  const modes = el('div', { class: 'q-seg sl-modes', role: 'group', 'aria-label': t('slipMode'), style: `--q-seg-n:3;--q-seg-i:${['single', 'parlay', 'system'].indexOf(mode)}` },
+    ['single', 'parlay', 'system'].map(m =>
       el('button', {
-        class: 'q-btn',
         type: 'button',
-        text: t('clearParlay'),
+        'aria-pressed': String(m === mode),
+        text: t(`slipMode_${m}`),
         onclick: () => {
-          state.parlay = [];
-          slipChanged();
+          state.slipMode = m;
+          state.modeChosen = true;
+          saveSlip();
+          rerender();
         }
       })
+    )
+  );
+  const parts = [
+    modes,
+    droppedTag,
+    el('div', { class: 'sl-legs-head' }, [
+      el('span', { text: t('slipLegs', { n }) }),
+      el('button', { class: 'sl-link', type: 'button', text: t('clearParlay'), onclick: () => ((state.parlay = []), slipChanged()) })
     ]),
-    el('div', { class: 'q-seg slip-modes', role: 'group', 'aria-label': t('slipMode') },
-      ['single', 'parlay', 'system'].map(m =>
-        el('button', {
-          type: 'button',
-          'aria-pressed': String(m === mode),
-          text: t(`slipMode_${m}`),
-          onclick: () => {
-            state.slipMode = m;
-            state.modeChosen = true;
-            saveSlip();
-            rerender();
-          }
-        })
-      )
-    ),
-    el('p', { class: 'mode-note', text: t(`slipModeNote_${mode}`) }),
-    dropped ? el('p', { class: 'note back-low', text: t('slipDroppedLive', { n: dropped }) }) : null,
-    el('ul', { class: 'parlay-legs' },
+    el('div', { class: 'q-rowcard sl-legs' },
       legs.map(b =>
-        el('li', {}, [
+        el('div', { class: 'sl-leg' }, [
           betIcon(b),
           legMain(b),
           legOdds(b),
-          el('button', { class: 'leg-remove', type: 'button', 'aria-label': t('removeLeg'), text: '×', onclick: () => toggleLeg(b) })
+          el('button', { class: 'sl-remove', type: 'button', 'aria-label': t('removeLeg'), onclick: () => toggleLeg(b) })
         ])
       )
     )
@@ -1730,77 +1673,60 @@ function renderParlay() {
     const bySize = combosBySize(slip);
     const from = SETTLE_2026 ? 1 : 2;
     const options = [...Array.from({ length: n - from }, (_, i) => i + from), 'all'].filter(k => bySize[k === 'all' ? n : k] > 0 || state.slipSizes.has(k));
-    ticket.push(
-      el('div', { class: 'slip-field' }, [
-        el('span', { text: t('slipSizes') }),
-        el('div', { class: 'slip-sizes', role: 'group', 'aria-label': t('slipSizes') },
-          options.map(k => {
-            const size = k === 'all' ? n : k;
-            const on = state.slipSizes.has(k);
-            return chip({
-              pressed: on,
-              text: sizeName(size, n),
-              count: `×${fmtCount(bySize[size] ?? 0)}`,
-              onclick: () => {
-                if (on) state.slipSizes.delete(k);
-                else state.slipSizes.add(k);
-                saveSlip();
-                rerender();
-              }
-            });
-          })
-        )
-      ])
+    parts.push(
+      el('p', { class: 'sl-label', text: t('slipSizes') }),
+      el('div', { class: 'q-chips sl-chips', role: 'group', 'aria-label': t('slipSizes') },
+        options.map(k => {
+          const size = k === 'all' ? n : k;
+          const on = state.slipSizes.has(k);
+          return chip({
+            pressed: on,
+            text: sizeName(size, n),
+            count: `×${fmtCount(bySize[size] ?? 0)}`,
+            onclick: () => {
+              if (on) state.slipSizes.delete(k);
+              else state.slipSizes.add(k);
+              saveSlip();
+              rerender();
+            }
+          });
+        })
+      )
     );
   }
-  // Typed in NT$10 units, like the lottery's own slip: 10 units = NT$100.
+  if (tokens.length) parts.push(freeBetRow(tokens, free, freeOn, rerender, freeShape));
+  // The stake in NT$, kept to the lottery's NT$10 unit (each combination's).
   const stakeInput = el('input', {
     type: 'text',
-    min: '1',
-    step: '1',
-    value: String(Math.round(stake / SLIP_RULES.unit)),
+    value: String(stake),
     'aria-label': t('slipStake'),
     onchange: event => {
-      const units = Math.max(0, Math.round(Number(event.target.value) || 0));
-      const value = units * SLIP_RULES.unit;
-      if (value === state.slipStake) return;
+      const value = Math.max(0, Math.round((Number(event.target.value) || 0) / SLIP_RULES.unit)) * SLIP_RULES.unit;
+      if (value === state.slipStake) return void (event.target.value = String(value));
       setStake(value);
       // Redraw after the event: redrawing removes this input, and removing a
       // focused input fires another change while the first is still running.
       setTimeout(rerender);
     }
   });
-  numberField(stakeInput, { digits: 5 });
-  if (tokens.length) ticket.push(freeBetRow(tokens, free, freeOn, rerender, freeShape));
-  ticket.push(
-    el('label', { class: 'slip-field' }, [
-      el('span', {}, [document.createTextNode(t('slipStake')), el('small', { text: ` · ${t('slipStakeHint', { unit: SLIP_RULES.unit })}` })]),
-      el('span', { class: 'stake-box' }, [
-        stakeInput,
-        el('strong', { text: t('slipStakeEquals', { v: fmtMoney(stake, { sign: false }) }) })
-      ])
+  numberField(stakeInput, { digits: 6 });
+  parts.push(
+    el('div', { class: 'sl-stake' }, [
+      el('label', { class: 'sl-stake-field' }, [el('span', { class: 'sl-label', text: mode === 'single' && n > 1 ? t('slipStakeEach') : mode === 'system' ? t('slipStakeCombo') : t('slipStake') }), el('span', { class: 'sl-stake-box' }, [el('b', { text: 'NT$' }), stakeInput])]),
+      el('div', { class: 'q-chips sl-quick', role: 'group', 'aria-label': t('slipStake') }, QUICK_STAKES.map(v => el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(stake === v), text: fmtInt(v), onclick: () => (setStake(v), rerender()) })))
     ])
   );
-  // Quick stakes: one tap to the usual amounts (with a free bet, it comes off them).
-  ticket.push(
-    el('div', { class: 'stake-quick', role: 'group', 'aria-label': t('slipStake') }, QUICK_STAKES.map(v =>
-      el('button', { type: 'button', 'aria-pressed': String(stake === v), text: fmtMoney(v, { sign: false }).replace('NT$', ''), onclick: () => (setStake(v), rerender()) })
-    ))
-  );
   if (errors.length) {
-    ticket.push(el('ul', { class: 'slip-errors' }, errors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
+    parts.push(el('ul', { class: 'sl-errors' }, errors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
   }
   // What comes off the balance: a free bet's top-up only.
-  if (sizes.length && !errors.includes('stakeUnit') && (cost > 0 || freeOn)) ticket.push(payoutBox(slip, sizes, stake, mode, freeOn ? free.value : 0));
-  if (mode !== 'single' && n >= 2 && !errors.includes('stakeUnit')) ticket.push(boostLadder(mode === 'parlay' ? n : Math.max(...sizes, 0)));
-  // A free bet chosen that this slip can't take: said plainly by the button
-  // (what to change), so it never looks as if it just didn't work.
-  if (free && !freeOn) ticket.push(el('p', { class: 'note back-low free-off', role: 'status', text: `${t('freeOff')}${state.locale === 'en' ? ' ' : ''}${freeShape ? t('freeBetMinOdds', { v: FREE_MIN_ODDS.toFixed(2) }) : n > 1 && mode === 'single' ? t('freeBetSingles') : t('freeBetOneSlip')}` }));
-  ticket.push(placeButton(legs, sizes, cost, errors, freeOn ? free : null));
-  ticket.push(el('details', { class: 'info' }, [el('summary', { text: t('slipRulesTitle') }), el('p', { text: t(RULES_NOTE) })]));
-
-  // The ticket and what it pays: no analysis beside it.
-  body.replaceChildren(el('div', { class: 'slip has-legs' }, [el('div', { class: 'card ticket' }, ticket)]));
+  if (sizes.length && !errors.includes('stakeUnit') && (cost > 0 || freeOn)) parts.push(payoutBox(slip, sizes, stake, mode, freeOn ? free.value : 0));
+  if (mode !== 'single' && n >= 2 && !errors.includes('stakeUnit')) parts.push(boostLadder(mode === 'parlay' ? n : Math.max(...sizes, 0)));
+  // A free bet chosen that this slip can't take: said plainly (what to change).
+  if (free && !freeOn) parts.push(el('p', { class: 'sl-note', role: 'status' }, [el('span', { class: 'q-tag orange', text: t('freeOff') }), el('span', { text: freeShape ? t('freeBetMinOdds', { v: FREE_MIN_ODDS.toFixed(2) }) : n > 1 && mode === 'single' ? t('freeBetSingles') : t('freeBetOneSlip') })]));
+  parts.push(placeButton(legs, sizes, cost, errors, freeOn ? free : null));
+  parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tell({ lang: state.locale, icon: '📘', title: t('slipRulesTitle'), body: t(RULES_NOTE) }) }));
+  body.replaceChildren(el('div', { class: 'sl' }, parts));
 }
 
 // The stake per combination, kept on the device for next time.
@@ -1913,38 +1839,29 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
   const rows = [];
   if (mode === 'parlay') {
     const product = legs.reduce((p, l) => p * l.odds, 1);
-    // The odds multiplied out on one line: each one up to three picks, past that "6 關賠率相乘" (six of them wrapped onto a second row).
-    rows.push(el('div', { class: 'pay-line pay-formula' }, [
-      el('span', { text: n <= 3 ? `${legs.map(l => fmtOdds(l.odds)).join(' × ')} =` : t('payOddsTimes', { n }) }),
-      el('strong', { text: `×${fmtOdds(product)}` })
-    ]));
-    rows.push(payLine(t('payStake'), fmtMoney(stake, { sign: false })));
+    // The odds multiplied out on one line: up to three picks, past that "6 關賠率相乘".
+    rows.push(payLine(n <= 3 ? `${legs.map(l => fmtOdds(l.odds)).join(' × ')}` : t('payOddsTimes', { n }), `×${fmtOdds(product)}`));
   } else if (mode === 'single') {
-    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} ${fmtMoney(stake, { sign: false })} × ${fmtOdds(l.odds)}`, fmtMoney(each[i], { sign: false }))));
+    legs.forEach((l, i) => rows.push(payLine(`${t('payEach', { i: i + 1 })} × ${fmtOdds(l.odds)}`, fmtMoney(each[i], { sign: false }))));
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
-  if (boost > 0) {
-    rows.push(payLine(t('payBoost', { v: `+${Math.round(boost * 100)}%` }), more > 0 ? `+${fmtMoney(more, { sign: false })}` : `+${Math.round(boost * 100)}%`, 'pay-boost'));
-  }
+  if (boost > 0) rows.push(payLine(t('payBoost', { v: `+${Math.round(boost * 100)}%` }), more > 0 ? `+${fmtMoney(more, { sign: false })}` : `+${Math.round(boost * 100)}%`, 'pay-boost'));
   // With a free bet: what's paid from the balance (the free part isn't).
-  rows.push(payLine(free ? t('payYouPay', { f: fmtMoney(free, { sign: false }) }) : t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false }), 'pay-cost'));
+  rows.push(payLine(free ? t('payYouPay', { f: fmtMoney(free, { sign: false }) }) : t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false })));
   // Tax is the payout table's own (the free part taken off isn't tax).
-  return el('div', { class: 'pay-box' }, [
-    el('p', { class: 'pay-title', text: t('payTitle') }),
-    ...rows,
-    el('div', { class: 'pay-top' }, [
-      el('span', { text: free ? t('payAllFree') : t('payAll') }),
-      el('strong', { text: fmtMoney(allNet, { sign: false }) }),
-      el('small', { class: allNet > cost ? 'back-high' : 'back-low', text: t('payProfit', { v: fmtMoney(allNet - cost) }) })
+  if (taxed) rows.push(payLine(t('payTax', { rate: taxRateText() }), `−${fmtMoney(allGross - allTaxed, { sign: false })}`));
+  if (free) rows.push(payLine(t('payFreeBack'), `−${fmtMoney(free, { sign: false })}`));
+  if (mode !== 'parlay' && least < allNet) rows.push(payLine(t('payLeastShort'), fmtMoney(least, { sign: false })));
+  return el('div', { class: 'sl-pay' }, [
+    el('div', { class: 'sl-pay-top' }, [
+      el('small', { text: free ? t('payAllFree') : t('payAll') }),
+      el('strong', { class: 'pay-big', text: fmtMoney(allNet, { sign: false }) }),
+      el('span', { class: `q-tag ${allNet > cost ? 'green' : 'red'}`, text: t('payProfit', { v: fmtMoney(allNet - cost) }) })
     ]),
-    // A free bet: the payout, less the free stake that isn't paid back, is what arrives.
-    free ? el('p', { class: 'pay-note', text: t('payFreeSum', { gross: fmtMoney(allTaxed, { sign: false }), f: fmtMoney(free, { sign: false }), v: fmtMoney(allNet, { sign: false }) }) }) : null,
-    taxed ? el('p', { class: 'pay-note', text: t('payTaxed', { rate: taxRateText(), gross: fmtMoney(allGross, { sign: false }), tax: fmtMoney(allGross - allTaxed, { sign: false }) }) }) : null,
-    mode !== 'parlay' && least < allNet ? el('p', { class: 'pay-note', text: t('payLeast', { v: fmtMoney(least, { sign: false }) }) }) : null
+    el('div', { class: 'sl-pay-rows' }, rows)
   ]);
 }
-
 // The parlay boost's multiplier for a slip bought now: PLUS.odds.boost for
 // a Quadra Plus member, 1 for everyone else.
 function boostX() {
@@ -1976,14 +1893,9 @@ function boostLadder(size) {
 function payCell(label, value, cls = '', sub = '') {
   return el('div', { class: 'pay-cell' }, [el('small', { text: label }), el('strong', { class: cls, text: value }), sub ? el('small', { class: 'pay-sub', text: sub }) : null]);
 }
-// A free bet's slip: the whole stake, and how it was paid under it.
-const freeCell = slip => payCell(state.t('slipCost'), fmtMoney(slip.stake, { sign: false }));
-// How a free bet's stake was paid, a line across the money box ("免費 NT$200 ＋ 自付 NT$800").
-const freeNote = slip =>
-  el('p', { class: 'pay-note' }, [
-    icon('gift', 'pay-note-icon'),
-    el('span', { text: slip.cost > 0 ? state.t('placeFreePlus', { f: fmtMoney(slip.freeValue ?? slip.stake - slip.cost, { sign: false }), v: fmtMoney(slip.cost, { sign: false }) }) : state.t('placeFree', { v: fmtMoney(slip.freeValue ?? slip.stake, { sign: false }) }) })
-  ]);
+// How a free bet's stake was paid, under its cost ("免費 NT$200 ＋ 自付 NT$800").
+const freeLine = slip =>
+  slip.cost > 0 ? state.t('placeFreePlus', { f: fmtMoney(slip.freeValue ?? slip.stake - slip.cost, { sign: false }), v: fmtMoney(slip.cost, { sign: false }) }) : state.t('placeFree', { v: fmtMoney(slip.freeValue ?? slip.stake, { sign: false }) });
 
 function payLine(label, value, cls = '') {
   return el('div', { class: `pay-line ${cls}` }, [el('span', { text: label }), el('strong', { text: value })]);
@@ -2218,19 +2130,19 @@ function freeBetList() {
   if (!state.accountReady) return [];
   return freeBets(state.wallet, Date.now(), state.account.ledger.filter(e => e.kind === 'freebet').map(e => e.id.slice(3)));
 }
-// Above the stake: the free bets to use, one tap each.
+// Above the stake: the free bets to use, one chip each (its value, its days left).
 function freeBetRow(tokens, free, freeOn, rerender, freeShape = true) {
   const t = state.t;
   const days = x => Math.max(1, Math.ceil((x.until - Date.now()) / 86_400_000));
-  return el('div', { class: 'free-bets' }, [
-    el('div', { class: 'free-bets-head' }, [el('strong', { class: 'with-icon' }, [icon('gift'), el('span', { text: t('freeBetsTitle') })]), el('small', { class: 'muted', text: t('freeBetsSub') })]),
-    el('div', { class: 'free-bets-row', role: 'group' }, tokens.map(x =>
-      el('button', { type: 'button', class: 'free-bet', 'aria-pressed': String(free?.id === x.id), onclick: () => ((state.useFree = free?.id === x.id ? null : x.id), rerender()) }, [
-        el('strong', { class: 'num with-icon' }, [icon('gift'), el('span', { text: fmtMoney(x.value, { sign: false }) })]),
-        el('small', { text: x.id === 'eco:fb:welcome' ? `${t('freeBetWelcome')} · ${t('freeBetDays', { n: days(x) })}` : x.id.startsWith('eco:fb:') ? `✦ ${t('freeBetPlus')} · ${t('freeBetDays', { n: days(x) })}` : t('freeBetDays', { n: days(x) }) })
+  return el('div', { class: 'sl-free' }, [
+    el('p', { class: 'sl-label', text: t('freeBetsTitle') }),
+    el('div', { class: 'q-chips sl-chips', role: 'group' }, tokens.map(x =>
+      el('button', { type: 'button', class: 'q-chip sl-free-chip', 'aria-pressed': String(free?.id === x.id), onclick: () => ((state.useFree = free?.id === x.id ? null : x.id), rerender()) }, [
+        icon('gift', 'sl-gift'),
+        el('span', { class: 'num', text: fmtMoney(x.value, { sign: false }) }),
+        el('span', { class: 'chip-count', text: x.id === 'eco:fb:welcome' ? `${t('freeBetWelcome')} · ${t('freeBetDays', { n: days(x) })}` : x.id.startsWith('eco:fb:') ? `${t('freeBetPlus')} · ${t('freeBetDays', { n: days(x) })}` : t('freeBetDays', { n: days(x) }) })
       ])
-    )),
-    free && freeOn ? el('p', { class: 'note', text: t('freeBetNote') }) : null
+    ))
   ]);
 }
 
@@ -2415,32 +2327,23 @@ function renderAccount() {
   if (!state.accountReady || !state.account) return;
   const t = state.t;
   const account = state.account;
-  const money = funds();
   const r = accountRecord(account);
-  // The balance; what's in play and the most it can pay, two tiles; then the
-  // record so far in one line (a grid of four cramped numbers, and a second
-  // card under it saying the same again, before).
+  // What's in play and the most it can pay, two big numbers; the record so
+  // far as tags under them.
   const open = account.slips.filter(x => x.status === 'open');
   const most = slipsMost(open);
-  const tile = (label, value, sub = '', cls = '') => el('div', { class: 'acct-tile' }, [el('span', { class: 'acct-tile-label', text: label }), el('strong', { class: `num stat-value ${cls}`.trim(), text: value }), sub ? el('small', { text: sub }) : null]);
-  const net = r.net == null ? null : el('strong', { class: `num ${r.net > 0 ? 'back-high' : r.net < 0 ? 'back-low' : ''}`, text: fmtMoney(r.net, { sign: true }) });
+  const stat = (label, value, sub, cls = '') => el('div', { class: 'q-stat' }, [el('small', { text: label }), el('strong', { class: `stat-value ${cls}`.trim(), text: value }), sub ? el('span', { class: 'pl-stat-sub', text: sub }) : null]);
+  const tags = r.decided
+    ? [
+        el('span', { class: 'q-tag', text: t('accountDecided', { n: r.decided }) }),
+        el('span', { class: 'q-tag', text: `${t('accountWon')} ${fmtMoney(r.won, { sign: false })}` }),
+        r.net != null ? el('span', { class: `q-tag ${r.net > 0 ? 'green' : r.net < 0 ? 'red' : ''}`, text: `${t('accountNet')} ${fmtMoney(r.net, { sign: true })}` }) : null,
+        r.back != null ? el('span', { class: 'q-tag', text: `${t('accountBack')} ${r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`}` }) : null
+      ]
+    : [el('span', { class: 'q-tag', text: t('accountNoneYet') })];
   $('account-body').replaceChildren(
-    el('div', { class: 'card account-card' }, [
-      el('div', { class: 'account-top' }, [
-        el('div', {}, [el('p', { class: 'muted', text: t('poolTotal') }), el('p', { class: `account-balance stat-value${money < 0 ? ' back-low' : ''}`, text: fmtMoney(money, { sign: money < 0 }) })])
-      ]),
-      el('div', { class: 'acct-tiles' }, [
-        tile(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })),
-        tile(t('sumMost'), fmtMoney(most, { sign: false }), open.length ? '' : t('accountNoOpen'), most > 0 ? 'back-high' : '')
-      ]),
-      // Two lines, each one row: what's been settled and won; what it's come to.
-      el('div', { class: 'acct-record' }, r.decided
-        ? [
-            el('p', {}, [el('span', { text: t('accountDecided', { n: r.decided }) }), el('span', { text: `${t('accountWon')} ${fmtMoney(r.won, { sign: false })}` })]),
-            el('p', {}, [el('span', {}, [document.createTextNode(`${t('accountNet')} `), net]), r.back != null ? el('span', { text: `${t('accountBack')} ${r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`}` }) : null])
-          ]
-        : [el('p', {}, [el('span', { text: t('accountNoneYet') })])]),
-    ])
+    el('div', { class: 'q-stats pl-acct', style: '--q-stats-n:2' }, [stat(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })), stat(t('sumMost'), fmtMoney(most, { sign: false }), '', most > 0 ? 'tint' : '')]),
+    el('div', { class: 'q-tags pl-record' }, tags)
   );
 }
 
@@ -2537,17 +2440,17 @@ function cashOutRow(slip) {
   const value = info.value;
   const plus = plusMember(q.wallet);
   const why = value == null ? cashOutWhy(slip, info) : '';
-  return el('div', { class: `cashout${value == null ? ' off' : ''}` }, [
-    el('div', { class: 'cashout-actions' }, [
-      el('button', { class: 'cashout-btn', type: 'button', disabled: value == null ? '' : null, onclick: () => doCashOut(slip, value) }, [
-        el('span', { text: t('cashOut') }),
-        el('strong', { class: 'num', text: value == null ? t('cashOutPaused') : fmtMoney(value, { sign: false }) })
-      ]),
+  return el('div', { class: `pl-cash${value == null ? ' off' : ''}` }, [
+    el('button', { class: 'pl-cash-btn q-press', type: 'button', disabled: value == null ? '' : null, onclick: () => doCashOut(slip, value) }, [
+      el('span', { text: t('cashOut') }),
+      el('strong', { class: 'num', text: value == null ? t('cashOutPaused') : fmtMoney(value, { sign: false }) })
     ]),
-    // Paused: why, and the rules a tap away (暫停中 alone said nothing).
-    value == null && why ? el('button', { class: 'cashout-why', type: 'button', onclick: cashOutRules }, [el('span', { text: why }), el('span', { class: 'cashout-why-more', text: t('cashRulesLink') })]) : null,
-    value != null ? el('button', { class: 'cashout-why', type: 'button', onclick: cashOutRules }, [el('span', { text: t('cashOutNote', { most: fmtMoney(Math.max(0, slipRange(slip).most), { sign: false }) }) }), el('span', { class: 'cashout-why-more', text: t('cashRulesLink') })]) : null,
-    value != null && !plus ? el('button', { class: 'q-plus-hint', type: 'button', onclick: () => openPlus(q), text: t('cashOutPlus', { v: fmtMoney(cashOutPrice(slip, { plus: true }) ?? value, { sign: false }) }) }) : null
+    // Paused: why; the rules a tap away.
+    el('div', { class: 'pl-cash-foot' }, [
+      why ? el('span', { class: 'pl-cash-why', text: why }) : null,
+      value != null && !plus ? el('button', { class: 'q-tag indigo pl-cash-plus', type: 'button', onclick: () => openPlus(q), text: t('cashOutPlus', { v: fmtMoney(cashOutPrice(slip, { plus: true }) ?? value, { sign: false }) }) }) : null,
+      el('button', { class: 'sl-link', type: 'button', onclick: cashOutRules, text: t('cashRulesLink') })
+    ])
   ]);
 }
 
@@ -2698,24 +2601,18 @@ function savedLegRow(leg, st) {
 function recoveredSlipCard(slip) {
   const t = state.t;
   const profit = slip.payout - slip.cost;
-  return el('article', { class: 'card saved-slip recovered' }, [
-    el('div', { class: 'saved-head' }, [
-      el('div', { class: 'saved-title' }, [
-        el('span', { class: 'mode-tag', text: t('slipRecoveredTag') }),
-        el('strong', { text: t('slipRecoveredTitle') }),
-        el('small', { class: 'muted', text: t('slipBoughtAt', { time: fmtTime(slip.t) }) })
-      ]),
-      el('span', { class: `slip-pill ${slip.refunded ? '' : profit > 0 ? 'won' : 'lost'}`, text: slip.refunded ? t('slipRefunded') : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipRecoveredNoPay') })
+  return el('article', { class: 'pl-slip recovered' }, [
+    el('div', { class: 'pl-slip-head' }, [
+      el('span', { class: 'pl-slip-title' }, [el('strong', { text: t('slipRecoveredTitle') }), el('small', { text: fmtTime(slip.t) })]),
+      el('span', { class: `q-tag ${slip.refunded ? '' : profit > 0 ? 'green' : 'red'}`, text: slip.refunded ? t('slipRefunded') : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipRecoveredNoPay') })
     ]),
-    el('p', { class: 'muted recovered-note', text: t(slip.refunded ? 'slipRefundedNote' : 'slipRecoveredNote') }),
-    el('div', { class: 'saved-pay' }, [
+    el('div', { class: 'pl-slip-money' }, [
       payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
       payCell(t('slipPaidLabel'), fmtMoney(slip.payout, { sign: false })),
       payCell(t('slipResult'), fmtMoney(profit), profit > 0 ? 'back-high' : profit < 0 ? 'back-low' : '')
     ])
   ]);
 }
-
 // A slip at a glance (home's 你的投注): each pick's state in start order,
 // its colour, and a few words on where it stands ("1 場目前猜錯",
 // "比賽中都猜對", or when the next game starts).
@@ -2756,53 +2653,44 @@ function savedSlipCard(slip) {
   const dead = !settled && range.most <= 0;
   const mode = slip.mode === 'system' ? slip.sizes.map(k => sizeName(k, n)).join('、') : t(`slipMode_${slip.mode}`);
   const pill = settled
-    ? el('span', { class: `slip-pill ${slip.cashedOut ? 'cashed' : profit > 0 ? 'won' : profit < 0 ? 'lost' : ''}`, text: slip.cashedOut ? t(state.account.slips.some(x => x.editedFrom === slip.id) ? 'slipEdited' : 'slipCashed', { v: fmtMoney(slip.payout, { sign: false }) }) : allVoid(slip) ? t('slipVoided', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
+    ? el('span', { class: `q-tag ${slip.cashedOut ? 'blue' : profit > 0 ? 'green' : profit < 0 ? 'red' : ''}`, text: slip.cashedOut ? t(state.account.slips.some(x => x.editedFrom === slip.id) ? 'slipEdited' : 'slipCashed', { v: fmtMoney(slip.payout, { sign: false }) }) : allVoid(slip) ? t('slipVoided', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
     : dead
-      ? el('span', { class: 'slip-pill lost', text: t('slipDead') })
-      : el('span', { class: `slip-pill ${states.includes('live') ? 'live' : 'open'}`, text: states.includes('live') ? t('slipLiveNow') : t('slipOpen') });
+      ? el('span', { class: 'q-tag red', text: t('slipDead') })
+      : el('span', { class: `q-tag ${states.includes('live') ? 'red solid' : 'tint'}`, text: states.includes('live') ? t('slipLiveNow') : t('slipOpen') });
   const nextStart = slip.legs.filter((leg, k) => states[k] === 'waiting' && leg.start).map(leg => leg.start).sort()[0];
+  const boost = slip.boost && boostRate(Math.max(...slip.sizes), slip.boost) > 0 ? `+${Math.round(boostRate(Math.max(...slip.sizes), slip.boost) * 100)}%` : '';
   // Fresh: glows once as it's first shown, then plain (never on every redraw).
   const fresh = state.freshSlips.has(slip.id);
   if (fresh) setTimeout(() => state.freshSlips.delete(slip.id), 2600);
-  return el('article', { class: `card saved-slip ${fresh ? 'fresh' : ''} ${dead ? 'dead' : ''}` }, [
-    el('div', { class: 'saved-head' }, [
-      el('div', { class: 'saved-title' }, [
-        el('span', { class: 'mode-tag', text: slip.free ? `${mode} · ${t('freeBetTag')}` : mode }),
-        el('strong', { text: t('slipLegs', { n }) }),
-        el('small', { class: 'muted', text: t('slipBoughtAt', { time: fmtTime(slip.t) }) })
+  return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}` }, [
+    el('div', { class: 'pl-slip-head' }, [
+      el('span', { class: 'pl-slip-title' }, [
+        el('strong', { text: `${mode} · ${t('slipLegs', { n })}` }),
+        el('small', { text: [fmtTime(slip.t), slip.free ? t('freeBetTag') : '', boost ? t('slipBoosted', { v: boost }) : ''].filter(Boolean).join(' · ') })
       ]),
       pill
     ]),
-    // One segment per pick, coloured by where it stands.
-    // A pick in play: green while it would win, red while it would lose.
+    // One segment per pick, coloured by where it stands (a pick in play:
+    // green while it would win, red while it would lose).
     el('div', { class: 'leg-bar', role: 'img', 'aria-label': t('slipProgress', { k: decided, n }) }, byStart(slip.legs).map(k => el('span', { class: `seg seg-${states[k]}${states[k] === 'live' ? ` ${liveTone(slip.legs[k])}` : ''}` }))),
-    el('p', { class: 'saved-progress' }, [
-      document.createTextNode(states.includes('moot') ? t('slipProgressMoot', { m: states.filter(st => st === 'moot').length }) : t('slipProgress', { k: decided, n })),
-      !settled && nextStart ? el('span', { class: 'muted', text: ` · ${t('slipNextStart', { time: fmtShort(nextStart) })}` }) : null
-    ]),
+    !settled && nextStart && !states.includes('live') ? el('p', { class: 'pl-slip-next', text: t('slipNextStart', { time: fmtShort(nextStart) }) }) : null,
     slipVerdict(slip, states),
-    // The picks by when their games start (the order they were picked in said nothing).
-    el('ul', { class: 'parlay-legs saved-legs' }, byStart(slip.legs).map(k => savedLegRow(slip.legs[k], states[k]))),
-    el('div', { class: 'saved-pay' }, [
-      el('div', { class: 'pay-cells' }, settled
+    el('ul', { class: 'saved-legs' }, byStart(slip.legs).map(k => savedLegRow(slip.legs[k], states[k]))),
+    el('div', { class: 'pl-slip-money' }, settled
       ? [
-          slip.free ? freeCell(slip) : payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
+          payCell(t('slipCost'), fmtMoney(slip.free ? slip.stake : slip.cost, { sign: false }), '', slip.free ? freeLine(slip) : ''),
           payCell(t('slipPaidLabel'), fmtMoney(slip.payout, { sign: false })),
           profit > 0 ? payCell(t('slipResult'), fmtMoney(profit), 'back-high') : null
         ]
       : [
-          slip.free ? freeCell(slip) : payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
+          payCell(t('slipCost'), fmtMoney(slip.free ? slip.stake : slip.cost, { sign: false }), '', slip.free ? freeLine(slip) : ''),
           slip.mode === 'parlay' ? payCell(t('payOdds'), `×${fmtOdds(parlayOdds(slip))}`) : null,
           decided && range.locked > 0 ? payCell(t('slipLocked'), fmtMoney(range.locked, { sign: false }), 'back-high') : null,
-          payCell(decided ? t('slipMost') : slip.free ? t('payAllFree') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : '')
+          payCell(decided ? t('slipMost') : slip.free ? t('payAllFree') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : 'tint')
         ]),
-      slip.free ? freeNote(slip) : null
-    ]),
-    slip.boost && boostRate(Math.max(...slip.sizes), slip.boost) > 0 ? el('p', { class: 'saved-boost', text: t('slipBoosted', { v: `+${Math.round(boostRate(Math.max(...slip.sizes), slip.boost) * 100)}%` }) }) : null,
-    settled || dead || slip.free ? null : cashOutRow(slip),
+    settled || dead || slip.free ? null : cashOutRow(slip)
   ]);
 }
-
 const HISTORY_FILTERS = {
   all: () => true,
   open: s => s.status === 'open',
@@ -2844,23 +2732,24 @@ function groupSummary(key, slips) {
 function applyHistoryView() {
   const t = state.t;
   if (!state.accountReady) return;
-  const view = ['stats', 'tickets'].includes(state.historyView) ? state.historyView : 'slips';
-  $('history-tabs').hidden = false;
-  $('history-tabs').replaceChildren(
-    ...['slips', 'tickets', 'stats'].map(key =>
-      el(
-        'button',
-        {
-          type: 'button',
-          'aria-pressed': String(key === view),
-          onclick: () => {
-            state.historyView = key;
-            applyHistoryView();
-            renderStats();
-          }
-        },
-        [document.createTextNode(t(`historyView_${key}`))]
-      )
+  const views = ['slips', 'tickets', 'stats'];
+  const view = views.includes(state.historyView) ? state.historyView : 'slips';
+  const seg = $('history-tabs');
+  seg.hidden = false;
+  seg.style.setProperty('--q-seg-n', '3');
+  seg.style.setProperty('--q-seg-i', String(views.indexOf(view)));
+  seg.replaceChildren(
+    ...views.map(key =>
+      el('button', {
+        type: 'button',
+        'aria-pressed': String(key === view),
+        text: t(`historyView_${key}`),
+        onclick: () => {
+          state.historyView = key;
+          applyHistoryView();
+          renderStats();
+        }
+      })
     )
   );
   $('saved').hidden = view !== 'slips';
@@ -2883,11 +2772,11 @@ function renderSaved() {
   const slips = state.account.slips;
   const open = slips.filter(s => s.status === 'open');
   applyHistoryView();
-  // No slips yet: a line and the way to the games, not an empty page.
-  if (!slips.length)
-    return void $('saved-body').replaceChildren(
-      el('div', { class: 'card empty-slips' }, [el('p', { text: t('noSlipsYet') }), el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') })])
-    );
+  // No slips yet: the way to the games, not an empty page.
+  if (!slips.length) {
+    const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
+    return void $('saved-body').replaceChildren(kitUI.empty?.({ icon: '🎫', title: t('noSlipsYet'), action: go }) ?? el('div', { class: 'q-empty' }, [el('strong', { text: t('noSlipsYet') }), go]));
+  }
   const now = Date.now();
   const filtered = slips.filter(HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all);
   // Open slips all show; settled ones fold after SAVED_SHOWN.
@@ -2906,14 +2795,14 @@ function renderSaved() {
   const placed = state.justPlaced && Date.now() - state.justPlaced.at < 5 * 60_000 ? state.justPlaced : null;
   $('saved-body').replaceChildren(
     placed
-      ? el('div', { class: 'placed-card' }, [
-          el('span', { class: 'placed-check', 'aria-hidden': 'true', text: '✓' }),
-          el('span', { class: 'placed-main' }, [el('strong', { text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
-          el('button', { class: 'placed-go', type: 'button', text: `${t('placedMore')} ›`, onclick: () => ((state.justPlaced = null), showTab('games')) })
+      ? el('button', { class: 'q-ritem chevron pl-placed', type: 'button', onclick: () => ((state.justPlaced = null), showTab('games')) }, [
+          el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true', text: '✓' }),
+          el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
+          el('span', { class: 'q-ritem-value', text: t('placedMore') })
         ])
-      : '',
-    el('div', { class: 'saved-toolbar' }, [
-      el('div', { class: 'chips history-filter', role: 'group', 'aria-label': t('savedTitle') },
+      : null,
+    el('div', { class: 'pl-hist-bar' }, [
+      el('div', { class: 'q-chips pl-chips', role: 'group', 'aria-label': t('savedTitle') },
         Object.keys(HISTORY_FILTERS).map(key =>
           chip({
             pressed: key === state.historyFilter,
@@ -2927,177 +2816,21 @@ function renderSaved() {
           })
         )
       ),
-      open.length
-        ? el('button', { class: 'q-btn', type: 'button', disabled: state.checking ? '' : null, text: state.checking ? t('checking') : t('checkResults'), onclick: () => checkResults(true) })
-        : null
+      open.length ? el('button', { class: 'pl-check q-press', type: 'button', disabled: state.checking ? '' : null, 'aria-label': t('checkResults'), text: state.checking ? t('checking') : t('checkResults'), onclick: () => checkResults(true) }) : null
     ]),
     ...(order.length
       ? order.map(key =>
-          el('section', { class: `slip-group group-${key.split('|')[0]}` }, [
-            el('div', { class: 'group-head' }, [el('h3', { text: groupTitle(key) }), groupSummary(key, groups.get(key))]),
-            el('div', { class: 'saved-list' }, groups.get(key).map(savedSlipCard))
+          el('section', { class: `q-section pl-group group-${key.split('|')[0]}` }, [
+            el('div', { class: 'q-section-head' }, [el('h2', { text: groupTitle(key) }), groupSummary(key, groups.get(key))]),
+            el('div', { class: 'pl-slips' }, groups.get(key).map(savedSlipCard))
           ])
         )
-      : [el('p', { class: 'muted', text: t('filterEmpty') })]),
-    ...(hidden > 0 && !state.showAllSaved
-      ? [el('button', { class: 'q-btn', type: 'button', text: t('savedMore', { n: hidden }), onclick: () => ((state.showAllSaved = true), renderSaved()) })]
-      : [])
+      : [el('p', { class: 'pl-empty', text: t('filterEmpty') })]),
+    hidden > 0 && !state.showAllSaved ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showAllSaved = true), renderSaved()) }, [el('span', { class: 'pl-fold-text', text: t('savedMore', { n: hidden }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null
   );
 }
 
 // ---- History: stats and analysis --------------------------------------------------
-
-function table(head, rows) {
-  return el('div', { class: 'table-view' }, el('table', {}, [
-    el('thead', {}, el('tr', {}, head.map(h => el('th', { text: h })))),
-    el('tbody', {}, rows.map(cells => el('tr', {}, cells.map(c => (c instanceof Node ? el('td', {}, c) : el('td', { text: c }))))))
-  ]));
-}
-
-const fmtBack = v => (v == null ? '–' : fmtInt(Math.round(v)));
-const fmtRate = v => (v == null ? '–' : fmtPctShort(v));
-function netCell(v) {
-  return el('span', { class: v < -0.5 ? 'back-low' : v > 0.5 ? 'back-high' : '', text: fmtMoney(v) });
-}
-
-function picksCard(s) {
-  const t = state.t;
-  if (!s.picks.legs) return null;
-  const bandName = ([lo, hi]) => `${Math.round(lo * 100)}–${Math.min(100, Math.round(hi * 100))}%`;
-  const kindName = k => (kindKey(k) ? t(kindKey(k)) : k);
-  return el('div', { class: 'card' }, [
-    el('h3', { class: 'card-title', text: t('picksTitle') }),
-    el('p', { class: 'lede', text: t('picksSummary', { n: fmtInt(s.picks.legs), won: fmtInt(s.picks.won), rate: fmtRate(s.picks.rate), exp: fmtRate(s.picks.expectedRate), odds: fmtOdds(s.picks.avgOdds), voids: fmtInt(s.picks.void) }) }),
-    table([t('colChance'), t('colPicks'), t('colHit'), t('colExpectedHit')], s.bands.filter(b => b.legs).map(b => [bandName(b.range), fmtInt(b.legs), fmtRate(b.rate), fmtRate(b.expectedRate)])),
-    el('p', { class: 'note', text: t('picksBandsNote') }),
-    table([t('colMarket'), t('colPicks'), t('colHit'), t('colExpectedHit'), t('colAvgOdds')], s.byKind.map(k => [kindName(k.key), fmtInt(k.legs), fmtRate(k.rate), fmtRate(k.expectedRate), fmtOdds(k.avgOdds)]))
-  ]);
-}
-
-function breakdownCard(s) {
-  const t = state.t;
-  const moneyRows = list => list.map(b => [b.name, fmtInt(b.slips), fmtMoney(b.staked, { sign: false }), netCell(b.net), fmtBack(b.back), fmtBack(b.expectedBack)]);
-  const head = first => [first, t('colSlips'), t('colStaked'), t('colNet'), t('colBackActual'), t('colExpectedBack')];
-  const sports = s.bySport.filter(b => b.slips).map(b => ({ ...b, name: b.key === 'mixed' ? t('sportMixed') : t(`sport_${b.key}`) }));
-  const modes = s.byMode.map(b => ({ ...b, name: t(`slipMode_${b.key}`) }));
-  const legs = s.byLegs.map(b => ({ ...b, name: t('legsN', { n: b.key }) }));
-  return el('div', { class: 'card' }, [
-    el('h3', { class: 'card-title', text: t('breakdownTitle') }),
-    el('p', { class: 'note', text: t('breakdownNote') }),
-    table(head(t('colSport')), moneyRows(sports)),
-    table(head(t('colMode')), moneyRows(modes)),
-    table(head(t('colLegs')), moneyRows(legs))
-  ]);
-}
-
-// Fun facts from the slips.
-function funCard() {
-  const t = state.t;
-  const f = funFacts(state.account);
-  const s = historyStats(state.account);
-  const items = [];
-  const leg = l => `${l.shortLabel}（${l.matchup}）`;
-  if (f.upset) items.push(t('funUpset', { pick: leg(f.upset.leg), p: fmtPctShort(f.upset.chance), odds: fmtOdds(f.upset.leg.odds) }));
-  if (f.heartbreak) items.push(t('funHeartbreak', { pick: leg(f.heartbreak.leg), p: fmtPctShort(f.heartbreak.chance) }));
-  if (f.nearMiss) items.push(t('funNearMiss', { n: f.nearMiss.count, v: fmtMoney(f.nearMiss.missed, { sign: false }) }));
-  if (f.team) items.push(t('funTeam', { team: f.team.name, n: f.team.picks, won: f.team.won, decided: f.team.decided }));
-  if (f.market) items.push(t('funMarket', { market: marketTag(f.market.kind)?.textContent ?? f.market.kind, share: fmtPctShort(f.market.share) }));
-  if (f.weekday) items.push(t('funWeekday', { day: formatter('weekdayLong', locale => new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' })).format(new Date(Date.UTC(2026, 0, 4 + f.weekday.day))), n: f.weekday.slips }));
-  if (f.live) items.push(t('funLive', { n: f.live.picks, share: fmtPctShort(f.live.share) }));
-  if (f.dream) items.push(t('funDream', { x: fmtInt(Math.round(f.dream.times)), cost: fmtMoney(f.dream.slip.cost, { sign: false }) }));
-  if (s.settled && s.expectedLoss >= BOBA_PRICE) items.push(t('funBoba', { v: fmtMoney(s.expectedLoss, { sign: false }), cups: fmtInt(Math.round(s.expectedLoss / BOBA_PRICE)) }));
-  if (!items.length) return null;
-  return el('div', { class: 'card' }, [el('h3', { class: 'card-title', text: t('funTitle') }), el('ul', { class: 'facts' }, items.map(text => el('li', { text })))]);
-}
-
-// One person's betting in numbers (profile.mjs), the same card for you and
-// for anyone in the simulated crowd: what they bought, how it went, their
-// streaks and best and worst moments, and the traits their tickets show.
-function profileCard(p, { weekLabel = w => state.t('simWeekN', { n: fmtCount(w + 1) }) } = {}) {
-  const t = state.t;
-  if (!p) return null;
-  const money = v => fmtMoney(v, { sign: false });
-  const line = (label, value, cls = '', note = null) => el('div', { class: 'player-line' }, [el('span', { text: label }), el('strong', { class: cls, text: value }), note ? el('small', { text: note }) : null]);
-  return el('div', { class: 'profile' }, [
-    el('div', { class: 'player-lines' }, [
-      line(t('profTickets'), t('profTicketsV', { n: fmtCount(p.tickets), won: fmtCount(p.won) }), '', t('profHit', { v: fmtShare(p.hitRate) })),
-      line(t('profBack'), p.back == null ? '–' : money(p.back), p.back != null && p.back < 100 ? 'back-low' : 'back-high', t('profPer100')),
-      line(t('profStake'), money(p.avgStake), '', t('profMaxStake', { v: money(p.maxStake) })),
-      line(t('profLegs'), p.avgLegs.toFixed(1), '', t('profSingles', { v: fmtShare(p.singleShare) })),
-      line(t('profOdds'), `×${fmtOdds(p.avgOdds)}`, '', t('profChance', { v: fmtPctShort(p.avgChance) })),
-      line(t('profBigWin'), p.biggestWin ? fmtMoney(p.biggestWin.net) : t('playerNoWin'), p.biggestWin ? 'back-high' : '', p.biggestWin ? t('profBigWinNote', { odds: fmtOdds(p.biggestWin.odds), legs: p.biggestWin.legs, week: weekLabel(p.biggestWin.w) }) : null),
-      line(t('profStreaks'), t('profStreaksV', { won: fmtCount(p.longestWin), lost: fmtCount(p.longestLose) })),
-      line(t('profNearMiss'), t('timesN', { n: fmtCount(p.nearMisses) })),
-      p.bestWeek ? line(t('profBestWeek'), fmtMoney(p.bestWeek.net), 'back-high', weekLabel(p.bestWeek.w)) : null,
-      p.worstWeek ? line(t('profWorstWeek'), fmtMoney(p.worstWeek.net), 'back-low', weekLabel(p.worstWeek.w)) : null,
-      line(t('profPace'), t('profPaceV', { n: p.perWeek.toFixed(1) }), '', t('profWeeksPlayed', { n: fmtCount(p.weeksPlayed), of: fmtCount(p.weeks) }))
-    ]),
-    p.traits.length ? el('div', { class: 'player-tags' }, [el('small', { class: 'muted', text: t('profSeen') }), ...p.traits.map(key => el('span', { class: 'habit-tag trait-tag', title: t(`traitDesc_${key}`), text: `${TRAIT_ICON[key]} ${t(`trait_${key}`)}` }))]) : null
-  ]);
-}
-
-// Your betting in the same numbers as the crowd's people.
-function youCard() {
-  const t = state.t;
-  const p = ticketProfile(accountTickets(state.account));
-  if (!p) return null;
-  const first = state.account.slips.filter(s => s.status === 'settled').map(s => s.t).sort()[0];
-  const weekLabel = w => fmtTime(new Date(Date.parse(first) + w * 7 * 86_400_000).toISOString()).split(' ')[0];
-  return el('div', { class: 'card' }, [el('h3', { class: 'card-title', text: t('youProfileTitle') }), profileCard(p, { weekLabel })]);
-}
-
-// The account against the simulated crowd, over the same length of time.
-// The crowd is simulated only here or on the simulator tab, never at start-up.
-function crowdCard(s) {
-  const t = state.t;
-  const slips = state.account.slips;
-  if (!slips.length || !state.data) return null;
-  const firstMs = Math.min(...slips.map(x => Date.parse(x.t)));
-  const accountWeeks = Math.max(1, (Date.now() - firstMs) / (7 * 86_400_000));
-  const months = PERIOD_MONTHS.find(m => m >= Math.min(60, Math.ceil((accountWeeks * 12) / 52))) ?? 60;
-  const weeks = monthWeeks(months);
-  const sportBets = simSportBets();
-  const crowd = crowdCache.get(crowdKey(sportBets, weeks));
-  const title = el('h3', { class: 'card-title', text: t('crowdTitle', { n: fmtCount(SIM_PLAYERS_SHOWN), period: periodName(weeks) }) });
-  if (!crowd) {
-    crowdStats(sportBets, weeks, { quiet: true }).then(
-      () => state.tab === 'history' && state.historyView === 'stats' && renderStats(),
-      () => {}
-    );
-    return el('div', { class: 'card' }, [title, el('p', { class: 'muted crowd-wait' }, [el('span', { class: 'spinner small', 'aria-hidden': 'true' }), document.createTextNode(t('crowdRunning', { n: fmtCount(SIM_PLAYERS_SHOWN) }))])]);
-  }
-  const mine = s.net;
-  const beat = crowdPercentile(crowd.finalQuantiles, mine);
-  const crowdBack = crowd.totals.staked ? ((crowd.totals.staked + crowd.totals.net) / crowd.totals.staked) * 100 : null;
-  const profile = ticketProfile(accountTickets(state.account));
-  const perPerson = { tickets: crowd.totals.tickets / crowd.players, staked: crowd.totals.staked / crowd.players };
-  const rows = [
-    [t('crowdColNet'), fmtMoney(mine), fmtMoney(quantile(crowd.finalQuantiles, 0.5))],
-    [t('crowdColBack'), s.settled ? fmtBack(s.back) : '–', fmtBack(crowdBack)],
-    [t('crowdColSlips'), fmtInt(s.placed), fmtCount(perPerson.tickets)],
-    [t('crowdColStaked'), fmtMoney(slips.reduce((x, y) => x + y.cost, 0), { sign: false }), fmtMoney(perPerson.staked, { sign: false })],
-    [t('crowdColLegs'), profile ? profile.avgLegs.toFixed(1) : '–', crowd.crowd.avgLegs ? crowd.crowd.avgLegs.toFixed(1) : '–']
-  ];
-  // People in the crowd with the traits your tickets show.
-  const like = (profile?.traits ?? []).map(key => crowd.traitSummaries.find(x => x.trait.key === key)).filter(Boolean);
-  return el('div', { class: 'card crowd-card' }, [
-    title,
-    el('div', { class: 'crowd-hero' }, [
-      el('strong', { text: fmtPctShort(beat) }),
-      el('span', { text: t('crowdBeat', { n: fmtCount(SIM_PLAYERS_SHOWN), period: periodName(weeks) }) })
-    ]),
-    el('div', { class: 'crowd-bar', role: 'img', 'aria-label': t('crowdBeat', { n: fmtCount(SIM_PLAYERS_SHOWN), period: periodName(weeks) }) }, [el('span', { class: 'crowd-you', style: `left:${(beat * 100).toFixed(1)}%` })]),
-    el('p', { class: 'crowd-scale muted' }, [el('span', { text: t('crowdWorst') }), el('span', { text: t('crowdBest') })]),
-    table([t('crowdColWhat'), t('crowdColYou'), t('crowdColCrowd')], rows),
-    like.length
-      ? el('ul', { class: 'facts crowd-like-list' }, like.map(x => el('li', {}, [el('span', { class: 'crowd-like-icon', 'aria-hidden': 'true', text: TRAIT_ICON[x.trait.key] }), document.createTextNode(t('crowdLikeTrait', { trait: t(`trait_${x.trait.key}`), ahead: fmtPctShort(x.aheadShare), final: fmtMoney(x.avgFinal), period: periodName(weeks) }))])))
-      : null,
-    el('ul', { class: 'facts' }, [
-      el('li', { text: t('crowdAhead', { share: fmtPctShort(crowd.totals.aheadShare), period: periodName(weeks) }) }),
-      el('li', { text: t('crowdNote', { weeks: fmtCount(Math.max(1, Math.round(accountWeeks))) }) })
-    ])
-  ]);
-}
 
 function renderStats() {
   // Drawn only when on screen: it can start the crowd simulation.
@@ -3106,51 +2839,8 @@ function renderStats() {
   statsUi.render($('stats-body'));
 }
 
-// ---- Simulator ----------------------------------------------------------------
-
-// What the crowd bets on, per sport: this board's options as they are (the
-// same options you see, by board.mjs), or a typical week (made-up games run
-// through the same code) for a sport with nothing on today. Every sport is
-// simulated, whatever the sport filter shows. A sport whose pool returns
-// clearly more or less than the rest is flagged (audit.mjs).
-function simSportBets() {
-  if (state.simBets?.bets === state.bets) return state.simBets.pools;
-  const pools = Object.fromEntries(
-    SPORTS.map(sport => {
-      const bets = crowdPool(state.bets.filter(b => b.sport === sport), effectiveOdds);
-      const games = new Set(bets.map(b => b.gameId)).size;
-      return [sport, games >= (SIM_SPORTS[sport].family === 'racing' ? 1 : 2) ? bets : sportTemplate(sport)];
-    })
-  );
-  const flagged = auditPools(pools);
-  if (flagged.length) console.warn('Simulator pools out of line with the rest:', flagged);
-  state.simBets = { bets: state.bets, pools };
-  return pools;
-}
-
-function fmtShare(p) {
-  if (p === 0) return '0%';
-  if (p < 0.01) return '<1%';
-  return `${Math.round(p * 100)}%`;
-}
-
 function fmtCount(n) {
   return fmtInt(Math.round(n));
-}
-
-// ---- Crowd simulation: worker, cache and loading screen ----------------------
-
-// Results per pool and period. The 100,000-player run is the slow part, so it
-// runs once per period in a background worker, and only when it's shown.
-const crowdCache = new Map();
-let crowdJob = null;
-let worker = null;
-
-// A short key for a pool and period (the pool itself is large).
-const poolKeys = new WeakMap();
-function crowdKey(sportBets, weeks) {
-  if (!poolKeys.has(sportBets)) poolKeys.set(sportBets, String(hashString(JSON.stringify(sportBets))));
-  return `${weeks}|${poolKeys.get(sportBets)}`;
 }
 
 // The loading screen: the Quadra one, the same in every app (icon, name,
@@ -3163,65 +2853,6 @@ function showLoading() {
 function hideLoading() {
   $('loading').hidden = true;
 }
-
-// Runs (or reuses) the simulation for this pool and period. A new request
-// cancels a running one, so no power goes to a result nobody will see.
-// `quiet`: run without the loading screen (the history tab's comparison).
-function crowdStats(sportBets, weeks, { quiet = false } = {}) {
-  const key = crowdKey(sportBets, weeks);
-  const startWeek = weekOfYear(new Date());
-  if (crowdCache.has(key)) return Promise.resolve(crowdCache.get(key));
-  if (crowdJob?.key === key) return crowdJob.promise;
-  if (crowdJob) {
-    worker?.terminate();
-    worker = null;
-    crowdJob.reject(new Error('cancelled'));
-  }
-  // The loading screen (the plain Quadra one) while it runs.
-  const report = quiet ? () => {} : () => showLoading();
-  report(0);
-  let resolve;
-  let reject;
-  const promise = new Promise((res, rej) => ((resolve = res), (reject = rej)));
-  crowdJob = { key, promise, reject };
-  // Every period the run answered (a 1-year run also gives 1, 3 and 6 months).
-  const done = results => {
-    for (const [w, stats] of Object.entries(results)) crowdCache.set(crowdKey(sportBets, Number(w)), stats);
-    crowdJob = null;
-    if (!quiet) hideLoading();
-    resolve(results[weeks]);
-  };
-  try {
-    worker ??= new Worker(new URL('./sim-worker.js', import.meta.url), { type: 'module' });
-    worker.onmessage = ({ data }) => {
-      if (data.id !== key) return;
-      if (data.results) done(data.results);
-      else report(data.progress);
-    };
-    worker.onerror = () => {
-      worker = null;
-      runHere();
-    };
-    worker.postMessage({ id: key, sportBets, startWeek, weeks, perGroup: PER_GROUP, seed: SIM_SEED });
-  } catch {
-    runHere();
-  }
-  // No worker (very old browser): run here after the loading screen paints.
-  function runHere() {
-    const sportPools = Object.fromEntries(Object.entries(sportBets).map(([sport, bets]) => [sport, crowdPools(bets)]));
-    const checkpoints = [...MONTH_WEEKS.filter(w => w <= weeks), weeks];
-    setTimeout(() => done(simulateCrowd({ sportPools, startWeek, weeks, checkpoints, perGroup: PER_GROUP, seed: SIM_SEED }).results), 30);
-  }
-  return promise;
-}
-
-// Kept from the simulator: its traits' icons, the bubble-tea yardstick, a sparkline.
-const TRAIT_ICON = {
-  favorite: '📣', underdog: '🎯', value: '🧮', exotic: '🎲', single: '1️⃣', parlay: '🎰', whale: '🐋', small: '🪙', daily: '📅', rare: '🌙',
-  tilt: '🔥', chaser: '🔁', cashOut: '💰', streaky: '🍀', pressOn: '🚀', revenge: '😤', heartbroken: '💔', soClose: '😣', jackpot: '🌠',
-  rider: '⛄', guardian: '🛡️', stopLoss: '🛑', content: '😊', moody: '🎭', bored: '🥱', hailMary: '🙏', loyal: '❤️', hopper: '🦘', plainStyle: '😐', plainReact: '😐'
-};
-const BOBA_PRICE = 65;
 
 // ---- Number fields ---------------------------------------------------------------------
 
@@ -3262,16 +2893,32 @@ const F1_TABS = [
   { kind: 'f1vsc', tab: 'f1Vsc', sub: 'f1VscSub', notes: ['f1FlagsNote'], flag: true },
   { kind: 'f1red', tab: 'f1Red', sub: 'f1RedSub', notes: ['f1FlagsNote'], flag: true }
 ];
-function renderF1() {
+// The race in the games list on its day: one section, one row opening its board.
+function f1Section() {
   const t = state.t;
-  const f1 = state.data.f1;
-  $('f1').hidden = !inSport('f1') || !f1;
-  if (!f1) return;
+  const f1 = state.data?.f1;
+  if (!f1 || !inSport('f1') || f1Day() !== state.day) return null;
   const tabs = F1_TABS.filter(x => state.bets.some(b => b.kind === x.kind));
-  if (!tabs.length) return $('f1-body').replaceChildren();
+  if (!tabs.length) return null;
+  return gameSectionOf([leagueImg('f1', 'logo-xs'), el('span', { text: t('sport_f1') })], [
+    el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard('f1') }, [
+      el('span', { class: 'pl-fut-logo' }, leagueImg('f1', 'logo-sm')),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: raceName(f1.title, state.locale) }), el('small', { text: `${hhmm(f1.startUtc)} · ${t(f1.phase === 'pre' ? 'f1PhasePre' : 'f1PhasePost')}` })]),
+      el('span', { class: 'q-ritem-value', text: t('marketsN', { n: tabs.length }) })
+    ])
+  ]);
+}
+const gameSectionOf = (title, rows) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { class: 'pl-league-h' }, title)]), el('div', { class: 'q-rowcard' }, rows)]);
+// F1's board: a tab per market (the winner, places, head to heads, the
+// winning team, and safety car, VSC and red flag each on their own).
+function f1Board() {
+  const t = state.t;
+  const f1 = state.data?.f1;
+  const tabs = F1_TABS.filter(x => state.bets.some(b => b.kind === x.kind));
+  if (!f1 || !tabs.length) return null;
   const current = tabs.find(x => x.kind === state.f1Tab) ?? tabs[0];
   const list = state.bets.filter(b => b.kind === current.kind);
-  // How many picks of each market are on the slip: a dot on its tab.
+  // A market with a pick on the slip: a dot on its tab.
   const picked = kind => state.parlay.some(id => state.bets.find(b => b.id === id)?.kind === kind);
   const tabRow = el(
     'div',
@@ -3286,7 +2933,7 @@ function renderF1() {
         text: t(x.tab),
         onclick: () => {
           state.f1Tab = x.kind;
-          renderF1();
+          renderGameSheet();
         }
       })
     )
@@ -3295,10 +2942,8 @@ function renderF1() {
     const on = tabRow.querySelector('[aria-selected="true"]');
     if (on && tabRow.scrollWidth > tabRow.clientWidth) tabRow.scrollLeft = Math.max(0, on.offsetLeft - (tabRow.clientWidth - on.offsetWidth) / 2);
   });
-  // A head to head: both drivers' faces (the pick in front), their surnames
-  // on one line ("Verstappen 勝 Hadjar"), their team under it ("Max
-  // Verstappen > Isack Hadjar" wrapped to two lines over "vs Isack Hadjar").
-  const badge = b =>
+  // A head to head: both drivers' faces (the pick in front) and their surnames ("Verstappen 勝 Hadjar").
+  const picture = b =>
     current.flag
       ? icon(b.kind, 'flag-badge')
       : b.kind === 'f1team'
@@ -3306,23 +2951,20 @@ function renderF1() {
         : b.kind === 'f1h2h'
           ? el('span', { class: 'h2h-faces' }, [driverBadge(b), driverBadge({ driverEn: b.rival, driver: f1Driver(b.rival) }, 'h2h-rival')])
           : driverBadge(b);
-  const sub = b => (current.flag ? null : b.kind === 'f1team' ? '' : state.locale === 'zh' ? f1Constructor(b.driver.team).zh || b.driver.team : b.driver.team);
+  const sub = b => (current.flag || b.kind === 'f1team' ? null : state.locale === 'zh' ? f1Constructor(b.driver.team).zh || b.driver.team : b.driver.team);
   const title = b => (b.kind === 'f1h2h' ? `${shortDriver(b.driverEn)} ${t('f1H2HBeats')} ${shortDriver(b.rival)}` : b.shortLabel);
-  $('f1-body').replaceChildren(
-    board({
+  return {
+    title: [leagueImg('f1', 'logo-xs'), el('span', { text: t('sport_f1') })],
+    body: boardBody({
       emblem: 'f1',
       title: raceName(f1.title, state.locale),
       sub: `${fmtTime(f1.startUtc)} · ${t(f1.phase === 'pre' ? 'f1PhasePre' : 'f1PhasePost')}`,
       tabs: tabStrip(tabRow),
       lead: current.sub ? t(current.sub) : null,
-      bets: list,
-      id: current.kind,
-      shown: current.shown ?? Infinity,
-      rows: (b, i) => entryRow(b, i, badge(b), sub(b), title(b))
+      entries: list.map((b, i) => entryRow(b, i, picture(b), sub(b), title(b)))
     })
-  );
+  };
 }
-
 // ============================================================================
 // DO NOT REMOVE - iOS Safari "a tap needs two taps" fix.
 // ============================================================================
@@ -3357,7 +2999,6 @@ function renderAll() {
   renderGames();
   renderFutures();
   renderParlay();
-  renderF1();
   if (state.tab === 'home') drawHome();
   renderAccount();
   renderSaved();
@@ -3696,25 +3337,30 @@ function sheetGameOf(id) {
 function renderGameSheet() {
   if (!gameSheetOpen() || !state.sheetGame) return;
   const t = state.t;
-  const found = sheetGameOf(state.sheetGame);
   const keep = gameSheet.scrollTop;
   redraw(gameSheet, () => {
-    $('game-sheet-title').replaceChildren(...(found ? [leagueImg(found.game.sport, 'logo-xs'), el('span', { text: gameSeries(found.game) })] : []));
-    $('game-sheet-body').replaceChildren(found ? gameCard(found.game, found.bets, { inSheet: true }) : el('p', { class: 'muted offers-wait', text: t('gameGone') }));
+    // A board (F1, a championship) or a game.
+    const id = state.sheetGame;
+    const board = id === 'board:f1' ? f1Board() : id.startsWith('board:fut|') ? futuresBoard(id.slice('board:fut|'.length)) : null;
+    const found = board ? null : sheetGameOf(id);
+    $('game-sheet-title').replaceChildren(...(board ? board.title : found ? [leagueImg(found.game.sport, 'logo-xs'), el('span', { text: gameSeries(found.game) })] : []));
+    $('game-sheet-body').replaceChildren(board ? board.body : found ? gameDetail(found.game, found.bets) : el('p', { class: 'pl-empty', text: t('gameGone') }));
   });
   renderSlipBar();
   gameSheet.scrollTop = keep;
 }
 function openGameSheet(id) {
-  const found = sheetGameOf(id);
+  const found = id.startsWith('board:') || sheetGameOf(id);
   if (!gameSheet || !found) return;
   closeSlip();
   state.sheetGame = id;
   if (!gameSheet.open) gameSheet.showModal();
   renderGameSheet();
   gameSheet.scrollTop = 0;
-  if (found.game.live) refreshLive();
+  if (found.game?.live) refreshLive();
 }
+// F1's or a championship's board, in the same sheet.
+const openBoard = key => openGameSheet(`board:${key}`);
 function closeGameSheet() {
   if (gameSheet?.open) gameSheet.close();
 }
@@ -3733,18 +3379,6 @@ function renderTabs() {
   for (const tab of TABS) tabNav.hide(tab, !tabAvailable(tab));
   // Every tab starts at its top: what was opened on it folds when it's left.
   tabNav.select(state.tab, { top: true });
-}
-
-// The simulated period as pills; the hidden select keeps the value.
-// "1 個月", "半年", "1 年 3 個月", "5 年": a period of whole months.
-function periodName(weeks) {
-  const t = state.t;
-  const months = PERIOD_MONTHS[MONTH_WEEKS.indexOf(weeks)] ?? Math.round((weeks * 12) / 52);
-  const y = Math.floor(months / 12);
-  const m = months % 12;
-  if (!y && m === 6) return t('periodHalf');
-  const part = (n, one, many) => (n === 1 ? t(one) : t(many, { n }));
-  return [y ? part(y, 'periodYear', 'periodYears') : '', m ? part(m, 'periodMonth', 'periodMonths') : ''].filter(Boolean).join(' ');
 }
 
 // Everything opened on a tab folds back when you leave it (a game's 更多玩法,
@@ -3820,7 +3454,7 @@ topActions(q, { refresh: load });
 // it for the first time). Only the slip and simulator
 // have such numbers (and 首頁's picks' names, a ticket's picks and their
 // second lines, and 你的投注's rows: a long name a little smaller, not cut). All reads, then all writes, so the page lays out once.
-const FIT_SELECTOR = '.slip-bar-main small, .feature-team, .stat-value, .pay-cell strong, .player-line strong, .lapse-stats strong, .story-big, .buy strong, .you-end, .fy-text strong, .fy-text small, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .bet-main strong, .bet-state';
+const FIT_SELECTOR = '.slip-bar-main small, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
 function fitNumbers(nodes) {
   for (const node of nodes) node.style.fontSize = '';
   const sizes = nodes.map(node => {
@@ -3866,7 +3500,7 @@ if ('ResizeObserver' in window) {
     if (found.size) fitNumbers([...found]);
   });
   // (首頁: a 為你推薦 pick's name, whole in its card.)
-  for (const id of ['slip-sheet', 'panel-history', 'account-body', 'panel-home']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
+  for (const id of ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
   // Fitted before the font came, a number widens when it comes while its box
   // (already at its narrowest) doesn't move: fitted again once fonts load.
   document.fonts?.addEventListener('loadingdone', () => fitNumbers([...document.querySelectorAll(FIT_SELECTOR)]));
@@ -3927,11 +3561,37 @@ function homeCtx() {
     showTab('games');
     requestAnimationFrame(() => (id ? document.querySelector(`[data-game="${CSS.escape(id)}"]`) : $('live'))?.scrollIntoView({ block: id ? 'center' : 'start', behavior: 'smooth' }));
   };
+  // A kind of sport's games on the games tab (home's starters), from the top.
+  const openSport = value => {
+    state.sport = value;
+    state.query = '';
+    $('game-search').value = '';
+    showTab('games');
+    rerenderFiltered();
+    scrollTo({ top: 0 });
+  };
+  // Each kind of sport with games still to come: its picture, name and count.
+  const sportStarters = () =>
+    Object.keys(SPORT_GROUPS)
+      .map(g => {
+        const leagues = SPORT_GROUPS[g].leagues;
+        const n = g === 'f1' ? (state.data?.f1 && state.bets.some(b => b.sport === 'f1') ? 1 : 0) : (state.data?.games || []).filter(x => leagues.includes(x.sport) && Date.parse(x.startUtc) > Date.now()).length;
+        const present = leagues.filter(l => state.bets.some(b => b.sport === l));
+        return { label: state.t(`group_${g}`), icon: groupIcon(g), n, go: () => openSport(present.length === 1 ? present[0] : `g:${g}`) };
+      })
+      .filter(x => x.n > 0);
+  // The games tab with its search open.
+  const openSearch = () => {
+    showTab('games');
+    scrollTo({ top: 0 });
+    requestAnimationFrame(() => $('game-search').focus());
+  };
   return {
+    openSport, sportStarters, openSearch,
     openSlip: () => openSlip(),
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
-statsUi = mountStats({ state, el, svgEl, fmtMoney, fmtInt, fmtPctShort, fmtOdds, fmtTime, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)), youCard, crowdCard, funCard, picksCard, breakdownCard });
+statsUi = mountStats({ state, q, el, fmtMoney, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
 lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w) });
 
 // The saved board, drawn while signing in (a network round trip).

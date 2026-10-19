@@ -1,5 +1,6 @@
 export const STRINGS = {
   zh: {
+    marketsN: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payFreeBack: '免費本金不退', payLeastShort: '有中最少',
     periodYears: "{n} 年",
     periodMonths: "{n} 個月",
     periodHalf: "半年",
@@ -462,7 +463,7 @@ export const STRINGS = {
     pickGone: '有選項暫停了', priceMoved: '賠率變了', priceMovedBody: '{pick} 現在是 {odds}，看過再下注。', placeFailed: '現在無法下注', placeFailedBody: '稍後再試。', placeRefused: '這張沒有下注', placeRefusedFunds: '餘額不足。', placeRefusedBody: '投注單有變動，請重新確認。', placing: '下注中…',
     pickGoneBody: '比賽開打或賠率暫停，這張沒有下注。',
     askCancel: '取消',
-    placeFree: '全部用免費投注 {v}', placeFreePlus: '免費 {f} ＋ 自付 {v}', freeCut: '投注 {stake}：免費投注折抵 {f}，你付 {v}', freeOff: '免費投注沒有套用：', freeBetSingles: '單場有好幾個選項時，每個都是一張單，請只留一個選項，或改成串關。', payFree: '免費投注折抵', payYouPay: '你付（免費投注 {f} 之外）', payAllFree: '全中入帳', payFreeSum: '派彩 {gross} − 免費本金 {f} ＝ {v}', freeBetTag: '免費投注', freeBetsTitle: '免費投注', freeBetsSub: '點一下使用', freeBetDays: '{n} 天內有效', freeBetOneSlip: '免費投注只能用在單場或一組串關', freeBetMinOdds: '免費投注的賠率要 {v} 以上（串關看總賠率）', freeBetNote: '贏了只付彩金：免費的部分不退本金',
+    placeFree: '全部用免費投注 {v}', placeFreePlus: '免費 {f} ＋ 自付 {v}', freeCut: '投注 {stake}：免費投注折抵 {f}，你付 {v}', freeOff: '未套用免費投注', freeBetSingles: '單場有好幾個選項時，每個都是一張單，請只留一個選項，或改成串關。', payFree: '免費投注折抵', payYouPay: '你付（免費投注 {f} 之外）', payAllFree: '全中入帳', payFreeSum: '派彩 {gross} − 免費本金 {f} ＝ {v}', freeBetTag: '免費投注', freeBetsTitle: '免費投注', freeBetsSub: '點一下使用', freeBetDays: '{n} 天內有效', freeBetOneSlip: '免費投注只能用在單場或一組串關', freeBetMinOdds: '免費投注的賠率要 {v} 以上（串關看總賠率）', freeBetNote: '贏了只付彩金：免費的部分不退本金',
     boostNow: '串關加成 {v}',
     barParlay: '過 {n} 關',
     barSingles: '{n} 注單場',
@@ -498,7 +499,7 @@ export const STRINGS = {
     cashRulePrice: '價格', cashRulePriceBody: '每個還沒結果的選項，用現在的機率扣掉莊家差價（開賽前 4%、比賽中 6%），整張再扣 3%（Plus 2%）。串越多關、還沒開打的越多，拿得越少；快贏了也不會等於全額。',
     cashRulePause: '暫停', cashRulePauseBody: '任何一個選項現在沒有報價時就暫停：比賽中沒有即時盤口、盤口剛鎖住（進球、危險進攻），或同一場有兩個選項。有報價就會恢復。免費投注不能兌現。',
     cashRulePlus: 'Plus 會員', cashRulePlusBody: '整張只扣 2%，同一張單兌現拿得比較多。',
-    cashOutPlus: '✦ Plus 會員可兌現 {v}',
+    cashOutPlus: '✦ Plus {v}',
     cashOutAsk: '以 {v} 兌現這張投注單？',
     cashOutAskBody: '馬上入帳。全中最多 {most}。',
     cashOutOk: '兌現',
@@ -563,6 +564,7 @@ export const STRINGS = {
     footer: ''
   },
   en: {
+    marketsN: '{n} markets', slipStakeEach: 'Stake per slip', slipStakeCombo: 'Stake per combination', payTax: 'Tax withheld ({rate})', payFreeBack: 'Free stake not paid back', payLeastShort: 'Least a win pays',
     periodYears: "{n} years",
     periodYear: "1 year",
     periodMonths: "{n} months",
@@ -1024,7 +1026,7 @@ export const STRINGS = {
     pickGone: 'A pick is closed', priceMoved: 'The odds moved', priceMovedBody: '{pick} is now {odds}. Check it and place again.', placeFailed: 'Can’t place bets right now', placeFailedBody: 'Try again in a moment.', placeRefused: 'This slip wasn’t placed', placeRefusedFunds: 'Not enough balance.', placeRefusedBody: 'Something on the slip changed. Check it again.', placing: 'Placing…',
     pickGoneBody: 'A game started or its odds are paused; nothing was placed.',
     askCancel: 'Cancel',
-    placeFree: 'All from the free bet {v}', placeFreePlus: '{f} free + {v} yours', freeCut: 'Stake {stake}: the free bet takes {f} off, you pay {v}', freeOff: 'The free bet isn’t applied:', freeBetSingles: 'several picks as singles are separate bets; keep one pick, or make it a parlay.', payFree: 'Free bet off', payYouPay: 'You pay (besides the {f} free bet)', payAllFree: 'All correct, you get', payFreeSum: '{gross} − {f} free stake = {v}', freeBetTag: 'Free bet', freeBetsTitle: 'Free bets', freeBetsSub: 'Tap to use', freeBetDays: '{n} days left', freeBetOneSlip: 'Free bets work on one single or one parlay', freeBetMinOdds: 'Free bets need odds of {v} or more (a parlay’s all together)', freeBetNote: 'A win pays the winnings: the free part’s stake isn’t paid back',
+    placeFree: 'All from the free bet {v}', placeFreePlus: '{f} free + {v} yours', freeCut: 'Stake {stake}: the free bet takes {f} off, you pay {v}', freeOff: 'Free bet not applied', freeBetSingles: 'several picks as singles are separate bets; keep one pick, or make it a parlay.', payFree: 'Free bet off', payYouPay: 'You pay (besides the {f} free bet)', payAllFree: 'All correct, you get', payFreeSum: '{gross} − {f} free stake = {v}', freeBetTag: 'Free bet', freeBetsTitle: 'Free bets', freeBetsSub: 'Tap to use', freeBetDays: '{n} days left', freeBetOneSlip: 'Free bets work on one single or one parlay', freeBetMinOdds: 'Free bets need odds of {v} or more (a parlay’s all together)', freeBetNote: 'A win pays the winnings: the free part’s stake isn’t paid back',
     boostNow: 'Parlay boost {v}',
     barParlay: '{n}-pick parlay',
     barSingles: '{n} singles',
