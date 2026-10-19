@@ -1462,14 +1462,14 @@ function boardBody({ emblem, title, sub, tabs = null, lead = null, entries }) {
   ]);
 }
 
-// 冠軍: one row per market (its league, its name, the two favourites'
-// prices), each opening its board.
+// 冠軍: one row per market (its league, its name, the favourite's price),
+// each opening its board.
 function renderFutures() {
   const markets = groupBy(state.futures.filter(b => inSport(b.sport)), b => b.market);
   $('futures').hidden = markets.size === 0 || Boolean(state.query);
   $('futures-list').replaceChildren(
     ...[...markets.entries()].map(([market, bets]) => {
-      const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 2);
+      const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 1);
       return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
         el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
         el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
