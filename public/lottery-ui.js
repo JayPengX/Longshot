@@ -5,10 +5,11 @@
 import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
 // (By the module: nextDraws, upcoming and ticketPrize's `wins` are the newer kit's.)
 import * as L from './lib/lottery.mjs';
-import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize } from './lib/scratch.mjs';
+import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize, onSale as cardOnSale } from './lib/scratch.mjs';
 import { buyTickets, buyCard as sellCard, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
+import { faceDrawer } from './scratch-face.js';
 import { ask, tell } from '#kit/quadra.mjs';
 import { termLabel, termOf, nextTerm, cutoffAt, tierName, tierRule, digitRule, gameLimits, periodsFor, MAX_LINES, zoneMax, comboMax, isSystem, pendingPrize, winsText, jackpotOf, bySeries } from './lottery-labels.mjs';
 
@@ -29,7 +30,8 @@ const T = {
     periods: '期數', periodsN: '{n} 期', buyAskP: '買 {n} 注 × {p} 期，共 {v}？', boughtNP: '已買 {n} 注 × {p} 期，共 {v}', betsP: '{n} 注 × {p} 期', drawsSpan: '{from} 至 {to}，共 {n} 期',
     pendingPay: '已開獎，等待派彩公告', system: '包牌', systemBets: '包牌 {n} 注', upTo: '包牌至 {n}', lastDraw: '上期開獎', bySize: '大小順序', byOrder: '開出順序', notPaidYet: '獎金尚未公告',
     seriesN: '多期 {k}/{n}', seriesLeft: '連續 {n} 期，還有 {k} 期待開獎', tooMany: '一次最多 {n} 注，請分次購買', perDraw: '{v} / 期', comboNote: '每期獎金以台灣彩券公告為準',
-    strongman: '大力士分數', yourScores: '您的分數', roundN: '第{n}局'
+    strongman: '大力士分數', yourScores: '您的分數', roundN: '第{n}局', pickNow: '去選號', inMinShort: '{n} 分後截止', inHourShort: '{h} 小時後截止',
+    gameN: '遊戲{n}', thanks: '謝謝', zoneX: '獎金{x}倍區', countN: '{n}個', xN: '{x}倍', sumTo: '兩數相加為 {n}', luckyCode: '幸運密碼', yourCode: '您的密碼', hitsN: '對中{n}個', hitsSp: '{n}個＋特別號', linesN: '{n}條連線', goldNums: '金樂透號碼 ＋ 特別號', onePt: '1分區', tenPt: '10分區', ptsTotal: '對中總分數', ptsN: '{n}分', soldUntil: '{d}停售', allPrices: '全部'
   },
   en: {
     draws: 'Draw games', scratch: 'Scratch cards', mine: 'My tickets', nextDraw: 'Next draw', closeInMin: 'Closes in {n} min', closeInHour: 'Closes in {h}h {m}m', closeAt: 'Closes {when}', jackpot: 'Jackpot', price: 'A bet', buy: 'Buy', cancel: 'Cancel', buyAsk: 'Buy {n} for {v}?', buyAskBody: '{name}; checked by itself after the draw.', scratchAsk: 'Buy a {name} card?', scratchAskBody: '{v}; scratch it straight away.', cost: 'Total', bets: 'bets', multiple: 'Multiple',
@@ -43,7 +45,8 @@ const T = {
     periods: 'Draws', periodsN: '{n}', buyAskP: 'Buy {n} × {p} draws for {v}?', boughtNP: 'Bought {n} bets × {p} draws, {v}', betsP: '{n} × {p} draws', drawsSpan: '{from} to {to}, {n} draws',
     pendingPay: 'Drawn: awaiting the prize announcement', system: 'System', systemBets: 'System: {n} bets', upTo: 'system to {n}', lastDraw: 'Last draw', bySize: 'In order of size', byOrder: 'In order drawn', notPaidYet: 'Prizes not announced yet',
     seriesN: 'Multi-draw {k}/{n}', seriesLeft: '{n} draws in a row, {k} still to come', tooMany: 'At most {n} bets at once: buy the rest after', perDraw: '{v} a draw', comboNote: 'Each draw pays as Taiwan Lottery announces',
-    strongman: 'Strongman', yourScores: 'Your scores', roundN: 'Round {n}'
+    strongman: 'Strongman', yourScores: 'Your scores', roundN: 'Round {n}', pickNow: 'Pick numbers', inMinShort: '{n} min left', inHourShort: '{h}h left',
+    gameN: 'Game {n}', thanks: 'ZERO', zoneX: '{x}× zone', countN: '{n}', xN: '{x}×', sumTo: 'Two that add up to {n}', luckyCode: 'Lucky code', yourCode: 'Your code', hitsN: '{n} match', hitsSp: '{n} + special', linesN: '{n} lines', goldNums: 'Gold lotto + special', onePt: '1-point zone', tenPt: '10-point zone', ptsTotal: 'Points', ptsN: '{n} pts', soldUntil: 'Ends {d}', allPrices: 'All'
   }
 };
 const COMBO_NAME = { zh: { 2: '二合', 3: '三合', 4: '四合', 5: '五合' }, en: { 2: '2 numbers', 3: '3 numbers', 4: '4 numbers', 5: '5 numbers' } };
@@ -186,14 +189,12 @@ export function mountLottery(ctx) {
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && settleDue());
 
   // ---- The tab ---------------------------------------------------------------------
+  // The biggest jackpot on now as the hero; the draw games as tiles (name,
+  // prize, countdown: the rest is in each game's sheet); the scratch cards
+  // as a rail; the tickets bought in 紀錄, a row away.
   function render() {
     const root = box();
     if (!root || !ctx.getAccount()) return;
-    // Home's buttons open a view directly.
-    if (state.lotteryView) {
-      ui.view = state.lotteryView;
-      state.lotteryView = null;
-    }
     if (!ui.latest) {
       ui.latest = {};
       latestResults()
@@ -208,48 +209,57 @@ export function mountLottery(ctx) {
         .catch(() => {});
     }
     settleDue();
-    if (ui.view === 'mine') ui.view = 'draws';
-    const seg = el(
-      'div',
-      { class: 'q-seg lotto-seg', role: 'group' },
-      ['draws', 'scratch'].map(v => el('button', { type: 'button', 'aria-pressed': String(ui.view === v), onclick: () => ((ui.view = v), render()) }, [document.createTextNode(t(v))]))
+    const jackpots = GAME_ORDER.map(id => ({ id, jp: jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : ui.latest?.[id], lang) })).filter(x => x.jp && nextDraw(x.id));
+    const lead = jackpots.sort((a, b) => b.jp.amount - a.jp.amount)[0];
+    const leadId = lead?.id ?? GAME_ORDER[0];
+    const leadDraw = nextDraw(leadId);
+    const hero = el('button', { class: 'q-hero-card q-press lt-hero', type: 'button', style: `--q-hc-b:${GAMES[leadId].color}`, onclick: () => openGame(leadId) }, [
+      el('span', { class: 'q-hc-eyebrow' }, [el('span', { class: 'lt-hero-ball', 'aria-hidden': 'true', text: gameName(leadId, lang).slice(0, 1) }), el('span', { text: gameName(leadId, lang) })]),
+      el('strong', { class: 'q-hc-big num lt-hero-big', text: lead ? compactMoney(lead.jp.amount, lang) : topPrizeText(leadId) }),
+      el('span', { class: 'q-hc-sub', text: [lead ? t('jackpot') : t('topPrize'), leadDraw ? shortUntil(leadId, leadDraw.at) : t('closed')].join(' · ') }),
+      el('span', { class: 'q-hc-row' }, [el('span', { class: 'q-hc-btn', text: t('pickNow') })])
+    ]);
+    const open = (ctx.getAccount().tickets || []).filter(x => x.card && x.status === 'open');
+    const section = (title, body) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title })]), body]);
+    root.replaceChildren(
+      el('header', { class: 'q-page-head' }, [el('p', { class: 'q-over', text: state.t('title') }), el('h1', { text: state.t('tab_lottery') })]),
+      hero,
+      section(t('draws'), drawGames(leadId)),
+      section(t('scratch'), el('div', {}, [
+        open.length ? el('div', { class: 'q-rowcard lt-open' }, open.map(x => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(x.id) }, [el('span', { class: 'q-tile', style: `--t:${CARDS[x.card].color}`, text: CARDS[x.card].icon }), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: CARDS[x.card][lang] })]), el('span', { class: 'q-tag orange', text: t('unscratched') })]))) : null,
+        scratchCards()
+      ])),
+      el('div', { class: 'q-rowcard lt-mine' }, [
+        el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true', text: '🎟️' }), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('mine') })])])
+      ])
     );
-    // Tickets bought live in 紀錄 (next to the slips); a link to them here.
-    // No count on it: nothing else in Play or Securities counts what's open
-    // (a card still to scratch shows above the shelf).
-    const mine = el('button', { class: 'lotto-mine-link', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { text: `🎟️ ${t('mine')}` }), el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' })]);
-    const body = ui.view === 'draws' ? drawGames() : scratchCards();
-    root.replaceChildren(seg, body, mine);
   }
 
-  function drawGames() {
+  // A tile a game: its name, its prize big, and one short countdown.
+  function drawGames(leadId) {
     return el(
       'div',
-      { class: 'lotto-grid' },
-      GAME_ORDER.map(id => {
+      { class: 'lt-grid' },
+      GAME_ORDER.filter(id => id !== leadId).map(id => {
         const g = GAMES[id];
         const d = nextDraw(id);
-        const latest = ui.latest?.[g.of || id];
-        const nums = latest ? (latest.digits || latest.numbers || []).slice(0, id === 'bingo' ? 6 : 7) : [];
-        // The latest draw's 期別, else its date.
-        const tag = latest ? termLabel(termOf(latest), lang) || String(latest.date || '').slice(5).replace('-', '/') : '';
-        const jp = jackpotOf(ui.upcoming?.[id], g.of ? null : latest, lang);
-        return el('div', { class: 'lotto-card', style: `--lotto:${g.color}`, role: 'button', tabindex: '0', onclick: () => openGame(id) }, [
-          el('div', { class: 'lotto-top' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('div', { class: 'lotto-id' }, [el('span', { class: 'lotto-name', text: cardName(id, lang) }), el('span', { class: 'lotto-price', text: t('perBet', { v: money(g.price) }) })])]),
-          jp ? el('small', { class: 'lotto-jp-label', text: jp.label }) : null,
-          jp ? el('strong', { class: 'lotto-jackpot num', text: compactMoney(jp.amount, lang) }) : el('strong', { class: 'lotto-jackpot small', text: id === 'bingo' ? t('every5') : topLine(id) }),
-          nums.length && tag ? el('small', { class: 'lotto-term', text: tag }) : null,
-          nums.length ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', Boolean(latest.digits)))) : null,
-          el('span', { class: 'lotto-when', text: d ? untilText(id, d.at) : t('closed') }),
-          d ? el('span', { class: 'lotto-draw-at', text: drawTimeText(d.at) }) : null
+        const jp = jackpotOf(ui.upcoming?.[id], g.of ? null : ui.latest?.[g.of || id], lang);
+        return el('button', { class: 'lt-tile q-press', type: 'button', style: `--lotto:${g.color}`, onclick: () => openGame(id) }, [
+          el('span', { class: 'lt-name' }, [el('i', { class: 'lt-dot', 'aria-hidden': 'true' }), el('span', { text: cardName(id, lang) })]),
+          el('strong', { class: 'lt-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
+          el('small', { class: 'lt-when', text: id === 'bingo' ? t('every5') : d ? shortUntil(id, d.at) : t('closed') })
         ]);
       })
     );
   }
-  function topLine(id) {
-    const g = GAMES[id];
-    const top = g.tiers?.[0]?.prize || g.plays?.straight?.prize || (g.combo ? Math.max(...Object.values(g.combo.sizes)) : 0);
-    return top ? t('top', { v: compactMoney(top, lang) }) : '';
+  // When sales close, as short as it goes: 25 分 · 3 小時 · 週四 20:00.
+  function shortUntil(id, at) {
+    const ms = cutoffAt(id, at) - Date.now();
+    if (ms <= 0) return t('closed');
+    const mins = Math.ceil(ms / 60_000);
+    if (mins < 60) return t('inMinShort', { n: mins });
+    if (mins < 24 * 60) return t('inHourShort', { h: Math.floor(mins / 60) });
+    return t('closeAt', { when: new Date(cutoffAt(id, at)).toLocaleString(lang === 'en' ? 'en-US' : 'zh-TW', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Taipei' }) });
   }
 
   // ---- A game's sheet: pick and buy ---------------------------------------------------
@@ -277,7 +287,7 @@ export function mountLottery(ctx) {
       const tooMany = lines.length > MAX_LINES;
       if (st.done)
         return fill(
-          el('div', { class: 'q-sheet-head' }, [el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '×', 'aria-label': 'close', onclick: close })]),
+          el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
           // Bought: the tickets as they were picked, when they're drawn, and the two ways on.
           el('div', { class: 'lotto-bought' }, [
             el('div', { class: 'lotto-bought-mark', 'aria-hidden': 'true' }, [checkMark()]),
@@ -317,10 +327,7 @@ export function mountLottery(ctx) {
         lim.periods > 1 ? stepper(t('periods'), t('periodsN', { n: st.periods }), () => ((st.periods = Math.max(1, st.periods - 1)), paint()), () => ((st.periods = Math.min(maxPeriods, st.periods + 1)), paint()), st.periods > 1, st.periods < maxPeriods) : null
       ].filter(Boolean);
       fill(
-        el('div', { class: 'q-sheet-head' }, [
-          el('div', { class: 'ls-title' }, [el('span', { class: 'lotto-emblem', 'aria-hidden': 'true', text: gameName(id, lang).slice(0, 1) }), el('h2', { text: gameName(id, lang) })]),
-          el('button', { class: 'q-close', type: 'button', text: '×', 'aria-label': 'close', onclick: close })
-        ]),
+        el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
         el('div', { class: 'ls-hero' }, [
           el('div', {}, [el('small', { text: jp ? jp.label : t('topPrize') }), el('strong', { class: 'num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) })]),
           el('div', {}, [el('small', { text: `${t('nextDraw')} · ${t('perBet', { v: money(g.price) })}` }), el('strong', { text: d ? untilText(id, d.at) : t('closed') }), d ? el('small', { text: term ? `${term} · ${lang === 'en' ? hourText(d.at) : drawTimeText(d.at)}` : drawTimeText(d.at) }) : null])
@@ -580,34 +587,44 @@ export function mountLottery(ctx) {
   }
 
   // ---- Scratch cards --------------------------------------------------------------------
+  // On sale, cheapest first: a card each (its picture, name, top prize, price).
+  // How it plays is on the card itself once bought.
+  // On sale, by price (chips for each price), the newest first: a card each
+  // (its picture, name, top prize, price; its last day when that's close).
+  let shelfPrice = 0;
   function scratchCards() {
-    const open = (ctx.getAccount().tickets || []).filter(x => x.card && x.status === 'open');
-    return el('div', {}, [
-      open.length ? el('div', { class: 'scratch-pending' }, open.map(x => el('button', { class: 'q-chip', type: 'button', text: `${CARDS[x.card][lang]} · ${t('unscratched')}`, onclick: () => openScratch(x.id) }))) : null,
-      // By price: a row of cards at each (only those on sale: a retired card
-      // still scratches and lists, but nobody can buy one).
-      ...[...new Set(onSale().map(id => CARDS[id].price))].map(price =>
-        el('section', { class: 'sc-shelf' }, [
-          el('h3', { class: 'sc-shelf-head' }, [el('span', { class: 'num', text: money(price) }), el('small', { text: t('top', { v: compactMoney(Math.max(...onSale().filter(id => CARDS[id].price === price).map(topPrize)), lang) }) })]),
-          el(
-            'div',
-            { class: 'sc-shelf-row' },
-            onSale().filter(id => CARDS[id].price === price).map(id => {
-              const c = CARDS[id];
-              return el('button', { class: 'sc-tile', type: 'button', style: `--lotto:${c.color}`, onclick: () => buyCard(id) }, [
-                el('span', { class: 'sc-tile-icon', 'aria-hidden': 'true', text: c.icon }),
-                el('strong', { class: 'sc-tile-name', text: c[lang] }),
-                el('span', { class: 'sc-tile-how', text: c.how[lang] })
-              ]);
-            })
-          )
-        ])
+    const all = onSale();
+    const prices = [...new Set(all.map(id => CARDS[id].price))];
+    const list = all.filter(id => !shelfPrice || CARDS[id].price === shelfPrice);
+    const soon = id => {
+      const u = CARDS[id].until && new Date(`${CARDS[id].until}T17:00:00+08:00`);
+      return u && u - Date.now() < 14 * 864e5 ? t('soldUntil', { d: `${u.getMonth() + 1}/${u.getDate()}` }) : null;
+    };
+    let shelf = null;
+    const draw = () => shelf.replaceWith(scratchCards());
+    const chips = el('div', { class: 'q-chips sc-prices' }, [0, ...prices].map(p => el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(p === shelfPrice), text: p ? money(p) : t('allPrices'), onclick: () => ((shelfPrice = p), draw()) })));
+    shelf = el('div', { class: 'sc-shelf' }, [
+      chips,
+      el(
+        'div',
+        { class: 'q-rail sc-rail' },
+        list.map(id => {
+          const c = CARDS[id];
+          const end = soon(id);
+          return el('button', { class: 'q-rail-card sc-card q-press', type: 'button', style: `--lotto:${c.color}`, onclick: () => buyCard(id) }, [
+            el('span', { class: 'q-tile lg sc-card-icon', style: `--t:${c.color}`, 'aria-hidden': 'true', text: c.icon }),
+            el('span', { class: 'sc-card-name', text: c[lang] }),
+            el('strong', { class: 'num', text: compactMoney(topPrize(id), lang) }),
+            el('span', { class: `q-tag${end ? ' orange' : ''}`, text: end ? `${money(c.price)} · ${end}` : money(c.price) })
+          ]);
+        })
       )
     ]);
+    return shelf;
   }
-  const onSale = () => CARD_ORDER.filter(id => CARDS[id] && !CARDS[id].retired);
+  const onSale = () => CARD_ORDER.filter(id => cardOnSale(id));
   async function buyCard(id) {
-    if (!CARDS[id] || CARDS[id].retired) return;
+    if (!cardOnSale(id)) return;
     if (!(await confirmBuy(CARDS[id].icon, t('scratchAsk', { name: CARDS[id][lang] }), t('scratchAskBody', { v: money(CARDS[id].price) })))) return;
     // Checked here first (the balance), then bought from the Worker, which
     // draws the card's prize (lib/settled.mjs buyCard).
@@ -660,12 +677,12 @@ export function mountLottery(ctx) {
       render();
     };
     dialog.append(
-      el('div', { class: 'q-sheet-head' }, [el('h2', { text: `${c[lang]} · ${money(c.price)}` }), el('button', { class: 'q-close', type: 'button', text: '×', 'aria-label': 'close', onclick: close })]),
+      el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: `${c[lang]} · ${money(c.price)}` }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
       ticketEl,
       result,
       el('div', { class: 'lotto-buybar' }, [
         el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), onclick: () => (clearCover(canvas), done()) }),
-        c.retired ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => (close(), buyCard(ticket.card)) })
+        !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => (close(), buyCard(ticket.card)) })
       ])
     );
     dialog.addEventListener('close', () => dialog.remove());
@@ -677,79 +694,7 @@ export function mountLottery(ctx) {
     } else scratchable(canvas, wrap, done);
   }
 
-  // Amounts inside a card's spots: short ($2萬, $1,000).
-  const spotMoney = v => (v >= 10_000_000 && lang !== 'en' ? `$${v / 10_000_000}千萬` : v >= 10_000 ? compactMoney(v, lang).replace('NT$', '$') : v >= 1_000 ? (lang === 'en' ? `$${v / 1_000}K` : `$${v / 1_000}千`) : `$${v}`);
-  const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-  // The card's own words (the kit's 玩法: 「幸運號碼」, 「大力士分數」), else this page's.
-  const said = (id, word) => CARDS[id]?.how?.zh?.includes(word);
-  function faceEl(id, f) {
-    if (f.kind === 'symbol')
-      return el('div', { class: 'scratch-face symbol' }, [
-        f.mult ? el('div', { class: 'scratch-mult', text: t('mult', { m: f.mult }) }) : null,
-        el('div', { class: 'scratch-spots' }, f.spots.map(s => el('div', { class: `spot${s.win ? ' win' : ''}` }, [el('span', { class: 'spot-sym', text: s.s }), el('small', { class: 'num', text: spotMoney(s.a) })])))
-      ]);
-    if (f.kind === 'match3') return el('div', { class: 'scratch-face match3' }, f.cells.map(a => el('div', { class: `spot${f.cells.filter(x => x === a).length === 3 ? ' win' : ''}` }, [el('strong', { class: 'num', text: spotMoney(a) })])));
-    if (f.kind === 'numbers')
-      return el('div', { class: 'scratch-face numbers' }, [
-        el('p', { class: 'sc-h', text: t('winNumbers') }),
-        el('div', { class: 'sc-winning' }, f.winning.map(n => el('span', { class: 'sc-win-num num', text: String(n).padStart(2, '0') }))),
-        el('p', { class: 'sc-h', text: t('yourNumbers') }),
-        el('div', { class: 'scratch-spots yours' }, f.yours.map(y => el('div', { class: `spot${f.winning.includes(y.n) ? ' win' : ''}` }, [el('strong', { class: 'num', text: String(y.n).padStart(2, '0') }), el('small', { class: 'num', text: spotMoney(y.a) })])))
-      ]);
-    if (f.kind === 'bingo') {
-      const called = new Set(f.called);
-      return el('div', { class: 'scratch-face bingo' }, [
-        el('div', { class: 'bingo-grid' }, f.grid.flatMap(row => row.map(n => el('div', { class: `bcell${!n || called.has(n) ? ' hit' : ''}`, text: n ? String(n) : '★' })))),
-        el('p', { class: 'sc-h', text: `${t('called')} · ${money(CARDS[id].price * 2)}+` }),
-        el('div', { class: 'called' }, f.called.map(n => el('span', { class: 'num', text: String(n) })))
-      ]);
-    }
-    if (f.kind === 'slots') {
-      // 金磚疊疊樂: 第1局至第6局, each its own row.
-      const rounds = said(id, '局');
-      return el('div', { class: `scratch-face slots${rounds ? ' rounds' : ''}` }, f.rows.map((r, i) => el('div', { class: `slot-row${r.s[0] === r.s[1] && r.s[1] === r.s[2] ? ' win' : ''}` }, [rounds ? el('small', { class: 'slot-round', text: t('roundN', { n: i + 1 }) }) : null, ...r.s.map(x => el('span', { class: 'reel', text: x })), el('strong', { class: 'slot-prize num', text: spotMoney(r.a) })].filter(Boolean))));
-    }
-    if (f.kind === 'beat')
-      return el('div', { class: 'scratch-face beat' }, [
-        el('div', { class: 'beat-dealer' }, [el('span', { text: said(id, '大力士分數') ? t('strongman') : t('dealer') }), el('strong', { class: 'num', text: String(f.dealer) })]),
-        el('p', { class: 'sc-h', text: said(id, '您的分數') ? t('yourScores') : t('yourNumbers') }),
-        el('div', { class: 'scratch-spots' }, f.rows.map(r => el('div', { class: `spot${r.n > f.dealer ? ' win' : ''}` }, [el('strong', { class: 'num big', text: String(r.n) }), el('small', { class: 'num', text: spotMoney(r.a) })])))
-      ]);
-    if (f.kind === 'treasure') {
-      const counts = new Map();
-      for (const x of f.cells) counts.set(x, (counts.get(x) || 0) + 1);
-      return el('div', { class: 'scratch-face treasure' }, [
-        el('div', { class: 'treasure-map' }, f.cells.map(x => el('div', { class: `dig${counts.get(x) >= 3 ? ' win' : ''}`, text: x }))),
-        el('div', { class: 'treasure-key' }, f.key.map(k => el('span', {}, [el('b', { text: k.s }), el('small', { class: 'num', text: spotMoney(k.a) })])))
-      ]);
-    }
-    if (f.kind === 'dice')
-      return el('div', { class: 'scratch-face dice' }, [
-        el('div', { class: 'dice-head' }, [el('span'), el('small', { text: t('you') }), el('small', { text: t('dealer') }), el('small', { text: t('prizeCol') })]),
-        ...f.rounds.map((r, i) =>
-          el('div', { class: `dice-row${r.you[0] + r.you[1] > r.them[0] + r.them[1] ? ' win' : ''}` }, [
-            el('small', { class: 'num', text: String(i + 1) }),
-            el('span', { class: 'die-pair' }, [el('b', { text: `${DIE[r.you[0]]}${DIE[r.you[1]]}` }), el('small', { class: 'num', text: String(r.you[0] + r.you[1]) })]),
-            el('span', { class: 'die-pair them' }, [el('b', { text: `${DIE[r.them[0]]}${DIE[r.them[1]]}` }), el('small', { class: 'num', text: String(r.them[0] + r.them[1]) })]),
-            el('strong', { class: 'num', text: spotMoney(r.a) })
-          ])
-        )
-      ]);
-    if (f.kind === 'wheel') {
-      // The slice the pointer's on turned to the top.
-      const n = f.slices.length;
-      const step = 360 / n;
-      const turn = -(f.at * step + step / 2);
-      const stops = f.slices.map((v, i) => `${v ? (i % 2 ? 'var(--wheel-a)' : 'var(--wheel-b)') : 'var(--wheel-0)'} ${i * step}deg ${(i + 1) * step}deg`).join(', ');
-      return el('div', { class: `scratch-face wheel${f.slices[f.at] ? ' won' : ''}` }, [
-        el('div', { class: 'wheel-box' }, [
-          el('div', { class: 'wheel-disc', style: `background: conic-gradient(${stops}); transform: rotate(${turn}deg)` }, f.slices.map((v, i) => el('span', { class: `wheel-label${i === f.at ? ' at' : ''}${((((i + 0.5) * step + turn) % 360) + 360) % 360 > 180 ? ' flip' : ''}${v ? '' : ' zero'}`, style: `transform: rotate(${i * step + step / 2 - 90}deg)` }, [el('b', { class: 'num', text: v ? spotMoney(v) : '✕' })]))),
-          el('div', { class: 'wheel-pointer', 'aria-hidden': 'true' })
-        ])
-      ]);
-    }
-    return el('div');
-  }
+  const faceEl = faceDrawer({ el, t, lang, money });
 
   // The silver layer over the play area: scratched away with a finger or the
   // mouse; mostly gone (55%), it clears and the card pays. Sized to the play

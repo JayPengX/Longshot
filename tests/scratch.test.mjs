@@ -4,13 +4,15 @@ import { CARDS, CARD_ORDER, tiersOf, expectedReturn, face, facePays, drawPrize, 
 import { newAccount, balance } from '../public/lib/account.mjs';
 
 // Kits before play-rules-r7 sold twelve made-up cards; since then Taiwan
-// Lottery's own five (錢進888 … 樂刮$5,000), the old ones `retired`.
+// Lottery's own (five at first, all 24 on sale since 2026-10), the old ones `retired`.
 const realCards = Object.values(CARDS).some(c => c.retired);
 
 test('the cards on sale, each paying back like a real one of its price', () => {
   if (realCards) {
-    assert.deepEqual(CARD_ORDER.map(id => CARDS[id].zh), ['錢進888', '金磚疊疊樂', '獎金對決', '金鑽999', '樂刮$5,000']);
+    assert.ok(CARD_ORDER.length >= 5);
     assert.ok(CARD_ORDER.every(id => !CARDS[id].retired));
+    // By price, the cheapest first.
+    assert.deepEqual(CARD_ORDER.map(id => CARDS[id].price), CARD_ORDER.map(id => CARDS[id].price).sort((a, b) => a - b));
     // The card's own words: 大力士分數 and 幸運號碼.
     assert.match(CARDS.beat.how.zh, /大力士分數/);
     assert.match(CARDS.numbers.how.zh, /幸運號碼/);
@@ -19,10 +21,11 @@ test('the cards on sale, each paying back like a real one of its price', () => {
     for (const price of [100, 200, 300, 500, 1000, 2000]) assert.equal(CARD_ORDER.filter(id => CARDS[id].price === price).length, 2);
   }
   for (const id of CARD_ORDER) {
-    // As Taiwan Lottery's 2026 cards: 63% back at NT$100 up to 75% at NT$2,000.
+    // As Taiwan Lottery's 2026 cards: 60% back at NT$100 up to 75% at the dearest.
     const r = expectedReturn(id);
-    assert.ok(r > 0.62 && r < 0.76, `${id}: ${r}`);
-    assert.ok(topPrize(id) >= CARDS[id].price * (realCards ? 4_000 : 5_000), `${id} top`);
+    assert.ok(r > 0.59 && r < 0.76, `${id}: ${r}`);
+    // A real card's top prize can be as small as 440 times its price (好運發發's NT$88,000).
+    assert.ok(topPrize(id) >= CARDS[id].price * (realCards ? 400 : 5_000), `${id} top`);
   }
 });
 
