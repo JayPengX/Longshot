@@ -2826,7 +2826,9 @@ function renderSaved() {
   if (!slips.length) {
     const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
     // Under it, today's games (K3 wide cards later), so the tab is never blank.
-    const soon = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > Date.now() && state.bets.some(b => b.gameId === g.id && b.kind === 'ml' && !b.lock)).sort((x, y) => x.startUtc.localeCompare(y.startUtc)).slice(0, 4);
+    // (The games with an open 不讓分 found once: each game searching every bet was a second's freeze on a full board.)
+    const open = new Set(state.bets.filter(b => b.kind === 'ml' && !b.lock).map(b => b.gameId));
+    const soon = (state.data?.games || []).filter(g => open.has(g.id) && Date.parse(g.startUtc) > Date.now()).sort((x, y) => x.startUtc.localeCompare(y.startUtc)).slice(0, 4);
     const rows = soon.map(g => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openGame(g.id) }, [
       logoImg(g.sport, g.home.en, teamName(g.home), 'logo-md'),
       el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: `${shortTeamName(g.sport, g.away.en, teamName(g.away))} vs ${shortTeamName(g.sport, g.home.en, teamName(g.home))}` }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${legWhen(g.startUtc)}` })])
