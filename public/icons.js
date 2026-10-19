@@ -49,6 +49,8 @@ export function initialTile(name, color, cls = '') {
 }
 // ask()/tell() draw their icon as text: put a kit glyph (a name) or a node in its tile instead.
 export function kitDialog(call, opts, kitUI, mark) {
+  // The newer kit draws a glyph name itself (K8); an older one gets the placeholder swapped below.
+  if (typeof mark === 'string' && kitUI?.icons?.chevron && kitUI.icons[mark]) return call({ ...opts, icon: mark });
   const p = call({ ...opts, icon: mark ? '•' : '' });
   const slot = [...document.querySelectorAll('dialog.q-ask .q-ask-icon')].pop();
   if (slot) {

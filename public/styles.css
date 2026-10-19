@@ -857,18 +857,13 @@ body.searching #sport-filter, body.searching #league-filter, body.searching #day
 .pl-hc-cell { display: grid; gap: 4px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.12); color: #fff; text-align: left; }
 .pl-hc-cell small { font: 600 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }
 .pl-hc-cell strong { font: 700 17px/1.2 var(--q-font); white-space: nowrap; }
-.pl-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.pl-actions, .q-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
 .pl-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; border: 0; border-radius: 16px; background: var(--q-surface); color: var(--q-label); font: 500 13px/1.2 var(--q-font); }
 .pl-action .q-tile { width: 36px; height: 36px; border-radius: 10px; }
 .pl-action .q-tile svg { width: 20px; height: 20px; }
 .pl-badge { position: absolute; top: 8px; right: 12px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--q-red); color: #fff; font: 600 11px/18px var(--q-font); text-align: center; }
 @media (max-width: 340px) { .pl-action { min-height: 68px; font-size: 12px; } .pl-badge { right: 8px; } }
 .q-section { margin-top: 24px; }
-.q-section-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px 10px; }
-.q-section-head h2 { margin: 0; font: 700 20px/1.2 var(--q-font); white-space: nowrap; }
-.q-sh-count { color: var(--q-label-2); font: 500 15px/1 var(--q-font); }
-.q-sh-more { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin: -12px 0 -12px auto; padding: 0 0 0 12px; border: 0; background: none; color: var(--q-accent); font: 500 15px/1 var(--q-font); }
-.q-sh-more::after { content: ''; width: 14px; height: 14px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
 .pl-livestrip { --q-rail-w: 200px; }
 .pl-live-card { display: grid; gap: 8px; align-content: start; min-height: 96px; padding: 10px 12px; border: 0; text-align: left; color: var(--q-label); }
 .pl-live-min { display: flex; align-items: center; gap: 6px; color: var(--q-red); font: 600 12px/1 var(--q-font); white-space: nowrap; }
@@ -895,3 +890,29 @@ body.searching #sport-filter, body.searching #league-filter, body.searching #day
 .q-ritem .q-ritem-title, .q-ritem-text .q-ritem-title { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .lt-name span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
 .lt-name { font-size: 14px; }
+.sl { min-width: 0; }
+.sl .q-sheet-foot { display: block; }
+.sl .q-sheet-foot .place-button { width: 100%; min-width: 0; }
+.sl-leg { min-width: 0; }
+.sl > * { min-width: 0; max-width: 100%; }
+.sl-quick { flex-wrap: wrap; overflow: visible; }
+.sl-quick .q-chip { flex: 1 1 56px; justify-content: center; }
+#parlay-body { min-width: 0; }
+.sl-stake-field, .sl-stake-box, .sl-stake-box input { min-width: 0; max-width: 100%; }
+.sl-stake-box input { width: 100%; }
+.sl-leg > :first-child { flex: none; min-width: 32px; }
+.sl-leg > .logo, .sl-leg > picture, .sl-leg > .league-badge { width: 32px; height: 32px; }
+.sl-leg picture img, .sl-leg > .logo { width: 32px; height: 32px; }
+.slip-leg-game { white-space: normal; overflow: visible; text-overflow: clip; }
+.sl-pay:has(.q-sheet-hero) { padding: 0; background: none; }
+.sl-pay .q-sheet-hero { margin: 0; }
+.sl .q-sheet-foot { display: grid; gap: 6px; }
+.sl .q-sheet-foot > * { width: 100%; }
+/* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
+.q-section { margin-top: 28px; }
+.pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); }
+.pl-panel .q-section-head { padding: 0 8px 12px; }
+.pl-panel .q-match, .pl-panel .q-live-card, .pl-panel .pl-mcard.wide, .pl-panel .q-rowcard { background: var(--q-page, var(--q-fill-3)); }
+.pl-panel .q-rowcard { background: none; }
+.pl-panel .pl-empty-row { background: none; }
+.pl-actions, .q-actions-grid { margin-top: 20px; }

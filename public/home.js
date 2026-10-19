@@ -106,7 +106,7 @@ export function renderHome(ctx) {
   // A match card: its league and time (or live state) on top, each side with
   // its logo, (score) and win price; a 為你推薦 card's reason as a tag, and
   // its pick at the foot when it isn't a win price.
-  const matchCard = (g, bets, { live = false, why = null, pick = null, wide = false } = {}) => {
+  const oldMatch = (g, bets, { live = false, why = null, pick = null, wide = false } = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const open = () => (live ? ctx.openLive(g.id) : ctx.openGame(g.id));
     return el('article', { class: `${wide ? 'pl-mcard wide' : 'q-rail-card pl-mcard'}${live ? ' live' : ''}`, onclick: e => !e.target.closest('button.pick') && open() }, [
@@ -131,6 +131,24 @@ export function renderHome(ctx) {
       }),
       pick ? el('div', { class: 'pl-mcard-pick' }, [el('span', { class: 'pl-mcard-pickname', text: ctx.shortPick(pick) }), ctx.pickButton(pick, '')]) : null
     ]);
+  };
+
+  // K3: the kit's matchCard (logos 48/40, a price row 主/和/客); the hand-built card on an older kit.
+  const matchCard = (g, bets, o = {}) => {
+    if (!kitUI.matchCard) return oldMatch(g, bets, o);
+    const ml = bets.filter(b => b.kind === 'ml');
+    const mark = { home: lang === 'zh' ? '主' : 'H', away: lang === 'zh' ? '客' : 'A', draw: T.draw };
+    const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), onTap: () => ctx.toggleLeg(b) });
+    const prices = ctx.winnerSides(g, ml).map(side => ml.find(b => b.side === side) && price(ml.find(b => b.side === side), mark[side])).filter(Boolean);
+    if (o.pick) prices.push(price(o.pick, ctx.shortPick(o.pick)));
+    const open = () => (o.live ? ctx.openLive(g.id) : ctx.openGame(g.id));
+    return kitUI.matchCard({
+      league: state.t(`sport_${g.sport}`), leagueLogo: ctx.leagueUrl(g.sport), live: o.live, wide: o.wide,
+      when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
+      tag: o.why ? { text: T[`why_${o.why}`] ?? '', tone: ['follow', 'backed', 'like'].includes(o.why) ? 'tint' : 'orange' } : null,
+      sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
+      prices, onOpen: open
+    });
   };
 
   // ---- 精選串關: ready-made parlays from the big leagues' win prices, one
@@ -193,7 +211,14 @@ export function renderHome(ctx) {
   // ---- 2 Quick actions: colour tiles with kit glyphs (場中, 賽事, 彩券, 投注單).
   // K5 actionGrid(items) swaps this one function.
   const slipN = ctx.slipCount();
+  const actionItems = [
+      { icon: 'live', tint: 'var(--q-red)', label: T.actLive, badge: onNow.length, go: () => ctx.openLive(null) },
+      { icon: 'calendar', tint: 'var(--q-blue)', label: T.actGames, badge: 0, go: () => ctx.showTab('games') },
+      { icon: 'ticket', tint: 'var(--q-orange)', label: T.actLottery, badge: 0, go: () => ctx.showTab('lottery') },
+      { icon: 'list', tint: 'var(--q-indigo)', label: T.actSlip, badge: slipN, go: () => ctx.openSlip() }
+    ];
   const actions = () =>
+    kitUI.actionGrid?.(actionItems.map(a => ({ ...a, onTap: a.go }))) ??
     el('div', { class: 'pl-actions' }, [
       { icon: 'live', tint: 'var(--q-red)', label: T.actLive, badge: onNow.length, go: () => ctx.openLive(null) },
       { icon: 'calendar', tint: 'var(--q-blue)', label: T.actGames, badge: 0, go: () => ctx.showTab('games') },
@@ -204,6 +229,7 @@ export function renderHome(ctx) {
   // ---- 3 場中焦點: a compact strip, 28px logos, the minute in red.
   // K4 liveStrip(items) swaps this one function.
   const liveStrip = list =>
+    kitUI.liveStrip?.(list.map(x => ({ min: ctx.liveStateText(x.game.live), onOpen: () => ctx.openLive(x.game.id), rows: ['away', 'home'].map(side => ({ logo: ctx.logoUrl(x.game.sport, x.game[side].en), name: ctx.shortTeam(x.game.sport, x.game[side]), score: x.game.live?.[`${side}Score`] ?? '' })) }))) ??
     el('div', { class: 'q-rail pl-livestrip' }, list.map(x => {
       const g = x.game;
       return el('button', { class: 'q-rail-card pl-live-card', type: 'button', onclick: () => ctx.openLive(g.id) }, [
@@ -238,8 +264,8 @@ export function renderHome(ctx) {
   };
 
   // K1 sectionHead(title, { more, onMore, count }) swaps the head here.
-  const section = (title, body, more = null, count = null) =>
-    el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), count ? el('span', { class: 'q-sh-count num', text: String(count) }) : null, more ? el('button', { class: 'q-sh-more', type: 'button', onclick: more }, [el('span', { text: T.seeAll })]) : null]), body]);
+  const section = (title, body, more = null, count = null, panel = false) =>
+    el('section', { class: `q-section${panel ? ' pl-panel' : ''}` }, [kitUI.sectionHead?.(title, { more: more ? T.seeAll : '', onMore: more, count }) ?? el('div', { class: 'q-section-head' }, [el('h2', { text: title }), count ? el('span', { class: 'q-sh-count num', text: String(count) }) : null, more ? el('button', { class: 'q-sh-more', type: 'button', onclick: more }, [el('span', { text: T.seeAll })]) : null]), body]);
 
   // 4 為你推薦: a rail of cards. K3 matchCard swaps matchCard() for all three card lists.
   const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet }));
@@ -272,12 +298,12 @@ export function renderHome(ctx) {
     ...[
       hero,
       actions(),
-      liveTop.length ? section(T.liveTitle, liveStrip(liveTop), () => ctx.openLive(null), onNow.length) : null,
+      liveTop.length ? section(T.liveTitle, liveStrip(liveTop), () => ctx.openLive(null), onNow.length, true) : null,
       forYou.length ? section(T.forYou, el('div', { class: 'q-rail pl-mcards' }, forYou), () => ctx.showTab('games')) : null,
-      section(T.featured, wide.length ? el('div', { class: 'pl-wide' }, wide) : emptyGames(), () => ctx.showTab('games')),
+      section(T.featured, wide.length ? el('div', { class: 'pl-wide' }, wide) : emptyGames(), () => ctx.showTab('games'), null, true),
       combos.length ? section(T.combos, el('div', { class: 'q-rail pl-combos' }, combos)) : null,
       section(T.lottery, lotteryCard(), () => ctx.showTab('lottery')),
-      section(T.recent, recentBody, () => ctx.showTab('history'))
+      section(T.recent, recentBody, () => ctx.showTab('history'), null, true)
     ].filter(Boolean)
   );
 }

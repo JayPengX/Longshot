@@ -814,6 +814,8 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
 // A game in its sheet: the scoreboard (both sides' logos and names, the
 // time or the live score between), the win prices in one row, then every
 // other market under its tabs.
+// A team's logo address (a club's, else a national side's flag), for the kit's logo tiles.
+const teamUrl = (sport, en) => (/\//.test(en || '') ? null : teamLogo(sport, en) ?? findTeamLogo(futureTeamLeagues(sport), en) ?? (countryCode(en) ? flagUrl(countryCode(en)) : null));
 function gameDetail(game, bets) {
   const t = state.t;
   const ml = bets.filter(b => b.kind === 'ml');
@@ -833,7 +835,14 @@ function gameDetail(game, bets) {
   const more = others.length > 0 || Boolean(game.live && game.kambiId) || (!moreShown.has(game.id) && (Boolean(game.kambiId) || (Boolean(game.espnTeams) && hasPlayers(game.sport))));
   const win = sides.map(s => ml.find(b => b.side === s)).filter(Boolean);
   return el('div', { class: 'gs' }, [
-    el('div', { class: 'gs-board' }, [side(left), mid, side(right)]),
+    // K6 sheetHero: the two logos, the time (or score) big, the matchup under it; the old board on an older kit.
+    kitUI.sheetHero?.({
+      logos: [left, right].map(s => teamUrl(game.sport, game[s].en)),
+      eyebrow: game.live ? liveStateText(game.live) : `${dayLabel(day)} ${m}/${d}`,
+      big: game.live ? `${game.live[`${left}Score`]} : ${game.live[`${right}Score`]}` : game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : hhmm(game.startUtc),
+      sub: [left, right].map(s => shortTeamName(game.sport, game[s].en, teamName(game[s]))).join(' vs '),
+      tint: 'var(--q-blue)'
+    }) ?? el('div', { class: 'gs-board' }, [side(left), mid, side(right)]),
     win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side]))))) : null,
     more ? gameMore(game, others) : el('p', { class: 'pl-empty', text: t('offersNone') })
   ]);
@@ -1736,7 +1745,9 @@ function renderParlay() {
   if (mode !== 'single' && n >= 2 && !errors.includes('stakeUnit')) parts.push(boostLadder(mode === 'parlay' ? n : Math.max(...sizes, 0)));
   // A free bet chosen that this slip can't take: said plainly (what to change).
   if (free && !freeOn) parts.push(el('p', { class: 'sl-note', role: 'status' }, [el('span', { class: 'q-tag orange', text: t('freeOff') }), el('span', { text: freeShape ? t('freeBetMinOdds', { v: FREE_MIN_ODDS.toFixed(2) }) : n > 1 && mode === 'single' ? t('freeBetSingles') : t('freeBetOneSlip') })]));
-  parts.push(placeButton(legs, sizes, cost, errors, freeOn ? free : null));
+  // K7: the place button in a sticky foot with the balance on its left.
+  const placeBtn = placeButton(legs, sizes, cost, errors, freeOn ? free : null);
+  parts.push(kitUI.sheetFoot ? el('div', { class: 'q-sheet-foot q-sf' }, [placeBtn]) : placeBtn);
   parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tellK({ lang: state.locale, icon: '📘', title: t('slipRulesTitle'), body: t(RULES_NOTE) }) }));
   body.replaceChildren(el('div', { class: 'sl' }, parts));
 }
@@ -1866,6 +1877,8 @@ function payoutBox(legs, sizes, stake, mode, free = 0) {
   if (free) rows.push(payLine(t('payFreeBack'), `−${fmtMoney(free, { sign: false })}`));
   if (mode !== 'parlay' && least < allNet) rows.push(payLine(t('payLeastShort'), fmtMoney(least, { sign: false })));
   return el('div', { class: 'sl-pay' }, [
+    // K6 sheetHero in green: the payout big, the profit under it.
+    kitUI.sheetHero?.({ eyebrow: free ? t('payAllFree') : t('payAll'), big: fmtMoney(allNet, { sign: false }), sub: t('payProfit', { v: fmtMoney(allNet - cost) }), tint: allNet > cost ? 'var(--q-green)' : 'var(--q-red)' }) ??
     el('div', { class: 'sl-pay-top' }, [
       el('small', { text: free ? t('payAllFree') : t('payAll') }),
       el('strong', { class: 'pay-big', text: fmtMoney(allNet, { sign: false }) }),
@@ -3610,7 +3623,10 @@ function homeCtx() {
   const lotteryHome = () => lotteryUi?.homeLead?.() ?? null;
   const lotteryOpen = id => (showTab('lottery'), lotteryUi?.openGame?.(id));
   return {
-    openSport, sportStarters, openSearch, lotteryHome, lotteryOpen, showTickets,
+    openSport, sportStarters, openSearch, effectiveOdds,
+    logoUrl: (sport, en) => (/\//.test(en || '') ? null : teamLogo(sport, en) ?? findTeamLogo(futureTeamLeagues(sport), en) ?? (countryCode(en) ? flagUrl(countryCode(en)) : null)),
+    leagueUrl: sport => leagueLogo(sport),
+    lotteryHome, lotteryOpen, showTickets,
     openSlip: () => openSlip(),
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }

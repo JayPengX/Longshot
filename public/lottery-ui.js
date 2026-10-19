@@ -346,15 +346,27 @@ export function mountLottery(ctx) {
         lim.multiple > 1 ? stepper(t('multiple'), `×${st.multiple}`, () => ((st.multiple = Math.max(1, st.multiple - 1)), paint()), () => ((st.multiple = Math.min(lim.multiple, st.multiple + 1)), paint()), st.multiple > 1, st.multiple < lim.multiple) : null,
         lim.periods > 1 ? stepper(t('periods'), t('periodsN', { n: st.periods }), () => ((st.periods = Math.max(1, st.periods - 1)), paint()), () => ((st.periods = Math.min(maxPeriods, st.periods + 1)), paint()), st.periods > 1, st.periods < maxPeriods) : null
       ].filter(Boolean);
+      const buy = async () => {
+              const ask = st.periods > 1 ? t('buyAskP', { n: bets, p: st.periods, v: money(cost) }) : t('buyAsk', { n: bets, v: money(cost) });
+              if (!(await confirmBuy('ticket', ask, t('buyAskBody', { name: GAMES[id][lang] || '' })))) return;
+              const r = await buyLines(id, lines, st.multiple, st.periods);
+              if (r.error) return void ((st.msg = t(r.error === 'funds' ? 'funds' : r.error === 'failed' ? 'failed' : 'closed')), paint());
+              st.done = { ...r, lines: lines.slice(0, r.bought).map(x => structuredClone(x)) };
+              st.lines = [];
+              st.sel = blankSel(id);
+              st.msg = '';
+              paint();
+            };
       fill(
         el('div', { class: 'q-sheet-head' }, [el('span'), el('h2', { text: gameName(id, lang) }), el('button', { class: 'q-close', type: 'button', text: '✕', 'aria-label': 'close', onclick: close })]),
-        // K6 sheetHero: the jackpot big, the cutoff in one line, the price and draw time as tags.
-        el('div', { class: 'ls-hero' }, [
-          el('small', { class: 'ls-eyebrow', text: jp ? jp.label : t('topPrize') }),
-          el('strong', { class: 'ls-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
-          el('span', { class: 'ls-sub', text: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed') }),
-          el('div', { class: 'ls-tags' }, [el('span', { class: 'q-tag', text: t('perBet', { v: money(g.price) }) }), d ? el('span', { class: 'q-tag', text: drawTimeText(d.at) }) : null].filter(Boolean))
-        ]),
+        // K6 sheetHero: the jackpot big, the cutoff in one line, price and draw time as tags.
+        kitUI.sheetHero?.({ eyebrow: jp ? jp.label : t('topPrize'), big: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), sub: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed'), tint: g.color, tags: [t('perBet', { v: money(g.price) }), d ? drawTimeText(d.at) : null].filter(Boolean) }) ??
+          el('div', { class: 'ls-hero' }, [
+            el('small', { class: 'ls-eyebrow', text: jp ? jp.label : t('topPrize') }),
+            el('strong', { class: 'ls-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
+            el('span', { class: 'ls-sub', text: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed') }),
+            el('div', { class: 'ls-tags' }, [el('span', { class: 'q-tag', text: t('perBet', { v: money(g.price) }) }), d ? el('span', { class: 'q-tag', text: drawTimeText(d.at) }) : null].filter(Boolean))
+          ]),
         el('section', { class: `ls-slip${complete ? ' done' : ''}` }, [
           el('div', { class: 'ls-slip-head' }, [el('strong', { text: t('slipN', { n: st.lines.length + 1 }) }), el('span', { class: 'ls-status', text: status })]),
           // 3/4星彩: the steppers below are the slip's digits already.
@@ -380,28 +392,16 @@ export function mountLottery(ctx) {
         lastDraw(id),
         tooMany ? el('p', { class: 'lotto-msg', role: 'status', text: t('tooMany', { n: MAX_LINES }) }) : null,
         st.msg ? el('p', { class: 'lotto-msg', role: 'status', text: st.msg }) : null,
-        el('div', { class: `lotto-buybar sticky ls-buybar${opts.length ? ' has-opts' : ''}` }, [
+        // K7 sheetFoot: the total and the buy button, sticky; the old bar on an older kit.
+        el('div', { class: 'ls-footwrap' }, [
           opts.length ? el('div', { class: 'ls-opts' }, opts) : null,
           draws.length > 1 ? el('small', { class: 'ls-draws', text: spanText(draws) }) : null,
-          el('div', { class: 'ls-total' }, [el('small', { text: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}` }), el('strong', { class: 'num', text: money(cost) })]),
-          el('button', {
-            class: 'q-btn primary',
-            type: 'button',
-            text: t('buy'),
-            disabled: bets && d && !tooMany ? null : '',
-            onclick: async () => {
-              const ask = st.periods > 1 ? t('buyAskP', { n: bets, p: st.periods, v: money(cost) }) : t('buyAsk', { n: bets, v: money(cost) });
-              if (!(await confirmBuy('ticket', ask, t('buyAskBody', { name: GAMES[id][lang] || '' })))) return;
-              const r = await buyLines(id, lines, st.multiple, st.periods);
-              if (r.error) return void ((st.msg = t(r.error === 'funds' ? 'funds' : r.error === 'failed' ? 'failed' : 'closed')), paint());
-              st.done = { ...r, lines: lines.slice(0, r.bought).map(x => structuredClone(x)) };
-              st.lines = [];
-              st.sel = blankSel(id);
-              st.msg = '';
-              paint();
-            }
-          })
-        ])
+          kitUI.sheetFoot?.({ summary: { small: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}`, big: money(cost) }, button: { label: t('buy'), disabled: !(bets && d && !tooMany), onClick: buy } }) ??
+            el('div', { class: `lotto-buybar sticky ls-buybar` }, [
+              el('div', { class: 'ls-total' }, [el('small', { text: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}` }), el('strong', { class: 'num', text: money(cost) })]),
+              el('button', { class: 'q-btn primary', type: 'button', text: t('buy'), disabled: bets && d && !tooMany ? null : '', onclick: buy })
+            ])
+        ].filter(Boolean))
       );
     };
     paint();
@@ -427,7 +427,7 @@ export function mountLottery(ctx) {
     const digit = Boolean(r.digits);
     const second = r.special != null && Number.isFinite(r.special) ? r.special : r.zone2 != null && Number.isFinite(r.zone2) ? r.zone2 : null;
     const head = [termLabel(termOf(r), lang), String(r.date || '').slice(5).replace('-', '/')].filter(Boolean).join(' · ');
-    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), el('div', { class: 'balls mini' }, [...list.map(n => ball(n, '', digit)), second != null ? ball(second, 'special') : null].filter(Boolean))]);
+    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), kitUI.ballRow?.(list.map(n => (digit ? String(n) : String(n).padStart(2, '0'))), { special: second != null ? [String(second).padStart(2, '0')] : [] }) ?? el('div', { class: 'balls mini' }, [...list.map(n => ball(n, '', digit)), second != null ? ball(second, 'special') : null].filter(Boolean))]);
     return el('section', { class: 'ls-last' }, [
       el('p', { class: 'lotto-h' }, [document.createTextNode(t('lastDraw')), head ? el('small', { text: ` ${head}` }) : null].filter(Boolean)),
       digit ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', true))) : row(t('bySize'), nums),
