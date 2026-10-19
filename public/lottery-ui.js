@@ -200,7 +200,7 @@ export function mountLottery(ctx) {
     if (!root || !ctx.getAccount()) return;
     loadFeeds();
     settleDue();
-    const jackpots = GAME_ORDER.map(id => ({ id, jp: jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : ui.latest?.[id], lang) })).filter(x => x.jp && nextDraw(x.id));
+    const jackpots = GAME_ORDER.map(id => ({ id, jp: jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : latestOf(id), lang) })).filter(x => x.jp && nextDraw(x.id));
     const lead = jackpots.sort((a, b) => b.jp.amount - a.jp.amount)[0];
     const leadId = lead?.id ?? GAME_ORDER[0];
     const leadDraw = nextDraw(leadId);
@@ -226,7 +226,20 @@ export function mountLottery(ctx) {
   }
 
   // The latest results and the next draws' advertised jackpots, fetched once; `done` counts the answers.
+  // The proxy's board carries the next draws and the jackpots carried over (all home's card reads):
+  // with it, opening the app makes no direct call to Taiwan Lottery; the draws' own numbers are read when the 彩券 tab is on screen.
+  function seedFromBoard() {
+    const lottery = ctx.boardLottery?.();
+    if (!lottery?.upcoming || !lottery?.latest) return false;
+    if (!ui.upcoming) ui.upcoming = lottery.upcoming;
+    ui.boardLatest = lottery.latest;
+    ui.done = Math.max(ui.done || 0, 2);
+    return true;
+  }
+  // A game's last draw (its numbers, once read) or, until then, the board's jackpot carried over.
+  const latestOf = id => ui.latest?.[id] ?? ui.boardLatest?.[id];
   function loadFeeds() {
+    if (seedFromBoard() && ctx.state.tab !== 'lottery' && !ui.latest) return;
     if (!ui.latest) {
       ui.latest = {};
       latestResults()
@@ -248,7 +261,7 @@ export function mountLottery(ctx) {
     loadFeeds();
     if ((ui.done || 0) < 2) return null;
     const row = id => {
-      const jp = jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : ui.latest?.[id], lang);
+      const jp = jackpotOf(ui.upcoming?.[id], GAMES[id].of ? null : latestOf(id), lang);
       const d = nextDraw(id);
       return { id, jp, name: cardName(id, lang), color: GAMES[id].color, amount: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), untilText: id === 'bingo' ? t('every5') : d ? shortUntil(id, d.at) : t('closed') };
     };
@@ -263,7 +276,7 @@ export function mountLottery(ctx) {
       GAME_ORDER.filter(id => id !== leadId).map(id => {
         const g = GAMES[id];
         const d = nextDraw(id);
-        const jp = jackpotOf(ui.upcoming?.[id], g.of ? null : ui.latest?.[g.of || id], lang);
+        const jp = jackpotOf(ui.upcoming?.[id], g.of ? null : latestOf(g.of || id), lang);
         return el('button', { class: 'lt-tile q-press', type: 'button', style: `--lotto:${g.color}`, onclick: () => openGame(id) }, [
           el('span', { class: 'lt-name' }, [initialTile(cardName(id, lang), g.color, 'lt-logo'), el('span', { text: cardName(id, lang) })]),
           el('strong', { class: 'lt-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),

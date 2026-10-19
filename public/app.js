@@ -29,6 +29,7 @@ import { logoPicture, raceName } from '#kit/logos.mjs';
 import { minLegsProblem, leagueTier } from './lib/rules.mjs';
 import { gameOptions } from './lib/board.mjs';
 import { recommend } from './lib/recommend.mjs';
+import { readBoard, boardTileCount, boardLottery } from './lib/boardstart.mjs';
 import { minLegsWhy, slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
 
 // ask()/tell() draw their icon as text; Play gives them kit glyphs by name (an emoji maps to its glyph).
@@ -382,6 +383,14 @@ function optionsOf(game) {
 }
 
 const f1MarketsMemo = {};
+// Names a pick of a game (its label, chip, shortLabel), the game's matchup text worked out once.
+function namer() {
+  const matchups = new Map();
+  return (game, o) => {
+    if (!matchups.has(game.id)) matchups.set(game.id, matchupText(game));
+    return named(game, o, matchups.get(game.id));
+  };
+}
 // The board's bets, priced by the kit (play-bets.mjs, the Worker checks a
 // placed bet's price with the same code), each named here.
 function buildBets(data) {
@@ -391,12 +400,7 @@ function buildBets(data) {
     // And its players with their season numbers (players.mjs), once read.
     if (gamePlayers.get(game.id)?.players) game.players = gamePlayers.get(game.id).players;
   }
-  const matchups = new Map();
-  const name = (game, o) => {
-    if (!matchups.has(game.id)) matchups.set(game.id, matchupText(game));
-    return named(game, o, matchups.get(game.id));
-  };
-  return boardBets(data, { optionsOf, name, memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
+  return boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
 }
 
 // An F1 pick's names: drivers in Chinese here, the race's name as its matchup.
@@ -1046,7 +1050,7 @@ function wantOffers(game) {
 // Every board redrawn once, after the markets that came in this frame.
 let rebuildQueued = false;
 function rebuildBoard() {
-  if (rebuildQueued || !state.data) return;
+  if (rebuildQueued || !state.data || state.fromBoard) return;
   rebuildQueued = true;
   requestAnimationFrame(() => {
     rebuildQueued = false;
@@ -1530,6 +1534,8 @@ function legOdds(b) {
 }
 function toggleLeg(bet) {
   if (bet.lock && !state.parlay.includes(bet.id)) return;
+  // A pick is for buying: the prices it is bought at are the full read's (bets wait for it).
+  wantFull();
   // Felt, as iOS's own controls are (the kit's haptic; nothing on an older kit).
   globalThis.quadraHaptic?.();
   if (state.parlay.includes(bet.id)) {
@@ -3021,9 +3027,17 @@ function f1Board() {
 function renderAll() {
   renderStatic();
   if (!state.data) return;
-  state.bets = buildBets(state.data);
-  state.futures = buildFutures(state.data);
-  state.recs = recommend(state.bets);
+  if (state.fromBoard) {
+    // The proxy's board: its picks are already priced and tagged (nothing to
+    // price here, no futures); the full read replaces them whole.
+    state.bets = state.boardBets;
+    state.futures = [];
+    state.recs = state.boardRecs;
+  } else {
+    state.bets = buildBets(state.data);
+    state.futures = buildFutures(state.data);
+    state.recs = recommend(state.bets);
+  }
   offersForSlip();
   // (A pick not on the board stays in the slip: its league may still be on
   // its way. The slip shows only the picks it finds; saveSlip lets go of the
@@ -3160,6 +3174,72 @@ function saveSnapshot() {
   }, 1000);
 }
 
+// ---- The proxy's board (/data/play/board.json) ------------------------------------
+//
+// Built on the proxy every ten minutes (the games of the next 72 hours with
+// their winners, handicaps and best picks priced by the kit, and the lottery's
+// jackpots): start-up reads that one file instead of every league's odds
+// (about 138 reads), draws the home from it, and reads the full board only
+// when a tab, a game or a pick needs it (wantFull). Missing, older than 30
+// minutes, another shape version or an older kit without play-boardfile.mjs:
+// nothing changes, the saved board and the per-league reads run as before.
+const BOARD_READ_MS = 4_000;
+// How long start-up waits for the file before the saved board and the league reads go ahead without it.
+const BOARD_WAIT_MS = 1_500;
+const readPlayBoard = () => readBoard({ packJson: kit.packJson, timeout: BOARD_READ_MS });
+// The board's games and picks as state.data and the picks Play names; the
+// league tiles' counts (14 days) and the lottery's jackpots ride along.
+function takeBoard({ file, mod }) {
+  try {
+    const { games, bets, recs } = mod.unpackBoard(file);
+    const name = namer();
+    state.boardBets = bets.map(b => name(b.game, b));
+    state.boardRecs = recs;
+    state.board = file;
+    state.data = { games, futures: [], f1: null, loadedAt: file.built };
+    state.fromBoard = state.fromSnapshot = true;
+    // The leagues that may have a game on now: the first live read asks them all at once.
+    if (Array.isArray(file.live)) liveHint = [...new Set([...liveHint, ...file.live])];
+    return true;
+  } catch (error) {
+    console.error(error);
+    Object.assign(state, { data: null, board: null, boardBets: null, boardRecs: null, fromBoard: false, fromSnapshot: false });
+    return false;
+  }
+}
+// The full read (load): every league, futures, the race. Once, when something
+// needs more than the board holds; asked again only if it failed.
+let fullRead = null;
+function wantFull() {
+  if (!state.fromBoard) return null;
+  fullRead ??= load().finally(() => {
+    fullRead = null;
+  });
+  return fullRead;
+}
+// Opened on the board: the loading screen goes once the balance and the games
+// on now are in (as the full read waited for them), a moment at most.
+async function openOnBoard() {
+  const wait = liveHint.length && !state.liveData ? SNAPSHOT_LIVE_MS : SNAPSHOT_WAIT_MS;
+  await within(Promise.all([state.accountIn, liveBusy || refreshLive()]), wait);
+  if (state.tab === 'home') drawHome();
+  if (state.booting) {
+    await within(imagesReady($('panel-' + state.tab)), 800);
+    state.booting = false;
+    hideLoading();
+    warmImages();
+  }
+  if (state.wantSlip) ((state.wantSlip = false), openSlip());
+}
+// Back after a while: the board again (one read), or the full read when it has aged out.
+async function refreshBoard() {
+  if (!state.fromBoard) return;
+  const board = await readPlayBoard();
+  if (!state.fromBoard) return;
+  if (!board || !takeBoard(board)) return void wantFull();
+  renderAll();
+}
+
 async function load() {
   const startedAt = Date.now();
   renderStatus('loading');
@@ -3183,7 +3263,8 @@ async function load() {
   $('refresh').disabled = true;
   // The last board saved opens the page at once (boot drew it while signing
   // in); today's replaces it below.
-  const saved = booting && state.fromSnapshot ? state.data : null;
+  // (Opened on the proxy's board, the full read starts later, when a tab, a game or a pick needs it, and swaps in the same way.)
+  const saved = (booting || state.fromBoard) && state.fromSnapshot ? state.data : null;
   // The first screen is the balance and the games on now as well as the
   // board: the loading screen waits for the account (read and merged with
   // the pass) and the live games too.
@@ -3253,8 +3334,11 @@ async function load() {
       }
       state.data = fresh;
       state.fromSnapshot = false;
+      state.fromBoard = false;
       joining = true;
       renderAll();
+      // A game sheet opened on the board's game: its markets are read now.
+      renderGameSheet();
       if (state.booting) {
         await within(imagesReady($('panel-' + state.tab)), 800);
         clearTimeout(limit);
@@ -3341,6 +3425,7 @@ const slipSheet = $('slip-sheet');
 const slipOpen = () => Boolean(slipSheet?.open);
 function openSlip() {
   if (!slipSheet) return;
+  wantFull();
   renderParlay();
   if (!slipSheet.open) slipSheet.showModal();
   slipSheet.scrollTop = 0;
@@ -3388,6 +3473,8 @@ function renderGameSheet() {
 function openGameSheet(id) {
   const found = id.startsWith('board:') || sheetGameOf(id);
   if (!gameSheet || !found) return;
+  // The board's game has no markets of its own yet: the full read brings them (the sheet redraws then).
+  wantFull();
   closeSlip();
   state.sheetGame = id;
   if (!gameSheet.open) gameSheet.showModal();
@@ -3434,6 +3521,8 @@ function showTab(tab) {
   // Going anywhere (a bet placed, a tab tapped) puts the slip away.
   closeSlip();
   closeGameSheet();
+  // (On the proxy's board the home and 彩券 need nothing more; the games and 紀錄 read every league.)
+  if (tab === 'games' || tab === 'history') wantFull();
   if (tab !== state.tab) collapseAll();
   state.tab = tab;
   renderTabs();
@@ -3446,6 +3535,7 @@ function showTab(tab) {
 }
 
 $('game-search').addEventListener('input', event => {
+  wantFull();
   state.query = event.target.value.trim();
   if (state.data) renderGames();
 });
@@ -3599,6 +3689,7 @@ function homeCtx() {
   };
   // A kind of sport's games on the games tab (home's starters), from the top.
   const openSport = value => {
+    wantFull();
     state.sport = value;
     state.query = '';
     $('game-search').value = '';
@@ -3611,7 +3702,11 @@ function homeCtx() {
     Object.keys(SPORT_GROUPS)
       .map(g => {
         const leagues = SPORT_GROUPS[g].leagues;
-        const n = g === 'f1' ? (state.data?.f1 && state.bets.some(b => b.sport === 'f1') ? 1 : 0) : (state.data?.games || []).filter(x => leagues.includes(x.sport) && Date.parse(x.startUtc) > Date.now()).length;
+        // On the proxy's board the tiles' numbers are its own (games still to come in 14 days, not just its 72 hours).
+        const onBoard = state.fromBoard && state.board;
+        const n = onBoard
+          ? boardTileCount(state.board, g, leagues)
+          : g === 'f1' ? (state.data?.f1 && state.bets.some(b => b.sport === 'f1') ? 1 : 0) : (state.data?.games || []).filter(x => leagues.includes(x.sport) && Date.parse(x.startUtc) > Date.now()).length;
         const present = leagues.filter(l => state.bets.some(b => b.sport === l));
         return { label: state.t(`group_${g}`), icon: groupIcon(g), n, go: () => openSport(present.length === 1 ? present[0] : `g:${g}`) };
       })
@@ -3634,7 +3729,7 @@ function homeCtx() {
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), fmtShort, shownLabel, shortPick, legIcon, slipGlance, sizeName, pickTitle, pickButton, teamName, gameSeries, matchupText, shortGameText, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, cashOutPrice, doCashOut, leagueTier: shownTier, isSoccer, winnerSides, parlayPays, boostPct: n => Math.round(boostRate(n, boostX()) * 100) };
 }
 statsUi = mountStats({ state, q, el, fmtMoney, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
-lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome() });
+lotteryUi = mountLottery({ state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome(), boardLottery: () => (state.board ? boardLottery(state.board) : null) });
 
 // The saved board, drawn while signing in (a network round trip).
 // The games on now as last read (15 minutes at most): a reopen draws 場中焦點
@@ -3656,11 +3751,16 @@ function readLiveCopy() {
 }
 // The saved board taken in, not drawn yet (drawSnapshot): today's reads
 // go out before its pricing.
-function takeSnapshot() {
+function takeSnapshot(board) {
+  // The proxy's board when it is fresh, else the saved one.
+  if (board && takeBoard(board)) return finishTake();
   const saved = storedAccount() ? readSnapshot() : null;
   if (!saved) return;
   state.data = saved;
   state.fromSnapshot = true;
+  finishTake();
+}
+function finishTake() {
   const live = readLiveCopy();
   if (live && !state.liveData) {
     const { games, bets } = buildLiveBets(live);
@@ -3679,6 +3779,12 @@ function drawSnapshot() {
     console.error(error);
     state.data = null;
     state.fromSnapshot = false;
+    // (A board it can't draw: the full read, which start-up held back.)
+    if (state.fromBoard) {
+      state.fromBoard = false;
+      state.board = null;
+      fullRead = load().finally(() => (fullRead = null));
+    }
   }
 }
 // The slip being made (picks not bought yet) stays on this device, under
@@ -3705,7 +3811,7 @@ function saveSlip() {
   if (!slipRestored || !key) return;
   // Once the boards are all in, a pick on none of them is gone for good
   // (championships aside: their boards can come later still).
-  if (!state.booting) {
+  if (!state.booting && !state.fromBoard) {
     const found = betById();
     // A pick on a game whose own markets (a player's, corners) aren't read yet stays.
     const waiting = id => gameWaiting(gameOfPick(id));
@@ -3728,8 +3834,13 @@ async function boot() {
   // the proxy wait for that sign-in, not a second one), not a round trip
   // after it. (Under a sign-in link, after: its hand-off is redeemed first.)
   const handoff = /[#&]q[hp]=/.test(location.hash);
-  takeSnapshot();
-  let loading = handoff ? null : load();
+  // The proxy's board, asked at once; the saved board and the league reads
+  // wait for it a moment (a slow or missing file: they go ahead without it).
+  const board = await within(readPlayBoard(), BOARD_WAIT_MS, null);
+  takeSnapshot(board);
+  // (A tab asked for in the address that needs every league.)
+  if (state.fromBoard && (state.tab === 'games' || state.tab === 'history')) wantFull();
+  let loading = state.fromBoard ? openOnBoard() : handoff ? null : load();
   // The saved board is drawn behind the loading screen, which lifts once
   // today's board, the balance and the games on now have replaced it (load:
   // SNAPSHOT_WAIT_MS at most), so nothing moves right after it lifts. Drawn
@@ -3771,7 +3882,7 @@ if (!gated) boot();
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') hiddenAt = Date.now();
-  else if (hiddenAt && Date.now() - hiddenAt > 10 * 60_000) collapseAll();
+  else if (hiddenAt && Date.now() - hiddenAt > 10 * 60_000) (collapseAll(), refreshBoard());
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
