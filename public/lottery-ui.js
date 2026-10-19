@@ -222,7 +222,6 @@ export function mountLottery(ctx) {
     const open = (ctx.getAccount().tickets || []).filter(x => x.card && x.status === 'open');
     const section = (title, body) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title })]), body]);
     root.replaceChildren(
-      el('header', { class: 'q-page-head' }, [el('p', { class: 'q-over', text: state.t('title') }), el('h1', { text: state.t('tab_lottery') })]),
       hero,
       section(t('draws'), drawGames(leadId)),
       section(t('scratch'), el('div', {}, [

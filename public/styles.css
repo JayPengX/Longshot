@@ -167,9 +167,7 @@ button.pick:active { transform: scale(0.95); }
 .pl-combo-go { flex: none; min-height: 38px; padding: 0 14px; font-size: 15px; }
 
 /* ==== 5 賽事 ==== */
-.pl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.pl-head > div { min-width: 0; }
-.pl-day { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-bottom: 4px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--q-fill-3); color: var(--q-label); font: 600 15px/1 var(--q-font); font-variant-numeric: tabular-nums; }
+.pl-day { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 4px 0 12px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--q-fill-3); color: var(--q-label); font: 600 15px/1 var(--q-font); font-variant-numeric: tabular-nums; }
 .pl-day:disabled { cursor: default; opacity: 1; }
 .pl-day-chev { width: 7px; height: 7px; margin: -3px 0 0 2px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); opacity: 0.6; }
 #panel-games > .q-search { margin-bottom: 12px; }

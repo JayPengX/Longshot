@@ -206,10 +206,8 @@ export function renderHome(ctx) {
     el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), more ? el('button', { type: 'button', text: T.seeAll, onclick: more }) : null]), body]);
 
   const picks = [...mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet.kind === 'ml' ? null : x.bet })), ...featured.map(x => matchCard(x.game, betsOf.get(x.game.id) || []))];
-  const dateLine = new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric', weekday: lang === 'en' ? 'short' : 'long', timeZone: 'Asia/Taipei' });
   root.replaceChildren(
     ...[
-      el('header', { class: 'q-page-head' }, [el('p', { class: 'q-over', text: dateLine }), el('h1', { text: 'Quadra Play' })]),
       hero,
       starters.length ? el('div', { class: 'q-chips pl-chips pl-starters' }, starters) : null,
       liveTop.length ? section(T.liveTitle, el('div', { class: 'q-rail pl-mcards' }, liveTop.map(x => matchCard(x.game, liveBetsOf.get(x.game.id) || [], { live: true }))), () => ctx.openLive(null)) : null,
