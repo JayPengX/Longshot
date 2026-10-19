@@ -11,7 +11,7 @@ const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_KEEP, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
-import { boardBets, futureBets, liveBets } from './lib/bets.mjs';
+import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';

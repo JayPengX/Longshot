@@ -1,7 +1,11 @@
 // What's under a scratch card's foil, drawn from the kit's face (lib/scratch.mjs
 // face): a card on sale plays its own games (`kind: 'games'`), a retired one its
 // one layout. Each item reads exactly as facePays counts it.
-import { CARDS, MAHJONG, facePays } from './lib/scratch.mjs';
+import * as scratch from './lib/scratch.mjs';
+// A phone may still hold an older kit: read its names with fallbacks so Play opens.
+const CARDS = scratch.CARDS || {};
+const MAHJONG = scratch.MAHJONG || [];
+const facePays = (...a) => scratch.facePays?.(...a) ?? 0;
 import { compactMoney } from './home.js';
 
 export function faceDrawer({ el, t, lang, money }) {

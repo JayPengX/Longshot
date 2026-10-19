@@ -807,7 +807,7 @@ export function mountLottery(ctx) {
   // A ticket, draw or day shows what it won: the prize in green, or a quiet dash.
   const outcome = got => (got > 0 ? 'up' : 'none');
   const outcomeText = got => (got > 0 ? t('outWon', { v: money(got) }) : t('outNone'));
-  const netChip = got => el('span', { class: `lt-net num out-${outcome(got)}`, text: got > 0 ? `+${money(got)}` : '—' });
+  const netChip = got => el('span', { class: `lt-net num out-${outcome(got)}`, text: got > 0 ? `+${money(got)}` : t('outNone') });
   function myTickets() {
     const tickets = ctx.getAccount().tickets || [];
     if (!tickets.length) return el('p', { class: 'empty', text: t('noTickets') });
@@ -902,7 +902,7 @@ export function mountLottery(ctx) {
     const got = list.reduce((s, x) => s + (x.prize || 0), 0);
     return el('div', { class: 'lt-group', style: `--lotto:${c.color}` }, [
       el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: `${c.icon} ${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: t('scratch') })]), netChip(got)]),
-      el('div', { class: 'lt-cards' }, list.map(x => el('button', { type: 'button', class: `lt-card${x.prize > 0 ? ` won out-up` : ''}`, onclick: () => openScratch(x.id), text: x.prize > 0 ? compactMoney(x.prize, lang) : '—' }))),
+      el('div', { class: 'lt-cards' }, list.map(x => el('button', { type: 'button', class: `lt-card${x.prize > 0 ? ` won out-up` : ''}`, onclick: () => openScratch(x.id), text: x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') }))),
     ]);
   }
   // A ticket's picks with what the draw hit lit up; a 大樂透 pick equal to the
