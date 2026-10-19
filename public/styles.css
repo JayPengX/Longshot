@@ -904,3 +904,9 @@ body.searching #sport-filter, body.searching #league-filter, body.searching #day
 .pl-panel .q-rowcard { background: none; }
 .pl-panel .pl-empty-row { background: none; }
 .pl-actions, .q-actions-grid { margin-top: 20px; }
+
+/* The confirm is a solid surface, not glass. */
+.q-ask { background: var(--q-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* A slip group's head keeps its title whole; the summary wraps under it. */
+.q-section-head h2 { white-space: nowrap; }
+.group-sum { min-width: 0; text-align: right; }

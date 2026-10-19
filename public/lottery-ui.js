@@ -676,7 +676,8 @@ export function mountLottery(ctx) {
     const c = CARDS[ticket.card];
     const f = face(ticket.card, ticket.gross ?? ticket.prize, ticket.seed);
     const pays = facePays(ticket.card, f);
-    const result = el('div', { class: 'sc-result', role: 'status' }, [el('span', { text: t('scratchHint') })]);
+    let allBtn = null;
+    const result = el('div', { class: 'sc-result', role: 'status' });
     const done = () => {
       if (ctx.getAccount().tickets.find(x => x.id === ticketId)?.status === 'open') {
         ctx.commitAccount(revealScratch(ctx.getAccount(), ticketId));
@@ -686,6 +687,8 @@ export function mountLottery(ctx) {
         if (pays) navigator.vibrate?.([30, 40, 60]);
       }
       ticketEl.classList.add('revealed');
+      canvas.style.display = 'none';
+      if (allBtn) allBtn.disabled = true;
       result.className = `sc-result ${pays ? 'won' : 'lost'}`;
       result.replaceChildren(...[pays ? kitGlyph(kitUI, 'spark', 'sc-result-icon') : null, el('strong', { text: pays ? t('youWon') : t('noWin') }), pays ? el('strong', { class: 'sc-result-amount num', text: money(pays) }) : null].filter(Boolean));
     };
@@ -706,7 +709,7 @@ export function mountLottery(ctx) {
       ticketEl,
       result,
       el('div', { class: 'lotto-buybar' }, [
-        el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), onclick: () => (clearCover(canvas), done()) }),
+        (allBtn = el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), disabled: ticket.status !== 'open' ? '' : null, onclick: () => (clearCover(canvas), done()) })),
         !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => (close(), buyCard(ticket.card)) })
       ])
     ], cls: 'lotto-sheet', detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });

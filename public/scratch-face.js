@@ -9,8 +9,8 @@ const facePays = (...a) => scratch.facePays?.(...a) ?? 0;
 import { compactMoney } from './home.js';
 
 export function faceDrawer({ el, t, lang, money }) {
-  // Amounts inside a card's spots: short ($2萬, $1,000).
-  const spotMoney = v => (v >= 10_000 ? compactMoney(v, lang).replace('NT$', '$') : `$${v.toLocaleString('en-US')}`);
+  // Amounts inside a card's spots: short (NT$2萬, NT$1,000).
+  const spotMoney = v => (v >= 10_000 ? compactMoney(v, lang) : `NT$${v.toLocaleString('en-US')}`);
   const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
   // The card's own words (the kit's 玩法: 「幸運號碼」, 「大力士分數」), else this page's.
   const said = (id, word) => CARDS[id]?.how?.zh?.includes(word);
