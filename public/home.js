@@ -11,6 +11,8 @@ import * as kitUI from '#kit/ui.mjs';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
 import { slipsMost } from './lib/slip.mjs';
+import { CARDS } from './lib/scratch.mjs';
+import { GAMES } from './lib/lottery.mjs';
 
 const glyph = name => {
   const s = document.createElement('span');
@@ -252,9 +254,12 @@ export function renderHome(ctx) {
         settled ? (s.cashedOut ? tag('blue', T.cashed) : profit > 0 ? tag('green', f('won', { v: money(s.payout) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
       ]) };
     };
+    // A ticket by its own name and colour (錢進888, 大樂透), not the kind or its id.
+    const ticketName = x => (x.card ? CARDS[x.card]?.[lang] : GAMES[x.game]?.[lang]) || (x.card ? T.scratchT : T.ticket);
+    const ticketColor = x => (x.card ? CARDS[x.card]?.color : GAMES[x.game]?.color) || 'var(--q-orange)';
     const ticketRow = x => ({ at: x.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets?.() }, [
-      initialTile(x.card ? x.card : x.game, 'var(--q-orange)'),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: x.card ? T.scratchT : T.ticket }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
+      initialTile(ticketName(x), ticketColor(x)),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: ticketName(x) }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
       x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: money(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
     ]) });
     const slips = (state.account?.slips || []).filter(s => !s.recovered && s.legs?.length).map(slipRow);

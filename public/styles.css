@@ -162,7 +162,7 @@ button.pick:active { transform: scale(0.95); }
 #panel-games > .q-search { margin-bottom: 12px; }
 #league-filter { margin-top: 4px; }
 body.searching #sport-filter, body.searching #league-filter, body.searching #day-pick { display: none; }
-.pl-league-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
+h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-width: 0; font: 600 17px/22px var(--q-font); }
 .pl-league-h > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-live-h { display: flex; align-items: center; gap: 8px; }
 .pl-live-h::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--q-red); animation: pl-pulse 1.6s ease-in-out infinite; }

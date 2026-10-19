@@ -518,7 +518,13 @@ function renderSportFilter() {
   keepInView($('league-filter'));
 }
 // A kind of sport's picture: its one league's logo, else its glyph.
-const groupIcon = g => (SPORT_GROUPS[g].leagues.length === 1 && leagueLogo(SPORT_GROUPS[g].leagues[0]) ? leagueImg(SPORT_GROUPS[g].leagues[0], 'logo-xs') : kitGlyph(kitUI, SPORT_GROUPS[g].icon, 'chip-glyph'));
+// A kind of sport shows its own art: the kit's sport glyph when it has one, else its
+// lead league's logo (MLB for 棒球, NBA for 籃球), never one ball for every sport.
+const groupIcon = g => {
+  if (kitUI.icons?.[`sport_${g}`]) return kitGlyph(kitUI, `sport_${g}`, 'chip-glyph');
+  const lead = SPORT_GROUPS[g].leagues.find(l => leagueLogo(l));
+  return lead ? leagueImg(lead, 'logo-xs') : kitGlyph(kitUI, SPORT_GROUPS[g].icon, 'chip-glyph');
+};
 // A sideways row keeps its chosen chip in view.
 function keepInView(row) {
   const on = row?.querySelector('[aria-pressed="true"]');
