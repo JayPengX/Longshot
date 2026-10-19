@@ -8,31 +8,19 @@
 /* ==== 1 Tokens ==== */
 :root {
   color-scheme: light;
-  --accent: #2563eb;
-  --q-accent: var(--accent);
+  /* Colours are the kit's: <html data-app="odds"> sets --q-accent; win/loss are the kit's meaning tokens. */
+  --accent: var(--q-accent);
   --q-accent-ink: #fff;
-  --good: #16a34a;
-  --bad: #dc2626;
+  --good: var(--q-win, #16a34a);
+  --bad: var(--q-loss, #dc2626);
   --gold: #d9a441;
   --wash-good: color-mix(in srgb, var(--good) 14%, transparent);
   --wash-bad: color-mix(in srgb, var(--bad) 14%, transparent);
-  --wash-accent: color-mix(in srgb, var(--accent) 12%, transparent);
+  --wash-accent: color-mix(in srgb, var(--accent) 14%, transparent);
   font-family: var(--q-font);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --accent: #4f8ff7;
-    --good: #34d399;
-    --bad: #f87171;
-  }
-}
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --accent: #4f8ff7;
-  --good: #34d399;
-  --bad: #f87171;
-}
+:root[data-theme='dark'] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { color-scheme: dark; } }
 
 /* ==== 2 Base ==== */
 * { box-sizing: border-box; }

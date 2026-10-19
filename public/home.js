@@ -23,7 +23,7 @@ const glyph = name => {
 const TXT = {
   zh: {
     balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
-    forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和',
+    forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
     why_follow: '追蹤', why_backed: '押過', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注 · 去選一場', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'

@@ -102,20 +102,6 @@ test('BINGO BINGO from a real day of draws', () => {
   assert.equal(ticketPrize({ game: 'bingo', sel: { side: 'bullseye', bull: 62 } }, draw).prize, 25 * 48);
 });
 
-test('house draws are fixed by the BINGO draw they come from', { skip: !L.houseDraw && 'no house draws since the 2024 kit' }, async () => {
-  const { houseDraw, HOUSE_SLOT } = L;
-  const list = fixture('bingo').content.bingoQueryResult.sort((a, b) => a.drawTerm - b.drawTerm);
-  const b = parseBingo(list[HOUSE_SLOT]);
-  const a1 = await houseDraw('lotto1224', b);
-  const a2 = await houseDraw('lotto1224', b);
-  assert.deepEqual(a1, a2);
-  assert.equal(new Set(a1.numbers).size, 12);
-  assert.ok(a1.numbers.every(n => n >= 1 && n <= 24));
-  const other = await houseDraw('lotto1224', parseBingo(list[HOUSE_SLOT + 1]));
-  assert.notDeepEqual(other.numbers, a1.numbers);
-  assert.equal((await houseDraw('lotto740', b)).numbers.length, 7);
-});
-
 test('fixed-prize tables pay back like a real lottery (40-80% of spend)', () => {
   const checks = [
     ['daily539'], ['lotto740'], ['lotto1224'], ['m38', { size: 2 }], ['m38', { size: 3 }], ['m39', { size: 2 }], ['m39', { size: 4 }], ['m49', { size: 2 }], ['m49', { size: 4 }],

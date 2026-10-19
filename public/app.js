@@ -7,6 +7,7 @@ import * as kit from '#kit/quadra.mjs';
 import * as kitOdds from '#kit/play-odds.mjs';
 import * as kitBoard from '#kit/play-board.mjs';
 import * as kitUI from '#kit/ui.mjs';
+import * as kitTeams from '#kit/play-teams.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount } from './lib/account.mjs';
@@ -233,11 +234,11 @@ function teamName(team) {
 
 // ---- Bets -------------------------------------------------------------------
 
+// The kit's order of a game's two sides (soccer home first, the rest away first); a local copy for old cached kits.
+const sidesOf = game => kitTeams.sidesInOrder?.(game) ?? (isSoccer(game.sport) ? [game.home, game.away] : [game.away, game.home]);
 function matchupText(game) {
-  // Soccer: "A vs B".
-  return isSoccer(game.sport)
-    ? `${teamName(game.home)} vs ${teamName(game.away)}`
-    : `${teamName(game.away)} @ ${teamName(game.home)}`;
+  const [a, b] = sidesOf(game);
+  return `${teamName(a)}${isSoccer(game.sport) ? ' vs ' : ' @ '}${teamName(b)}`;
 }
 
 // The same by the teams' short names ("火箭 @ 獨行俠"), for a line under a
@@ -253,7 +254,8 @@ function shortTeamName(sport, en, fallback) {
 }
 function shortGameText(game) {
   const name = team => shortTeamName(game.sport, team.en, teamName(team));
-  return isSoccer(game.sport) ? `${name(game.home)} vs ${name(game.away)}` : `${name(game.away)} @ ${name(game.home)}`;
+  const [a, b] = sidesOf(game);
+  return `${name(a)}${isSoccer(game.sport) ? ' vs ' : ' @ '}${name(b)}`;
 }
 
 // Which competition a game is in: its league, and for tours and cups the
@@ -431,8 +433,9 @@ function buildFutures(data) {
   const t = state.t;
   return futureBets(data.futures).map(b => {
     const title = t(`future_${b.futureMarket.key}`, { season: b.futureMarket.season });
+    const cardTitle = t(`future_${b.futureMarket.key}`, { season: '' }).trim();
     const name = futureName(b.futureMarket, b.futureTeam);
-    return { ...b, matchup: title, label: `${title} ${name}`, shortLabel: name };
+    return { ...b, matchup: cardTitle, label: `${title} ${name}`, shortLabel: name };
   });
 }
 
