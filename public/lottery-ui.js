@@ -692,7 +692,8 @@ export function mountLottery(ctx) {
       result.className = `sc-result ${pays ? 'won' : 'lost'}`;
       result.replaceChildren(...[pays ? kitGlyph(kitUI, 'spark', 'sc-result-icon') : null, el('strong', { text: pays ? t('youWon') : t('noWin') }), pays ? el('strong', { class: 'sc-result-amount num', text: money(pays) }) : null].filter(Boolean));
     };
-    const wrap = el('div', { class: 'sc-play' }, [faceEl(ticket.card, f)]);
+    // (Scratching is the finger's, never a swipe that drags the sheet away.)
+    const wrap = el('div', { class: 'sc-play', 'data-no-sheet-swipe': '' }, [faceEl(ticket.card, f)]);
     const canvas = el('canvas', { class: 'scratch-cover', 'aria-label': t('scratchHint') });
     wrap.append(canvas);
     // The ticket: a band in the card's colour, the play area under silver.
@@ -823,13 +824,16 @@ export function mountLottery(ctx) {
       scratch(e);
     });
     canvas.addEventListener('pointermove', scratch);
-    canvas.addEventListener('pointerup', () => ((down = false), (last = null), check()));
-    canvas.addEventListener('pointercancel', () => ((down = false), (last = null)));
+    const release = e => canvas.hasPointerCapture?.(e.pointerId) && canvas.releasePointerCapture(e.pointerId);
+    canvas.addEventListener('pointerup', e => (release(e), (down = false), (last = null), check()));
+    canvas.addEventListener('pointercancel', e => (release(e), (down = false), (last = null)));
   }
   const clearCover = canvas => {
     canvas.style.transition = 'opacity .35s';
     canvas.style.opacity = '0';
-    setTimeout(() => canvas.remove(), 400);
+    canvas.style.pointerEvents = 'none';
+    // Hidden, not removed: a touch still held on a removed canvas never ends for the page.
+    setTimeout(() => (canvas.style.display = 'none'), 400);
   };
 
   // ---- My tickets ------------------------------------------------------------------------

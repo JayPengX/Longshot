@@ -440,7 +440,7 @@ body.searching #sport-filter, body.searching #league-filter, body.searching #day
 .pl-slip.recovered .pl-slip-money { border-top: 0; padding-top: 0; }
 
 /* 紀錄 › 戰績 */
-#stats-body { display: grid; gap: 0; }
+#stats-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 #stats-body > .pl-chips { margin-bottom: 14px; }
 .st-total { display: grid; gap: 6px; }
 .st-label { color: var(--q-label-2); font: 600 13px/1 var(--q-font); }
