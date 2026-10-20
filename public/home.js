@@ -4,7 +4,7 @@
 // Each section is built by one small function below, on the kit's components.
 import { rank, affinity, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
-import { icon, initialTile } from './icons.js';
+import { icon, gameLogo, cardArt } from './icons.js';
 import * as kitUI from '#kit/ui.mjs';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
@@ -222,7 +222,7 @@ export function renderHome(ctx) {
     const ticketName = x => (x.card ? CARDS[x.card]?.[lang] : GAMES[x.game]?.[lang]) || (x.card ? T.scratchT : T.ticket);
     const ticketColor = x => (x.card ? CARDS[x.card]?.color : GAMES[x.game]?.color) || 'var(--q-orange)';
     const ticketRow = x => ({ at: x.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets?.() }, [
-      initialTile(ticketName(x), ticketColor(x)),
+      x.card ? cardArt(x.card, ticketName(x), ticketColor(x), 'sc-thumb') : gameLogo(x.game, ticketName(x), ticketColor(x), 'lt-mark-row'),
       el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: ticketName(x) }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
       x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: money(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
     ]) });
@@ -247,13 +247,14 @@ export function renderHome(ctx) {
   const lotteryCard = () => {
     if (!lead) return el('div', { class: 'q-skel pl-lottery-skel', 'aria-hidden': 'true' });
     const card = el('button', { class: 'q-hero-card q-press pl-lottery', type: 'button', style: `--q-hc-b:${lead.color}`, onclick: () => ctx.lotteryOpen?.(lead.id) }, [
-      el('span', { class: 'q-hc-eyebrow' }, [initialTile(lead.name, '#ffffff33', 'sm'), el('span', { text: lead.name })]),
+      el('span', { class: 'q-hc-eyebrow' }, [gameLogo(lead.id, lead.name, lead.color, 'lt-mark-hero'), lang === 'en' ? el('span', { text: lead.name }) : null].filter(Boolean)),
       el('strong', { class: 'q-hc-big num', text: lead.amount }),
       el('span', { class: 'q-hc-sub', text: `${lead.label} · ${lead.untilText}` }),
       el('span', { class: 'q-hc-row' }, [el('span', { class: 'q-hc-btn', text: T.pickNow })])
     ]);
     const mini = lead.others.map(o => el('button', { class: 'lt-tile q-press pl-lt-mini', type: 'button', style: `--lotto:${o.color}`, onclick: () => ctx.lotteryOpen?.(o.id) }, [
-      el('span', { class: 'lt-name' }, [initialTile(o.name, o.color, 'lt-logo'), el('span', { text: o.name })]),
+      gameLogo(o.id, o.name, o.color, 'lt-logo'),
+      lang === 'en' ? el('span', { class: 'lt-en', text: o.name }) : null,
       el('strong', { class: 'lt-big num', text: o.amount }),
       el('small', { class: 'lt-when', text: o.untilText })
     ]));

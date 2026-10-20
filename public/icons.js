@@ -47,6 +47,32 @@ export function initialTile(name, color, cls = '') {
   s.textContent = String(name || '').trim().slice(0, 1).toUpperCase();
   return s;
 }
+// Taiwan Lottery's own pictures (art/, from its site): a draw game's logo on a
+// white plate, as its slips print it; a scratch card's printed face. Without a
+// picture (a retired game or card), the colour tile.
+export function gameLogo(id, name, color, cls = '') {
+  const s = document.createElement('span');
+  s.className = `lt-mark${cls ? ` ${cls}` : ''}`;
+  s.setAttribute('role', 'img');
+  s.setAttribute('aria-label', name);
+  const img = new Image();
+  img.alt = '';
+  img.decoding = 'async';
+  img.onerror = () => s.replaceWith(initialTile(name, color, cls));
+  img.src = `art/lotto/${id}.webp`;
+  s.append(img);
+  return s;
+}
+export function cardArt(id, name, color, cls = '') {
+  const img = new Image();
+  img.className = `sc-art${cls ? ` ${cls}` : ''}`;
+  img.alt = name;
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.onerror = () => img.replaceWith(initialTile(name, color, cls));
+  img.src = `art/scratch/${id}.webp`;
+  return img;
+}
 // ask()/tell() take a kit glyph's name as `icon`; given a node (a tile of its own) instead, the node goes in the icon's place.
 export function kitDialog(call, opts, mark) {
   if (!(mark instanceof Node)) return call({ ...opts, icon: mark });
