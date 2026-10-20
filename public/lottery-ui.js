@@ -214,11 +214,11 @@ export function mountLottery(ctx) {
       hero,
       section(t('draws'), drawGames(leadId)),
       section(t('scratch'), el('div', {}, [
-        open.length ? el('div', { class: 'q-rowcard lt-open' }, open.map(x => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(x.id) }, [cardArt(x.card, CARDS[x.card][lang], CARDS[x.card].color, 'sc-thumb'), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: CARDS[x.card][lang] })]), el('span', { class: 'q-tag orange', text: t('unscratched') })]))) : null,
+        open.length ? el('div', { class: 'q-rowcard lt-open' }, open.map(x => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(x.id) }, [cardArt(x.card, CARDS[x.card][lang], CARDS[x.card].color, 'sc-thumb'), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: CARDS[x.card][lang] })]), el('span', { class: 'q-tag orange', text: t('unscratched') })]))) : null,
         scratchCards()
       ])),
       el('div', { class: 'q-rowcard lt-mine' }, [
-        el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('mine') })])])
+        el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets() }, [el('span', { class: 'q-tile', style: '--t:var(--q-indigo)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ticket')]), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: t('mine') })])])
       ])
     );
   }
@@ -642,7 +642,7 @@ export function mountLottery(ctx) {
           const end = soon(id);
           return el('button', { class: 'q-rail-card sc-card q-press', type: 'button', style: `--lotto:${c.color}`, onclick: () => buyCard(id) }, [
             cardArt(id, c[lang], c.color, 'sc-card-art'),
-            el('span', { class: 'sc-card-name', text: c[lang] }),
+            el('span', { class: 'sc-card-name q-fit-wrap', text: c[lang] }),
             el('strong', { class: 'num', text: compactMoney(topPrize(id), lang) }),
             el('span', { class: `q-tag${end ? ' orange' : ''}`, text: end ? `${money(c.price)} · ${end}` : money(c.price) })
           ]);

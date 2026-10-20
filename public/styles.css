@@ -824,7 +824,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-lottery-skel { height: 132px; border-radius: 20px; }
 .pl-lt-mini { min-height: 104px; }
 .q-ritem .logo-md, .q-ritem .q-tile { flex: none; }
-.q-ritem .q-ritem-title, .q-ritem-text .q-ritem-title { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+/* (.q-fit-wrap titles shrink to one line first and wrap only when 72% can't fit.) */
+.q-ritem .q-ritem-title:not(.q-fit-wrap), .q-ritem-text .q-ritem-title:not(.q-fit-wrap), .q-ritem-title.q-wrapped, .sc-card-name.q-wrapped { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .sl { min-width: 0; }
 .sl .q-sheet-foot { display: block; }
 .sl .q-sheet-foot .place-button { width: 100%; min-width: 0; }

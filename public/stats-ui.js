@@ -137,7 +137,7 @@ export function mountStats(ctx) {
       el('div', { class: `q-ritem st-moment ${w.kind}` }, [
         el('span', { class: 'q-tile sm', style: `--t:${i === 0 ? '#d9a441' : 'var(--q-accent)'}`, text: String(i + 1) }),
         el('span', { class: 'q-ritem-text' }, [
-          el('span', { class: 'q-ritem-title', text: w.title }),
+          el('span', { class: 'q-ritem-title q-fit-wrap', text: w.title }),
           el('small', { text: [w.kind === 'lotto' ? t(w.card ? 'scratch' : 'lottery') : t('slipWin', { n: w.legs }), w.cashed ? t('cashTag') : '', w.free ? t('freeTag') : '', day(w.at)].filter(Boolean).join(' · ') })
         ]),
         el('span', { class: 'q-ritem-end' }, [el('span', { class: 'num', text: money(w.amount) }), w.cost > 0 && w.amount > w.cost ? el('small', { class: 'num', text: mult(w.amount / w.cost) }) : null])
@@ -183,7 +183,7 @@ export function mountStats(ctx) {
     const vip = el('button', { class: 'q-ritem chevron st-vip', type: 'button', onclick: explain }, [
       el('span', { class: 'q-tile', style: '--t:#d9a441', 'aria-hidden': 'true', text: '◆' }),
       el('span', { class: 'q-ritem-text' }, [
-        el('span', { class: 'q-ritem-title', text: v.tier ? vipName(v.tier, L) : t('vipNone') }),
+        el('span', { class: 'q-ritem-title q-fit-wrap', text: v.tier ? vipName(v.tier, L) : t('vipNone') }),
         el('small', { class: 'num', text: paidNow || (v.tier ? t('vipBack', { p: pct(v.tier.back), v: money(v.back) }) : v.next ? t('vipNext', { v: money(v.toNext), name: vipName(v.next, L) }) : t('vipUpTo', { top: pct(top.back) })) }),
         el('span', { class: 'st-progress', style: `--p:${Math.round(share * 100)}%` })
       ])

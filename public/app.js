@@ -1641,7 +1641,7 @@ function renderFutures() {
       const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 1);
       return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
         el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
-        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
         el('span', { class: 'q-ritem-value', text: String(bets.length) })
       ]);
     })
@@ -2972,7 +2972,7 @@ function drawSaved() {
     const soon = (state.data?.games || []).filter(g => open.has(g.id) && Date.parse(g.startUtc) > Date.now()).sort((x, y) => x.startUtc.localeCompare(y.startUtc)).slice(0, 4);
     const rows = soon.map(g => el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openGame(g.id) }, [
       logoImg(g.sport, g.home.en, teamName(g.home), 'logo-md'),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: `${shortTeamName(g.sport, g.away.en, teamName(g.away))} vs ${shortTeamName(g.sport, g.home.en, teamName(g.home))}` }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${legWhen(g.startUtc)}` })])
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: `${shortTeamName(g.sport, g.away.en, teamName(g.away))} vs ${shortTeamName(g.sport, g.home.en, teamName(g.home))}` }), el('small', { text: `${state.t(`sport_${g.sport}`)} · ${legWhen(g.startUtc)}` })])
     ]));
     return void $('saved-body').replaceChildren(emptyK({ icon: 'ticket', title: t('noSlipsYet'), action: go }), ...(rows.length ? [el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: state.locale === 'en' ? 'Featured today' : '今日焦點' })]), el('div', { class: 'q-rowcard' }, rows)])] : []));
   }
@@ -2996,7 +2996,7 @@ function drawSaved() {
     ...[placed
       ? el('button', { class: 'q-ritem chevron pl-placed', type: 'button', onclick: () => ((state.justPlaced = null), showTab('games')) }, [
           el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'check')]),
-          el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
+          el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
           el('span', { class: 'q-ritem-value', text: t('placedMore') })
         ])
       : null,
@@ -3102,7 +3102,7 @@ function f1Section() {
   return gameSectionOf([leagueImg('f1', 'logo-xs'), el('span', { text: t('sport_f1') })], [
     el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard('f1') }, [
       el('span', { class: 'pl-fut-logo' }, leagueImg('f1', 'logo-sm')),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: raceName(f1.title, state.locale) }), el('small', { text: `${hhmm(f1.startUtc)} · ${t(f1.phase === 'pre' ? 'f1PhasePre' : 'f1PhasePost')}` })]),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: raceName(f1.title, state.locale) }), el('small', { text: `${hhmm(f1.startUtc)} · ${t(f1.phase === 'pre' ? 'f1PhasePre' : 'f1PhasePost')}` })]),
       el('span', { class: 'q-ritem-value', text: t('marketsN', { n: tabs.length }) })
     ])
   ]);

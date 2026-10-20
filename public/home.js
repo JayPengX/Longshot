@@ -26,14 +26,14 @@ const TXT = {
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
     why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
-    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注 · 去選一場', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
+    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
     balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
-    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet · pick a game', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
+    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
 
@@ -224,7 +224,7 @@ export function renderHome(ctx) {
       const title = s.legs.length > 1 ? f('parlayN', { n: s.legs.length }) : ctx.shortPick(first);
       return { at: s.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTab('history') }, [
         ctx.legIcon(first, 'logo-md'),
-        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: title }), el('small', { text: [money(s.free ? s.stake : s.cost), ctx.fmtTime(s.t)].join(' · ') })]),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: title }), el('small', { text: [money(s.free ? s.stake : s.cost), ctx.fmtTime(s.t)].join(' · ') })]),
         settled ? (s.cashedOut ? tag('blue', T.cashed) : profit > 0 ? tag('green', f('won', { v: money(s.payout) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
       ]) };
     };
@@ -233,7 +233,7 @@ export function renderHome(ctx) {
     const ticketColor = x => (x.card ? CARDS[x.card]?.color : GAMES[x.game]?.color) || 'var(--q-orange)';
     const ticketRow = x => ({ at: x.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets?.() }, [
       x.card ? cardArt(x.card, ticketName(x), ticketColor(x), 'sc-thumb') : gameLogo(x.game, ticketName(x), ticketColor(x), 'lt-mark-row'),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title', text: ticketName(x) }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: ticketName(x) }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
       x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: money(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
     ]) });
     const slips = (state.account?.slips || []).filter(s => !s.recovered && s.legs?.length).map(slipRow);
