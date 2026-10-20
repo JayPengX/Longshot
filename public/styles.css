@@ -737,7 +737,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sc-ticket .gf-cell b.gf-dollar { color: #e11d48; font: 900 26px/1 var(--q-font-rounded); -webkit-text-stroke: 1px #fff; text-shadow: 1.5px 1.5px 0 #9ca3af; }
 .sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-round-box, .gf-n, .gf-table span).win { background: #fde047; box-shadow: 0 0 0 2.5px #dc2626; color: #1c1917; }
 .sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-table span).win :is(b, small) { color: #1c1917; }
-.sc-ticket.revealed .gf-prize.win { background: none; box-shadow: none; color: #b91c1c; }
+.sc-ticket.revealed .gf-prize.win, .sc-ticket.revealed :is(.gf-row, .gf-grid3, .gf-round-box).win .gf-prize { background: none; box-shadow: none; color: #b91c1c; }
 .sc-ticket :is(.gf-round-box, .gf-row, .gf-grid3:not(.head)) .gf-round { color: #57534e; }
 .sc-ticket.revealed .mj.win { box-shadow: 0 0 0 3px #f5b301; }
 .sc-prices { margin-bottom: 10px; }
@@ -746,6 +746,14 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sc-result.lost { background: var(--q-fill-3); }
 .sc-result-icon { font-size: 26px; }
 .sc-result-amount { font: 800 22px/1 var(--q-font-rounded); }
+/* In the bar, in 一次刮開's place. */
+.sc-bar .sc-result { flex: 1; min-width: 0; min-height: 50px; margin: 0; padding: 6px 12px; gap: 6px; white-space: nowrap; }
+.sc-bar .sc-result-amount { font-size: 19px; }
+.sc-bar .sc-result-icon { width: 22px; height: 22px; }
+/* Fitting one screen: a shorter top, then no rules line. */
+.sc-ticket.tight .sc-top-art { aspect-ratio: 3.4 / 1; }
+.sc-ticket.tighter .sc-how { display: none; }
+.sc-ticket.tightest .sc-top-art { display: none; }
 
 /* 紀錄 › 彩券: waiting, then drawn by day and by draw. */
 .lotto-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: 18px; background: var(--q-surface); font: 600 15px/1.2 var(--q-font); }

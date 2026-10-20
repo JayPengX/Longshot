@@ -690,7 +690,8 @@ export function mountLottery(ctx) {
       }
       ticketEl.classList.add('revealed');
       canvas.style.display = 'none';
-      if (allBtn) allBtn.disabled = true;
+      // The result takes 一次刮開's place in the bar: the sheet stays one screen.
+      if (allBtn?.isConnected) allBtn.replaceWith(result);
       result.className = `sc-result ${pays ? 'won' : 'lost'}`;
       result.replaceChildren(...[pays ? kitGlyph(kitUI, 'spark', 'sc-result-icon') : null, el('strong', { text: pays ? t('youWon') : t('noWin') }), pays ? el('strong', { class: 'sc-result-amount num', text: money(pays) }) : null].filter(Boolean));
     };
@@ -705,10 +706,9 @@ export function mountLottery(ctx) {
       wrap,
       el('p', { class: 'sc-how', text: c.how[lang] })
     ]);
-    const sheet = kitUI.sheet({ title: `${c[lang]} · ${money(c.price)}`, body: [
+    const sheet = kitUI.sheet({ title: c[lang], body: [
       ticketEl,
-      result,
-      el('div', { class: 'lotto-buybar' }, [
+      el('div', { class: 'lotto-buybar sc-bar' }, [
         (allBtn = el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), disabled: ticket.status !== 'open' ? '' : null, onclick: () => (clearCover(canvas), done()) })),
         !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => (close(), buyCard(ticket.card)) })
       ])
@@ -717,6 +717,35 @@ export function mountLottery(ctx) {
     // (Its buttons in the ticket's own panel colour.)
     dialog.style.setProperty('--lotto', ticketLook(ticket.card)['--panel']);
     const close = () => sheet.close();
+    // One screen, no scrolling, like a ticket in the hand: the art shorter,
+    // then the rules hidden, then the games printed smaller until it fits.
+    const faceNode = wrap.firstElementChild;
+    const fit = () => {
+      const over = () => dialog.scrollHeight - dialog.clientHeight;
+      faceNode.style.zoom = '';
+      ticketEl.classList.remove('tight', 'tighter', 'tightest');
+      if (over() <= 0) return;
+      ticketEl.classList.add('tight');
+      if (over() <= 0) return;
+      ticketEl.classList.add('tighter');
+      // (Smaller print reflows wider too, so the size is searched, not computed.)
+      const shrink = floor => {
+        let [lo, hi] = [floor, 1];
+        for (let i = 0; i < 7; i++) {
+          const z = (lo + hi) / 2;
+          faceNode.style.zoom = String(z);
+          if (over() > 0) hi = z;
+          else lo = z;
+        }
+        faceNode.style.zoom = String(lo);
+      };
+      shrink(0.6);
+      // A small phone and a big card (大麻將): the games before the art.
+      if (over() > 0) ticketEl.classList.add('tightest'), shrink(0.4);
+    };
+    fit();
+    addEventListener('resize', fit);
+    dialog.addEventListener('close', () => removeEventListener('resize', fit), { once: true });
 
     if (ticket.status !== 'open') {
       canvas.remove();
