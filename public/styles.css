@@ -339,7 +339,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-placed { width: 100%; margin-top: 16px; border-radius: 18px; background: var(--q-surface); }
 .pl-hist-bar { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .pl-hist-bar .q-chips { flex: 1; min-width: 0; margin-right: 0; }
-.pl-check { flex: none; min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--q-accent); font: 500 15px/1 var(--q-font); }
 .pl-group .q-section-head { align-items: center; }
 .group-sum { flex: none; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 6px; max-width: 55%; color: var(--q-label-2); font: 500 13px/1.3 var(--q-font); text-align: right; font-variant-numeric: tabular-nums; }
 .group-sum strong { color: var(--q-label); font-weight: 600; }

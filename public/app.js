@@ -2565,7 +2565,7 @@ async function applySettled(force = false) {
 // (Shared-Proxy settle.js watchSlips).
 // A check runs unseen: only a tap on 查詢結果 shows it working (`shown`), and
 // the screens are drawn again only when a score, a result or a pick's state changed.
-async function checkResults(force = false, { shown = false } = {}) {
+async function checkResults(force = false) {
   if (!state.accountReady) return;
   await applySettled(force);
   let open = state.account.slips.filter(s => s.status === 'open');
@@ -2585,9 +2585,7 @@ async function checkResults(force = false, { shown = false } = {}) {
   // (A beat's own timer runs a little early or late: a second's slack.)
   if (!force && now.getTime() - state.checkedAt < (state.legLive.size ? liveMs() - 1000 : RESULT_CHECK_MS)) return;
   state.checking = true;
-  state.checkingShown = shown;
   state.checkedAt = now.getTime();
-  if (shown) renderSaved();
   const seen = () => JSON.stringify([[...state.legLive], [...state.legOutcome]]);
   const before = seen();
   try {
@@ -2599,8 +2597,7 @@ async function checkResults(force = false, { shown = false } = {}) {
     console.error(error);
   } finally {
     state.checking = false;
-    state.checkingShown = false;
-    if (shown || seen() !== before) {
+    if (seen() !== before) {
       renderSaved();
       // Home's 你的投注 shows the same scores and cash-out values.
       if (state.tab === 'home') drawHome();
@@ -3087,8 +3084,7 @@ function drawSaved() {
             }
           })
         )
-      ),
-      open.length ? el('button', { class: 'pl-check q-press', type: 'button', disabled: state.checkingShown ? '' : null, 'aria-label': t('checkResults'), text: state.checkingShown ? t('checking') : t('checkResults'), onclick: () => checkResults(true, { shown: true }) }) : null
+      )
     ]),
     ...(order.length
       ? order.map(key =>
@@ -3805,8 +3801,9 @@ function showTab(tab) {
   if (tab === 'games' && gamesStale && state.data) renderGames();
   if (tab === 'lottery') lotteryUi?.render();
   if (tab === 'history') renderStats();
-  // The tab's live games and open bets, now rather than at the next beat.
-  livePulse();
+  // The tab's live games and open bets, now rather than at the next beat
+  // (紀錄's results read at once on opening it: no button to ask for them).
+  livePulse({ force: tab === 'history' });
 }
 
 $('game-search').addEventListener('input', event => {
