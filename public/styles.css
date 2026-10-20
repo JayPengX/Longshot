@@ -911,14 +911,3 @@ html .q-logo img { width: 88%; height: 88%; }
 /* A team's name shrinks to fit its line (the kit's .q-fit) from Play's 16px. */
 .pl-team-name.q-fit { display: block; font-size: calc(16px * var(--q-fit, 1)); text-overflow: clip; }
 .logo-fallback svg { width: 62%; height: 62%; }
-
-/* A match card's teams stand straight over their prices: the teams row is the
-   prices row's own grid (two columns, or three with 和 between), the same gap,
-   so each logo's centre is its button's; with two prices the VS sits on the
-   seam, the sides kept clear of it. (The kit's 1fr auto 1fr put each team
-   ~16 px wide of its button.) */
-html .q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-teams { position: relative; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-html .q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-side { padding-inline: 16px; }
-html .q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-mid { position: absolute; top: 50%; left: 50%; min-width: 0; transform: translate(-50%, -50%); }
-html .q-match:has(.q-match-prices > :nth-child(3):last-child) .q-match-teams { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-html .q-match:has(.q-match-prices > :nth-child(3):last-child) .q-match-mid { min-width: 0; }
