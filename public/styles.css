@@ -460,7 +460,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sc-card-art { width: 100%; margin-bottom: 4px; border-radius: 12px; }
 .sc-thumb { flex: none; width: 53px; height: 40px; border-radius: 8px; }
 .sc-ask { width: 160px; border-radius: 14px; }
-.sc-band-art { flex: none; width: 64px; border-radius: 10px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6); }
 .q-ask-icon:has(> .sc-ask, > .lt-mark-ask) { width: auto; height: auto; background: none; }
 .lt-hero-big { overflow: hidden; white-space: nowrap; }
 .lt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -576,14 +575,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 
 /* A scratch card: a band in its colour, the play area under foil. */
 .sc-ticket { overflow: hidden; border-radius: 20px; background: var(--q-surface); box-shadow: 0 18px 40px -22px var(--lotto), 0 0 0 2px var(--lotto); }
-.sc-band { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(120deg, var(--lotto), color-mix(in srgb, var(--lotto) 60%, #000)); color: #fff; }
-.sc-band-text, .sc-band-prize { display: grid; gap: 1px; min-width: 0; }
-.sc-band-text { flex: 1; }
-.sc-band .sc-band-text strong { white-space: normal; line-height: 1.15; }
-@media (max-width: 360px) { .sc-band-art { width: 52px; } }
-.sc-band-prize { margin-left: auto; text-align: right; }
-.sc-band small { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.85; white-space: nowrap; }
-.sc-band strong { font: 800 18px/1.2 var(--q-font); white-space: nowrap; }
 .sc-play { position: relative; margin: 12px; border: 1.5px dashed color-mix(in srgb, var(--lotto) 45%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--lotto) 8%, var(--q-surface)); }
 .sc-how { padding: 0 16px 14px; color: var(--q-label-2); font: var(--q-t-caption); }
 .scratch-cover { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; touch-action: none; cursor: grab; }
@@ -719,6 +710,35 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sc-ticket.revealed .gf-game.won { box-shadow: 0 0 0 2px #f5b301, 0 6px 18px -8px #f5b301; }
 .sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-round-box, .gf-n, .gf-table span, .gf-prize).win { background: #fde68a; color: #713f12; animation: sc-win 0.6s ease-out 2; }
 .sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-table span).win :is(b, small) { color: #713f12; }
+/* The ticket as printed: its frame colour around its art, its games on its
+   coloured panel, every scratched spot on the light security paper (the
+   wavy TAIWAN LOTTERY print) in black ink, as the real cards are. */
+.sc-ticket { --paper: #fdf4f8; display: grid; gap: 10px; padding: 10px; background: var(--frame); box-shadow: 0 18px 40px -22px var(--frame); color: var(--frame-ink); }
+.sc-top-art { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; }
+.sc-ticket .sc-play { margin: 0; border: 0; border-radius: 14px; background: var(--panel); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--panel) 70%, #000); }
+.sc-ticket .sc-how { padding: 0 4px 2px; color: var(--frame-ink); opacity: 0.9; }
+.sc-ticket .scratch-face.games { gap: 8px; }
+.sc-ticket :is(.gf-pool, .gf-game) { padding: 2px; background: none; box-shadow: none; }
+.sc-ticket :is(.gf-h, .gf-title, .gf-zone-h, .gf-round, .gf-grid3.head small, .gf-total) { color: var(--panel-ink); }
+.sc-ticket :is(.gf-cell, .gf-n:not(.gf-ball):not(.free), .gf-row, .gf-grid3:not(.head), .gf-round-box, .gf-table span, .gf-box, .spot, .bcell) {
+  background:
+    repeating-linear-gradient(115deg, transparent 0 5px, rgba(236, 72, 153, 0.07) 5px 6px),
+    repeating-linear-gradient(25deg, transparent 0 7px, rgba(59, 130, 246, 0.07) 7px 8px),
+    var(--paper);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  color: #1c1917;
+}
+.sc-ticket :is(.gf-cell b, .gf-cell small, .gf-prize, .gf-table b, .gf-table small, .gf-grid3 b, .gf-n, .spot small, .spot strong, .gf-box small) { color: #1c1917; }
+.sc-ticket .gf-cell b { font: 900 17px/1.05 var(--q-font-rounded); letter-spacing: -0.01em; }
+.sc-ticket .gf-cell b.amt { overflow: visible; font-size: 14px; text-overflow: clip; }
+.sc-ticket .gf-cell small { overflow: visible; font: 800 11px/1.1 var(--q-font-rounded); letter-spacing: -0.02em; text-overflow: clip; }
+.sc-ticket .gf-grid3 b.them, .sc-ticket .gf-grid3 b.gf-die.them { color: #57534e; }
+.sc-ticket .gf-n.gf-ball { background: #fff; box-shadow: inset 0 0 0 2.5px var(--frame); color: #1c1917; }
+.sc-ticket .gf-cell b.gf-dollar { color: #e11d48; font: 900 26px/1 var(--q-font-rounded); -webkit-text-stroke: 1px #fff; text-shadow: 1.5px 1.5px 0 #9ca3af; }
+.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-round-box, .gf-n, .gf-table span).win { background: #fde047; box-shadow: 0 0 0 2.5px #dc2626; color: #1c1917; }
+.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-table span).win :is(b, small) { color: #1c1917; }
+.sc-ticket.revealed .gf-prize.win { background: none; box-shadow: none; color: #b91c1c; }
+.sc-ticket :is(.gf-round-box, .gf-row, .gf-grid3:not(.head)) .gf-round { color: #57534e; }
 .sc-ticket.revealed .mj.win { box-shadow: 0 0 0 3px #f5b301; }
 .sc-prices { margin-bottom: 10px; }
 .sc-result { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin: 12px 0 0; padding: 8px 14px; border-radius: 16px; color: var(--q-label-2); font-weight: 700; text-align: center; }
@@ -806,7 +826,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .lt-tile { min-height: 112px; align-content: space-between; }
 .lt-big { color: var(--q-label); font-size: 22px; font-weight: 800; }
 .sc-card-art.q-tile, .sc-ask.q-tile { width: 48px; height: 48px; font-size: 20px; }
-.sc-band-art.q-tile, .sc-thumb.q-tile, .lt-mark-row.q-tile { width: 40px; height: 40px; font-size: 18px; }
+.sc-top-art.q-tile, .sc-thumb.q-tile, .lt-mark-row.q-tile { width: 40px; height: 40px; font-size: 18px; }
 .sc-result-icon { width: 28px; height: 28px; }
 /* ---- Home: stat cells, quick actions, live strip, wide cards, 彩券 ---- */
 .pl-hero { gap: 8px; }

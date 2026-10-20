@@ -7,7 +7,7 @@ import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize,
 import { buyTickets, buyCard as sellCard, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
-import { faceDrawer } from './scratch-face.js';
+import { faceDrawer, ticketLook } from './scratch-face.js';
 import { ask, tell } from '#kit/quadra.mjs';
 import * as kitUI from '#kit/ui.mjs';
 import { kitGlyph, kitDialog, gameLogo, cardArt } from './icons.js';
@@ -693,13 +693,10 @@ export function mountLottery(ctx) {
     const wrap = el('div', { class: 'sc-play', 'data-no-sheet-swipe': '' }, [faceEl(ticket.card, f)]);
     const canvas = el('canvas', { class: 'scratch-cover', 'aria-label': t('scratchHint') });
     wrap.append(canvas);
-    // The ticket: a band in the card's colour, the play area under silver.
-    const ticketEl = el('div', { class: 'sc-ticket' }, [
-      el('div', { class: 'sc-band' }, [
-        cardArt(ticket.card, c[lang], '#ffffff33', 'sc-band-art'),
-        el('div', { class: 'sc-band-text' }, [el('small', { text: t('scratch') }), el('strong', { text: c[lang] })]),
-        el('div', { class: 'sc-band-prize' }, [el('small', { text: t('top', { v: '' }).trim() }), el('strong', { class: 'num', text: compactMoney(topPrize(ticket.card), lang) })])
-      ]),
+    // The ticket as the real one looks: its printed top (the art), its games on
+    // its own coloured panel under silver, in its own frame colour.
+    const ticketEl = el('div', { class: 'sc-ticket', style: Object.entries(ticketLook(ticket.card)).map(([k, v]) => `${k}:${v}`).join(';') }, [
+      cardArt(ticket.card, c[lang], c.color, 'sc-top-art'),
       wrap,
       el('p', { class: 'sc-how', text: c.how[lang] })
     ]);
@@ -712,7 +709,8 @@ export function mountLottery(ctx) {
       ])
     ], cls: 'lotto-sheet', detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });
     const dialog = sheet.el;
-    dialog.style.setProperty('--lotto', c.color);
+    // (Its buttons in the ticket's own panel colour.)
+    dialog.style.setProperty('--lotto', ticketLook(ticket.card)['--panel']);
     const close = () => sheet.close();
 
     if (ticket.status !== 'open') {

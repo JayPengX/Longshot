@@ -4,9 +4,32 @@
 import { CARDS, MAHJONG, facePays } from './lib/scratch.mjs';
 import { compactMoney } from './home.js';
 
+// Each card's own colours, read off the real ticket (art/scratch): `frame` the
+// ticket around its games, `panel` the printed area the games sit on.
+const LOOK = {
+  golddice: ['#0ea5b7', '#f59e0b'], lucky7: ['#f9a8c9', '#e8243c'], hi123: ['#ffe500', '#f59e0b'], rolling: ['#facc15', '#db2777'],
+  gift: ['#f9a8c0', '#f472b6'], fruit: ['#4c1d95', '#6d28d9'], battle: ['#22a7e0', '#0f766e'], double: ['#facc15', '#ef4444'],
+  ingot: ['#e11d1d', '#f97316'], beat: ['#c2185b', '#7b1fa2'], code: ['#e11d1d', '#5b21b6'], goldlotto: ['#facc15', '#e11d74'],
+  crazy10: ['#84cc16', '#16a34a'], rising: ['#e11d48', '#ec4899'], fafa: ['#e11d48', '#f43f5e'], goal: ['#facc15', '#15803d'],
+  multiply: ['#e11d48', '#9f1239'], numbers: ['#facc15', '#3b1d8f'], touch: ['#e11d48', '#f97316'], hunter: ['#facc15', '#ec4899'],
+  machine: ['#f59e0b', '#ea580c'], super777: ['#be185d', '#7e22ce'], mjbingo: ['#e11d74', '#16a34a'], ten: ['#facc15', '#7e22ce'],
+  million: ['#f97316', '#e8559c'], mahjong: ['#b91c1c', '#dc2626']
+};
+// Dark or light print on a colour (its luminance).
+const inkOn = hex => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 165 ? '#1c1917' : '#ffffff';
+};
+// A ticket's colours as CSS variables (--frame, --panel and the ink on each).
+export function ticketLook(id) {
+  const c = CARDS[id];
+  const [frame, panel] = LOOK[id] || [c?.color || '#6b7280', c?.color || '#6b7280'];
+  return { '--frame': frame, '--frame-ink': inkOn(frame), '--panel': panel, '--panel-ink': inkOn(panel) };
+}
+
 export function faceDrawer({ el, t, lang, money }) {
-  // Amounts inside a card's spots: short (NT$2萬, NT$1,000).
-  const spotMoney = v => (v >= 10_000 ? compactMoney(v, lang) : `NT$${v.toLocaleString('en-US')}`);
+  // Amounts inside a card's spots, printed as the real cards do: $1,000, $5,000; from 1萬 short ($1萬, $300萬; $10K, $3M).
+  const spotMoney = v => (v < 10_000 ? `$${v.toLocaleString('en-US')}` : lang === 'en' ? `$${v >= 1e6 ? `${+(v / 1e6).toFixed(1)}M` : `${+(v / 1e3).toFixed(1)}K`}` : compactMoney(v, lang).replace(/^NT/, ''));
   const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
   // The card's own words (the kit's 玩法: 「幸運號碼」, 「大力士分數」), else this page's.
   const said = (id, word) => CARDS[id]?.how?.zh?.includes(word);
@@ -100,12 +123,17 @@ export function faceDrawer({ el, t, lang, money }) {
     return el('span', { class: `gf-n num${mark}`, text: typeof x === 'number' ? String(x).padStart(2, '0') : x });
   };
   // A cell: something on top, an amount under it.
-  const cell = (top, a, { hit, win } = {}) => el('span', { class: `gf-cell${hit ? ' hit' : ''}${win ? ' win' : ''}` }, [typeof top === 'string' || typeof top === 'number' ? el('b', { class: 'num', text: String(top) }) : top, a === undefined ? null : el('small', { class: 'num', text: a ? spotMoney(a) : t('thanks') })].filter(Boolean));
+  const cell = (top, a, { hit, win } = {}) => el('span', { class: `gf-cell${hit ? ' hit' : ''}${win ? ' win' : ''}` }, [typeof top === 'string' || typeof top === 'number' ? el('b', { class: top === '$' ? 'gf-dollar' : /^\$\d/.test(top) ? 'num amt' : 'num', text: String(top) }) : top, a === undefined ? null : el('small', { class: 'num', text: a ? spotMoney(a) : t('thanks') })].filter(Boolean));
   const prize = (a, win) => el('strong', { class: `gf-prize num${win ? ' win' : ''}`, text: spotMoney(a) });
   const head = text => el('p', { class: 'gf-h', text });
   // A printed table: what a count (or points, or lines) pays; the row paid lit.
   const table = (rows, label, paid) => el('div', { class: 'gf-table' }, rows.map(([k, a]) => el('span', { class: a === paid && paid ? 'win' : '' }, [el('b', { class: 'num', text: label(k) }), el('small', { class: 'num', text: spotMoney(a) })])));
   const sameAll = s => s.every(x => x === s[0]);
+  // Full rows, as the printed grid has them (20 numbers: 4 a row, 15: 5).
+  const colsFor = n => {
+    const c = [4, 5, 3, 6].find(c => n % c === 0 && n / c >= 2) ?? (n <= 6 ? n : null);
+    return c ? `grid-template-columns: repeat(${c}, minmax(0, 1fr))` : null;
+  };
   const linesOf = size => {
     const at = (r, c) => r * size + c;
     const out = [];
@@ -138,9 +166,9 @@ export function faceDrawer({ el, t, lang, money }) {
       const zones = g.yours.some(y => y.x) ? [...new Set(g.yours.map(y => y.x))] : null;
       return [
         head(t('winNumbers')),
-        el('div', { class: 'gf-items lucky' }, g.winning.map(n => item(n, { cls: 'gf-ball' }))),
+        el('div', { class: 'gf-items lucky', style: g.winning.length >= 4 && g.winning.length <= 6 ? `display: grid; grid-template-columns: repeat(${g.winning.length}, minmax(0, 1fr)); justify-items: center` : null }, g.winning.map(n => item(n, { cls: 'gf-ball' }))),
         head(t('yourNumbers')),
-        ...(zones ? zones.map(x => el('div', { class: 'gf-zone' }, [el('small', { class: 'gf-zone-h', text: t('zoneX', { x }) }), el('div', { class: 'gf-cells' }, g.yours.filter(y => y.x === x).map(mine))])) : [el('div', { class: 'gf-cells' }, g.yours.map(mine))])
+        ...(zones ? zones.map(x => el('div', { class: 'gf-zone' }, [el('small', { class: 'gf-zone-h', text: t('zoneX', { x }) }), el('div', { class: 'gf-cells' }, g.yours.filter(y => y.x === x).map(mine))])) : [el('div', { class: 'gf-cells', style: colsFor(g.yours.length) }, g.yours.map(mine))])
       ];
     }
     if (g.type === 'match') {
@@ -149,7 +177,7 @@ export function faceDrawer({ el, t, lang, money }) {
       const hit = v => counts.get(v) >= g.k;
       // (With `syms`, each symbol its own amount: the card's table under it.)
       if (g.syms) return [el('div', { class: 'gf-cells' }, g.cells.map(v => el('span', { class: 'gf-cell' }, [item(v, { win: hit(v) })]))), table(g.syms, k => t('threeOf', { s: k }), won)];
-      return [el('div', { class: 'gf-cells' }, g.cells.map(v => (g.a ? el('span', { class: 'gf-cell' }, [item(v, { win: hit(v) })]) : cell(spotMoney(v), undefined, { win: hit(v) })))), g.a ? el('div', { class: 'gf-box' }, [el('small', { text: t('prizeCol') }), prize(g.a, won)]) : null];
+      return [el('div', { class: 'gf-cells', style: colsFor(g.cells.length) }, g.cells.map(v => (g.a ? el('span', { class: 'gf-cell' }, [item(v, { win: hit(v) })]) : cell(spotMoney(v), undefined, { win: hit(v) })))), g.a ? el('div', { class: 'gf-box' }, [el('small', { text: t('prizeCol') }), prize(g.a, won)]) : null];
     }
     if (g.type === 'tally') return [el('div', { class: 'gf-cells' }, g.cells.map(x => cell(x, undefined, { win: x === g.need && won > 0, hit: x === g.need }))), table(g.table, k => t('countN', { n: k }), won)];
     if (g.type === 'rows')
