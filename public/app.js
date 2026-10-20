@@ -1009,7 +1009,7 @@ function gameDetail(game, bets) {
     (held || (!win.length && game.live)) ? (kitUI.lockedRow?.() ?? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s])))))) : null,
     win.length && !held && !(kitUI.lockedRow && win.every(b => b.lock)) ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side])), floor))) : null,
     !held && win.length && win.every(b => b.lock) && kitUI.lockedRow ? kitUI.lockedRow() : null,
-    held ? (wantOffers(game), null) : more ? gameMore(game, others) : null
+    held ? (wantOffers(game), null) : !game.live && state.fromBoard ? boardMore() : more ? gameMore(game, others) : null
   ]);
 }
 
@@ -1019,6 +1019,20 @@ function gameDetail(game, bets) {
 // A game's markets drawn once their lists are in (Kambi's markets, the
 // players'), or after 4 s with what there is: the 球員 tab and the rest
 // jumped in seconds after the sheet opened. Meanwhile, the tabs' and rows' shape.
+// A game opened from the proxy's quick board (its winners and posted
+// handicaps only): the rest's shape while the full read brings them (the
+// sheet redraws then), or a way to ask again when it couldn't come. The
+// quick board's few prices alone read as all the game had.
+function boardMore() {
+  if (!fullRead) {
+    const t = state.t;
+    return emptyK({ icon: 'cloud', title: t('moreFailed'), action: { label: t('moreRetry'), onTap: () => (wantFull(), renderGameSheet()) } });
+  }
+  return el('div', { class: 'game-more more-shape', 'aria-hidden': 'true' }, [
+    el('div', { class: 'shape-tabs' }, [0, 1, 2, 3].map(() => el('i', { class: 'shape-pill' }))),
+    el('div', { class: 'shape-rows' }, [0, 1, 2, 3].map(() => el('div', { class: 'shape-row' }, [el('i', { class: 'shape-line' }), el('i', { class: 'shape-odds' }), el('i', { class: 'shape-odds' })])))
+  ]);
+}
 const moreShown = new Set();
 const moreSince = new Map();
 function gameMore(game, bets) {
@@ -1125,7 +1139,7 @@ function propsPanel(game, bets) {
     const name = picks[0].player;
     const cells = ou ? ['over', 'under'].map(side => picks.find(b => b.side === side)) : [picks[0]];
     return el('div', { class: `prop-row ${ou ? 'two' : ''}` }, [
-      el('span', { class: 'prop-player' }, [playerPhoto(picks[0].photo, name, game.sport, picks[0].photoGuessed), el('span', { class: 'prop-name', text: name })]),
+      el('span', { class: 'prop-player' }, [playerPhoto(picks[0].photo, name, game.sport, picks[0].photoGuessed), el('span', { class: 'prop-name q-fit-wrap', text: name })]),
       ...cells.map(b => (b ? pickButton(b, ou ? t(b.side) : '') : el('span')))
     ]);
   });
@@ -3434,6 +3448,10 @@ async function openOnBoard() {
     warmImages();
   }
   if (state.wantSlip) ((state.wantSlip = false), openSlip());
+  // Every league's markets read soon after it opens, not only once a game
+  // is tapped: on a phone's connection a game opened from 首頁 showed just
+  // the quick board's winner and handicap for as long as that read took.
+  setTimeout(() => state.fromBoard && wantFull(), 1500);
 }
 // Back after a while: the board again (one read), or the full read when it has aged out.
 async function refreshBoard() {

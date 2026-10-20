@@ -227,7 +227,9 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .prop-avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; font-weight: 700; }
 .prop-photo { object-fit: cover; object-position: top; }
 .prop-name { min-width: 0; overflow: hidden; font: 500 15px/1.25 var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
-.prop-note { color: var(--q-label-2); font: var(--q-t-caption); }
+.prop-name.q-wrapped { display: -webkit-box; white-space: normal; text-overflow: clip; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* (Balanced lines: no lone word or 「的單，」 left on a line of its own.) */
+.prop-note { color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
 /* Its markets still on their way: their shape. */
 .more-shape { display: grid; gap: 12px; }
 .shape-tabs { display: flex; gap: 6px; }
