@@ -620,10 +620,33 @@ function redraw(root, draw) {
     list.push(node);
     recycled.set(node.dataset.pic, list);
   }
+  // Every other picture already painted (the kit's logo tiles: home's cards,
+  // the live strip) moves into the new layout too, by its address.
+  const painted = new Map();
+  const was = new Set(root.querySelectorAll('img'));
+  for (const img of was) {
+    if (!img.complete || !img.naturalWidth) continue;
+    const list = painted.get(img.src) ?? [];
+    list.push(img);
+    painted.set(img.src, list);
+  }
   try {
     return draw();
   } finally {
     recycled = outer;
+    if (painted.size)
+      for (const img of root.querySelectorAll('img')) {
+        if (was.has(img)) continue;
+        const list = painted.get(img.src);
+        let old = list?.shift();
+        while (old && old.isConnected) old = list.shift();
+        if (!old) continue;
+        old.className = img.className;
+        old.alt = img.alt;
+        old.style.cssText = img.style.cssText;
+        old.style.opacity = '';
+        img.replaceWith(old);
+      }
   }
 }
 // The picture `key` from the redraw's old screen, else a new one (`make`).
@@ -2352,7 +2375,9 @@ async function applySettled(force = false) {
 }
 // From the lock-down on (lib/account.mjs LOCK_SINCE) every slip is placed
 // through the Worker, which watches its Kambi matches (Shared-Proxy settle.js watchSlips).
-async function checkResults(force = false) {
+// A check runs unseen: only a tap on 查詢結果 shows it working (`shown`), and
+// the screens are drawn again only when a score, a result or a pick's state changed.
+async function checkResults(force = false, { shown = false } = {}) {
   if (!state.accountReady) return;
   await applySettled(force);
   let open = state.account.slips.filter(s => s.status === 'open');
@@ -2375,8 +2400,11 @@ async function checkResults(force = false) {
   // (A beat's own timer runs a little early or late: a second's slack.)
   if (!force && now.getTime() - state.checkedAt < (state.legLive.size ? liveMs() - 1000 : RESULT_CHECK_MS)) return;
   state.checking = true;
+  state.checkingShown = shown;
   state.checkedAt = now.getTime();
-  renderSaved();
+  if (shown) renderSaved();
+  const seen = () => JSON.stringify([[...state.legLive], [...state.legOutcome]]);
+  const before = seen();
   try {
     const outcomes = await fetchOutcomes(pending, now, { watch });
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
@@ -2385,9 +2413,12 @@ async function checkResults(force = false) {
     console.error(error);
   } finally {
     state.checking = false;
-    renderSaved();
-    // Home's 你的投注 shows the same scores and cash-out values.
-    if (state.tab === 'home') drawHome();
+    state.checkingShown = false;
+    if (shown || seen() !== before) {
+      renderSaved();
+      // Home's 你的投注 shows the same scores and cash-out values.
+      if (state.tab === 'home') drawHome();
+    }
   }
 }
 
@@ -2832,6 +2863,9 @@ function showTickets() {
 }
 
 function renderSaved() {
+  redraw($('saved-body'), drawSaved);
+}
+function drawSaved() {
   renderStats();
   if (!state.accountReady) return;
   const t = state.t;
@@ -2890,7 +2924,7 @@ function renderSaved() {
           })
         )
       ),
-      open.length ? el('button', { class: 'pl-check q-press', type: 'button', disabled: state.checking ? '' : null, 'aria-label': t('checkResults'), text: state.checking ? t('checking') : t('checkResults'), onclick: () => checkResults(true) }) : null
+      open.length ? el('button', { class: 'pl-check q-press', type: 'button', disabled: state.checkingShown ? '' : null, 'aria-label': t('checkResults'), text: state.checkingShown ? t('checking') : t('checkResults'), onclick: () => checkResults(true, { shown: true }) }) : null
     ]),
     ...(order.length
       ? order.map(key =>
