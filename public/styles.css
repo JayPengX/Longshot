@@ -877,3 +877,6 @@ html .q-logo img { width: 88%; height: 88%; }
 @media (min-width: 360px) {
   .q-live-strip > .q-live-card:first-child:nth-last-child(2), .q-live-strip > .q-live-card:first-child:nth-last-child(2) + .q-live-card { flex: 1 1 0; width: auto; min-width: 0; }
 }
+/* A team's name shrinks to fit its line (the kit's .q-fit) from Play's 16px. */
+.pl-team-name.q-fit { display: block; font-size: calc(16px * var(--q-fit, 1)); text-overflow: clip; }
+.logo-fallback svg { width: 62%; height: 62%; }

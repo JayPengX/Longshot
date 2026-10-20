@@ -11,7 +11,7 @@ const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
-import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
+import { boardBets, futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
@@ -25,20 +25,15 @@ import { makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
 import { logoPicture, raceName } from '#kit/logos.mjs';
-import { minLegsProblem, leagueTier } from './lib/rules.mjs';
+import { minLegsProblem, leagueTier, withRules } from './lib/rules.mjs';
 import { gameOptions } from './lib/board.mjs';
 import { recommend } from './lib/recommend.mjs';
 import { readBoard, boardLottery } from './lib/boardstart.mjs';
 import { minLegsWhy, slipQuote, quoteAllPays, slipRange, slipsMost, legState, slipGroupKey, dropPicks, payoutTotals, parlayOdds, allVoid } from './lib/slip.mjs';
 
 
-// A kit empty state whose icon is a kit glyph name, as a small tile of Play's own (the grey one).
-const emptyK = o => {
-  const n = kitUI.empty({ ...o, icon: o.icon ? '•' : '' });
-  const slot = n.querySelector('.q-empty-icon');
-  if (slot) { slot.innerHTML = kitUI.icons[o.icon] || ''; slot.classList.add('kit'); }
-  return n;
-};
+// The kit's empty state: a kit glyph on its tinted tile, the title, a line, an action.
+const emptyK = o => kitUI.empty(o);
 
 const ACCOUNT_KEY = 'oddsStudy.account';
 // Saved slips shown before the rest fold away.
@@ -382,14 +377,82 @@ function lockWhole(bets) {
   return held.size ? bets.map(b => (held.has(b) ? { ...b, lock: 'market' } : b)) : bets;
 }
 
-function buildBets(data) {
+function takeExtras(data) {
   for (const game of data.games) {
     // Kambi's own markets of the game once read (loadOffers), whatever read of the board this is.
     if (gameOffers.has(game.id)) game.offers = gameOffers.get(game.id).offers;
     // And its players with their season numbers (players.mjs), once read.
     if (gamePlayers.get(game.id)?.players) game.players = gamePlayers.get(game.id).players;
   }
-  return lockWhole(boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b)));
+}
+// The priced board kept for what it was priced from (the games, the race,
+// the markets and players read, the language, the Taipei day): every
+// redraw (a filter, a tab, a league joining) priced the whole board again,
+// half a second on a phone each time.
+let extrasStamp = 0;
+let priced = null;
+const pricedKey = data => [data, data.games, data.f1, extrasStamp, state.locale, taipeiDayKey(new Date().toISOString())];
+const pricedFor = data => priced && priced.key.every((v, i) => v === pricedKey(data)[i]) ? priced.bets : null;
+function buildBets(data) {
+  const hit = pricedFor(data);
+  if (hit) return hit;
+  takeExtras(data);
+  const bets = lockWhole(boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b)));
+  priced = { key: pricedKey(data), bets };
+  return bets;
+}
+// The same pricing (boardBets, step for step) in slices that give the page
+// its turn between them: the full read's thousands of picks froze the
+// screen two to three seconds on a phone. Kept for buildBets; false when a
+// newer pricing started meanwhile.
+let slicing = 0;
+async function priceInSlices(data) {
+  if (pricedFor(data)) return true;
+  const mine = ++slicing;
+  const key = pricedKey(data);
+  takeExtras(data);
+  let since = performance.now();
+  const breathe = async () => {
+    if (performance.now() - since < 30) return;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    since = performance.now();
+  };
+  const name = namer();
+  const bets = [];
+  for (const game of data.games) {
+    for (const o of optionsOf(game)) bets.push(name(game, o));
+    await breathe();
+    if (mine !== slicing) return false;
+  }
+  // (The race's 40,000 drawn finishes, a task of their own.)
+  if (data.f1) {
+    await new Promise(resolve => setTimeout(resolve, 0));
+    bets.push(...f1Bets(data.f1, { now: new Date(), memo: f1MarketsMemo, loadedAt: data.loadedAt }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    since = performance.now();
+  }
+  fillTypicalMargins(bets);
+  for (let i = 0; i < bets.length; i++) {
+    withRules(bets[i]);
+    if (i % 100 === 99) await breathe();
+  }
+  const pause = () => new Promise(resolve => setTimeout(resolve, 0));
+  await pause();
+  const named = bets.map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
+  await pause();
+  const held = lockWhole(named);
+  if (mine !== slicing) return false;
+  // (The board moved on meanwhile: a markets' read, another day. Drawn as before, at once.)
+  if (!key.every((v, i) => v === pricedKey(data)[i])) return false;
+  priced = { key, bets: held };
+  // (The drawing that follows, a task of its own.)
+  await pause();
+  return true;
+}
+// renderAll, the board priced in slices first (the full read's swaps).
+async function renderAllSliced() {
+  if (state.data && !state.fromBoard) await priceInSlices(state.data);
+  renderAll();
 }
 
 // An F1 pick's names: drivers in Chinese here, the race's name as its matchup.
@@ -656,7 +719,7 @@ function drawLogo(sport, enName, label, size) {
   // character, or an English initial.
   const flag = countryFlag(enName);
   const fallback = () =>
-    flag ? el('span', { class: `logo logo-flag ${size}`, 'aria-hidden': 'true', text: flag }) : el('span', { class: `logo logo-fallback ${size}`, 'aria-hidden': 'true', text: (label || '?').trim().slice(0, 1) });
+    flag ? el('span', { class: `logo logo-flag ${size}`, 'aria-hidden': 'true', text: flag }) : Object.assign(el('span', { class: `logo logo-fallback ${size}`, 'aria-hidden': 'true' }), { innerHTML: kitUI.icons.shield || '' });
   // A side not decided yet ("Yankees/Red Sox"): no one team's logo.
   if (/\//.test(enName || '')) return fallback();
   // No club logo for a national side: its round flag.
@@ -738,7 +801,12 @@ function searchGames() {
   return state.data.games.filter(g => gameMatches(g, q)).sort((a, b) => a.startUtc.localeCompare(b.startUtc));
 }
 
+// Drawn when it shows: every league joining redrew hundreds of rows behind
+// the home tab (the page froze for it as it opened); 賽事 draws them on its tap.
+let gamesStale = false;
 function renderGames() {
+  if (state.tab !== 'games' && !state.query) return void (gamesStale = true);
+  gamesStale = false;
   redraw($('games-list'), drawGames);
 }
 // The day's games, one section per league (its logo and name, its count),
@@ -823,7 +891,7 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
     const bet = ml.find(b => b.side === side);
     if (side === 'draw') return bet ? el('div', { class: 'pl-team draw' }, [el('span', { class: 'pl-draw-mark', 'aria-hidden': 'true', text: '=' }), el('span', { class: 'pl-team-name', text: t('draw') }), cell(bet)]) : null;
     const score = game.live ? el('span', { class: `pl-score${scoreMoved(`${game.id}|${side}`, game.live[`${side}Score`]) ? ' moved' : ''}`, text: String(game.live[`${side}Score`]) }) : null;
-    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name', text: rowTeam(game, side) }), score, cell(bet)]);
+    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name q-fit', text: rowTeam(game, side) }), score, cell(bet)]);
   });
   const n = marketCount(bets.filter(b => !b.lock));
   const event = league ? gameSeries(game) : eventOf(game);
@@ -885,9 +953,11 @@ function gameDetail(game, bets) {
     // The game's 限關, once.
     !held && floor > 1 ? el('p', { class: 'gs-legs' }, [el('span', { class: 'pl-legs', text: t('minLegsGameTag', { n: floor }) }), el('span', { text: t('minLegsNoteEvent', { n: floor }) })]) : null,
     // A game on now with no win price: its two sides held.
-    !win.length && game.live ? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s]))))) : null,
-    win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side])), floor))) : null,
-    held ? (wantOffers(game), emptyK({ icon: 'lock', title: t('gameHeld'), body: t('gameHeldBody') })) : more ? gameMore(game, others) : null
+    // (The kit's one bar for a market that can't be bet: an older kit, a lock a side.)
+    (held || (!win.length && game.live)) ? (kitUI.lockedRow?.() ?? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s])))))) : null,
+    win.length && !held && !(kitUI.lockedRow && win.every(b => b.lock)) ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side])), floor))) : null,
+    !held && win.length && win.every(b => b.lock) && kitUI.lockedRow ? kitUI.lockedRow() : null,
+    held ? (wantOffers(game), null) : more ? gameMore(game, others) : null
   ]);
 }
 
@@ -1088,6 +1158,7 @@ let rebuildQueued = false;
 function rebuildBoard() {
   if (rebuildQueued || !state.data || state.fromBoard) return;
   rebuildQueued = true;
+  extrasStamp++;
   requestAnimationFrame(() => {
     rebuildQueued = false;
     state.bets = buildBets(state.data);
@@ -3089,7 +3160,7 @@ function renderAll() {
   renderGames();
   renderFutures();
   renderParlay();
-  if (state.tab === 'home') drawHome();
+  if (state.tab === 'home' && !homeAfter) drawHome();
   renderAccount();
   renderSaved();
   warmImages();
@@ -3318,7 +3389,7 @@ async function load() {
   // Past the limit the page opens with whatever has arrived; the rest joins as it comes.
   const limit = booting
     ? setTimeout(() => {
-        if (state.data) renderAll();
+        if (state.data) renderAllSliced();
         open();
       }, BOOT_LIMIT_MS)
     : null;
@@ -3368,7 +3439,7 @@ async function load() {
       addGames(pending.splice(0));
       clearTimeout(drawTimer);
       drawTimer = setTimeout(() => {
-        renderAll();
+        renderAllSliced();
       }, 250);
     };
     const extraGames = loadExtraLeagues(now, games => (pending.push(...games), join())).catch(error => (console.error(error), []));
@@ -3398,7 +3469,7 @@ async function load() {
       state.fromSnapshot = false;
       state.fromBoard = false;
       joining = true;
-      renderAll();
+      await renderAllSliced();
       // A game sheet opened on the board's game: its markets are read now.
       renderGameSheet();
       if (state.booting) {
@@ -3413,7 +3484,7 @@ async function load() {
         extraFutures.then(async more => {
           const keys = new Set(state.data.futures.map(f => f.key));
           state.data.futures = [...state.data.futures, ...more.filter(f => !keys.has(f.key))];
-          renderAll();
+          renderAllSliced();
           saveSnapshot();
           await loadFutureTeams(state.data.futures).catch(() => {});
           renderFutures();
@@ -3433,7 +3504,7 @@ async function load() {
       const keys = new Set(state.data.futures.map(f => f.key));
       state.data.futures = [...state.data.futures, ...futures.filter(f => !keys.has(f.key))];
     };
-    renderAll();
+    await renderAllSliced();
     if (state.wantSlip) ((state.wantSlip = false), openSlip());
     if (booting) {
       // The loading screen stays until the whole board is in: every league
@@ -3442,7 +3513,7 @@ async function load() {
       // what has come and the rest keeps joining.
       await within(Promise.all([liveIn, firstScreen()]), Math.max(1_000, BOOT_FULL_MS - (Date.now() - startedAt)));
       clearTimeout(drawTimer);
-      renderAll();
+      renderAllSliced();
       await within(imagesReady($('panel-' + state.tab)), BOOT_IMAGES_MS);
       clearTimeout(limit);
       open();
@@ -3454,7 +3525,7 @@ async function load() {
     });
     extraFutures.then(async futures => {
       addFutures(futures);
-      renderAll();
+      renderAllSliced();
       saveSnapshot();
       // The clubs' logos: ESPN's team lists for the boards' leagues, then the boards again.
       await loadFutureTeams(state.data.futures).catch(() => {});
@@ -3607,6 +3678,7 @@ function showTab(tab) {
   renderTabs();
   renderSlipBar();
   if (tab === 'home') drawHome();
+  if (tab === 'games' && gamesStale && state.data) renderGames();
   if (tab === 'lottery') lotteryUi?.render();
   if (tab === 'history') renderStats();
   // The tab's live games and open bets, now rather than at the next beat.
@@ -3693,7 +3765,9 @@ function parlayPays(bets, stake) {
 
 // What the home tab and the lottery need from here.
 // Home drawn again, its pictures kept.
+// (Behind another tab, nothing: 首頁 is drawn on its tap.)
 function drawHome() {
+  if (state.tab !== 'home') return;
   redraw($('home-body'), () => renderHome(homeCtx()));
 }
 function homeCtx() {
@@ -3775,11 +3849,20 @@ function finishTake() {
   if (state.wantedTab && tabAvailable(state.wantedTab)) state.tab = state.wantedTab;
   state.wantedTab = null;
 }
+// The saved board's home drawn a task after the rest (behind the loading
+// screen): both in one froze the page a third of a second as it opened.
+let homeAfter = false;
 function drawSnapshot() {
   // (Today's board already in: nothing to draw.)
   if (!state.fromSnapshot) return;
   try {
-    renderAll();
+    homeAfter = true;
+    try {
+      renderAll();
+    } finally {
+      homeAfter = false;
+    }
+    if (state.tab === 'home') setTimeout(() => state.data && state.tab === 'home' && drawHome(), 0);
   } catch (error) {
     // A saved board this version can't draw: a normal start.
     console.error(error);

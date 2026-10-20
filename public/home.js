@@ -137,7 +137,7 @@ export function renderHome(ctx) {
   // ---- 精選串關: ready-made parlays from the big leagues' win prices, one
   // of favourites, one of longer prices; one pick a game, games in the next
   // two days, none that must be bought with more picks.
-  const soonest = (a, b) => a.start.localeCompare(b.start);
+  const soonest = (a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
   const winPicks = (state.bets || []).filter(b => b.kind === 'ml' && b.side !== 'draw' && !b.lock && !b.cap && !(b.minLegs > 3) && ctx.leagueTier(b.sport) !== 'thin' && Date.parse(b.start) > now && Date.parse(b.start) - now < 48 * 3_600_000);
   const onePerGame = list => {
     const seen = new Set();
