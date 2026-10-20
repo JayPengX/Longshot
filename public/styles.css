@@ -37,7 +37,6 @@ h1, h2, h3, p { margin: 0; }
 body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(120px + var(--q-nav)); }
 .q-gl { display: inline-grid; place-items: center; width: 16px; height: 16px; }
 .q-gl svg { width: 100%; height: 100%; }
-.pl-empty { padding: 24px 8px; color: var(--q-label-2); font: var(--q-t-subhead); text-align: center; }
 .pl-count { flex: none; color: var(--q-label-2); font: 600 15px/1 var(--q-font); font-variant-numeric: tabular-nums; }
 .q-chips.pl-chips { margin: 0 calc(-1 * var(--q-margin)); padding-inline: var(--q-margin); }
 .pl-chips.small .q-chip { min-height: 30px; padding: 0 12px; font-size: 14px; }
@@ -76,9 +75,6 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(120px + var(--q-n
 .league-badge .logo-wrap { display: grid; place-items: center; width: 78%; height: 78%; }
 .league-badge .league-img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .league-badge .league-icon { display: grid; place-items: center; font-size: calc(var(--s) * 0.58); line-height: 1; }
-.badge { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--badge) 16%, transparent); color: var(--badge); font-size: 12px; font-weight: 800; }
-.badge.badge-text { font-size: 10px; }
-.driver-badge { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--team); color: #fff; font-size: 13px; font-weight: 800; }
 .flag-badge { flex: none; display: grid; place-items: center; width: 32px; height: 32px; }
 .h2h-faces { position: relative; flex: none; width: 46px; height: 38px; }
 .h2h-faces > :first-child { position: absolute; left: 0; top: 0; z-index: 1; width: 36px; height: 36px; }
@@ -106,7 +102,7 @@ button.pick:active { transform: scale(0.95); }
 .pl-draw-mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-weight: 700; }
 .pl-team.draw .pl-team-name { color: var(--q-label-2); }
 .pl-score { flex: none; min-width: 1.4em; color: var(--q-label); font: 700 20px/1 var(--q-font-rounded); text-align: right; font-variant-numeric: tabular-nums; }
-.pl-score.moved, .gs-score .moved { animation: pl-moved 0.6s ease-out; color: var(--q-red); }
+.pl-score.moved { animation: pl-moved 0.6s ease-out; color: var(--q-red); }
 @keyframes pl-moved { 0% { transform: scale(1.2); } }
 .pl-when { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pl-when.live { color: var(--q-red); }
@@ -123,21 +119,8 @@ button.pick:active { transform: scale(0.95); }
 .pl-hero-line .pi { width: 16px; height: 16px; }
 .pl-hero-search { margin-top: 8px; width: 100%; border: 0; text-align: left; cursor: pointer; }
 .pl-hero-search > i svg { width: 18px; height: 18px; }
-.pl-starters { margin-top: 14px; }
-.pl-starter .league-badge { --s: 20px; }
-.pl-starter.live { color: var(--q-red); }
-.pl-starter.live .pl-dot { width: 8px; height: 8px; }
 /* A match card in a rail. */
 .pl-mcards { --q-rail-w: min(80%, 290px); }
-.pl-mcard { gap: 2px; padding: 12px 14px 10px; cursor: pointer; }
-.pl-mcard-top { display: flex; align-items: center; gap: 6px; min-width: 0; margin-bottom: 2px; }
-.pl-mcard-league { flex: 1; min-width: 0; overflow: hidden; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.pl-mcard-top > :last-child { flex: none; }
-.pl-mcard .pl-team { min-height: 42px; gap: 8px; }
-.pl-mcard .pl-team-name { font-size: 15px; }
-.pl-mcard .pick { min-width: 60px; }
-.pl-mcard-pick { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: var(--q-hairline) solid var(--q-sep); }
-.pl-mcard-pickname { flex: 1; min-width: 0; overflow: hidden; color: var(--q-accent); font: 600 14px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 /* 精選串關: three picks and what they pay together. */
 .pl-combos { --q-rail-w: min(84%, 300px); }
 .pl-combo { gap: 10px; }
@@ -187,18 +170,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 #game-sheet-body { min-height: 40vh; padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
 .gs { display: grid; gap: 16px; }
 /* The scoreboard: each side's logo and name, the time or the score between. */
-.gs-board { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 0 2px; }
-.gs-side { display: grid; justify-items: center; gap: 4px; min-width: 0; text-align: center; }
-.gs-name { max-width: 100%; overflow: hidden; font: 600 16px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.gs-side small { color: var(--q-label-2); font: var(--q-t-caption); }
-.gs-mid { display: grid; justify-items: center; gap: 4px; min-width: 76px; }
-.gs-time { font: 700 28px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
-.gs-day { color: var(--q-label-2); font: 600 13px/1 var(--q-font); }
-.gs-score { display: flex; align-items: center; gap: 8px; font: 700 36px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
-.gs-score i { color: var(--q-label-3); font-style: normal; font-size: 24px; }
-.gs-score b { display: inline-block; }
-.gs-state { display: inline-flex; align-items: center; gap: 6px; max-width: 120px; color: var(--q-red); font: 600 13px/1.2 var(--q-font); }
-.gs-state span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gs-win { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 8px; }
 .gs-win .pick { min-height: 56px; border-radius: 16px; }
 .gs-win .pick-odds { font-size: 20px; }
@@ -228,7 +199,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-picks:has(.min-legs) .pick { padding-top: 10px; }
 .market-body > .market-panel > .market-head:first-child { margin-top: 0; }
 .more-block .line-table { padding: 0; background: none; }
-.pl-empty.sheet-none, .offers-wait { padding: 12px; color: var(--q-label-2); font: var(--q-t-footnote); text-align: center; }
+.offers-wait { padding: 12px; color: var(--q-label-2); font: var(--q-t-footnote); text-align: center; }
 /* Players' markets: a chip a market, a row a player. */
 .props { gap: 10px; }
 .prop-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
@@ -315,8 +286,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sl-errors { display: grid; gap: 6px; margin: 0; padding: 12px 14px; list-style: none; border-radius: 16px; background: var(--wash-bad); color: var(--bad); font: 500 14px/1.35 var(--q-font); }
 /* What it pays: all correct, big, then the lines that make it. */
 .sl-pay { display: grid; gap: 12px; padding: 16px; border-radius: 20px; background: var(--q-surface); }
-.sl-pay-top { display: grid; justify-items: start; gap: 4px; }
-.sl-pay-top small { color: var(--q-label-2); font: 600 13px/1 var(--q-font); }
 .pay-big { max-width: 100%; overflow: hidden; color: var(--accent); font: 700 36px/1.1 var(--q-font-rounded); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sl-pay-rows { display: grid; gap: 6px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pay-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--q-label-2); font: 400 14px/1.3 var(--q-font); }
@@ -475,7 +444,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .lt-tile { --lotto: var(--accent); display: grid; align-content: start; gap: 6px; min-width: 0; padding: 14px; border: 0; border-radius: 20px; background: var(--q-surface); color: var(--q-label); text-align: left; }
 .lt-name { display: flex; align-items: center; gap: 8px; min-width: 0; font: 600 15px/1.2 var(--q-font); }
 .lt-name span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.lt-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--lotto); }
 .lt-big { overflow: hidden; color: var(--lotto); font: 700 24px/1.15 var(--q-font-rounded); letter-spacing: -0.02em; white-space: nowrap; text-overflow: ellipsis; }
 .lt-when { color: var(--q-label-2); font: 500 13px/1.2 var(--q-font); }
 .lt-open { margin-bottom: 12px; }
@@ -490,12 +458,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .lotto-sheet { --q-accent: var(--lotto); height: min(94dvh, 940px); padding-bottom: 0; }
 .lotto-sheet:has(.lotto-bought) { height: fit-content; padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
 .lotto-h { margin: 6px 0 0; color: var(--q-label-2); font: 600 13px/1.3 var(--q-font); }
-.ls-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px; margin-bottom: 12px; padding: 14px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, var(--lotto) 18%, var(--q-surface)), var(--q-surface)); }
-.ls-hero > div { display: grid; align-content: start; gap: 2px; min-width: 0; }
-.ls-hero small { color: var(--q-label-2); font: var(--q-t-caption); }
-.ls-hero strong { overflow: hidden; font: 600 15px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.ls-hero > div:first-child strong { color: var(--lotto); font: 700 22px/1.15 var(--q-font-rounded); }
-.ls-hero > div:last-child strong { white-space: normal; }
 .ls-slip { display: grid; gap: 10px; margin-bottom: 14px; padding: 12px; border: 1.5px dashed color-mix(in srgb, var(--lotto) 40%, var(--q-sep)); border-radius: 18px; background: var(--q-surface); }
 .ls-slip.done { border-style: solid; border-color: var(--lotto); }
 .ls-slip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
@@ -556,14 +518,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .ls-last-row small, .ls-last > small { color: var(--q-label-2); font-size: 12px; }
 .lotto-msg { margin: 8px 0 0; color: var(--bad); font: 600 14px/1.3 var(--q-font); text-align: center; }
 .lotto-buybar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px calc(-1 * var(--q-margin)) 0; padding: 12px var(--q-margin) calc(12px + env(safe-area-inset-bottom)); border-top: var(--q-hairline) solid var(--q-sep); background: var(--q-sheet, var(--q-page)); }
-.ls-buybar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; }
-.ls-buybar.has-opts .ls-opts, .ls-draws { grid-column: 1 / -1; }
 .ls-opts { display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: 16px; }
 .ls-draws { margin-top: -4px; color: var(--q-label-2); font: var(--q-t-caption); }
-.ls-total { display: grid; justify-items: start; }
-.ls-total small { color: var(--q-label-2); font: var(--q-t-caption); }
-.ls-total strong { font: 700 22px/1.1 var(--q-font-rounded); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.ls-buybar .q-btn.primary { min-width: 0; padding-inline: 22px; background: var(--lotto); }
 .stepper { display: inline-flex; align-items: center; gap: 4px; }
 .stepper button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--q-fill-3); font-size: 17px; }
 .stepper button:disabled { opacity: 0.35; cursor: default; }
@@ -778,13 +734,12 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 
 @media (prefers-reduced-motion: reduce) {
   .pl-dot, .pl-live-h::before, .seg-live, .group-live .q-section-head h2::before, .more-shape i { animation: none; }
-  .pl-score.moved, .gs-score .moved, .leg-live-score.moved, .pl-slip.fresh, .lotto-bought-mark, .sc-result.won { animation: none; }
+  .pl-score.moved, .leg-live-score.moved, .pl-slip.fresh, .lotto-bought-mark, .sc-result.won { animation: none; }
   .lotto-bought-mark svg { animation: none; stroke-dashoffset: 0; }
 }
 
 /* ---- Round 3 (phase 1): no emoji icons, bigger logos, a full home. ---- */
-.q-ask-icon.kit svg, .q-empty-icon.kit svg { width: 30px; height: 30px; }
-.q-ask-icon.kit { color: var(--q-accent, var(--accent)); }
+.q-empty-icon.kit svg { width: 30px; height: 30px; }
 .q-empty-icon.kit { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto; border-radius: 16px; background: var(--q-fill-3); color: var(--q-accent, var(--accent)); }
 .q-tile.init { font: 700 17px/1 var(--q-font-rounded, var(--q-font)); color: #fff; }
 .q-tile .q-gl { width: 22px; height: 22px; }
@@ -792,20 +747,14 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .q-chip { min-height: 36px; }
 .league-icon .q-gl { width: 70%; height: 70%; }
 /* Logos: the hero of their row. */
-.pl-game .logo-sm, .pl-game .pl-team .logo, .pl-mcard .logo-sm, .pl-team .logo-sm { width: 32px; height: 32px; }
+.pl-game .logo-sm, .pl-game .pl-team .logo, .pl-team .logo-sm { width: 32px; height: 32px; }
 .pl-team .logo-sm.logo-fallback { font-size: 12px; }
-.pl-game-top .league-badge.logo-xs, .pl-mcard-top .league-badge.logo-xs { --s: 26px; }
+.pl-game-top .league-badge.logo-xs { --s: 26px; }
 .q-section-head .league-badge { --s: 28px; }
 .pl-game { min-height: 48px; }
 /* Pages end above the tab bar. */
 #home-body, #lottery-body, #panel-history { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 /* Draw sheet: hero (K6 look), pick card, grid, prizes, buy bar. */
-.ls-hero { display: block; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, var(--lotto) 92%, #000), color-mix(in srgb, var(--lotto) 70%, #fff)); color: #fff; }
-.ls-hero small.ls-eyebrow { display: block; color: #fff; opacity: 0.85; font: 600 13px/1.2 var(--q-font); }
-.ls-hero strong.ls-big { display: block; margin-top: 6px; color: #fff; font: 800 34px/1.1 var(--q-font-rounded, var(--q-font)); white-space: nowrap; overflow: visible; }
-.ls-hero .ls-sub { display: block; margin-top: 4px; font: 500 14px/1.35 var(--q-font); opacity: 0.92; }
-.ls-hero .ls-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.ls-hero .q-tag { background: rgba(255, 255, 255, 0.2); color: #fff; }
 .ls-slip { border: 0; background: var(--q-surface); }
 .ls-slip.done { border: 0; box-shadow: inset 0 0 0 1.5px var(--lotto); }
 .ls-slip-head strong { color: var(--q-label); }
@@ -822,8 +771,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .lotto-prizes[open] summary::after { transform: rotate(90deg); }
 .balls.mini .ball, .ball.dim { width: 28px; height: 28px; font-size: 13px; }
 .stepper button { width: 44px; height: 44px; font-size: 20px; }
-.ls-buybar .q-btn.primary { min-height: 50px; border-radius: 14px; }
-.ls-buybar .q-btn.primary:disabled { background: var(--q-fill-3); color: var(--q-label-2); opacity: 1; }
 /* 彩券 tiles: a logo, the amount, the countdown. */
 .lt-grid { gap: 10px; }
 .lt-tile { min-height: 112px; align-content: space-between; }
@@ -839,24 +786,9 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-hc-cell { display: grid; gap: 4px; min-width: 0; padding: 10px 12px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.12); color: #fff; text-align: left; }
 .pl-hc-cell small { font: 600 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }
 .pl-hc-cell strong { font: 700 17px/1.2 var(--q-font); white-space: nowrap; }
-.pl-actions, .q-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
-.pl-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; border: 0; border-radius: 16px; background: var(--q-surface); color: var(--q-label); font: 500 13px/1.2 var(--q-font); }
-.pl-action .q-tile { width: 36px; height: 36px; border-radius: 10px; }
-.pl-action .q-tile svg { width: 20px; height: 20px; }
-.pl-badge { position: absolute; top: 8px; right: 12px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--q-red); color: #fff; font: 600 11px/18px var(--q-font); text-align: center; }
-@media (max-width: 340px) { .pl-action { min-height: 68px; font-size: 12px; } .pl-badge { right: 8px; } }
+.q-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
 .q-section { margin-top: 24px; }
-.pl-livestrip { --q-rail-w: 200px; }
-.pl-live-card { display: grid; gap: 8px; align-content: start; min-height: 96px; padding: 10px 12px; border: 0; text-align: left; color: var(--q-label); }
-.pl-live-min { display: flex; align-items: center; gap: 6px; color: var(--q-red); font: 600 12px/1 var(--q-font); white-space: nowrap; }
-.pl-live-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.pl-live-row .logo { width: 28px; height: 28px; }
-.pl-live-row b { overflow: hidden; font: 600 15px/1.2 var(--q-font); white-space: nowrap; }
-.pl-live-row .num { font: 700 20px/1 var(--q-font); text-align: right; }
 .pl-wide { display: grid; gap: 10px; }
-.pl-mcard.wide { padding: 12px 14px; border-radius: 20px; background: var(--q-surface); }
-.pl-mcard.wide .pl-team { min-height: 52px; }
-.pl-mcard.wide .logo { width: 40px; height: 40px; }
 .pl-combos { --q-rail-w: min(84%, 300px); }
 .pl-combo .logo { width: 32px; height: 32px; }
 .pl-combo-foot { display: grid; grid-template-columns: 1fr auto; }
@@ -865,9 +797,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-lottery-wrap { display: grid; gap: 10px; }
 .pl-lottery-skel { height: 132px; border-radius: 20px; }
 .pl-lt-mini { min-height: 104px; }
-.pl-empty-row { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; border-radius: 20px; background: var(--q-surface); text-align: center; }
-.pl-empty-row .q-tile { width: 48px; height: 48px; }
-.pl-empty-row .q-tile svg { width: 26px; height: 26px; }
 .q-ritem .logo-md, .q-ritem .q-tile { flex: none; }
 .q-ritem .q-ritem-title, .q-ritem-text .q-ritem-title { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .lt-name span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
@@ -894,10 +823,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .q-section { margin-top: 28px; }
 .pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); }
 .pl-panel .q-section-head { padding: 0 8px 12px; }
-.pl-panel .q-match, .pl-panel .q-live-card, .pl-panel .pl-mcard.wide, .pl-panel .q-rowcard { background: var(--q-page, var(--q-fill-3)); }
+.pl-panel .q-match, .pl-panel .q-live-card, .pl-panel .q-rowcard { background: var(--q-page, var(--q-fill-3)); }
 .pl-panel .q-rowcard { background: none; }
-.pl-panel .pl-empty-row { background: none; }
-.pl-actions, .q-actions-grid { margin-top: 20px; }
 
 /* The confirm is a solid surface, not glass. */
 .q-ask { background: var(--q-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }

@@ -1,8 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as kitOdds from '../public/lib/odds.mjs';
-// The kit with 台灣運彩's settle rules (過1關, 48-hour postponements): its rules tested on it.
-const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
 import { readFileSync } from 'node:fs';
 import {
   afterTax,
@@ -145,7 +142,7 @@ test('slip follows the lottery ticket rules', () => {
   assert.ok(slipErrors({ ...ok, legs: [slipLegs[0], { ...slipLegs[1], gameId: 1 }], sizes: [2] }).includes('sameGame'));
   const thirteen = Array.from({ length: 13 }, (_, i) => ({ gameId: i, odds: 1.8, fairChance: 0.5 }));
   assert.ok(slipErrors({ ...ok, legs: thirteen, sizes: [13] }).includes('tooManyLegs'));
-  assert.ok(slipErrors({ mode: 'system', legs: slipLegs.slice(0, settle2026 ? 1 : 2), sizes: [], stake: 100 }).includes(settle2026 ? 'systemNeedsTwo' : 'systemNeedsThree'));
+  assert.ok(slipErrors({ mode: 'system', legs: slipLegs.slice(0, 1), sizes: [], stake: 100 }).includes('systemNeedsTwo'));
   // Three NT$10 singles total NT$30: under the NT$100 ticket minimum.
   assert.ok(slipErrors({ mode: 'single', legs: slipLegs, sizes: [1], stake: 10 }).includes('ticketMin'));
 });

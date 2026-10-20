@@ -32,6 +32,6 @@ test("MLB's postseason list over ESPN's copy: a game made sure is sold, one off 
       ['Los Angeles Dodgers', '2026-10-16T01:00:00.000Z', false]
     ]
   );
-  // Without MLB's list (an older kit): ESPN's as before.
+  // Without MLB's list: ESPN's as before.
   assert.deepEqual(parseEspnScoreboard(page, 'mlb').map(g => g.home), ['Los Angeles Dodgers']);
 });

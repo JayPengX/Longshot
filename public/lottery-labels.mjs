@@ -1,8 +1,7 @@
 // Small pure helpers for the 彩券 tab's wording, kept apart from the DOM code so
 // tests can reach them: 期別, the sales cutoff, 獎別, the prize table's rules,
-// and what the slip may offer (倍數, 多期, 包牌). Each prefers the kit's own
-// export (play-lottery.mjs: closesAt, tierName, limits, drawTerm…) and falls
-// back to the older kit's shape, read by the module so an older kit loads.
+// and what the slip may offer (倍數, 多期, 包牌), on the kit's own exports
+// (play-lottery.mjs: closesAt, tierName, limits, drawTerm…).
 import { GAMES } from './lib/lottery.mjs';
 import * as kit from './lib/lottery.mjs';
 
@@ -14,7 +13,7 @@ export function termLabel(term, lang = 'zh') {
 }
 
 // A draw's term wherever the app kept it (the draw, the result drawn: the
-// kit's `period`, an older one's `term`), else ''.
+// kit's `period` or `term`), else ''.
 export const termOf = (...sources) => {
   for (const s of sources) {
     const v = s?.period ?? s?.term;
@@ -27,27 +26,19 @@ export const termOf = (...sources) => {
 // game counted on from its latest draw), else ''.
 export function nextTerm(gameId, draw, latest) {
   try {
-    return kit.drawTerm?.(gameId, draw, latest) || '';
+    return kit.drawTerm(gameId, draw, latest) || '';
   } catch {
     return '';
   }
 }
 
 // When sales close for a draw (ms): the kit's closesAt (20:00 for the 20:30
-// games; 賓果 a minute before each draw), else CLOSE_MS before the draw.
-export function cutoffAt(gameId, at) {
-  if (typeof kit.closesAt === 'function') return kit.closesAt(gameId, { at });
-  if (gameId === 'bingo') return at - 60_000;
-  const close = Number.isFinite(kit.CLOSE_MS) ? kit.CLOSE_MS : 30 * 60_000;
-  return at - close;
-}
+// games; 賓果 a minute before each draw).
+export const cutoffAt = (gameId, at) => kit.closesAt(gameId, { at });
 
 // 獎別 of a stored tier ('jackpot', 'first'…) for a game, else ''.
 export function tierName(gameId, key, lang = 'zh') {
-  const own = typeof kit.tierName === 'function' ? kit.tierName(gameId, key, lang) : null;
-  if (own) return own;
-  const tier = GAMES[gameId]?.tiers?.find(x => x.key === key);
-  return tier ? tier[lang === 'en' ? 'en' : 'zh'] : '';
+  return kit.tierName(gameId, key, lang) ?? '';
 }
 
 // What a prize-table row asks for, in words.
@@ -66,15 +57,8 @@ export const digitRule = (x, lang = 'zh') => (lang === 'en' ? `last ${x.hits} di
 // ---- What the slip may offer ------------------------------------------------------
 //
 // 倍數 as each game's 投注方式 has it (台灣彩券): none on 威力彩, 大樂透 and
-// 今彩539, up to 10 on 樂合彩, 50 on 3星彩, 4星彩 and BINGO. An older kit has no
-// limits(): the same 倍數 (its ×50 cap takes them all) and no 多期 (its
-// buyTicket sells one draw).
-const OLD_MULTIPLE = { super638: 1, lotto649: 1, daily539: 1, m39: 10, m49: 10 };
-export function gameLimits(gameId) {
-  const own = typeof kit.limits === 'function' ? kit.limits(gameId) : null;
-  if (own) return { multiple: Math.max(1, own.multiple || 1), periods: Math.max(1, own.periods || 1) };
-  return { multiple: OLD_MULTIPLE[gameId] ?? 50, periods: 1 };
-}
+// 今彩539, up to 10 on 樂合彩, 50 on 3星彩, 4星彩 and BINGO.
+export const gameLimits = gameId => kit.limits(gameId);
 // The proxy sells at most 50 selections a sale and 120 tickets with 多期
 // counted (Shared-Proxy lotto.js MAX_TICKETS, MAX_SOLD).
 export const MAX_LINES = 50;
@@ -82,10 +66,9 @@ export const MAX_SOLD = 120;
 // The most draws `lines` selections can be bought for in one sale.
 export const periodsFor = (gameId, lines = 1) => Math.max(1, Math.min(gameLimits(gameId).periods, Math.floor(MAX_SOLD / Math.max(1, lines))));
 
-// 包牌 (系統組合): the most numbers a zone (or a 樂合彩 pick) takes on this kit;
-// the zone's own count when the kit has none (an older kit sells no 包牌).
-export const zoneMax = z => Math.max(z.n, z.upTo ?? z.n);
-export const comboMax = g => g.combo?.upTo ?? 12;
+// 包牌 (系統組合): the most numbers a zone (or a 樂合彩 pick) takes.
+export const zoneMax = z => z.upTo;
+export const comboMax = g => g.combo.upTo;
 // A 包牌: more numbers than one bet takes in some zone.
 export const isSystem = (gameId, sel) => Boolean(GAMES[gameId]?.zones && sel?.zones?.some((z, i) => z.length > GAMES[gameId].zones[i].n));
 
@@ -96,7 +79,7 @@ export const isSystem = (gameId, sel) => Boolean(GAMES[gameId]?.zones && sel?.zo
 export function pendingPrize(ticket, draw) {
   if (!draw) return false;
   try {
-    return Boolean(kit.ticketPrize?.(ticket, draw)?.pending);
+    return Boolean(kit.ticketPrize(ticket, draw)?.pending);
   } catch {
     return false;
   }

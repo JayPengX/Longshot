@@ -3,29 +3,23 @@ import assert from 'node:assert/strict';
 import { CARDS, CARD_ORDER, tiersOf, expectedReturn, face, facePays, drawPrize, buyScratch, revealScratch, topPrize } from '../public/lib/scratch.mjs';
 import { newAccount, balance } from '../public/lib/account.mjs';
 
-// Kits before play-rules-r7 sold twelve made-up cards; since then Taiwan
-// Lottery's own (five at first, all 24 on sale since 2026-10), the old ones `retired`.
-const realCards = Object.values(CARDS).some(c => c.retired);
+// The cards are Taiwan Lottery's own (all 24 on sale since 2026-10); the earlier
+// twelve are `retired`.
 
 test('the cards on sale, each paying back like a real one of its price', () => {
-  if (realCards) {
-    assert.ok(CARD_ORDER.length >= 5);
-    assert.ok(CARD_ORDER.every(id => !CARDS[id].retired));
-    // By price, the cheapest first.
-    assert.deepEqual(CARD_ORDER.map(id => CARDS[id].price), CARD_ORDER.map(id => CARDS[id].price).sort((a, b) => a - b));
-    // The card's own words: 大力士分數 and 幸運號碼.
-    assert.match(CARDS.beat.how.zh, /大力士分數/);
-    assert.match(CARDS.numbers.how.zh, /幸運號碼/);
-  } else {
-    assert.equal(CARD_ORDER.length, 12);
-    for (const price of [100, 200, 300, 500, 1000, 2000]) assert.equal(CARD_ORDER.filter(id => CARDS[id].price === price).length, 2);
-  }
+  assert.ok(CARD_ORDER.length >= 5);
+  assert.ok(CARD_ORDER.every(id => !CARDS[id].retired));
+  // By price, the cheapest first.
+  assert.deepEqual(CARD_ORDER.map(id => CARDS[id].price), CARD_ORDER.map(id => CARDS[id].price).sort((a, b) => a - b));
+  // The card's own words: 大力士分數 and 幸運號碼.
+  assert.match(CARDS.beat.how.zh, /大力士分數/);
+  assert.match(CARDS.numbers.how.zh, /幸運號碼/);
   for (const id of CARD_ORDER) {
     // As Taiwan Lottery's 2026 cards: 60% back at NT$100 up to 75% at the dearest.
     const r = expectedReturn(id);
     assert.ok(r > 0.59 && r < 0.76, `${id}: ${r}`);
     // A real card's top prize can be as small as 440 times its price (好運發發's NT$88,000).
-    assert.ok(topPrize(id) >= CARDS[id].price * (realCards ? 400 : 5_000), `${id} top`);
+    assert.ok(topPrize(id) >= CARDS[id].price * 400, `${id} top`);
   }
 });
 
@@ -54,8 +48,8 @@ test('the prize draw follows the table', () => {
 
 test('buying costs the price; scratching pays the prize once', () => {
   const now = new Date('2026-09-28T10:00:00+08:00');
-  // A NT$200 card on sale on either kit (三個一樣 before, 獎金對決 since).
-  const card = realCards ? 'beat' : 'triple';
+  // A NT$200 card on sale (獎金對決).
+  const card = 'beat';
   const bought = buyScratch(newAccount(now), { id: 's1', card }, now, { rand: () => 0.01, seed: 5 });
   assert.equal(bought.ticket.prize, 200);
   assert.equal(balance(bought.account), 10_000 - 200);
@@ -65,7 +59,7 @@ test('buying costs the price; scratching pays the prize once', () => {
   assert.equal(buyScratch(newAccount(now, { start: false }), { id: 's2', card: 'million' }, now).error, 'funds');
 });
 
-test('a retired card can\'t be bought, but one bought before still scratches and pays', { skip: !realCards && 'no retired cards on this kit' }, () => {
+test('a retired card can\'t be bought, but one bought before still scratches and pays', () => {
   const now = new Date('2026-09-28T10:00:00+08:00');
   assert.equal(buyScratch(newAccount(now), { id: 's3', card: 'triple' }, now).error, 'game');
   // A 三個一樣 bought before the lineup changed: its face and prize as it was.

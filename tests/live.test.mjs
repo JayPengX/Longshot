@@ -1,8 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as kitMarkets from '../public/lib/markets.mjs';
-// The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
-const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
 import { readFileSync } from 'node:fs';
 import { americanToProbability, devigProportional } from '../public/lib/odds.mjs';
 import { inningsLeft, liveBaseball, liveMarkets, liveOdds, pregameRuns, chance, fitGoals, liveSoccer, LIVE_OVERROUND } from '../public/lib/live.mjs';
@@ -139,17 +136,13 @@ test('hockey, football and basketball in progress', async () => {
   assert.equal(spread.line, spread.awayLine);
   assert.ok(spread.awayLine > 5 && spread.awayLine < 15, spread.awayLine);
   assert.deepEqual(livePoints({ sport: 'nba', pre: { homeWin: 0.5 }, awayScore: 0, homeScore: 0, left: 0.01 }), []);
-  // Hockey: level in the third with little left leans on the stronger team, never a draw
-  // (台灣運彩's kit: on 60 minutes, so a level game most likely ends a 和局, three ways).
+  // Hockey is on 60 minutes (台灣運彩's), so a level game in the third with little
+  // left most likely ends a 和局, three ways.
   const dist = liveGoals({ means: fitHockey(0.6, { line: 6.5, overFair: 0.5 }), awayScore: 2, homeScore: 2, share: 0.1 });
   assert.ok(Math.abs(dist.reduce((s, x) => s + x.p, 0) - 1) < 1e-6);
-  if (hockey60) assert.ok(chance(dist, (a, h) => a === h) > 0.5);
-  else {
-    assert.equal(chance(dist, (a, h) => a === h), 0);
-    assert.ok(chance(dist, (a, h) => h > a) > 0.5);
-  }
+  assert.ok(chance(dist, (a, h) => a === h) > 0.5);
   const hockey = liveMarkets(dist, { sport: 'nhl', awayScore: 2, homeScore: 2 });
-  assert.deepEqual(hockey.filter(m => m.kind === 'ml').map(m => m.side), hockey60 ? ['home', 'draw', 'away'] : ['away', 'home']);
+  assert.deepEqual(hockey.filter(m => m.kind === 'ml').map(m => m.side), ['home', 'draw', 'away']);
   // Any soccer league gets the three-way winner.
   const soccer = liveMarkets(liveSoccer({ means: fitGoals(0.45, 0.28), awayScore: 0, homeScore: 0, minutesLeft: 60 }), { sport: 'scotland', awayScore: 0, homeScore: 0 });
   assert.deepEqual(soccer.filter(m => m.kind === 'ml').map(m => m.side), ['home', 'draw', 'away']);

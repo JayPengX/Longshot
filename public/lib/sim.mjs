@@ -240,7 +240,7 @@ function compile(list) {
       // this many. The bet's own (its game's 限關 or its price band, as the
       // board set it); else its price band, or its game's own minimum where
       // the kit reads one (eventMinLegs).
-      minLegs: Int8Array.from(list, b => b.minLegs ?? houseRule(b.kind ?? 'ml', b.odds, { event: rules.eventMinLegs?.(b) ?? null }).minLegs),
+      minLegs: Int8Array.from(list, b => b.minLegs ?? houseRule(b.kind ?? 'ml', b.odds, { event: rules.eventMinLegs(b) }).minLegs),
       pickCum: new Float64Array(list.length),
       // Where each option sits in its market, for the shared results.
       lo: Float64Array.from(list, b => b.outLo ?? 0),

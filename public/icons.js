@@ -30,12 +30,12 @@ export function icon(name, cls = '') {
   return span;
 }
 
-// A kit glyph by name (the kit's `icons`), as a 16px span; none on an older kit.
+// A kit glyph by name (the kit's `icons`), as a 16px span.
 export function kitGlyph(kitUI, name, cls = '') {
   const s = document.createElement('span');
   s.className = `q-gl${cls ? ` ${cls}` : ''}`;
   s.setAttribute('aria-hidden', 'true');
-  s.innerHTML = kitUI?.icons?.[name] || '';
+  s.innerHTML = kitUI.icons[name] || '';
   return s;
 }
 // A colour tile with the card's initial (the price digit or first character), never an emoji.
@@ -47,17 +47,11 @@ export function initialTile(name, color, cls = '') {
   s.textContent = String(name || '').trim().slice(0, 1).toUpperCase();
   return s;
 }
-// ask()/tell() draw their icon as text: put a kit glyph (a name) or a node in its tile instead.
-export function kitDialog(call, opts, kitUI, mark) {
-  // The newer kit draws a glyph name itself (K8); an older one gets the placeholder swapped below.
-  if (typeof mark === 'string' && kitUI?.icons?.chevron && kitUI.icons[mark]) return call({ ...opts, icon: mark });
-  const p = call({ ...opts, icon: mark ? '•' : '' });
+// ask()/tell() take a kit glyph's name as `icon`; given a node (a tile of its own) instead, the node goes in the icon's place.
+export function kitDialog(call, opts, mark) {
+  if (!(mark instanceof Node)) return call({ ...opts, icon: mark });
+  const p = call({ ...opts, icon: '•' });
   const slot = [...document.querySelectorAll('dialog.q-ask .q-ask-icon')].pop();
-  if (slot) {
-    if (mark instanceof Node) slot.replaceChildren(mark);
-    else if (kitUI?.icons?.[mark]) slot.innerHTML = kitUI.icons[mark];
-    else slot.remove();
-    slot.classList.add('kit');
-  }
+  slot?.replaceChildren(mark);
   return p;
 }

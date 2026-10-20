@@ -1,14 +1,10 @@
 // Play's own model fills every market Kambi leaves out: players' picks from
-// their season numbers, soccer's draw no bet and corners.
+// their season numbers, and soccer's corners.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseRoster, parseAthletes, totalsOf, blendTotals, playerByName } from '../public/lib/players.mjs';
 import { modelProps, atLeast, binomAtLeast, normalOver, teamScores } from '../public/lib/propmodel.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
-import * as kitMarketsR6 from '../public/lib/markets.mjs';
-// The kit with 台灣運彩's market lists (Shared-Proxy claude/play-rules-r6): told
-// apart by its 單局 markets, so these tests pass on the kit before it too.
-const RULES_R6 = typeof kitMarketsR6.inningMarkets === 'function';
 
 test('distributions add up', () => {
   assert.ok(Math.abs(atLeast(0.3, 1) - (1 - Math.exp(-0.3))) < 1e-6);
@@ -47,12 +43,12 @@ test('the model prices every regular, scaled by the team\'s expected score', () 
   assert.ok(!soccer.some(p => p.player === 'Keeper'));
 });
 
-test('the board falls back to the model: corners for soccer (and draw no bet before the kit dropped it), players once read', () => {
+test('the board falls back to the model: corners for soccer, players once read', () => {
   const soccer = { id: 's', sport: 'epl', startUtc: '2026-10-10T11:30:00.000Z', home: { en: 'A' }, away: { en: 'B' }, draftKings: { home: 0.5, draw: 0.27, away: 0.23 }, polymarket: null, house: null, total: { line: 2.5, overFair: 0.5 }, spread: null };
   const kinds = new Set(gameOptions(soccer).map(o => o.kind));
   for (const k of ['corners', 'btts', 'dc', 'score']) assert.ok(kinds.has(k), k);
-  // 和局退款 isn't on 運彩's list: the kit with its lists makes none.
-  assert.equal(kinds.has('dnb'), !RULES_R6);
+  // 和局退款 isn't on 運彩's list.
+  assert.equal(kinds.has('dnb'), false);
   // Players: the model's picks, with the player's picture.
   const withPlayers = { ...soccer, players: [{ name: 'Striker', side: 'home', pos: 'F', gp: 10, photo: 'x.png', totals: { gp: 10, subIns: 0, goals: 7, assists: 2, sot: 15 } }] };
   const props = gameOptions(withPlayers).filter(o => o.kind === 'prop');

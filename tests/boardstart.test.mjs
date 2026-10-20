@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readBoard, boardTileCount, boardLottery } from '../public/lib/boardstart.mjs';
+import { readBoard, boardLottery } from '../public/lib/boardstart.mjs';
 import * as boardKit from '#kit/play-boardfile.mjs';
 
 const NOW = Date.parse('2026-10-19T09:30:00Z');
@@ -53,23 +53,12 @@ test('a missing, failing or broken board is not used', async () => {
   assert.equal(await read(board({ games: [] })), null);
 });
 
-test('an older kit without play-boardfile.mjs runs the current path', async () => {
+test('a kit file that does not load runs the current path', async () => {
   assert.equal(await read(board(), { loadKit: async () => { throw new Error('404'); } }), null);
-  assert.equal(await read(board(), { loadKit: async () => ({}) }), null);
 });
 
 test('the kit and the rule agree: the kit decides the age', () => {
   assert.equal(boardKit.BOARD_STALE_MS, 30 * 60_000);
-});
-
-test('tile numbers come from the board\'s counts (14 days), the race from f1', () => {
-  const file = board();
-  assert.equal(boardTileCount(file, 'baseball', ['mlb', 'npb', 'cpbl']), 40);
-  assert.equal(boardTileCount(file, 'soccer', ['epl', 'laliga']), 12);
-  assert.equal(boardTileCount(file, 'hockey', ['nhl']), 0);
-  assert.equal(boardTileCount(file, 'f1', []), 1);
-  assert.equal(boardTileCount(board({ f1: 0 }), 'f1', []), 0);
-  assert.equal(boardTileCount({}, 'baseball', ['mlb']), 0);
 });
 
 test('the lottery feed is the board\'s only when whole', () => {

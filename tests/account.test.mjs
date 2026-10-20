@@ -1,10 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as kitOdds from '../public/lib/odds.mjs';
-// The kit with 台灣運彩's settle rules (過1關, 48-hour postponements): its rules tested on it.
-const settle2026 = kitOdds.slipSizes('system', 2, [1]).length === 1;
-// The kit that rounds each prize half up to the NT$ (運彩 §18): 100.5 is 101.
-const halfUp = kitOdds.slipPayoutTable({ legs: [{ gameId: 'a', odds: 1.005 }], sizes: [1], stake: 100 }).gross[1] === 101;
 import {
   START_BALANCE,
   newAccount,
@@ -153,7 +148,7 @@ test('A slip placed with a bigger stored boost (an old Plus one): what it adds i
   ({ account } = placeSlip(account, { ...slip('s', 100, legs), boost: 1.5 }, now));
   const won = applyResults(account, 's', ['won', 'won', 'won'], now);
   // 100 × 8.00: winnings 700; everyone's +5% pays 835, the old member's +7.5% 852.5 (853 rounded half up, §18).
-  const plusPay = halfUp ? 853 : 852;
+  const plusPay = 853;
   assert.equal(won.slips[0].payout, plusPay);
   assert.equal(won.ledger.find(e => e.id === 'payout-s').amount, 835);
   assert.deepEqual(won.ledger.find(e => e.id === 'plus-s'), { id: 'plus-s', t: now.toISOString(), kind: 'plusboost', amount: plusPay - 835, slipId: 's' });
@@ -216,8 +211,8 @@ test('ESPN results: final scores and innings, postponed games void', () => {
   assert.equal(played.status, 'final');
   assert.equal(played.homeScore, 2);
   assert.deepEqual(played.homeInnings, [1, 0]);
-  // A postponed game is void at once on the older kit; 台灣運彩's (48 hours) leaves it to the settler.
-  assert.equal(postponed.status, settle2026 ? 'pending' : 'void');
+  // A postponed game is left to the settler: 台灣運彩 voids it after 48 hours.
+  assert.equal(postponed.status, 'pending');
 });
 
 test('F1 winner from ESPN, championship winner from Polymarket', () => {

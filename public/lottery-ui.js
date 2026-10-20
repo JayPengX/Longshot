@@ -2,9 +2,7 @@
 // scratch cards (lib/scratch.mjs), bought with the Quadra balance. Tickets
 // live on the account next to the slips, settle against the real draws as
 // they come out, and pay into the same pool.
-import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
-// (By the module: nextDraws, upcoming and ticketPrize's `wins` are the newer kit's.)
-import * as L from './lib/lottery.mjs';
+import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, ticketPrize, upcoming, nextDraws, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
 import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize, onSale as cardOnSale } from './lib/scratch.mjs';
 import { buyTickets, buyCard as sellCard, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
@@ -116,14 +114,14 @@ export function mountLottery(ctx) {
   }
   // Every purchase asks first: a tile or button bought on one tap, and a
   // stray tap spent money.
-  const confirmBuy = (mark, title, body) => kitDialog(ask, { lang, title, body, ok: t('buy'), cancel: t('cancel') }, kitUI, mark);
-  const tellK = (o, name) => kitDialog(tell, o, kitUI, name);
+  const confirmBuy = (mark, title, body) => kitDialog(ask, { lang, title, body, ok: t('buy'), cancel: t('cancel') }, mark);
+  const tellK = (o, name) => kitDialog(tell, o, name);
   // Buys a list of selections, one ticket each; { bought, cost } or { error }.
   // Checked here first (the selection, the draw, the balance), then sold by
   // the Worker (lib/settled.mjs buyTickets: its draw, the cost from the
   // pass), and its tickets kept as they are.
   // 多期 (`periods` draws in a row): the kit and the Worker make a ticket a
-  // draw (<id>, <id>-2 …); an older kit sells one draw and isn't asked for more.
+  // draw (<id>, <id>-2 …).
   async function buyLines(id, lines, multiple, periods = 1) {
     let account = ctx.getAccount();
     const asked = [];
@@ -183,7 +181,7 @@ export function mountLottery(ctx) {
     if (settled?.status !== 'settled') return account;
     let wins = null;
     try {
-      wins = L.ticketPrize(ticket, draw)?.wins;
+      wins = ticketPrize(ticket, draw)?.wins;
     } catch {}
     if (!winsText(ticket.game, wins)) return account;
     return { ...account, tickets: account.tickets.map(x => (x.id === ticket.id ? { ...x, wins: wins.map(w => ({ tier: w.tier, n: w.n })) } : x)) };
@@ -248,13 +246,13 @@ export function mountLottery(ctx) {
         .finally(() => (ui.done = (ui.done || 0) + 1, render(), ctx.redrawHome?.()));
     }
     // The next draws as Taiwan Lottery shows them: 期別 and the 頭獎 it advertises.
-    if (!ui.upcoming && typeof L.upcoming === 'function') {
+    if (!ui.upcoming) {
       ui.upcoming = {};
-      L.upcoming()
+      upcoming()
         .then(r => (ui.upcoming = r || {}))
         .catch(() => {})
         .finally(() => (ui.done = (ui.done || 0) + 1, render(), ctx.redrawHome?.()));
-    } else if (typeof L.upcoming !== 'function') ui.done = Math.max(ui.done || 0, 2);
+    }
   }
   // Home's 彩券 card: the biggest jackpot and the next two games; null until the feeds have answered.
   function homeLead() {
@@ -347,7 +345,7 @@ export function mountLottery(ctx) {
       const up = ui.upcoming?.[id];
       const term = d ? termLabel((up?.date === d.date && up?.period) || nextTerm(id, d, latest), lang) : '';
       // The draws a 多期 buys.
-      const draws = st.periods > 1 && typeof L.nextDraws === 'function' ? L.nextDraws(id, Date.now(), st.periods) : [];
+      const draws = st.periods > 1 ? nextDraws(id, Date.now(), st.periods) : [];
       const stepper = (label, value, dec, inc, canDec, canInc) =>
         el('div', { class: 'stepper small', role: 'group', 'aria-label': label }, [
           el('button', { type: 'button', text: '−', 'aria-label': `${label} −`, disabled: canDec ? null : '', onclick: dec }),
@@ -370,14 +368,8 @@ export function mountLottery(ctx) {
               paint();
             };
       fill(
-        // K6 sheetHero: the jackpot big, the cutoff in one line, price and draw time as tags.
-        kitUI.sheetHero?.({ eyebrow: jp ? jp.label : t('topPrize'), big: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), sub: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed'), tint: g.color, tags: [t('perBet', { v: money(g.price) }), d ? drawTimeText(d.at) : null].filter(Boolean) }) ??
-          el('div', { class: 'ls-hero' }, [
-            el('small', { class: 'ls-eyebrow', text: jp ? jp.label : t('topPrize') }),
-            el('strong', { class: 'ls-big num', text: jp ? compactMoney(jp.amount, lang) : topPrizeText(id) }),
-            el('span', { class: 'ls-sub', text: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed') }),
-            el('div', { class: 'ls-tags' }, [el('span', { class: 'q-tag', text: t('perBet', { v: money(g.price) }) }), d ? el('span', { class: 'q-tag', text: drawTimeText(d.at) }) : null].filter(Boolean))
-          ]),
+        // sheetHero: the jackpot big, the cutoff in one line, price and draw time as tags.
+        kitUI.sheetHero({ eyebrow: jp ? jp.label : t('topPrize'), big: jp ? compactMoney(jp.amount, lang) : topPrizeText(id), sub: d ? [term, untilText(id, d.at)].filter(Boolean).join(' · ') : t('closed'), tint: g.color, tags: [t('perBet', { v: money(g.price) }), d ? drawTimeText(d.at) : null].filter(Boolean) }),
         el('section', { class: `ls-slip${complete ? ' done' : ''}` }, [
           el('div', { class: 'ls-slip-head' }, [el('strong', { text: t('slipN', { n: st.lines.length + 1 }) }), el('span', { class: 'ls-status', text: status })]),
           // 3/4星彩: the steppers below are the slip's digits already.
@@ -403,15 +395,11 @@ export function mountLottery(ctx) {
         lastDraw(id),
         tooMany ? el('p', { class: 'lotto-msg', role: 'status', text: t('tooMany', { n: MAX_LINES }) }) : null,
         st.msg ? el('p', { class: 'lotto-msg', role: 'status', text: st.msg }) : null,
-        // K7 sheetFoot: the total and the buy button, sticky; the old bar on an older kit.
+        // sheetFoot: the total and the buy button, sticky.
         el('div', { class: 'ls-footwrap' }, [
           opts.length ? el('div', { class: 'ls-opts' }, opts) : null,
           draws.length > 1 ? el('small', { class: 'ls-draws', text: spanText(draws) }) : null,
-          kitUI.sheetFoot?.({ summary: { small: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}`, big: money(cost) }, button: { label: t('buy'), disabled: !(bets && d && !tooMany), onClick: buy } }) ??
-            el('div', { class: `lotto-buybar sticky ls-buybar` }, [
-              el('div', { class: 'ls-total' }, [el('small', { text: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}` }), el('strong', { class: 'num', text: money(cost) })]),
-              el('button', { class: 'q-btn primary', type: 'button', text: t('buy'), disabled: bets && d && !tooMany ? null : '', onclick: buy })
-            ])
+          kitUI.sheetFoot({ summary: { small: st.periods > 1 ? t('betsP', { n: bets, p: st.periods }) : `${bets} ${lang === 'en' && bets === 1 ? 'bet' : t('bets')}`, big: money(cost) }, button: { label: t('buy'), disabled: !(bets && d && !tooMany), onClick: buy } })
         ].filter(Boolean))
       );
     };
@@ -436,7 +424,7 @@ export function mountLottery(ctx) {
     const digit = Boolean(r.digits);
     const second = r.special != null && Number.isFinite(r.special) ? r.special : r.zone2 != null && Number.isFinite(r.zone2) ? r.zone2 : null;
     const head = [termLabel(termOf(r), lang), String(r.date || '').slice(5).replace('-', '/')].filter(Boolean).join(' · ');
-    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), kitUI.ballRow?.(list.map(n => (digit ? String(n) : String(n).padStart(2, '0'))), { special: second != null ? [String(second).padStart(2, '0')] : [] }) ?? el('div', { class: 'balls mini' }, [...list.map(n => ball(n, '', digit)), second != null ? ball(second, 'special') : null].filter(Boolean))]);
+    const row = (label, list) => el('div', { class: 'ls-last-row' }, [el('small', { text: label }), kitUI.ballRow(list.map(n => (digit ? String(n) : String(n).padStart(2, '0'))), { special: second != null ? [String(second).padStart(2, '0')] : [] })]);
     return el('section', { class: 'ls-last' }, [
       el('p', { class: 'lotto-h' }, [document.createTextNode(t('lastDraw')), head ? el('small', { text: ` ${head}` }) : null].filter(Boolean)),
       digit ? el('div', { class: 'balls mini' }, nums.map(n => ball(n, '', true))) : row(t('bySize'), nums),
@@ -848,7 +836,7 @@ export function mountLottery(ctx) {
   const netChip = got => el('span', { class: `lt-net num out-${outcome(got)}`, text: got > 0 ? `+${money(got)}` : t('outNone') });
   function myTickets() {
     const tickets = ctx.getAccount().tickets || [];
-    if (!tickets.length) return (kitUI.empty?.({ title: t('noTickets') }) ?? el('p', { class: 'empty', text: t('noTickets') }));
+    if (!tickets.length) return kitUI.empty({ title: t('noTickets') });
     const open = tickets.filter(x => x.status === 'open');
     const done = tickets.filter(x => x.status !== 'open');
     const won = done.reduce((s, x) => s + (x.prize || 0), 0);
@@ -883,7 +871,7 @@ export function mountLottery(ctx) {
     ui.doneFilter ||= 'all';
     ui.doneDays ||= 7;
     const list = (ui.doneFilter === 'wins' ? done.filter(x => x.prize > 0) : done).slice().sort((a, b) => whenOf(b) - whenOf(a));
-    if (!list.length) return [(kitUI.empty?.({ title: t('noWins') }) ?? el('p', { class: 'empty', text: t('noWins') }))];
+    if (!list.length) return [kitUI.empty({ title: t('noWins') })];
     const days = new Map();
     for (const x of list) {
       const k = dayOf(whenOf(x));

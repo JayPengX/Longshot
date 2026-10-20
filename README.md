@@ -33,17 +33,15 @@ Live: https://jaypengx.github.io/Quadra-Play/
   from Taiwan Sports Lottery (two-way 1.158, three-way 1.20, live 1.16…).
   House rules (`HOUSE_RULES`): far-out odds are locked and longshots are
   shaded. 限2關 / 限3關 is 運彩's own per game or market (`eventMinLegs`,
-  「這場比賽限串」); a kit before `claude/play-rules-r7` also limited short
-  prices to parlays (「賠率 x 偏低」), never shown on that kit or later.
+  「這場比賽限串」), else the house's price bands (「賠率 x 偏低」).
 - **The slip:** the lottery's ticket rules: singles, parlays and systems;
   1–12 picks; NT$100–100,000; a 20 M cap; 20% tax when a NT$10 bet wins over NT$5,000 (台灣運彩 §29, no stamp duty for members). A
   parlay boost of 5–20% for 3+ picks. Free bets need picks at
   1.50 or longer.
 - **Markets as 台灣運彩 sells them:** hockey on 60 minutes (不讓分 three
   ways, 勝分差 with 和局), 過關組合 from 2 games with 過1關, a postponed game
-  void after 48 hours. Markets it doesn't sell are left off the board
-  (`NOT_SOLD` in app.js); a slip already holding one still settles.
-  With the kit's 運彩 lists (Shared-Proxy `claude/play-rules-r6`): basketball
+  void after 48 hours. Markets it doesn't sell are not made by the kit; a
+  slip already holding one still settles. The kit's 運彩 lists: basketball
   勝分差 in 運彩's bands (1-5 … 26+) and 勝分差（6 項）; American football
   半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
   總進球數); soccer no 和局退款, its 讓分 three ways on whole goals (主-1 /
@@ -66,19 +64,17 @@ Live: https://jaypengx.github.io/Quadra-Play/
   - Lottery tickets and scratch cards are bought there too.
 - **Lottery** (`lib/lottery.mjs`, `scratch.mjs`): 8 draw games settled
   against the real draws, and scratch cards. As each game's 投注方式 has it
-  (`lottery-labels.mjs` `gameLimits`, the kit's `limits()` when it has one):
+  (`lottery-labels.mjs` `gameLimits`, the kit's `limits()`):
   倍數 none on 威力彩/大樂透/今彩539, ×10 樂合彩, ×50 3星/4星/賓果; 多期 (期數)
-  and 包牌 (系統組合: more numbers in a zone, its 注數 and cost shown) only on a
-  kit that sells them (`claude/play-rules-r7`); a 多期 buy is a ticket a draw
+  and 包牌 (系統組合: more numbers in a zone, its 注數 and cost shown); a 多期 buy is a ticket a draw
   (`<id>`, `<id>-2` …), shown once while open. Sales close at 20:00
   (`closesAt`), the next 期別 and 頭獎上看/保證 come from Taiwan Lottery
   (`drawTerm`, `upcoming()`), the last draw shows 大小順序 and 開出順序, and a
   ticket whose pool prize isn't announced yet stays open (「等待派彩公告」).
-  Scratch cards: the kit's `CARD_ORDER` (Taiwan Lottery's 5 since
-  play-rules-r7, in their words: 幸運號碼, 大力士分數); a `retired` card is
-  never sold but one bought before still scratches. Every kit-only export is
-  read off the module with a fallback, so Play runs on kit `main` too, and
-  the tests pass on both.
+  Scratch cards: the kit's `CARD_ORDER` (Taiwan Lottery's own, in their
+  words: 幸運號碼, 大力士分數); a `retired` card is never sold but one bought
+  before still scratches. A kit export added from now on is used with a
+  `?.` fallback until phones have it (the rulebook's §4).
 - **紀錄:** slips (live progress), tickets, 戰績 (wins only), 統計分析 (luck
   against the cut, you against a simulated crowd of 100,000:
   `lib/sim.mjs`).

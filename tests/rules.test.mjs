@@ -13,21 +13,11 @@ import { LEAGUES } from '../public/lib/teams.mjs';
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} !~ ${b}`);
 
-// Kits before play-rules-r7 limited short prices to parlays (限2關 / 限3關) and
-// locked the shortest; since then a short price sells as a single and only a
-// game's or market's own minimum limits it (asked of houseRule itself).
-const priceBands = houseRule('ml', 1.08).minLegs > 1;
-
 test('the house locks only near-certain and far-out prices, sells short ones only in parlays, and shades long ones', () => {
-  if (priceBands) {
-    // Since the whole-payout tax (2026-10-20): under 1.12 locked, under 1.25 限2關.
-    assert.deepEqual(houseRule('ml', 1.02), { lock: 'low', minLegs: 2 });
-    assert.deepEqual(houseRule('ml', 1.08), { lock: 'low', minLegs: 2 });
-    assert.deepEqual(houseRule('ml', 1.2), { lock: null, minLegs: 2 });
-  } else {
-    // 1.01-1.25 all sell as singles, unlocked.
-    for (const odds of [1.02, 1.08, 1.2]) assert.deepEqual(houseRule('ml', odds), { lock: null, minLegs: 1 }, String(odds));
-  }
+  // Since the whole-payout tax (2026-10-20): under 1.12 locked, under 1.25 限2關.
+  assert.deepEqual(houseRule('ml', 1.02), { lock: 'low', minLegs: 2 });
+  assert.deepEqual(houseRule('ml', 1.08), { lock: 'low', minLegs: 2 });
+  assert.deepEqual(houseRule('ml', 1.2), { lock: null, minLegs: 2 });
   assert.deepEqual(houseRule('ml', 1.25), { lock: null, minLegs: 1 });
   // A long price stays on sale (it locked from 8), with more margin on it.
   assert.deepEqual(houseRule('ml', 9), { lock: null, minLegs: 1 });
@@ -41,8 +31,8 @@ test('the house locks only near-certain and far-out prices, sells short ones onl
   assert.deepEqual(houseRule('score', 150), { lock: 'high', minLegs: 1 });
   assert.deepEqual(houseRule('f1', 500), { lock: null, minLegs: 1 });
   // A runaway championship or race favourite: parlay-only, locked only when all but decided.
-  assert.deepEqual(houseRule('future', 1.05), { lock: 'low', minLegs: priceBands ? 2 : 1 });
-  assert.deepEqual(houseRule('f1', 1.2), { lock: null, minLegs: priceBands ? 2 : 1 });
+  assert.deepEqual(houseRule('future', 1.05), { lock: 'low', minLegs: 2 });
+  assert.deepEqual(houseRule('f1', 1.2), { lock: null, minLegs: 2 });
   assert.deepEqual(houseRule('future', 1.3), { lock: null, minLegs: 1 });
   // Every combination on the ticket must be big enough for its legs.
   assert.equal(minLegsProblem([{ minLegs: 1 }, { minLegs: 2 }], [2]), 0);

@@ -1,11 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as kitMarkets from '../public/lib/markets.mjs';
-// The kit with 台灣運彩's settle rules: every hockey market on 60 minutes, 不讓分 three ways.
-const hockey60 = typeof kitMarkets.hockeyWinner === 'function';
-// The kit with 台灣運彩's market lists (claude/play-rules-r6): no NFL 勝分差,
-// 半場讓分 and 達陣數大小 instead; baseball's first inning as 單局大小 / 單局不讓分.
-const RULES_R6 = typeof kitMarkets.inningMarkets === 'function';
 import { pointsModel, pointsMarkets, goalMarkets, fitHockey, baseballMarkets, marketOdds, normalCdf, normalQuantile, CUT } from '../public/lib/markets.mjs';
 import { fitGoals } from '../public/lib/live.mjs';
 import { legResult } from '../public/lib/account.mjs';
@@ -28,10 +22,9 @@ test('football: the model reproduces DraftKings spread and total, and every mark
   close(main.picks[0].fair, 0.5, 1e-6);
   for (const x of markets) close(sum(x.picks), 1, 1e-6);
   const margin = markets.find(x => x.kind === 'margin');
-  if (RULES_R6) {
-    assert.equal(margin, undefined);
-    assert.ok(markets.some(x => x.kind === 'hrunline') && markets.some(x => x.kind === 'tdtotal'));
-  } else assert.equal(margin.picks.length, 8);
+  // 運彩 sells no NFL 勝分差: 半場讓分 and 達陣數大小 instead.
+  assert.equal(margin, undefined);
+  assert.ok(markets.some(x => x.kind === 'hrunline') && markets.some(x => x.kind === 'tdtotal'));
   // Two-way odds carry the lottery's two-way cut.
   const total = markets.find(x => x.kind === 'total' && x.posted);
   close(1 / marketOdds(total, total.picks[0].fair) + 1 / marketOdds(total, total.picks[1].fair), CUT.twoWay, 0.01);
@@ -48,18 +41,18 @@ test('soccer and hockey goal markets', () => {
   const book = score.picks.reduce((s, p) => s + 1 / marketOdds(score, p.fair), 0);
   assert.ok(book > 1.4 && book < 1.6, book);
   const hockey = goalMarkets(fitHockey(0.58, { line: 5.5, overFair: 0.5 }), { family: 'hockey', totalLine: 5.5 });
-  // (台灣運彩's kit: 不讓分 is the 60 minutes', so no separate regulation market.)
-  assert.equal(hockey.some(x => x.kind === 'regulation'), !hockey60);
+  // (不讓分 is the 60 minutes', so no separate regulation market.)
+  assert.equal(hockey.some(x => x.kind === 'regulation'), false);
   close(hockey.find(x => x.kind === 'total' && x.posted).picks[0].fair, 0.5, 0.02);
 });
 
 test('baseball extras', () => {
   const markets = baseballMarkets({ homeWin: 0.55, total: { line: 8.5, overFair: 0.5 } });
   for (const x of markets) close(sum(x.picks), 1, 1e-3);
-  // A run in the first inning (首局得分 yes, or [第1局]大小 over 0.5) happens in roughly half of MLB games.
-  const yrfi = RULES_R6 ? markets.find(x => x.kind === 'inningtotal' && x.line === 0.5) : markets.find(x => x.kind === 'firstinning');
+  // A run in the first inning ([第1局]大小 over 0.5) happens in roughly half of MLB games.
+  const yrfi = markets.find(x => x.kind === 'inningtotal' && x.line === 0.5);
   assert.ok(yrfi.picks[0].fair > 0.4 && yrfi.picks[0].fair < 0.6, yrfi.picks[0].fair);
-  assert.equal(markets.some(x => x.kind === 'inningml'), RULES_R6);
+  assert.ok(markets.some(x => x.kind === 'inningml'));
 });
 
 test('new kinds of picks settle from the final score and periods', () => {
