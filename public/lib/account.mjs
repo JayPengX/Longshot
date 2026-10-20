@@ -284,7 +284,12 @@ export function recoverFromWallet(account, wallet) {
   // (An entry that can't be dated or counted is no money to bring back: one
   // malformed entry stopped every sync with a RangeError.)
   const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()));
-  const have = new Set(account.ledger.map(e => e.id));
+  // A back charge taken back (the Worker's `eco:untax-<slip>`): off the
+  // record, the slip paying what it did.
+  const untaxed = new Set((wallet?.entries || []).filter(e => typeof e?.id === 'string' && e.id.startsWith('eco:untax-')).map(e => e.id.slice(10)));
+  const kept0 = untaxed.size ? account.ledger.filter(e => !(e.kind === 'tax' && untaxed.has(e.slipId || e.id.slice(4)))) : account.ledger;
+  const cleared = kept0.length === account.ledger.length ? account.ledger : kept0;
+  const have = new Set(cleared.map(e => e.id));
   const ledger = [];
   for (const e of mine) {
     const id = e.id.slice(5);
@@ -294,7 +299,7 @@ export function recoverFromWallet(account, wallet) {
     if (slipId) entry.slipId = slipId;
     ledger.push(entry);
   }
-  const all = [...account.ledger, ...ledger];
+  const all = [...cleared, ...ledger];
   const slipIds = new Set(account.slips.map(s => s.id));
   const paid = new Map(all.filter(e => (e.kind === 'payout' || e.kind === 'cashout') && e.slipId).map(e => [e.slipId, e]));
   const refunds = new Set(all.filter(e => e.kind === 'refund' && e.slipId).map(e => e.slipId));
@@ -320,11 +325,15 @@ export function recoverFromWallet(account, wallet) {
   // slip (the Worker's `tax-<slip>`): the slip shows what it pays after it.
   const taxes = new Map(all.filter(e => e.kind === 'tax' && e.slipId && e.amount < 0).map(e => [e.slipId, -e.amount]));
   const kept = recheck.map(s => {
+    if (s.backTax && untaxed.has(s.id)) {
+      const { backTax, ...rest } = s;
+      return { ...rest, payout: s.payout + backTax };
+    }
     const tax = taxes.get(s.id);
     if (!tax || s.backTax || s.status !== 'settled') return s;
     return { ...s, gross: s.gross ?? s.payout, payout: s.payout - tax, backTax: tax };
   });
-  if (!ledger.length && !slips.length && kept.every((s, i) => s === account.slips[i])) return account;
+  if (!ledger.length && !slips.length && cleared === account.ledger && kept.every((s, i) => s === account.slips[i])) return account;
   return {
     ...account,
     ledger: all.sort((x, y) => x.t.localeCompare(y.t)),
