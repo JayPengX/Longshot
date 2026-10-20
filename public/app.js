@@ -3212,7 +3212,11 @@ function saveSnapshot() {
 const BOARD_READ_MS = 4_000;
 // How long start-up waits for the file before the saved board and the league reads go ahead without it.
 const BOARD_WAIT_MS = 1_500;
-const readPlayBoard = () => readBoard({ packJson: kit.packJson, timeout: BOARD_READ_MS });
+// With no saved board (a first opening): the file waited for this long. On a
+// slow connection it took longer than the wait and the read's 4 s, and the
+// page fell back on every league's own reads (about 138): a minute on 3G.
+const BOARD_COLD_MS = 15_000;
+const readPlayBoard = (timeout = BOARD_READ_MS) => readBoard({ packJson: kit.packJson, timeout });
 // The board's games and picks as state.data and the picks Play names; the
 // league tiles' counts (14 days) and the lottery's jackpots ride along.
 function takeBoard({ file, mod }) {
@@ -3859,7 +3863,8 @@ async function boot() {
   const handoff = /[#&]q[hp]=/.test(location.hash);
   // The proxy's board, asked at once; the saved board and the league reads
   // wait for it a moment (a slow or missing file: they go ahead without it).
-  const board = await within(readPlayBoard(), BOARD_WAIT_MS, null);
+  const cold = !(storedAccount() && readSnapshot());
+  const board = await within(readPlayBoard(cold ? BOARD_COLD_MS : BOARD_READ_MS), cold ? BOARD_COLD_MS : BOARD_WAIT_MS, null);
   takeSnapshot(board);
   // (A tab asked for in the address that needs every league.)
   if (state.fromBoard && (state.tab === 'games' || state.tab === 'history')) wantFull();
