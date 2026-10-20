@@ -9,7 +9,7 @@ import * as kitUI from '#kit/ui.mjs';
 import * as kitTeams from '#kit/play-teams.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
-import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
+import { accountFor, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
@@ -2084,7 +2084,7 @@ async function mergeRemote(remote, applied = () => {}) {
     const other = await unpack(item.payload).catch(() => null);
     if (isAccount(other)) merged = mergeDistinct(merged, compactAccount(other));
   }
-  merged = refundLost(recoverFromWallet(merged, wallet));
+  merged = recoverFromWallet(merged, wallet);
   const have = new Set((wallet?.entries || []).map(e => e.id));
   const entries = poolEntries(merged).filter(e => !have.has(e.id));
   const open = merged.slips.filter(x => x.status === 'open').reduce((sum, x) => sum + x.cost, 0);
@@ -2320,8 +2320,8 @@ async function applySettled(force = false) {
   // Settled in this account now: the Worker forgets them.
   ackSettled(Object.keys(records).filter(id => records[id]?.settled && account.slips.find(s => s.id === id)?.status === 'settled')).catch(() => {});
 }
-// From the lock-down on (lib/account.mjs LOCK_SINCE) every slip is placed
-// through the Worker, which watches its Kambi matches (Shared-Proxy settle.js watchSlips).
+// Every slip is placed through the Worker, which watches its Kambi matches
+// (Shared-Proxy settle.js watchSlips).
 // A check runs unseen: only a tap on 查詢結果 shows it working (`shown`), and
 // the screens are drawn again only when a score, a result or a pick's state changed.
 async function checkResults(force = false, { shown = false } = {}) {
@@ -2340,9 +2340,6 @@ async function checkResults(force = false, { shown = false } = {}) {
   }
   const started = s => s.legs.filter(l => !l.result && (l.kind === 'future' || (l.start && Date.parse(l.start) <= now.getTime())));
   const pending = open.flatMap(started);
-  // Kambi's matches for the Worker to keep: only an older slip's (one placed
-  // since the lock-down is watched by the Worker as it's placed).
-  const watch = open.filter(s => !(Date.parse(s.t) >= LOCK_SINCE)).flatMap(started);
   if (!pending.length || state.checking) return;
   // (A beat's own timer runs a little early or late: a second's slack.)
   if (!force && now.getTime() - state.checkedAt < (state.legLive.size ? liveMs() - 1000 : RESULT_CHECK_MS)) return;
@@ -2353,7 +2350,8 @@ async function checkResults(force = false, { shown = false } = {}) {
   const seen = () => JSON.stringify([[...state.legLive], [...state.legOutcome]]);
   const before = seen();
   try {
-    const outcomes = await fetchOutcomes(pending, now, { watch });
+    // (No Kambi match is sent to watch: the Worker watches every slip it placed.)
+    const outcomes = await fetchOutcomes(pending, now, { watch: [] });
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
     state.legOutcome = new Map([...outcomes].filter(([, o]) => o?.status === 'void' || (o?.status === 'pending' && o.state === 'pre')));
   } catch (error) {

@@ -319,60 +319,26 @@ test('the wallet brings back a lost ledger and slips, and a real slip wins over 
   assert.equal(mergeAccounts(real, back).slips.find(s => s.id === 'a').recovered, undefined);
 });
 
-test('a lost slip that was never settled is refunded once it is old enough, and a found one is not paid twice', async () => {
-  const { recoverFromWallet, refundLost, applyResults, newAccount, balance, REFUND_AFTER_MS } = await import('../public/lib/account.mjs');
-  const t0 = Date.parse('2026-09-01T00:00:00Z');
-  const wallet = {
-    entries: [
-      { id: 'odds:stake-a', t: t0, app: 'odds', kind: 'stake', amount: -1000 },
-      { id: 'odds:payout-a', t: t0 + 1, app: 'odds', kind: 'payout', amount: 0 },
-      { id: 'odds:stake-b', t: t0 + 2, app: 'odds', kind: 'stake', amount: -2000 }
-    ]
-  };
-  const back = recoverFromWallet(newAccount(new Date(t0), { start: false }), wallet);
-  assert.equal(balance(back), -3000);
-  // Too soon: another device may still hold the real slip.
-  assert.equal(refundLost(back, new Date(t0 + REFUND_AFTER_MS - 1000)), back);
-  const later = new Date(t0 + REFUND_AFTER_MS + 1000);
-  const refunded = refundLost(back, later);
-  assert.equal(balance(refunded), -1000);
-  const b = refunded.slips.find(s => s.id === 'b');
-  assert.equal(b.refunded, true);
-  assert.equal(b.payout, 2000);
-  // The lost bet that did settle (a loss) is left alone; nothing is refunded twice.
-  assert.equal(refunded.slips.find(s => s.id === 'a').refunded, undefined);
-  assert.equal(refundLost(refunded, later), refunded);
-  // Rebuilt again from the wallet (which now has the refund), it stays refunded.
-  const again = recoverFromWallet(newAccount(new Date(t0), { start: false }), { entries: [...wallet.entries, { id: 'odds:refund-b', t: later.getTime(), app: 'odds', kind: 'refund', amount: 2000 }] });
-  assert.equal(again.slips.find(s => s.id === 'b').refunded, true);
-  assert.equal(balance(refundLost(again, later)), -1000);
-  // The real slip turns up and wins: it pays only what's beyond the refunded cost.
-  const found = { ...refunded, slips: refunded.slips.map(s => (s.id === 'b' ? { id: 'b', t: s.t, mode: 'single', sizes: [1], stake: 2000, cost: 2000, status: 'open', legs: [{ id: 'x', odds: 2, result: null }] } : s)) };
-  const settled = applyResults(found, 'b', ['won'], later);
-  assert.equal(balance(settled), -3000 + settled.slips.find(s => s.id === 'b').payout);
-});
-
-test("a lost slip from since the lock-down is never refunded here: it's the Worker's, which settles and pays it", async () => {
-  const { recoverFromWallet, refundLost, newAccount, balance, REFUND_AFTER_MS, LOCK_SINCE } = await import('../public/lib/account.mjs');
-  const t0 = LOCK_SINCE + 86_400_000;
-  const wallet = { entries: [{ id: 'odds:stake-c', t: t0, app: 'odds', kind: 'stake', amount: -1500 }] };
-  const back = recoverFromWallet(newAccount(new Date(t0), { start: false }), wallet);
-  // Days on: no refund (the wallet refuses one; refunded here, the NT$1,500
-  // was money on this device the pool never had).
-  const later = new Date(t0 + REFUND_AFTER_MS * 3);
-  assert.equal(refundLost(back, later), back);
-  assert.equal(balance(back), -1500);
-  // The Worker settles it and pays: the recovered slip shows what it paid, the money once.
-  const paid = recoverFromWallet(back, { entries: [...wallet.entries, { id: 'odds:payout-c', t: later.getTime(), app: 'odds', kind: 'payout', amount: 2400 }, { id: 'odds:plus-c', t: later.getTime(), app: 'odds', kind: 'plusboost', amount: 60 }] });
-  const c = paid.slips.find(s => s.id === 'c');
-  assert.deepEqual([c.recovered, c.payout, c.refunded], [true, 2460, undefined]);
-  assert.equal(balance(paid), -1500 + 2460);
-  assert.equal(refundLost(paid, later), paid);
-  // Read again: nothing changes.
-  assert.equal(recoverFromWallet(paid, { entries: [...wallet.entries, { id: 'odds:payout-c', t: later.getTime(), app: 'odds', kind: 'payout', amount: 2400 }, { id: 'odds:plus-c', t: later.getTime(), app: 'odds', kind: 'plusboost', amount: 60 }] }), paid);
-  // One from before the lock-down still is, once.
-  const old = recoverFromWallet(newAccount(new Date(LOCK_SINCE - 10 * 86_400_000), { start: false }), { entries: [{ id: 'odds:stake-d', t: LOCK_SINCE - 10 * 86_400_000, app: 'odds', kind: 'stake', amount: -700 }] });
-  assert.equal(balance(refundLost(old, later)), 0);
+test('a rebuilt slip shows a refund as refunded, and what the Worker paid once it has', async () => {
+  const { recoverFromWallet, newAccount, balance } = await import('../public/lib/account.mjs');
+  const t0 = Date.parse('2026-10-14T00:00:00Z');
+  const stakes = [
+    { id: 'odds:stake-b', t: t0, app: 'odds', kind: 'stake', amount: -2000 },
+    { id: 'odds:stake-c', t: t0 + 1, app: 'odds', kind: 'stake', amount: -1500 }
+  ];
+  const empty = newAccount(new Date(t0), { start: false });
+  const refund = { id: 'odds:refund-b', t: t0 + 2, app: 'odds', kind: 'refund', amount: 2000 };
+  const back = recoverFromWallet(empty, { entries: [...stakes, refund] });
+  const b = back.slips.find(s => s.id === 'b');
+  assert.deepEqual([b.recovered, b.refunded, b.payout], [true, true, 2000]);
+  // Unpaid, c shows nothing paid; the Worker's payout comes in and it shows that, the money once.
+  const c = s => s.slips.find(x => x.id === 'c');
+  assert.equal(c(back).payout, 0);
+  const wallet = { entries: [...stakes, refund, { id: 'odds:payout-c', t: t0 + 3, app: 'odds', kind: 'payout', amount: 2400 }] };
+  const paid = recoverFromWallet(back, wallet);
+  assert.equal(c(paid).payout, 2400);
+  assert.equal(balance(paid), -3500 + 2000 + 2400);
+  assert.equal(recoverFromWallet(paid, wallet), paid);
 });
 
 test("a wallet entry that can't be dated or counted is left out, never a sync that throws", async () => {

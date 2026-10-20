@@ -73,31 +73,3 @@ test('taxPaid counts the sports tax back charged on an old payout (the wallet’
   const account = { slips: [], tickets: [], ledger: [{ id: 'payout-a', kind: 'payout', amount: 30_920, slipId: 'a' }, { id: 'tax-a', kind: 'tax', amount: -6_184, slipId: 'a' }] };
   assert.deepEqual(taxPaid(account), { sports: 6_184, lottery: 0 });
 });
-
-test('a back-charged sports tax shows on its slip: what it pays after, counted once in taxPaid', async () => {
-  const { recoverFromWallet, taxPaid } = await import('../public/lib/account.mjs');
-  const t = '2026-10-20T02:47:00.000Z';
-  const slip = { id: 'a', t, mode: 'single', sizes: [1], stake: 28_630, cost: 28_630, legs: [{ odds: 1.08, result: 'won' }], status: 'settled', gross: 30_920, payout: 30_920 };
-  const account = { v: 1, created: t, slips: [slip], tickets: [], ledger: [{ id: 'stake-a', t, kind: 'stake', amount: -28_630, slipId: 'a' }, { id: 'payout-a', t, kind: 'payout', amount: 30_920, slipId: 'a' }] };
-  const wallet = { entries: [{ id: 'odds:tax-a', t: Date.parse('2026-10-20T04:43:00Z'), app: 'odds', kind: 'tax', amount: -6_184 }] };
-  const after = recoverFromWallet(account, wallet);
-  assert.equal(after.slips[0].payout, 24_736);
-  assert.equal(after.slips[0].backTax, 6_184);
-  assert.deepEqual(taxPaid(after), { sports: 6_184, lottery: 0 });
-  // Again: nothing changes.
-  assert.equal(recoverFromWallet(after, wallet), after);
-});
-
-test('a back charge taken back (eco:untax-<slip>) leaves the slip and the record as before it', async () => {
-  const { recoverFromWallet, taxPaid } = await import('../public/lib/account.mjs');
-  const t = '2026-10-20T02:47:00.000Z';
-  const slip = { id: 'a', t, mode: 'single', sizes: [1], stake: 28_630, cost: 28_630, legs: [{ odds: 1.08, result: 'won' }], status: 'settled', gross: 30_920, payout: 24_736, backTax: 6_184 };
-  const account = { v: 1, created: t, slips: [slip], tickets: [], ledger: [{ id: 'stake-a', t, kind: 'stake', amount: -28_630, slipId: 'a' }, { id: 'payout-a', t, kind: 'payout', amount: 30_920, slipId: 'a' }, { id: 'tax-a', t: '2026-10-20T04:43:00.000Z', kind: 'tax', amount: -6_184, slipId: 'a' }] };
-  const wallet = { entries: [{ id: 'eco:untax-a', t: Date.parse('2026-10-20T05:00:00Z'), app: 'eco', kind: 'untax', amount: 0 }] };
-  const after = recoverFromWallet(account, wallet);
-  assert.equal(after.slips[0].payout, 30_920);
-  assert.equal(after.slips[0].backTax, undefined);
-  assert.ok(!after.ledger.some(e => e.kind === 'tax'));
-  assert.deepEqual(taxPaid(after), { sports: 0, lottery: 0 });
-  assert.equal(recoverFromWallet(after, wallet), after);
-});

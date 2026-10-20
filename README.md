@@ -137,5 +137,4 @@ deploys to Pages.
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports |
 | Ledger ids | Merging, the Worker's `ENTRY_APPS` and VIP stakes |
 | The slip's rules (`lib/slip.mjs`) | Shared-Proxy `price.js` `checkSlip`: the phone must say what the Worker will |
-| Refunds of lost slips | `account.mjs` `LOCK_SINCE` = Shared-Proxy `eco.js` `LOCK_SINCE` |
 | The league list | `kit/catalog.mjs` (shared with Orbit Sports) |
