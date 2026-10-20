@@ -32,3 +32,23 @@ test('resultByMarket: settled slips by sport, open ones left out, lottery and sc
   };
   assert.deepEqual(resultByMarket(account), { nba: 85, mixed: -50, other: -20, lottery: 350, scratch: -100 });
 });
+
+test('taxPaid: what the government withheld from slips and lottery prizes, never a free bet’s stake', async () => {
+  const { taxPaid } = await import('../public/lib/account.mjs');
+  const account = {
+    slips: [
+      { status: 'settled', gross: 60_000, payout: 48_010, stake: 100 },
+      // A free bet: gross counts the stake it never paid back; no tax on a small win.
+      { status: 'settled', gross: 300, payout: 100, stake: 200, free: true, freeValue: 200 },
+      { status: 'open', gross: 90_000, payout: 0 },
+      { status: 'settled', gross: 0, payout: 0 }
+    ],
+    tickets: [
+      { status: 'settled', gross: 10_000, prize: 7_960 },
+      { status: 'settled', gross: 400, prize: 400 },
+      { status: 'open', gross: 10_000 }
+    ]
+  };
+  assert.deepEqual(taxPaid(account), { sports: 11_990, lottery: 2_040 });
+  assert.deepEqual(taxPaid({}), { sports: 0, lottery: 0 });
+});

@@ -10,7 +10,7 @@ import * as kitUI from '#kit/ui.mjs';
 import * as kitTeams from '#kit/play-teams.mjs';
 const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
-import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, compactAccount, cashOut, isAccount } from './lib/account.mjs';
+import { accountFor, LOCK_SINCE, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, refundLost, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
 import { boardBets, futureBets, liveBets, legOf } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
@@ -2146,8 +2146,9 @@ async function mergeRemote(remote) {
   const n = merged.slips.filter(x => x.status === 'open').length;
   const had = wallet?.snap?.odds;
   const pl = resultByMarket(merged);
-  const same = had?.open === open && had?.n === n && !had?.slips && JSON.stringify(had?.pl || {}) === JSON.stringify(pl);
-  const snap = same ? undefined : { odds: { open, n, pl, t: Date.now() } };
+  const gov = taxPaid(merged);
+  const same = had?.open === open && had?.n === n && !had?.slips && JSON.stringify(had?.pl || {}) === JSON.stringify(pl) && JSON.stringify(had?.gov || {}) === JSON.stringify(gov);
+  const snap = same ? undefined : { odds: { open, n, pl, gov, t: Date.now() } };
   const changed = !theirs || JSON.stringify(merged) !== JSON.stringify(theirs);
   if (JSON.stringify(merged) !== JSON.stringify(state.account)) {
     state.account = merged;

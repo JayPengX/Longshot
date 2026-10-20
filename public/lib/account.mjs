@@ -184,6 +184,24 @@ export function poolEntries(account) {
   return account.ledger.map(e => ({ id: `odds:${e.id}`, t: Date.parse(e.t), app: 'odds', kind: e.kind, amount: e.amount }));
 }
 
+// What the government withheld from this account's winnings, whole NT$ (sent
+// in the wallet's `snap.odds.gov` for the Quadra Pass's 真相 › 政府): 運彩's
+// 20% income tax on a big combination (a settled slip's prize before tax
+// less after; a free bet's stake, never paid back, isn't tax), and the
+// lottery's and scratch cards' 20% tax and 0.4% stamp duty on a prize over
+// NT$5,000 (a settled ticket's gross less what it paid).
+export function taxPaid(account) {
+  let sports = 0;
+  for (const slip of account?.slips || []) {
+    if (slip.status !== 'settled' || !(slip.gross > 0)) continue;
+    const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
+    sports += Math.max(0, slip.gross - back);
+  }
+  let lottery = 0;
+  for (const x of account?.tickets || []) if (x.status === 'settled' && x.gross > 0) lottery += Math.max(0, x.gross - (x.prize || 0));
+  return { sports: Math.round(sports), lottery: Math.round(lottery) };
+}
+
 // The account's settled money by market, for the admin page's totals (sent
 // in the wallet's `snap.odds.pl`): each settled slip's net under its sport
 // ('mixed' across sports, 'other' with no picks left), lottery draws and
