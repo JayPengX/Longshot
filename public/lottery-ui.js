@@ -193,7 +193,12 @@ export function mountLottery(ctx) {
   // The biggest jackpot on now as the hero; the draw games as tiles (name,
   // prize, countdown: the rest is in each game's sheet); the scratch cards
   // as a rail; the tickets bought in 紀錄, a row away.
+  // (Through Play's redraw: the art already shown is moved into the new
+  // layout, not loaded again, so the tab doesn't flash every time it opens.)
   function render() {
+    return ctx.redraw ? ctx.redraw(box(), draw) : draw();
+  }
+  function draw() {
     const root = box();
     if (!root || !ctx.getAccount()) return;
     loadFeeds();
