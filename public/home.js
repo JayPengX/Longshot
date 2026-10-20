@@ -60,6 +60,11 @@ const TIER_WEIGHT = { major: 0.6, minor: 0.3, thin: 0.05 };
 // app's affinity): when it changes, home is drawn again (app.js).
 export const tasteKey = wallet => JSON.stringify([fixturesTaste(cachedPayload, wallet), Object.keys(affinity(wallet, Date.now(), ['odds', 'stock', 'match'])).sort().slice(0, 40)]);
 
+// 為你推薦 as first drawn, kept while its picks are still on sale: home is
+// drawn again on every live read and when the pass's follows come in, and the
+// row reshuffled (or filled in) seconds after the page opened.
+let mineKept = [];
+
 export function renderHome(ctx) {
   const { state, el, fmtMoney, gameTime } = ctx;
   const root = document.getElementById('home-body');
@@ -83,10 +88,16 @@ export function renderHome(ctx) {
     return map;
   };
   const betsOf = group(state.bets);
-  const liveBetsOf = group(state.liveBets);
 
   // ---- 為你推薦, then 焦點賽事 (other games, other teams, none already bet on).
-  const mine = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now });
+  const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now });
+  const betById = new Map((state.bets || []).map(b => [b.id, b]));
+  const gameById = new Map((state.data?.games || []).map(g => [g.id, g]));
+  const kept = mineKept
+    .map(x => ({ ...x, bet: betById.get(x.bet.id), game: gameById.get(x.game.id) }))
+    .filter(x => x.bet && !x.bet.lock && x.game && Date.parse(x.game.startUtc) > now);
+  const mine = kept.length ? kept : fresh;
+  mineKept = mine;
   const shownIds = new Set(mine.map(x => x.game.id));
   const shownTeams = new Set(mine.flatMap(x => ['home', 'away'].map(side => teamKey(x.game, side))));
   const later = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > now && !taste.held.has(g.id) && !shownIds.has(g.id) && !shownTeams.has(teamKey(g, 'home')) && !shownTeams.has(teamKey(g, 'away')) && (betsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
@@ -99,7 +110,8 @@ export function renderHome(ctx) {
   const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 4 });
 
   // ---- 場中焦點: games on now with a live win price, ranked the same way.
-  const onNow = (state.liveGames || []).filter(g => (liveBetsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
+  // (Every game on now: the strip is scores, and a held game's sheet says so.)
+  const onNow = state.liveGames || [];
   const liveItems = onNow.map(g => ({ id: `live:${g.id}`, game: g, keys: gameKeys(g), quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
   const liveTop = spreadLeagues(rank(liveItems, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 4 });
 

@@ -367,6 +367,21 @@ function namer() {
 }
 // The board's bets, priced by the kit (play-bets.mjs, the Worker checks a
 // placed bet's price with the same code), each named here.
+// 運彩 never leaves one side of a market on sale: when the house holds any
+// pick of a game's market (or only one side of a two-sided one is priced),
+// every pick of it is held. Outrights and long lists (bands, scores) aside.
+const PAIRED_SIDES = new Set(['away', 'home', 'over', 'under', 'draw']);
+function lockWhole(bets) {
+  const groups = groupBy(bets.filter(b => b.gameId && !String(b.gameId).startsWith('f1') && b.kind !== 'future'), b => `${b.gameId}|${b.market ?? b.kind}|${b.period ?? ''}`);
+  const held = new Set();
+  for (const list of groups.values()) {
+    if (list.length > 3) continue;
+    const lone = list.length === 1 && PAIRED_SIDES.has(list[0].side);
+    if (lone || (list.length > 1 && list.some(b => b.lock))) for (const b of list) if (!b.lock) held.add(b);
+  }
+  return held.size ? bets.map(b => (held.has(b) ? { ...b, lock: 'market' } : b)) : bets;
+}
+
 function buildBets(data) {
   for (const game of data.games) {
     // Kambi's own markets of the game once read (loadOffers), whatever read of the board this is.
@@ -374,7 +389,7 @@ function buildBets(data) {
     // And its players with their season numbers (players.mjs), once read.
     if (gamePlayers.get(game.id)?.players) game.players = gamePlayers.get(game.id).players;
   }
-  return boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
+  return lockWhole(boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b)));
 }
 
 // An F1 pick's names: drivers in Chinese here, the race's name as its matchup.
@@ -763,7 +778,8 @@ function drawGames() {
           el('i', { class: 'pl-chev', 'aria-hidden': 'true' })
         ])
       : null,
-    !sections.length ? kitUI.empty({ title: t('noBets') }) : null].filter(Boolean)
+    // Nothing this day: said only when 場中 and 冠軍 have nothing either (styles.css hides it beside them).
+    !sections.length && !rest ? Object.assign(emptyK({ icon: 'calendar', title: t('noBets') }), { className: 'q-empty pl-none' }) : null].filter(Boolean)
   );
 }
 function gameSection(title, count, rows) {
@@ -798,13 +814,18 @@ const marketCount = bets => new Set(bets.filter(b => b.kind !== 'ml').map(b => b
 function gameRow(game, bets, { league = false, day = false } = {}) {
   const t = state.t;
   const ml = bets.filter(b => b.kind === 'ml');
+  // A game with nothing on sale (運彩 holds a live game whole): a lock a side, and 暫停銷售 on top.
+  const held = gameHeld(game, bets);
+  const floor = legsFloor(bets);
+  // (A game on now with no win price: held, a lock in its place, never a blank.)
+  const cell = bet => (bet ? pickButton(bet, '', floor) : held || game.live ? heldCell() : el('span', { class: 'pick-none' }));
   const rows = winnerSides(game, ml).map(side => {
     const bet = ml.find(b => b.side === side);
-    if (side === 'draw') return bet ? el('div', { class: 'pl-team draw' }, [el('span', { class: 'pl-draw-mark', 'aria-hidden': 'true', text: '=' }), el('span', { class: 'pl-team-name', text: t('draw') }), pickButton(bet, '')]) : null;
+    if (side === 'draw') return bet ? el('div', { class: 'pl-team draw' }, [el('span', { class: 'pl-draw-mark', 'aria-hidden': 'true', text: '=' }), el('span', { class: 'pl-team-name', text: t('draw') }), cell(bet)]) : null;
     const score = game.live ? el('span', { class: `pl-score${scoreMoved(`${game.id}|${side}`, game.live[`${side}Score`]) ? ' moved' : ''}`, text: String(game.live[`${side}Score`]) }) : null;
-    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name', text: rowTeam(game, side) }), score, bet ? pickButton(bet, '') : el('span', { class: 'pick-none' })]);
+    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name', text: rowTeam(game, side) }), score, cell(bet)]);
   });
-  const n = marketCount(bets);
+  const n = marketCount(bets.filter(b => !b.lock));
   const event = league ? gameSeries(game) : eventOf(game);
   const when = game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : day ? `${taipeiDayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc);
   return el('article', { class: `pl-game${game.live ? ' live' : ''}`, 'data-game': game.id, onclick: e => !e.target.closest('button') && openGameSheet(game.id) }, [
@@ -814,11 +835,24 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
         ? el('span', { class: 'pl-when live' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
         : el('span', { class: 'pl-when', text: when }),
       event ? el('span', { class: 'pl-event', text: event }) : null,
-      el('span', { class: 'pl-more', text: n ? t('marketsN', { n }) : '' }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
+      // The game's 限關, once for the whole game (a price stricter than it keeps its own small mark).
+      !held && floor > 1 ? el('span', { class: 'pl-legs', title: t('minLegsNoteEvent', { n: floor }), text: t('minLegsGameTag', { n: floor }) }) : null,
+      held
+        ? el('span', { class: 'pl-more pl-held' }, [icon('lock', 'lock'), el('span', { text: t('gameHeld') })])
+        : el('span', { class: 'pl-more', text: n ? t('marketsN', { n }) : '' }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
     ]),
     ...rows
   ]);
 }
+// Nothing of a game on sale: every pick held, or a game on now with none priced.
+const gameHeld = (game, bets) => (bets.length ? bets.every(b => b.lock) : Boolean(game.live));
+// The fewest legs any open pick of a game needs: the game's own 限關, said once.
+const legsFloor = bets => {
+  const open = bets.filter(b => !b.lock);
+  return open.length ? Math.min(...open.map(b => b.minLegs ?? 1)) : 1;
+};
+// A held price's place: a lock where the price was.
+const heldCell = (name = '') => el('span', { class: 'pick locked', 'aria-hidden': 'true' }, [name ? el('span', { class: 'pick-name', text: name }) : null, el('span', { class: 'pick-odds' }, [icon('lock', 'lock')])]);
 
 // A game in its sheet: the scoreboard (both sides' logos and names, the
 // time or the live score between), the win prices in one row, then every
@@ -832,7 +866,10 @@ function gameDetail(game, bets) {
   const [left, right] = sides.filter(s => s !== 'draw');
   const day = taipeiDayKey(game.startUtc);
   const [, m, d] = day.split('-').map(Number);
-  const others = bets.filter(b => b.kind !== 'ml');
+  // (A held market isn't offered: its locks alone made a tab of nothing to take.)
+  const others = bets.filter(b => b.kind !== 'ml' && !b.lock);
+  const held = gameHeld(game, bets);
+  const floor = legsFloor(bets);
   // A game Kambi lists, or with players' markets, has more on the way while its lists are read.
   const more = others.length > 0 || Boolean(game.live && game.kambiId) || (!moreShown.has(game.id) && (Boolean(game.kambiId) || (Boolean(game.espnTeams) && hasPlayers(game.sport))));
   const win = sides.map(s => ml.find(b => b.side === s)).filter(Boolean);
@@ -845,8 +882,12 @@ function gameDetail(game, bets) {
       sub: [left, right].map(s => shortTeamName(game.sport, game[s].en, teamName(game[s]))).join(' vs '),
       tint: 'var(--q-blue)'
     }),
-    win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side]))))) : null,
-    more ? gameMore(game, others) : kitUI.empty({ title: t('offersNone') })
+    // The game's 限關, once.
+    !held && floor > 1 ? el('p', { class: 'gs-legs' }, [el('span', { class: 'pl-legs', text: t('minLegsGameTag', { n: floor }) }), el('span', { text: t('minLegsNoteEvent', { n: floor }) })]) : null,
+    // A game on now with no win price: its two sides held.
+    !win.length && game.live ? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s]))))) : null,
+    win.length ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side])), floor))) : null,
+    held ? (wantOffers(game), emptyK({ icon: 'lock', title: t('gameHeld'), body: t('gameHeldBody') })) : more ? gameMore(game, others) : null
   ]);
 }
 
@@ -917,7 +958,7 @@ function gameMore(game, bets) {
   requestAnimationFrame(() => {
     if (marketTall.game === game.id && body.isConnected) marketTall.h = Math.max(marketTall.h, body.offsetHeight);
   });
-  return el('div', { class: 'game-more' }, [tabStrip(tabs), body, waiting ? el('p', { class: 'muted offers-wait', text: t('offersLoading') }) : !panel ? el('p', { class: 'muted offers-wait', text: t('offersNone') }) : null]);
+  return el('div', { class: 'game-more' }, [tabStrip(tabs), body, waiting ? el('p', { class: 'muted offers-wait', text: t('offersLoading') }) : null]);
 }
 
 const marketTall = { game: null, h: 0 };
@@ -1259,7 +1300,16 @@ function minLegsText(bet) {
 // the odds, like any sportsbook's board. A locked
 // pick (the house doesn't sell it) shows a lock; one sold only in parlays
 // shows its minimum (2關, 3關).
-function pickButton(bet, name) {
+// Each game's 限關 floor (legsFloor), from the list a pick came in.
+const floorMemo = new WeakMap();
+function floorOf(bet) {
+  const list = bet.live ? state.liveBets : state.bets;
+  if (!list) return 1;
+  let floors = floorMemo.get(list);
+  if (!floors) floorMemo.set(list, (floors = new Map([...groupBy(list, b => b.gameId).entries()].map(([id, of]) => [id, legsFloor(of)]))));
+  return floors.get(bet.gameId) ?? 1;
+}
+function pickButton(bet, name, floor = floorOf(bet)) {
   const t = state.t;
   const inSlip = state.parlay.includes(bet.id);
   // (A live price from the last read, before today's: shown, not taken.)
@@ -1269,7 +1319,8 @@ function pickButton(bet, name) {
     name ? el('span', { class: 'pick-name', text: name }) : null,
     el('span', { class: 'pick-odds' }, [
       bet.lock ? icon('lock', 'lock') : document.createTextNode(fmtOdds(effectiveOdds(bet))),
-      !locked && bet.minLegs > 1 ? el('small', { class: 'min-legs', text: t('minLegsTag', { n: bet.minLegs }) }) : null
+      // Stricter than the game's own 限關 (said once, on its row or sheet): a quiet mark under the odds.
+      !locked && bet.minLegs > Math.max(1, floor) ? el('small', { class: 'min-legs', text: t('minLegsTag', { n: bet.minLegs }) }) : null
     ])
   ];
   return el('button', {
@@ -1346,7 +1397,7 @@ function buildLiveBets(data) {
   const matchups = new Map(games.map(g => [g.id, matchupText(g)]));
   return {
     games,
-    bets: bets.map(b => {
+    bets: lockWhole(bets).map(b => {
       const matchup = matchups.get(b.gameId);
       if (b.kind === 'nextrun') {
         const name = b.side === 'none' ? t('nextRunNone') : teamName(b.game[b.side]);
@@ -3019,7 +3070,7 @@ function renderAll() {
   if (state.fromBoard) {
     // The proxy's board: its picks are already priced and tagged (nothing to
     // price here, no futures); the full read replaces them whole.
-    state.bets = state.boardBets;
+    state.bets = lockWhole(state.boardBets);
     state.futures = [];
     state.recs = state.boardRecs;
   } else {
@@ -3230,7 +3281,8 @@ function wantFull() {
 // Opened on the board: the loading screen goes once the balance and the games
 // on now are in (as the full read waited for them), a moment at most.
 async function openOnBoard() {
-  const wait = liveHint.length && !state.liveData ? SNAPSHOT_LIVE_MS : SNAPSHOT_WAIT_MS;
+  // (No wallet kept on this phone: 為你推薦 needs the pass's answer, waited for as long as the games on now.)
+  const wait = (liveHint.length && !state.liveData) || !(state.wallet || q.wallet) ? SNAPSHOT_LIVE_MS : SNAPSHOT_WAIT_MS;
   await within(Promise.all([state.accountIn, liveBusy || refreshLive()]), wait);
   if (state.tab === 'home') drawHome();
   if (state.booting) {

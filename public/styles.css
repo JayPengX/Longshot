@@ -92,8 +92,19 @@ button.pick:active { transform: scale(0.95); }
 .pick.in-slip .pick-name { color: rgba(255, 255, 255, 0.85); }
 .pick.locked, .pick.stale { opacity: 0.5; cursor: default; }
 .pick .lock { width: 15px; height: 15px; margin: 0 auto; color: var(--q-label-2); }
-.pick .min-legs { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 999px; background: var(--q-label); color: var(--q-grouped-2, #fff); font-size: 10px; font-weight: 700; line-height: 15px; white-space: nowrap; pointer-events: none; }
-.pick.in-slip .min-legs { background: #fff; color: var(--accent); }
+/* A price stricter than its game's 限關: a quiet line under the odds. */
+.pick .min-legs { display: block; margin-top: 1px; color: var(--q-label-2); font: 600 10px/1.1 var(--q-font); letter-spacing: 0; white-space: nowrap; pointer-events: none; }
+.pick.in-slip .min-legs { color: rgba(255, 255, 255, 0.85); }
+/* A game's 限關, said once: on its row's top line, and in its sheet. */
+.pl-legs { flex: none; padding: 2px 7px; border-radius: 6px; background: var(--q-fill-3); color: var(--q-label-2); font: 600 11px/1.3 var(--q-font); white-space: nowrap; }
+.gs-legs { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 2px; color: var(--q-label-2); font: var(--q-t-footnote); }
+.gs-legs > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A game with nothing on sale: 暫停銷售 on top, a lock where each price was. */
+.pl-held { color: var(--q-label-2); }
+.pl-held .lock { width: 12px; height: 12px; }
+span.pick.locked { pointer-events: none; }
+/* 這天沒有賽事 only when 場中 and 冠軍 are empty too. */
+#panel-games:has(#live:not([hidden])) .pl-none, #panel-games:has(#futures:not([hidden])) .pl-none { display: none; }
 .pick-none { width: 64px; flex: none; }
 
 /* A team on a row: logo, name, (score), its price. */
@@ -196,7 +207,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-picks .pick { min-width: 0; min-height: 52px; }
 .market-picks.bands { grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 6px; }
 .market-picks.bands .pick { padding-inline: 2px; }
-.market-picks:has(.min-legs) .pick { padding-top: 10px; }
 .market-body > .market-panel > .market-head:first-child { margin-top: 0; }
 .more-block .line-table { padding: 0; background: none; }
 .offers-wait { padding: 12px; color: var(--q-label-2); font: var(--q-t-footnote); text-align: center; }
@@ -847,3 +857,9 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 /* Team logos fill their tile on white, no dark frame around the crest (as Securities' stock logos; html: over the kit's .q-logo, loaded later). */
 html .q-logo:not(.text) { background: #ffffff; }
 html .q-logo img { width: 88%; height: 88%; }
+/* 場中焦點 with one or two games: the cards share the row's width (one game
+   alone was a half-width card beside an empty space). */
+.q-live-strip > .q-live-card:only-child { flex: 1 1 auto; width: auto; }
+@media (min-width: 360px) {
+  .q-live-strip > .q-live-card:first-child:nth-last-child(2), .q-live-strip > .q-live-card:first-child:nth-last-child(2) + .q-live-card { flex: 1 1 0; width: auto; min-width: 0; }
+}
