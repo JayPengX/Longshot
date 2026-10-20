@@ -1,7 +1,7 @@
 import { makeT as kitMakeT } from '#kit/lang.mjs';
 export const STRINGS = {
   zh: {
-    marketsN: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payFreeBack: '免費本金不退', payLeastShort: '有中最少',
+    marketsN: '{n} 玩法', marketsOne: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payFreeBack: '免費本金不退', payLeastShort: '有中最少',
     tomorrow: '明天',
     today: '今天',
     f1Race: '分站賽',
@@ -381,7 +381,7 @@ export const STRINGS = {
     footer: ''
   },
   en: {
-    marketsN: '{n} markets', slipStakeEach: 'Stake per slip', slipStakeCombo: 'Stake per combination', payTax: 'Tax withheld ({rate})', payFreeBack: 'Free stake not paid back', payLeastShort: 'Least a win pays',
+    marketsN: '{n} markets', marketsOne: '1 market', slipStakeEach: 'Stake per slip', slipStakeCombo: 'Stake per combination', payTax: 'Tax withheld ({rate})', payFreeBack: 'Free stake not paid back', payLeastShort: 'Least a win pays',
     tomorrow: 'Tomorrow',
     today: 'Today',
     f1Race: 'Race',

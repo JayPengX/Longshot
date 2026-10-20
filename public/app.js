@@ -945,7 +945,8 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
     return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name q-fit', text: rowTeam(game, side) }), score, cell(bet)]);
   });
   const n = marketCount(bets.filter(b => !b.lock));
-  const event = league ? gameSeries(game) : eventOf(game);
+  // (Its stage only: with the league's logo beside it, the league's name again was cut to "Cham…" on a small phone.)
+  const event = eventOf(game);
   const when = game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : day ? `${taipeiDayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc);
   return el('article', { class: `pl-game${game.live ? ' live' : ''}`, 'data-game': game.id, onclick: e => !e.target.closest('button') && openGameSheet(game.id) }, [
     el('div', { class: 'pl-game-top' }, [
@@ -958,7 +959,7 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
       !held && floor > 1 ? el('span', { class: 'pl-legs', title: t('minLegsNoteEvent', { n: floor }), text: t('minLegsGameTag', { n: floor }) }) : null,
       held
         ? el('span', { class: 'pl-more pl-held' }, [icon('lock', 'lock'), el('span', { text: t('gameHeld') })])
-        : el('span', { class: 'pl-more', text: n ? t('marketsN', { n }) : '' }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
+        : el('span', { class: 'pl-more', text: n ? t(n === 1 ? 'marketsOne' : 'marketsN', { n }) : '' }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
     ]),
     ...rows
   ]);
