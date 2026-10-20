@@ -11,12 +11,12 @@ import { STRINGS, makeT } from '../public/lib/i18n.mjs';
 const hasEvent = typeof rules.eventMinLegs === 'function';
 
 test("a short price's 限關 says it comes from the odds, with them (a kit that has price bands); else never", () => {
-  const bet = rules.withRules({ kind: 'ml', estOdds: 1.06 });
+  const bet = rules.withRules({ kind: 'ml', estOdds: 1.2 });
   assert.equal(minLegsWhy(rules.withRules({ kind: 'ml', estOdds: 1.9 })), null);
   assert.equal(priceLimits, bet.minLegs > 1);
   if (priceLimits) {
-    assert.equal(bet.minLegs, 3);
-    assert.deepEqual(minLegsWhy(bet), { from: 'odds', n: 3, odds: 1.06 });
+    assert.equal(bet.minLegs, 2);
+    assert.deepEqual(minLegsWhy(bet), { from: 'odds', n: 2, odds: 1.2 });
   } else {
     // play-rules-r7: 1.06 sells as a single, and no minimum is ever put down to the odds.
     assert.equal(bet.minLegs, 1);

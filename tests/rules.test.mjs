@@ -20,8 +20,9 @@ const priceBands = houseRule('ml', 1.08).minLegs > 1;
 
 test('the house locks only near-certain and far-out prices, sells short ones only in parlays, and shades long ones', () => {
   if (priceBands) {
-    assert.deepEqual(houseRule('ml', 1.02), { lock: 'low', minLegs: 1 });
-    assert.deepEqual(houseRule('ml', 1.08), { lock: null, minLegs: 3 });
+    // Since the whole-payout tax (2026-10-20): under 1.12 locked, under 1.25 限2關.
+    assert.deepEqual(houseRule('ml', 1.02), { lock: 'low', minLegs: 2 });
+    assert.deepEqual(houseRule('ml', 1.08), { lock: 'low', minLegs: 2 });
     assert.deepEqual(houseRule('ml', 1.2), { lock: null, minLegs: 2 });
   } else {
     // 1.01-1.25 all sell as singles, unlocked.
