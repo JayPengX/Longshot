@@ -73,3 +73,19 @@ test('taxPaid counts the sports tax back charged on an old payout (the wallet’
   const account = { slips: [], tickets: [], ledger: [{ id: 'payout-a', kind: 'payout', amount: 30_920, slipId: 'a' }, { id: 'tax-a', kind: 'tax', amount: -6_184, slipId: 'a' }] };
   assert.deepEqual(taxPaid(account), { sports: 6_184, lottery: 0 });
 });
+
+test('the owner’s 1.08 test slip goes off the record; the wallet (the balance) keeps its money', async () => {
+  const { recoverFromWallet, taxPaid } = await import('../public/lib/account.mjs');
+  const t = '2026-10-20T02:47:00.000Z';
+  const slip = { id: 'a', t, mode: 'single', sizes: [1], stake: 28_630, cost: 28_630, legs: [{ odds: 1.08, result: 'won' }], status: 'settled', gross: 30_920, payout: 24_736, backTax: 6_184 };
+  const other = { id: 'b', t, mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [{ odds: 2, result: 'won' }], status: 'settled', gross: 200, payout: 200 };
+  const account = { v: 1, created: t, slips: [slip, other], tickets: [], ledger: [{ id: 'stake-a', t, kind: 'stake', amount: -28_630, slipId: 'a' }, { id: 'payout-a', t, kind: 'payout', amount: 30_920, slipId: 'a' }, { id: 'tax-a', t, kind: 'tax', amount: -6_184, slipId: 'a' }, { id: 'stake-b', t, kind: 'stake', amount: -100, slipId: 'b' }, { id: 'payout-b', t, kind: 'payout', amount: 200, slipId: 'b' }] };
+  const at = Date.parse(t);
+  const wallet = { entries: [{ id: 'odds:stake-a', t: at, app: 'odds', kind: 'stake', amount: -28_630 }, { id: 'odds:payout-a', t: at + 9e6, app: 'odds', kind: 'payout', amount: 30_920 }, { id: 'odds:stake-b', t: at, app: 'odds', kind: 'stake', amount: -100 }, { id: 'odds:payout-b', t: at, app: 'odds', kind: 'payout', amount: 200 }] };
+  const after = recoverFromWallet(account, wallet);
+  assert.deepEqual(after.slips.map(s => s.id), ['b']);
+  assert.deepEqual(after.ledger.map(e => e.id), ['stake-b', 'payout-b']);
+  assert.deepEqual(taxPaid(after), { sports: 0, lottery: 0 });
+  // Not rebuilt from the wallet as a recovered slip; nothing changes again.
+  assert.equal(recoverFromWallet(after, wallet), after);
+});

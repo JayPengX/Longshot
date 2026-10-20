@@ -259,10 +259,33 @@ export function resultByMarket(account) {
 // wallet never drops one): the missing ledger entries come back as they
 // were, and each bet with no slip left comes back as a recovered slip with
 // its cost, time and payout but no picks (`recovered: true`).
+// Test slips the owner asked off the record (2026-10-20): his 1.08 single
+// for NT$28,630 placed that morning, paid NT$30,920. Found by its wallet
+// entries; the wallet keeps them (the balance doesn't move), the account
+// drops the slip, its lines and what it counts in the stats and taxes.
+const OFF_RECORD = [{ day: '2026-10-20', cost: 28_630, paid: 30_920 }];
+const slipOfEntry = e => e.slipId || /^(?:stake|payout|refund|tax|plus)-(.+)$/.exec(e.id)?.[1];
+export function offRecord(wallet) {
+  const entries = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string');
+  const paid = new Map(entries.filter(e => e.id.startsWith('odds:payout-')).map(e => [e.id.slice(12), e.amount]));
+  const out = new Set();
+  for (const e of entries) {
+    if (!e.id.startsWith('odds:stake-') || !Number.isFinite(new Date(e.t).getTime())) continue;
+    const id = e.id.slice(11);
+    const day = new Date(e.t).toISOString().slice(0, 10);
+    if (OFF_RECORD.some(x => x.day === day && -e.amount === x.cost && paid.get(id) === x.paid)) out.add(id);
+  }
+  return out;
+}
+
 export function recoverFromWallet(account, wallet) {
+  const off = offRecord(wallet);
+  if (off.size && (account.slips.some(s => off.has(s.id)) || account.ledger.some(e => off.has(slipOfEntry(e))))) {
+    account = { ...account, slips: account.slips.filter(s => !off.has(s.id)), ledger: account.ledger.filter(e => !off.has(slipOfEntry(e))) };
+  }
   // (An entry that can't be dated or counted is no money to bring back: one
   // malformed entry stopped every sync with a RangeError.)
-  const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()));
+  const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()) && !off.has(slipOfEntry({ id: e.id.slice(5) })));
   const have = new Set(account.ledger.map(e => e.id));
   const ledger = [];
   for (const e of mine) {
