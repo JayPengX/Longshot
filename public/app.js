@@ -953,7 +953,7 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
       game.live
         ? el('span', { class: 'pl-when live' }, [el('i', { class: 'pl-dot', 'aria-hidden': 'true' }), el('span', { text: liveStateText(game.live), ...halftimeTick(game.live, game.live.sport) })])
         : el('span', { class: 'pl-when', text: when }),
-      event ? el('span', { class: 'pl-event', text: event }) : null,
+      event ? el('span', { class: 'pl-event q-fit', text: event }) : null,
       // The game's 限關, once for the whole game (a price stricter than it keeps its own small mark).
       !held && floor > 1 ? el('span', { class: 'pl-legs', title: t('minLegsNoteEvent', { n: floor }), text: t('minLegsGameTag', { n: floor }) }) : null,
       held
