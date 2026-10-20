@@ -2080,9 +2080,17 @@ function syncNow() {
   });
   return syncChain;
 }
-const mergeFirst = remote => (syncChain = syncChain.then(() => mergeRemote(remote)).catch(console.error));
+// (Done once the Pass's copy is merged into the one here, not when the save
+// that follows lands: on a weak connection that save took minutes.)
+const mergeFirst = remote =>
+  new Promise(merged => {
+    syncChain = syncChain
+      .then(() => mergeRemote(remote, merged))
+      .catch(console.error)
+      .finally(merged);
+  });
 
-async function mergeRemote(remote) {
+async function mergeRemote(remote, applied = () => {}) {
   if (!remote) return;
   const theirs = remote.payload ? await unpack(remote.payload).catch(() => null) : null;
   // A copy there that can't be read is never saved over.
@@ -2111,6 +2119,7 @@ async function mergeRemote(remote) {
     saveAccountLocal();
     renderSaved();
   }
+  applied();
   if (changed || entries.length || snap) {
     const payload = changed ? await pack(merged) : undefined;
     if (payload && payload.length > 1_000_000) throw Object.assign(new Error('too big'), { code: 'TOO_BIG' });
@@ -3861,6 +3870,13 @@ async function boot() {
   // once today's reads have gone out (they wait for the sign-in's reply):
   // drawn before, its first pricing (a second on a fast computer) held
   // them back as long, and the loading screen with them.
+  // The balance from this phone's own copy (its account and the pool as last
+  // read) while the Pass answers: on a slow connection the sign-in took
+  // seconds, and the balance said "—" all that time.
+  if (q.pass) {
+    state.wallet ||= q.wallet;
+    state.account ||= await loadAccount();
+  }
   await Promise.race([starting, new Promise(resolve => setTimeout(resolve, 1_500))]);
   await new Promise(resolve => setTimeout(resolve, 0));
   drawSnapshot();
@@ -3870,6 +3886,7 @@ async function boot() {
   state.account = await loadAccount();
   state.accountReady = true;
   clearGuessedNotices();
+  // (Until the Pass's copy is merged in; its save goes on behind.)
   if (first && !first.offline) await mergeFirst(first);
   if (!state.account) {
     state.account = freshAccount();
