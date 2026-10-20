@@ -1305,6 +1305,7 @@ function pickTitle(bet) {
 function minLegsText(bet) {
   const why = minLegsWhy(bet, effectiveOdds(bet));
   if (!why) return null;
+  if (why.from === 'est') return state.t('minLegsNoteEst', { n: why.n });
   return why.from === 'event' ? state.t('minLegsNoteEvent', { n: why.n }) : state.t('minLegsNote', { n: why.n, odds: fmtOdds(why.odds) });
 }
 
@@ -1674,6 +1675,7 @@ function minLegsError(legs, slip, sizes) {
   const why = bet && minLegsWhy(bet, effectiveOdds(bet));
   if (!why) return t('slipError_minLegs', { need });
   const pick = legs.length > 1 ? `${shortPick(bet)}${state.locale === 'zh' ? '：' : ': '}` : '';
+  if (why.from === 'est') return t('slipError_minLegsEst', { need: why.n, pick });
   return why.from === 'event' ? t('slipError_minLegsEvent', { need: why.n, pick }) : t('slipError_minLegsOdds', { need: why.n, odds: fmtOdds(why.odds), pick });
 }
 

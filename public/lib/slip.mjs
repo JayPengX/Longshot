@@ -41,6 +41,8 @@ export const priceLimits = (() => {
 export function minLegsWhy(bet, odds = bet?.estOdds) {
   const n = bet?.minLegs ?? 1;
   if (!(n > 1)) return null;
+  // 運彩's usual 限關, estimated (kit play-rules estimatedMinLegs): said as an estimate.
+  if (bet.minLegsEst) return { from: 'est', n };
   const event = rules.eventMinLegs?.(bet);
   return event > 0 || !priceLimits ? { from: 'event', n } : { from: 'odds', n, odds };
 }
