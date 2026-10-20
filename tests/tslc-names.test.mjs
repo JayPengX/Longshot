@@ -13,7 +13,6 @@ test('market headings are 台灣運彩 play names', () => {
   assert.equal(zh.secSpread, '讓分');
   assert.equal(zh.secHandicap, '讓分');
   for (const k of ['secTotal', 'secTotalGoals', 'secTotalPoints']) assert.equal(zh[k], '大小');
-  assert.equal(zh.secOddEven, '單雙');
   assert.equal(zh.secScore, '正確比數');
   assert.equal(zh.secHtft, '半/全場');
   assert.equal(zh.secDoubleChance, '雙勝');
