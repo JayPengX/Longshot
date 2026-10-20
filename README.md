@@ -16,14 +16,14 @@ Live: https://jaypengx.github.io/Quadra-Play/
   - ESPN with DraftKings' lines (the US leagues, top soccer);
   - Kambi (NPB, KBO, CPBL, EuroLeague, NBL, K League);
   - Polymarket (win chances, championships, F1);
-  - the house's own model (`lib/house.mjs`) when nobody prices a game yet.
+  - the house's own model (kit `play-house.mjs`) when nobody prices a game yet.
 
   A bookmaker's line replaces the house's as soon as one is posted.
-- **Markets** (`lib/board.mjs`, one pricing path for page and crowd):
-  winners, spreads, totals, team totals, odd/even, margins, halves and
+- **Markets** (`lib/board.mjs`, one pricing path for the page and the Worker):
+  winners, spreads, totals, team totals, margins, halves and
   periods, soccer's full set, players' markets (Kambi's, else the model's).
   Every market past the winner comes from two numbers: the win chance and
-  the expected total (`lib/lines.mjs`).
+  the expected total (kit `play-lines.mjs`).
 - **F1:** winner, pole, podium/top six/top ten (Harville draws), teammates,
   team, safety car/VSC/red flag.
 - **Live** (`lib/live.mjs`): modelled from the pregame lines and the live
@@ -75,9 +75,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   words: 幸運號碼, 大力士分數); a `retired` card is never sold but one bought
   before still scratches. A kit export added from now on is used with a
   `?.` fallback until phones have it (the rulebook's §4).
-- **紀錄:** slips (live progress), tickets, 戰績 (wins only), 統計分析 (luck
-  against the cut, you against a simulated crowd of 100,000:
-  `lib/sim.mjs`).
+- **紀錄:** slips (live progress), tickets, 戰績 (wins only).
 - **Opens fast:** on the saved board (3 days, `SNAPSHOT_V`); the loading
   screen lifts once today's board, the balance and the live games are in
   (2 s at most). Model fits are kept by their inputs, so a reopen prices
@@ -102,17 +100,20 @@ Live: https://jaypengx.github.io/Quadra-Play/
 
 ## Files
 
+Most of `lib/` is the shared kit's logic (`export * from '#kit/play-*.mjs'`):
+`board`, `bets`, `odds`, `rules`, `live`, `players`, `props`, `recommend`,
+`cashout`, `lottery`, `scratch`, `teams`. Tests of other kit parts (`house`,
+`kambi`, `lines`, `markets`, `offers`, `propmodel`, `schedules`) import
+`#kit/play-*.mjs` directly.
+
 | File | What |
 | --- | --- |
 | `public/app.js`, `home.js`, `lottery-ui.js`, `stats-ui.js` | Rendering and the tabs |
-| `lib/sources.mjs`, `kambi.mjs`, `offers.mjs`, `schedules.mjs` | Reading ESPN, Polymarket, Kambi, F1 |
-| `lib/board.mjs`, `odds.mjs`, `rules.mjs`, `markets.mjs`, `lines.mjs` | Pricing: every option, devig, cuts and rules, side markets, totals |
-| `lib/live.mjs`, `house.mjs`, `players.mjs`, `props.mjs`, `propmodel.mjs` | Live; the house's prices; players' markets |
+| `lib/sources.mjs`, `boardstart.mjs` | Reading ESPN, Polymarket, Kambi, F1; start-up on the proxy's board |
 | `lib/slip.mjs` | The slip's one quote and rules (cost, most it pays, the cap, singles judged one slip each, as `price.js` checks them) |
-| `lib/cashout.mjs`, `account.mjs`, `settled.mjs` | Cash out; the ledger; the Worker's placing and settling |
-| `lib/lottery.mjs`, `scratch.mjs` | Draw games and scratch cards |
-| `lib/history.mjs`, `profile.mjs`, `sim.mjs`, `audit.mjs` | Stats; the crowd and its audit |
-| `lib/recommend.mjs`, `foryou.mjs`, `teams.mjs`, `codec.mjs`, `i18n.mjs` | Tags and 為你推薦; leagues; saves; text |
+| `lib/account.mjs`, `settled.mjs`, `history.mjs` | The ledger; the Worker's placing and settling; the account card |
+| `lib/stats.mjs` | 戰績's numbers |
+| `lib/foryou.mjs`, `codec.mjs`, `i18n.mjs` | 為你推薦; saves; text |
 
 ## Run and test
 
@@ -131,8 +132,8 @@ deploys to Pages.
 
 | This | Also check |
 | --- | --- |
-| A cut, rule or the boost | The crowd and audit, the kit's `truth.mjs` and `help.mjs`, `tools/economy.mjs` |
-| A market | Its settling, cash out's price, `history.mjs` |
+| A cut, rule or the boost | The kit's `truth.mjs` and `help.mjs`, `tools/economy.mjs` |
+| A market | Its settling, cash out's price |
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports |
 | Ledger ids | Merging, the Worker's `ENTRY_APPS` and VIP stakes |
 | The slip's rules (`lib/slip.mjs`) | Shared-Proxy `price.js` `checkSlip`: the phone must say what the Worker will |

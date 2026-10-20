@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAsiaSchedule, asiaRecords } from '../public/lib/schedules.mjs';
-import { sameSide } from '../public/lib/house.mjs';
+import { parseAsiaSchedule, asiaRecords } from '#kit/play-schedules.mjs';
+import { sameSide } from '#kit/play-house.mjs';
 import { mergeGames, pricedByKambi, asiaResult } from '../public/lib/sources.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 import { LEAGUES } from '../public/lib/teams.mjs';

@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import {
   afterTax,
   americanToProbability,
@@ -24,7 +23,6 @@ import {
   blendOutcomes,
   devigProportional,
   quantile,
-  seededRandom,
   K_WIN
 } from '../public/lib/odds.mjs';
 

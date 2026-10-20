@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { goalMarkets, fitHockey, baseballMarkets } from '../public/lib/markets.mjs';
+import { goalMarkets, fitHockey, baseballMarkets } from '#kit/play-markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
 const sum = picks => picks.reduce((s, p) => s + p.fair, 0);
@@ -35,7 +35,7 @@ test('Baseball: first five innings total, settled from the innings', () => {
 });
 
 test("a preseason game's players: their regular season's numbers at a preseason's minutes (Durant isn't favoured to pass 25.5 in an exhibition)", async () => {
-  const { modelProps } = await import('../public/lib/propmodel.mjs');
+  const { modelProps } = await import('#kit/play-propmodel.mjs');
   const durant = { name: 'Kevin Durant', side: 'home', pos: 'F', gp: 62, totals: { pts: 62 * 26.6, reb: 62 * 6, ast: 62 * 4.2, threes: 62 * 2.2, min: 62 * 36 } };
   const pts = list => list.filter(p => p.stat === 'pts' && p.side === 'over');
   const regular = pts(modelProps('nba', [durant], null));

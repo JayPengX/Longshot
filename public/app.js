@@ -21,7 +21,7 @@ import { icon, kitGlyph } from './icons.js';
 import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord } from './lib/history.mjs';
-import { detectLocale, makeT, STRINGS } from './lib/i18n.mjs';
+import { makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
 import { logoPicture, raceName } from '#kit/logos.mjs';
@@ -45,7 +45,7 @@ const ACCOUNT_KEY = 'oddsStudy.account';
 const SAVED_SHOWN = 10;
 
 const state = {
-  locale: detectLocale(),
+  locale: kit.detectLang(),
   t: null,
   data: null,
   bets: [],
@@ -73,7 +73,7 @@ const state = {
   })(),
   day: null,
   dayPicked: false,
-  // True until the first simulation is ready: the loading screen covers the page.
+  // True until the first screen is ready: the loading screen covers the page.
   booting: true,
   sport: 'all',
   tab: 'home',
@@ -82,7 +82,7 @@ const state = {
   // Each open game's market tab (大小, 讓分, 主隊/客隊大小, 得分最高單局).
   marketTab: new Map(),
   propTab: new Map(),
-  // The simulated account (play money) and its sync.
+  // The practice account (play money) and its sync.
   account: null,
   accountReady: false,
   // Resolves once the account is read and merged with the pass (boot).
@@ -99,9 +99,6 @@ const state = {
   // Open picks' games past their start but not on: called off (status 'void') or not begun ('pre').
   legOutcome: new Map(),
   showAllSaved: false,
-  // 大手筆 (bets grow with the balance) or 真實 (survey-based stakes) in the simulator.
-  // The leaderboard shown.
-  leaderKey: 'best',
   historyFilter: 'all',
   // 紀錄 shows the slips or the stats.
   historyView: 'slips'
@@ -136,12 +133,6 @@ function el(tag, props = {}, children = []) {
     else node.setAttribute(k, v);
   }
   for (const child of [].concat(children)) if (child != null) node.append(child);
-  return node;
-}
-
-function svgEl(tag, attrs = {}) {
-  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
   return node;
 }
 
@@ -430,11 +421,6 @@ function effectiveOdds(bet) {
   return bet.estOdds;
 }
 
-// Days follow Taiwan time, like the lottery.
-function dayKey(iso) {
-  return taipeiDayKey(iso);
-}
-
 // Where a league sits on screen: the catalogue's headline leagues (CPBL
 // among them) with the majors, whatever the house's risk tier says about its cut.
 const shownTier = sport => (LEAGUES[sport]?.top ? 'major' : leagueTier(sport));
@@ -519,8 +505,8 @@ function keepInView(row) {
 
 // 今天 / 明天 / the weekday, in Taiwan time.
 function dayLabel(day) {
-  const today = dayKey(new Date().toISOString());
-  const tomorrow = dayKey(new Date(Date.now() + 86_400_000).toISOString());
+  const today = taipeiDayKey(new Date().toISOString());
+  const tomorrow = taipeiDayKey(new Date(Date.now() + 86_400_000).toISOString());
   if (day === today) return state.t('today');
   if (day === tomorrow) return state.t('tomorrow');
   const [y, m, d] = day.split('-').map(Number);
@@ -532,13 +518,13 @@ let dayMemo = { key: [], days: [] };
 const sameKeys = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 // The day a bet is shown on: its own, but an F1 weekend's all on race day
 // (its pole closes at qualifying, the day before in Taipei).
-const betDay = b => dayKey(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
-const f1Day = () => (state.data?.f1?.startUtc ? dayKey(state.data.f1.startUtc) : null);
+const betDay = b => taipeiDayKey(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
+const f1Day = () => (state.data?.f1?.startUtc ? taipeiDayKey(state.data.f1.startUtc) : null);
 // The day the board shows, in the head's button (今天 10/19 ▾): a tap lists
 // every day with its games. One day only: the day, no menu.
 function renderDayFilter() {
   const t = state.t;
-  const today = dayKey(new Date().toISOString());
+  const today = taipeiDayKey(new Date().toISOString());
   const liveNow = state.liveGames.filter(g => inSport(g.sport)).length;
   // Today stays while games are on (場中 lives there).
   const dayKeys = [state.bets, state.sport, liveNow > 0, today];
@@ -560,7 +546,7 @@ function renderDayFilter() {
         button,
         days.map(day => {
           const [, dm, dd] = day.split('-').map(Number);
-          const games = state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === day).length;
+          const games = state.data.games.filter(g => inSport(g.sport) && taipeiDayKey(g.startUtc) === day).length;
           const extra = [day === today && liveNow ? `${t('liveTitle')} ${liveNow}` : null, games ? t('gamesN', { n: games }) : null, inSport('f1') && f1Day() === day ? 'F1' : null].filter(Boolean).join(' · ');
           return {
             label: `${dayLabel(day)} ${dm}/${dd}${extra ? `  ·  ${extra}` : ''}`,
@@ -681,7 +667,7 @@ function drawLeague(sport, size) {
 function renderStatic() {
   const t = state.t;
   document.documentElement.lang = state.locale === 'zh' ? 'zh-Hant' : 'en';
-  // The app's name in the page's language only: 四方運彩 or Quadra Sportsbook.
+  // The app's name.
   document.title = t('title');
   const bootTitle = document.querySelector('#loading .q-boot-title');
   if (bootTitle) bootTitle.textContent = t('title');
@@ -750,7 +736,7 @@ function drawGames() {
   document.body.classList.toggle('searching', searching);
   if (!searching) renderDayFilter();
   const byGame = groupBy(state.bets, b => b.gameId);
-  const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && dayKey(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
+  const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && taipeiDayKey(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
   if (searching) {
     container.replaceChildren(
       games.length
@@ -820,7 +806,7 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
   });
   const n = marketCount(bets);
   const event = league ? gameSeries(game) : eventOf(game);
-  const when = game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : day ? `${dayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc);
+  const when = game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : day ? `${taipeiDayKey(game.startUtc).slice(5).replace('-', '/')} ${hhmm(game.startUtc)}` : hhmm(game.startUtc);
   return el('article', { class: `pl-game${game.live ? ' live' : ''}`, 'data-game': game.id, onclick: e => !e.target.closest('button') && openGameSheet(game.id) }, [
     el('div', { class: 'pl-game-top' }, [
       league ? leagueImg(game.sport, 'logo-xs') : null,
@@ -844,7 +830,7 @@ function gameDetail(game, bets) {
   const ml = bets.filter(b => b.kind === 'ml');
   const sides = winnerSides(game, ml);
   const [left, right] = sides.filter(s => s !== 'draw');
-  const day = dayKey(game.startUtc);
+  const day = taipeiDayKey(game.startUtc);
   const [, m, d] = day.split('-').map(Number);
   const others = bets.filter(b => b.kind !== 'ml');
   // A game Kambi lists, or with players' markets, has more on the way while its lists are read.
@@ -1249,10 +1235,6 @@ const SECTIONS = [
 ];
 const MORE_SECTION = { kind: 'more', title: 'secMore' };
 
-function fmtPctShort(p) {
-  return p >= 0.1 ? `${Math.round(p * 100)}%` : `${(p * 100).toFixed(1)}%`;
-}
-
 // A pick's tooltip: what it is, its odds, and whether the house limits it.
 function pickTitle(bet) {
   const t = state.t;
@@ -1387,7 +1369,7 @@ function drawLive() {
   const TIER = { major: 0, minor: 1, thin: 2 };
   const games = state.liveGames.filter(g => inSport(g.sport)).sort((a, b) => TIER[shownTier(a.sport)] - TIER[shownTier(b.sport)] || a.startUtc.localeCompare(b.startUtc));
   // Only on today's board (another day's games haven't started), and not while searching.
-  const onToday = state.day === dayKey(new Date().toISOString());
+  const onToday = state.day === taipeiDayKey(new Date().toISOString());
   $('live').hidden = !games.length || !onToday || Boolean(state.query);
   if ($('live').hidden) return;
   const byGame = groupBy(state.liveBets, b => b.gameId);
@@ -1826,12 +1808,12 @@ function renderSlipBar() {
     el('span', { class: 'slip-bar-go', text: `${t('barGo')} ›` })
   );
   // Its line shrinks to fit, never cut ("最高派彩 NT$7,1…" at 375 px: the bar
-  // sits outside the parts fitNumbers watches).
-  if (typeof ResizeObserver !== 'undefined') fitNumbers([...bar.querySelectorAll(SLIP_BAR_FIT)]);
+  // sits outside the parts watchFit watches).
+  if (typeof ResizeObserver !== 'undefined') kit.fitNumbers([...bar.querySelectorAll(SLIP_BAR_FIT)]);
   if (sheetBar && gameSheetOpen()) {
     sheetBar.replaceChildren(...[...bar.childNodes].map(node => node.cloneNode(true)));
     sheetBar.hidden = false;
-    if (typeof ResizeObserver !== 'undefined') fitNumbers([...sheetBar.querySelectorAll(SLIP_BAR_FIT)]);
+    if (typeof ResizeObserver !== 'undefined') kit.fitNumbers([...sheetBar.querySelectorAll(SLIP_BAR_FIT)]);
   }
 }
 const SLIP_BAR_FIT = '.slip-bar-main small';
@@ -2198,7 +2180,7 @@ function freeBetRow(tokens, free, freeOn, rerender, freeShape = true) {
   ]);
 }
 
-// The 模擬下注 button: buys the slip on the simulated account.
+// The 模擬下注 button: buys the slip on the practice account.
 function placeButton(legs, sizes, cost, errors, free = null) {
   const t = state.t;
   const money = funds();
@@ -2884,7 +2866,7 @@ function drawSaved() {
 // ---- History: stats and analysis --------------------------------------------------
 
 function renderStats() {
-  // Drawn only when on screen: it can start the crowd simulation.
+  // Drawn only when on screen.
   if (!state.accountReady || state.tab !== 'history' || state.historyView !== 'stats') return;
   $('stats').hidden = false;
   statsUi.render($('stats-body'));
@@ -3622,66 +3604,13 @@ window.addEventListener('resize', () => {
 actions = topActions(q, { refresh: load });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
-// fit its box, instead of wrapping onto a second row on phones. Checked when
-// its text changes and when its box resizes (which also covers a tab showing
-// it for the first time). Only the slip and simulator
-// have such numbers (and 首頁's picks' names, a ticket's picks and their
-// second lines, and 你的投注's rows: a long name a little smaller, not cut). All reads, then all writes, so the page lays out once.
+// fit its box (the kit's fitNumbers), instead of wrapping onto a second row
+// on phones. The slip, 戰績 and 首頁 have such numbers (and 首頁's picks'
+// names, a ticket's picks and their second lines, and 你的投注's rows: a long
+// name a little smaller, not cut).
 const FIT_SELECTOR = '.slip-bar-main small, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
-function fitNumbers(nodes) {
-  for (const node of nodes) node.style.fontSize = '';
-  const sizes = nodes.map(node => {
-    // (Fractional widths: whole pixels rounded a 64.4px number into a 64px
-    // box, which then showed 11,7… instead of shrinking.)
-    const box = node.getBoundingClientRect().width;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const need = range.getBoundingClientRect().width;
-    if (!box || need <= box) return null;
-    const full = parseFloat(getComputedStyle(node).fontSize);
-    return Math.max(full * 0.6, Math.floor(((full * (box - 0.5)) / need) * 10) / 10);
-  });
-  nodes.forEach((node, i) => sizes[i] && (node.style.fontSize = `${sizes[i]}px`));
-  // Text doesn't narrow exactly with its size (−NT$1,052 at 13.2px was still
-  // 75.9px in a 75px box, so cut): each one shrunk is checked again and
-  // stepped down until it fits.
-  // (In rounds, every one read and then every one written: a node at a time
-  // laid the page out again at each step.)
-  let left = nodes.map((node, i) => sizes[i] && { node, size: sizes[i], floor: sizes[i] * 0.85 }).filter(Boolean);
-  while (left.length) {
-    left = left.filter(x => {
-      const range = document.createRange();
-      range.selectNodeContents(x.node);
-      return x.size > x.floor && range.getBoundingClientRect().width > x.node.getBoundingClientRect().width - 0.5;
-    });
-    for (const x of left) x.node.style.fontSize = `${(x.size -= 0.4)}px`;
-  }
-}
-if ('ResizeObserver' in window) {
-  const fitted = new WeakSet();
-  const resized = new ResizeObserver(entries => fitNumbers(entries.map(entry => entry.target)));
-  const watch = new MutationObserver(mutations => {
-    const found = new Set();
-    for (const m of mutations) {
-      const target = m.target.nodeType === 1 ? m.target : m.target.parentElement;
-      if (!target) continue;
-      const own = target.closest(FIT_SELECTOR);
-      if (own) found.add(own);
-      else for (const node of target.querySelectorAll(FIT_SELECTOR)) found.add(node);
-    }
-    for (const node of found) {
-      if (fitted.has(node)) continue;
-      fitted.add(node);
-      resized.observe(node);
-    }
-    if (found.size) fitNumbers([...found]);
-  });
-  // (首頁: a 為你推薦 pick's name, whole in its card.)
-  for (const id of ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery']) if ($(id)) watch.observe($(id), { childList: true, subtree: true, characterData: true });
-  // Fitted before the font came, a number widens when it comes while its box
-  // (already at its narrowest) doesn't move: fitted again once fonts load.
-  document.fonts?.addEventListener('loadingdone', () => fitNumbers([...document.querySelectorAll(FIT_SELECTOR)]));
-}
+// (watchFit is new: a phone may still run a kit from before it, and then the numbers are fitted as they're drawn only.)
+kit.watchFit?.(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery'].map($) });
 
 // Tells the page's failsafe (in index.html) that the scripts loaded and started.
 window.__fxStarted = true;
@@ -3732,7 +3661,7 @@ function homeCtx() {
     state.tab = 'games';
     state.sport = 'all';
     state.query = '';
-    state.day = dayKey(new Date().toISOString());
+    state.day = taipeiDayKey(new Date().toISOString());
     state.dayPicked = true;
     renderAll();
     showTab('games');

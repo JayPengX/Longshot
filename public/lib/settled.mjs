@@ -3,7 +3,7 @@
 // pays the pass's wallet (the ledger's own ids, `payout-<slip>`: never twice)
 // and keeps each slip's results here for Play to apply. Cash out first takes
 // the slip from the Worker, so a slip is never both cashed out and settled.
-export const PLAY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/play';
+const PLAY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/play';
 
 let tokenOf = () => '';
 export const useSettleToken = fn => (tokenOf = fn);

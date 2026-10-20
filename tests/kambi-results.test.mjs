@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { kambiPeriods, parseKambiLiveData, decidedTeamGame } from '../public/lib/kambi.mjs';
+import { kambiPeriods, parseKambiLiveData, decidedTeamGame } from '#kit/play-kambi.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
 const at = iso => new Date(iso);

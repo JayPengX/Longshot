@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStandings, strengthOf, strengths, housePrices, withHousePrices } from '../public/lib/house.mjs';
+import { parseStandings, strengthOf, strengths, housePrices, withHousePrices } from '#kit/play-house.mjs';
 import { mergeGames, monthsAhead, laterGames, DAYS_AHEAD } from '../public/lib/sources.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 

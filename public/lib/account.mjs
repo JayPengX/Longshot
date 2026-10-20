@@ -10,7 +10,6 @@
 // union, and nothing counts twice.
 import { mergeTickets, ticketPrize } from './lottery.mjs';
 import { settleSlip, prizeAfterTax } from './odds.mjs';
-import { taipeiDayKey } from './sources.mjs';
 
 // What Play itself gave before Quadra paid into the pool (a pass made since
 // gets its opening money from Quadra; Play's own weekly grants, 'grant-<week>'
@@ -43,13 +42,6 @@ export function balance(account) {
   return account.ledger.reduce((sum, entry) => sum + entry.amount, 0);
 }
 
-// Monday (YYYY-MM-DD) of the Taiwan week a moment falls in.
-export function weekKey(now) {
-  const d = new Date(`${taipeiDayKey(now)}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-  return d.toISOString().slice(0, 10);
-}
-
 function touched(account, now) {
   return { ...account, updated: now.toISOString() };
 }
@@ -60,8 +52,6 @@ export function newSlipId(now = new Date()) {
   return `${now.getTime().toString(36)}${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// Buys a slip: { id, mode, sizes, stake, cost, legs }. The cost comes off the
-// balance at once. Returns { account } or { error: 'funds' }.
 // A pick as saved: empty fields left out, so years of slips stay small.
 export function compactLeg(leg) {
   return Object.fromEntries(Object.entries(leg).filter(([key, v]) => v != null || key === 'result'));
@@ -72,14 +62,9 @@ export function compactAccount(account) {
   return { ...account, slips: account.slips.map(slip => ({ ...slip, legs: slip.legs.map(compactLeg) })) };
 }
 
-// Staked in the Taiwan week `now` falls in.
-export function stakedThisWeek(account, now = new Date()) {
-  const week = weekKey(now);
-  return 0 - account.ledger.filter(e => e.kind === 'stake' && weekKey(new Date(e.t)) === week).reduce((sum, e) => sum + e.amount, 0);
-}
-
-// `extra`: money in the shared Quadra pool beyond this account's own ledger
-// (Securities' cash, the pay), spendable here too.
+// Buys a slip: { id, mode, sizes, stake, cost, legs }. The cost comes off the
+// balance at once. `extra`: money in the shared Quadra pool beyond this
+// account's own ledger (Securities' cash, the pay), spendable here too.
 // Returns { account } or { error: 'funds' }.
 export function placeSlip(account, slip, now = new Date(), { extra = 0 } = {}) {
   if (!(slip.cost > 0) || slip.cost > balance(account) + extra) return { error: 'funds' };

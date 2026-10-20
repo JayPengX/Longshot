@@ -4,11 +4,10 @@ import { readFileSync } from 'node:fs';
 import { shadeLong, withRules, houseRule, minLegsProblem, houseCut, BASE_CUT, leagueTier } from '../public/lib/rules.mjs';
 import { recommend } from '../public/lib/recommend.mjs';
 import { slipErrors, estimateF1Odds, f1Phase } from '../public/lib/odds.mjs';
-import { parseKambiEvents, parseKambiLive } from '../public/lib/kambi.mjs';
-import { goalMarkets } from '../public/lib/markets.mjs';
+import { parseKambiEvents, parseKambiLive } from '#kit/play-kambi.mjs';
+import { goalMarkets } from '#kit/play-markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 import { parseF1Schedule, parseFutures, EXTRA_FUTURES, futureTeamName } from '../public/lib/sources.mjs';
-import { LEAGUES } from '../public/lib/teams.mjs';
 
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} !~ ${b}`);

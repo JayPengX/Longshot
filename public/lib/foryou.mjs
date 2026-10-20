@@ -16,7 +16,7 @@ import { normalizeTeamName } from '#kit/logos.mjs';
 import { CATALOG } from '#kit/catalog.mjs';
 import { familyOf } from './teams.mjs';
 
-export const FOR_YOU = { n: 8, horizonH: 72, followH: 10 * 24, backedH: 5 * 24, perSport: 2, follow: 1, backed: 0.6, league: 0.35, sport: 0.12 };
+const FOR_YOU = { n: 8, horizonH: 72, followH: 10 * 24, backedH: 5 * 24, perSport: 2, follow: 1, backed: 0.6, league: 0.35, sport: 0.12 };
 
 const teamKey = (sport, name) => `team:${sport}:${normalizeTeamName(name)}`;
 // Orbit Sports' league key to Play's.

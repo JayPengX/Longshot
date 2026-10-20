@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseRoster, parseAthletes, totalsOf, blendTotals, playerByName } from '../public/lib/players.mjs';
-import { modelProps, atLeast, binomAtLeast, normalOver, teamScores } from '../public/lib/propmodel.mjs';
+import { modelProps, atLeast, binomAtLeast, normalOver, teamScores } from '#kit/play-propmodel.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 
 test('distributions add up', () => {

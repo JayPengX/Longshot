@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { attachKambi, mergeGames } from '../public/lib/sources.mjs';
 import { blendOutcomes, BOOKS_APART, slipErrors, SLIP_RULES } from '../public/lib/odds.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
-import { legResult } from '../public/lib/account.mjs';
 
 const espnGame = { sport: 'epl', startUtc: '2026-10-03T14:00:00.000Z', away: 'Leeds United', home: 'Arsenal', outcomes: { away: 0.15, draw: 0.22, home: 0.63 }, total: { line: 2.5, overFair: 0.55 }, spread: null };
 const kambiGame = (home, away, o) => ({ sport: 'epl', startUtc: '2026-10-03T14:00:00.000Z', home: { en: home }, away: { en: away }, draftKings: o, spread: { awayLine: 1.5, awayFair: 0.6 }, total: { line: 3.5, overFair: 0.3 }, kambiId: 77 });
@@ -57,7 +56,7 @@ test('tennis and UFC are no longer sold: an open pick on one is void', async () 
 
 test('live: Kambi\'s in-play prices on ESPN\'s live games, turned to ESPN\'s sides; soccer with its draw', async () => {
   const { attachKambiLive } = await import('../public/lib/sources.mjs');
-  const { parseKambiInPlay } = await import('../public/lib/kambi.mjs');
+  const { parseKambiInPlay } = await import('#kit/play-kambi.mjs');
   const offer = (type, label, outcomes) => ({ betOfferType: { englishName: type }, criterion: { englishLabel: label }, outcomes });
   const data = { events: [{ event: { id: 5, state: 'STARTED', homeName: 'Arsenal', awayName: 'Leeds United', start: '2026-10-10T11:30:00Z' },
     betOffers: [

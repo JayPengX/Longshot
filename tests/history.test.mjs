@@ -1,10 +1,9 @@
-// 紀錄's numbers and the pure helpers around them, pushed at their edges:
-// empty accounts, slips with no picks, odd shapes, the quantile tables, the
-// saves' codec and the recommendations' tags.
+// 紀錄's account card and the pure helpers around it, pushed at their edges:
+// empty accounts, slips with no picks, odd shapes, the saves' codec and the
+// recommendations' tags.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { historyStats, funFacts, crowdPercentile, normalCdf, accountRecord, chanceOf, legsGroup, slipAtStake } from '../public/lib/history.mjs';
-import { accountTickets, ticketProfile } from '../public/lib/profile.mjs';
+import { accountRecord, slipAtStake } from '../public/lib/history.mjs';
 import { recommend, RECOMMEND, backOf } from '../public/lib/recommend.mjs';
 import { pack, unpack } from '../public/lib/codec.mjs';
 import { interleave, spreadLeagues, leagueTaste, fixturesTaste, tasteOf } from '../public/lib/foryou.mjs';
@@ -13,66 +12,10 @@ import { isAccount, cashOut, newAccount, placeSlip, compactLeg } from '../public
 
 const recovered = { id: 'r', t: '2026-10-01T00:00:00.000Z', status: 'settled', mode: 'single', sizes: [1], stake: 300, cost: 300, payout: 0, legs: [], recovered: true };
 
-test('an account with nothing, or only a slip with no picks, never breaks the stats', () => {
-  const empty = historyStats({ ledger: [], slips: [] });
-  assert.deepEqual([empty.placed, empty.settled, empty.net, empty.back, empty.luckZ, empty.luckShare, empty.avgCost], [0, 0, 0, null, 0, 0.5, 0]);
-  assert.deepEqual(funFacts({ slips: [] }), {});
-  const one = historyStats({ ledger: [{ id: 'stake-r', t: recovered.t, kind: 'stake', amount: -300 }], slips: [recovered] });
-  assert.deepEqual([one.settled, one.net, one.byMode.length, one.bySport.length], [1, -300, 0, 0]);
-  assert.equal(one.timeline.at(-1).balance, -300);
-  // How you bet: a slip with no picks says nothing (it read as an underdog single).
-  assert.deepEqual(accountTickets({ slips: [recovered] }), []);
-  assert.equal(ticketProfile(accountTickets({ slips: [recovered] })), null);
+test('an account with nothing, or only a slip with no picks, never breaks the account card', () => {
   // The account card: a slip settled, lost, net as it is.
   assert.deepEqual(accountRecord({ slips: [recovered] }), { open: 0, openCount: 0, won: 0, decided: 1, net: -300, back: 0 });
   assert.deepEqual(accountRecord(null), { open: 0, openCount: 0, won: 0, decided: 0, net: null, back: null });
-});
-
-test('the picks against their chances: bands, void picks apart, a chance saved without one read from its odds', () => {
-  const leg = (result, fair, odds = 2, kind = 'ml', sport = 'mlb') => ({ gameId: `g${Math.random()}`, result, fairChance: fair, odds, kind, sport });
-  const slip = (id, legs, payout) => ({ id, t: `2026-10-0${id}T00:00:00.000Z`, settledAt: `2026-10-0${id}T05:00:00.000Z`, status: 'settled', mode: legs.length > 1 ? 'parlay' : 'single', sizes: [legs.length], stake: 100, cost: 100, payout, legs });
-  const s = historyStats({
-    ledger: [],
-    slips: [slip('1', [leg('won', 0.55), leg('won', 0.1)], 1000), slip('2', [leg('lost', 0.9, 1.1, 'total', 'nba')], 0), slip('3', [leg('void', 0.5)], 100), slip('4', [leg('won', undefined, 4)], 400)]
-  });
-  assert.deepEqual([s.picks.legs, s.picks.won, s.picks.lost, s.picks.void], [4, 3, 1, 1]);
-  // 0.1 in the first band, 0.55 in the middle, 0.9 in the top, and 1/4 → 0.25.
-  assert.deepEqual(s.bands.map(b => b.legs), [1, 1, 1, 0, 1]);
-  assert.equal(chanceOf({ odds: 4 }), 0.25);
-  assert.equal(chanceOf({ odds: 0.5 }), 1);
-  assert.deepEqual(['1', '2', '3', '4', '5', '12'].map(Number).map(legsGroup), ['1', '2', '3-4', '3-4', '5+', '5+']);
-  // A slip all of one sport counts there; a mixed one under 'mixed' (and its picks under their own).
-  assert.ok(s.bySport.some(x => x.key === 'nba' && x.slips === 1));
-  // Streaks of slips that made or lost money: won, lost, the void (break-even:
-  // neither, the loss run stands), won.
-  assert.deepEqual([s.streak.bestWin, s.streak.bestLoss, s.streak.current], [1, 1, 1]);
-  // Weeks run Monday to Sunday, Taiwan time.
-  assert.deepEqual(s.weeks.map(w => w.week), ['2026-09-28']);
-});
-
-test("fun facts: a parlay lost by one pick says what it would have paid; the busiest day is Taiwan's", () => {
-  const legs = [{ gameId: 'a', odds: 2, result: 'won', kind: 'ml', shortLabel: '道奇' }, { gameId: 'b', odds: 3, result: 'lost', kind: 'ml', shortLabel: '洋基' }, { gameId: 'c', odds: 1.5, result: 'void', kind: 'ml', shortLabel: '道奇' }];
-  // Bought Sunday 23:30 Taiwan (15:30Z Sunday): the busiest weekday is Sunday (0).
-  const near = { id: 'n', t: '2026-10-18T15:30:00.000Z', status: 'settled', mode: 'parlay', sizes: [3], stake: 100, cost: 100, payout: 0, legs };
-  const f = funFacts({ slips: [near, { ...near, id: 'n2' }, { ...near, id: 'n3', t: '2026-10-18T16:30:00.000Z' }] });
-  assert.equal(f.nearMiss.count, 3);
-  assert.equal(Math.round(f.nearMiss.missed), 3 * 600);
-  assert.equal(f.team.name, '道奇');
-  assert.equal(f.weekday.day, 0);
-  assert.equal(f.weekday.slips, 2);
-});
-
-test('the crowd table and the normal curve at their edges', () => {
-  assert.equal(crowdPercentile(null, 1), null);
-  assert.equal(crowdPercentile([], 1), null);
-  assert.equal(crowdPercentile([0, 10, 20], -5), 0);
-  assert.equal(crowdPercentile([0, 10, 20], 99), 1);
-  assert.equal(crowdPercentile([0, 10, 20], 5), 0.25);
-  // A flat stretch (many people on the same figure) never divides by zero.
-  assert.ok(Number.isFinite(crowdPercentile([0, 5, 5, 5, 10], 5)));
-  assert.ok(Math.abs(normalCdf(0) - 0.5) < 1e-6);
-  assert.ok(Math.abs(normalCdf(1.96) - 0.975) < 1e-3);
-  assert.ok(Math.abs(normalCdf(-1.96) + normalCdf(1.96) - 1) < 1e-9);
 });
 
 test('recommendations: a small or locked lot gets none; each tag by its rule', () => {
@@ -152,25 +95,6 @@ test('a cash out is paid once, never on a free bet or a settled slip; saved pick
   assert.equal(cashed.slips[0].payout, 150);
   assert.equal(cashOut(cashed, 'c', 150, t0), cashed);
   assert.equal(slipSpec(cashed.slips[0]).status, 'open');
-});
-
-test("a free bet's stake isn't tax and isn't expected back; a near miss and a dream ticket pay as a ticket would", async () => {
-  // A NT$500 free bet on 3.00, won: 1,500 back, 1,000 of it paid (the free
-  // stake isn't). Nothing over NT$5,000, so no tax (it showed NT$500).
-  const free = { id: 'f', t: '2026-10-01T00:00:00.000Z', settledAt: '2026-10-01T05:00:00.000Z', status: 'settled', mode: 'single', sizes: [1], stake: 500, cost: 0, free: 'fb1', freeValue: 500, gross: 1500, payout: 1000, legs: [{ gameId: 'g', odds: 3, fairChance: 0.3, result: 'won', kind: 'ml' }] };
-  const s = historyStats({ ledger: [], slips: [free] });
-  assert.equal(s.tax, 0);
-  // Expected back: 30% of the 1,000 it pays, not of the 1,500.
-  assert.equal(Math.round(s.expected), 300);
-  // A treble lost by one pick: what it would have paid is a ticket's, boost and tax in (it said 1000 × 200 = 200,000).
-  const legs = [{ gameId: 'a', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'b', odds: 10, result: 'won', kind: 'ml' }, { gameId: 'c', odds: 2, result: 'lost', kind: 'ml' }];
-  const near = { id: 'n', t: '2026-10-02T00:00:00.000Z', status: 'settled', mode: 'parlay', sizes: [3], stake: 1000, cost: 1000, boost: 1, payout: 0, legs };
-  // (Taxed as the kit taxes it: 20.4% over NT$5,000 a ticket, or 台灣運彩's 20% only past NT$5,000 a NT$10 bet.)
-  const { afterTax } = await import('../public/lib/odds.mjs');
-  assert.equal(Math.round(funFacts({ slips: [near] }).nearMiss.missed), Math.round(afterTax(1000 * (1 + 199 * 1.05), 1000)));
-  // Two picks of one game never share a combination: the dream ticket counts only what can be paid.
-  const sys = { id: 'd', t: '2026-10-03T00:00:00.000Z', status: 'settled', mode: 'system', sizes: [2], stake: 100, cost: 200, payout: 0, legs: [{ gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g1', odds: 3, kind: 'total' }, { gameId: 'g2', odds: 2, kind: 'ml' }] };
-  assert.equal(funFacts({ slips: [sys] }).dream.times, 6);
 });
 
 test('a cash out the wallet already paid shows what was paid, never the value asked', () => {

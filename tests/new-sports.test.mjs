@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseKambiEvents } from '../public/lib/kambi.mjs';
+import { parseKambiEvents } from '#kit/play-kambi.mjs';
 import { LEAGUES, familyOf } from '../public/lib/teams.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 import { legResult } from '../public/lib/account.mjs';
@@ -19,7 +19,7 @@ test('Play leagues come from the shared catalogue; the purged sports are gone, n
 });
 
 test('K League from Kambi: three-way prices, full-time markets only, a draw settles from the last score', async () => {
-  const { decidedTeamGame } = await import('../public/lib/kambi.mjs');
+  const { decidedTeamGame } = await import('#kit/play-kambi.mjs');
   const offer = (type, label, outcomes) => ({ betOfferType: { englishName: type }, criterion: { englishLabel: label }, outcomes });
   const data = { events: [{ event: { id: 9, homeName: 'Ulsan HD', awayName: 'Jeonbuk Hyundai Motors', start: '2026-10-04T05:00:00Z', state: 'NOT_STARTED', path: ['football', 'south_korea', 'k-league_1'] },
     betOffers: [offer('Match', 'Full Time', [{ type: 'OT_ONE', odds: 2100 }, { type: 'OT_CROSS', odds: 3300 }, { type: 'OT_TWO', odds: 3500 }]), offer('Over/Under', 'Total Goals', [{ type: 'OT_OVER', odds: 1900, line: 2500 }, { type: 'OT_UNDER', odds: 1900, line: 2500 }])] }] };

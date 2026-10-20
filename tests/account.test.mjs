@@ -4,7 +4,6 @@ import {
   START_BALANCE,
   newAccount,
   balance,
-  weekKey,
   placeSlip,
   legResult,
   applyResults,
@@ -13,18 +12,11 @@ import {
   placeFreeSlip,
   cashOut
 } from '../public/lib/account.mjs';
-import { settleSlip, slipOutlook, SLIP_RULES, afterTax } from '../public/lib/odds.mjs';
+import { settleSlip, slipOutlook, afterTax } from '../public/lib/odds.mjs';
 import { BASE_CUT } from '../public/lib/rules.mjs';
 import { parseEspnResults, parseEspnRace, parseFutureResult } from '../public/lib/sources.mjs';
 
 const at = iso => new Date(iso);
-
-test('weeks start on Monday, Taiwan time', () => {
-  // Sunday 23:30 in Taiwan is still the week of Monday the 21st.
-  assert.equal(weekKey(at('2026-09-27T15:30:00Z')), '2026-09-21');
-  // Monday 00:30 in Taiwan (Sunday in UTC) is the next week.
-  assert.equal(weekKey(at('2026-09-27T16:30:00Z')), '2026-09-28');
-});
 
 test('a new account starts with NT$10,000; a pool-funded one opens empty', () => {
   assert.equal(balance(newAccount(at('2026-09-18T00:00:00Z'))), START_BALANCE);
@@ -251,39 +243,6 @@ test('a slip outlook: average payout, spread and chance of any payout', async ()
   assert.ok(Math.abs(evaluateSlip({ legs, sizes: [2], stake: 100 }).expectedNet - look.mean) < 1e-9);
 });
 
-test('history stats: money, luck, picks against their chances, streaks', async () => {
-  const { historyStats } = await import('../public/lib/history.mjs');
-  let account = newAccount(at('2026-09-01T00:00:00Z'));
-  const legs = (...r) => r.map((result, i) => ({ id: `l${i}`, kind: i ? 'total' : 'ml', sport: 'mlb', odds: 2, fairChance: 0.45, result }));
-  const place = (id, t, results) => {
-    ({ account } = placeSlip(account, { id, mode: 'single', sizes: [1], stake: 100, cost: 100 * results.length, legs: legs(...results.map(() => null)) }, at(t)));
-    account = applyResults(account, id, results, at(t));
-  };
-  place('a', '2026-09-02T00:00:00Z', ['won', 'lost']); // pays 200 of 200
-  place('b', '2026-09-03T00:00:00Z', ['lost', 'lost']); // 0 of 200
-  place('c', '2026-09-10T00:00:00Z', ['won', 'won']); // 400 of 200
-  ({ account } = placeSlip(account, { id: 'd', mode: 'parlay', sizes: [2], stake: 100, cost: 100, legs: legs(null, null) }, at('2026-09-11T00:00:00Z')));
-  const s = historyStats(account);
-  assert.equal(s.placed, 4);
-  assert.equal(s.settled, 3);
-  assert.equal(s.open, 1);
-  assert.equal(s.staked, 600);
-  assert.equal(s.paid, 600);
-  assert.equal(s.net, 0);
-  // Each NT$100 single at 2.0 and 45% averages 90 back.
-  assert.ok(Math.abs(s.expected - 540) < 1e-9);
-  assert.ok(Math.abs(s.luck - 60) < 1e-9);
-  assert.equal(s.picks.legs, 6);
-  assert.equal(s.picks.won, 3);
-  assert.ok(Math.abs(s.picks.expectedRate - 0.45) < 1e-9);
-  assert.equal(s.streak.bestLoss, 1);
-  assert.equal(s.streak.current, 1);
-  assert.equal(s.records.best.slip.id, 'c');
-  assert.equal(s.records.worst.slip.id, 'b');
-  assert.equal(s.weeks.length, 2);
-  assert.equal(s.timeline.at(-1).balance, 10_000 - 700 + 600);
-});
-
 test('saves are gzip-compressed and read back; old plain saves still read', async () => {
   const { pack, unpack } = await import('../public/lib/codec.mjs');
   let account = newAccount(at('2026-09-01T00:00:00Z'));
@@ -298,37 +257,6 @@ test('saves are gzip-compressed and read back; old plain saves still read', asyn
   assert.deepEqual(await unpack(packed), account);
   assert.deepEqual(await unpack(json), account);
   assert.equal(await unpack('gz1:!!'), null);
-});
-
-test('fun facts, and your tickets told like a simulated person\'s', async () => {
-  const { funFacts, crowdPercentile } = await import('../public/lib/history.mjs');
-  const { ticketProfile, accountTickets } = await import('../public/lib/profile.mjs');
-  let account = newAccount(at('2026-09-01T00:00:00Z'));
-  const leg = (id, name, chance, odds, result) => ({ id, kind: 'ml', side: 'away', sport: 'mlb', shortLabel: name, matchup: 'A @ B', odds, fairChance: chance, result: null, final: result });
-  const add = (id, t, legs) => {
-    ({ account } = placeSlip(account, { id, mode: 'parlay', sizes: [legs.length], stake: 100, cost: 100, legs }, at(t)));
-    account = applyResults(account, id, legs.map(l => l.final), at(t));
-  };
-  add('a', '2026-09-05T10:00:00Z', [leg('1', '道奇', 0.3, 3.1, 'won'), leg('2', '洋基', 0.8, 1.2, 'lost')]);
-  add('b', '2026-09-12T10:00:00Z', [leg('3', '道奇', 0.5, 1.8, 'won'), leg('4', '水手', 0.5, 1.8, 'won')]);
-  add('c', '2026-09-19T10:00:00Z', [leg('5', '道奇', 0.5, 1.8, 'lost'), leg('6', '小熊', 0.5, 1.8, 'lost')]);
-  const f = funFacts(account);
-  assert.equal(f.upset.leg.shortLabel, '道奇');
-  assert.equal(f.heartbreak.leg.shortLabel, '洋基');
-  assert.equal(f.nearMiss.count, 1);
-  assert.ok(Math.abs(f.nearMiss.missed - 372) < 1e-9);
-  assert.deepEqual([f.team.name, f.team.picks, f.team.won], ['道奇', 3, 2]);
-  assert.equal(f.weekday.day, 6); // Saturdays
-  const profile = ticketProfile(accountTickets(account));
-  assert.equal(profile.tickets, 3);
-  assert.equal(profile.avgLegs, 2);
-  assert.equal(profile.avgStake, 100);
-  assert.equal(profile.won, 1);
-  assert.equal(profile.nearMisses, 1);
-  assert.deepEqual([profile.longestWin, profile.longestLose], [1, 1]);
-  // One ticket a week over three weeks, two picks at about 50%: no trait shows.
-  assert.deepEqual(profile.traits, []);
-  assert.equal(crowdPercentile([-3, -1, 0, 2, 10], 1), 0.625);
 });
 
 test('slip history keeps itself: final scores with each pick, compact picks, backups merge', async () => {
@@ -349,8 +277,8 @@ test('slip history keeps itself: final scores with each pick, compact picks, bac
   assert.deepEqual(compactAccount(backup).slips[0].legs[0].final, { away: 4, home: 6 });
 });
 
-test('Quadra pool: extra money to bet with, the weekly limit, entries for the pool', async () => {
-  const { newAccount, placeSlip, poolEntries, stakedThisWeek, mergeDistinct, balance } = await import('../public/lib/account.mjs');
+test('Quadra pool: extra money to bet with, entries for the pool', async () => {
+  const { newAccount, placeSlip, poolEntries, mergeDistinct, balance } = await import('../public/lib/account.mjs');
   const now = new Date('2026-09-23T04:00:00Z');
   const base = newAccount(new Date('2026-09-01T00:00:00Z'));
   const slip = (id, cost) => ({ id, mode: 'single', sizes: [1], stake: cost, cost, legs: [{ id: 'x', odds: 2 }] });
@@ -358,11 +286,8 @@ test('Quadra pool: extra money to bet with, the weekly limit, entries for the po
   assert.deepEqual(placeSlip(base, slip('a', 15_000), now), { error: 'funds' });
   const { account } = placeSlip(base, slip('a', 15_000), now, { extra: 90_000 });
   assert.equal(balance(account), -5_000);
-  assert.equal(stakedThisWeek(account, now), 15_000);
   // No weekly limit: anything the pool covers.
   assert.ok(placeSlip(account, slip('b', 60_000), now, { extra: 90_000 }).account);
-  // A new week starts the limit over.
-  assert.equal(stakedThisWeek(account, new Date('2026-09-29T04:00:00Z')), 0);
   const entries = poolEntries(account);
   assert.deepEqual(entries.map(e => [e.id, e.amount, e.app]), [['odds:start', 10_000, 'odds'], ['odds:stake-a', -15_000, 'odds']]);
   // Two separate accounts folded together keep both starts and old grants.
@@ -375,7 +300,6 @@ test('Quadra pool: extra money to bet with, the weekly limit, entries for the po
 
 test('the wallet brings back a lost ledger and slips, and a real slip wins over a recovered one', async () => {
   const { recoverFromWallet, mergeAccounts, newAccount, balance } = await import('../public/lib/account.mjs');
-  const { historyStats } = await import('../public/lib/history.mjs');
   const empty = newAccount(new Date('2026-09-28T00:00:00Z'), { start: false });
   const wallet = {
     entries: [
@@ -390,8 +314,6 @@ test('the wallet brings back a lost ledger and slips, and a real slip wins over 
   assert.equal(balance(back), 11000);
   assert.deepEqual(back.slips.map(s => [s.id, s.cost, s.payout, s.recovered]), [['b', 500, 0, true], ['a', 1000, 2500, true]]);
   assert.equal(recoverFromWallet(back, wallet), back);
-  const stats = historyStats(back);
-  assert.ok(stats);
   const real = { ...newAccount(new Date('2026-09-20T00:00:00Z')), slips: [{ id: 'a', t: '2026-09-20T01:00:00.000Z', mode: 'single', sizes: [1], stake: 1000, cost: 1000, status: 'open', legs: [{ id: 'x', odds: 2.5, result: null }] }] };
   assert.equal(mergeAccounts(back, real).slips.find(s => s.id === 'a').recovered, undefined);
   assert.equal(mergeAccounts(real, back).slips.find(s => s.id === 'a').recovered, undefined);
