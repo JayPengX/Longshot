@@ -2611,23 +2611,26 @@ function renderAccount() {
   const account = state.account;
   const r = accountRecord(account);
   // What's in play and the most it can pay, two big numbers; the record so
-  // far as tags under them.
+  // far under them.
   const open = account.slips.filter(x => x.status === 'open');
   const most = slipsMost(open);
   const stat = (label, value, sub, cls = '') => el('div', { class: 'q-stat' }, [el('small', { text: label }), el('strong', { class: `stat-value ${cls}`.trim(), text: value }), sub ? el('span', { class: 'pl-stat-sub', text: sub }) : null]);
-  const tags = r.decided
-    ? [
-        el('span', { class: 'q-tag', text: t('accountDecided', { n: r.decided }) }),
-        el('span', { class: 'q-tag', text: `${t('accountWon')} ${fmtMoney(r.won, { sign: false })}` }),
-        r.net != null ? el('span', { class: `q-tag ${r.net > 0 ? 'green' : r.net < 0 ? 'red' : ''}`, text: `${t('accountNet')} ${fmtMoney(r.net, { sign: true })}` }) : null,
-        r.back != null ? el('span', { class: 'q-tag', text: `${t('accountBack')} ${r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`}` }) : null
-      ]
-    : [el('span', { class: 'q-tag', text: t('accountNoneYet') })];
+  // The record so far: four figures in an even 2×2 block (pills wrapped,
+  // leaving one alone on a second line).
+  const fig = (label, value, cls = '') => el('div', { class: 'pl-fig' }, [el('small', { text: label }), el('strong', { class: cls, text: value })]);
+  const record = r.decided
+    ? el('div', { class: 'pl-record' }, [
+        fig(t('accountSettled'), t('sumSlips', { n: r.decided })),
+        fig(t('accountWon'), fmtMoney(r.won, { sign: false })),
+        fig(t('accountNet'), r.net != null ? fmtMoney(r.net, { sign: true }) : '—', r.net > 0 ? 'green' : r.net < 0 ? 'red' : ''),
+        fig(t('accountBack'), r.back == null ? '—' : r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`)
+      ])
+    : el('div', { class: 'q-tags pl-record-none' }, [el('span', { class: 'q-tag', text: t('accountNoneYet') })]);
   // No slips yet: no zero tiles, no stray pill (the empty state below says it).
   if (!account.slips.length) return void $('account-body').replaceChildren();
   $('account-body').replaceChildren(
     el('div', { class: 'q-stats pl-acct', style: '--q-stats-n:2' }, [stat(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })), stat(t('sumMost'), fmtMoney(most, { sign: false }), '', most > 0 ? 'tint' : '')]),
-    el('div', { class: 'q-tags pl-record' }, tags)
+    record
   );
 }
 

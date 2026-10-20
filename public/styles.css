@@ -335,7 +335,13 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-hist-seg { margin-bottom: 16px; }
 .pl-acct .q-stat strong { font-size: 24px; }
 .pl-stat-sub { color: var(--q-label-2); font: var(--q-t-caption); }
-.q-tags.pl-record { margin: 12px 0 0; }
+.q-tags.pl-record-none { margin: 12px 0 0; }
+.pl-record { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 12px; border-radius: 18px; overflow: hidden; background: var(--q-sep); }
+.pl-fig { display: grid; gap: 2px; min-width: 0; padding: 10px 16px; background: var(--q-surface); }
+.pl-fig small { color: var(--q-label-2); font: 600 13px/18px var(--q-font); }
+.pl-fig strong { overflow: hidden; font: 700 18px/22px var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
+.pl-fig strong.green { color: var(--q-green); }
+.pl-fig strong.red { color: var(--q-red); }
 .pl-placed { width: 100%; margin-top: 16px; border-radius: 18px; background: var(--q-surface); }
 .pl-hist-bar { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .pl-hist-bar .q-chips { flex: 1; min-width: 0; margin-right: 0; }
