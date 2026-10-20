@@ -213,7 +213,9 @@ export function taxPaid(account) {
   }
   // The sports tax back charged on payouts from before it went to the whole
   // slip (the Worker's `odds:tax-<slip>` entries).
-  for (const e of account?.ledger || []) if (e.kind === 'tax' && e.amount < 0) sports -= e.amount;
+  // (A slip that took it in counts it above, as its gross less its payout.)
+  const took = new Set((account?.slips || []).filter(x => x.backTax).map(x => x.id));
+  for (const e of account?.ledger || []) if (e.kind === 'tax' && e.amount < 0 && !took.has(e.slipId)) sports -= e.amount;
   return { sports: Math.round(sports), lottery: Math.round(lottery) };
 }
 // An older slip's tax: its payout table again, before tax less after.
@@ -309,10 +311,18 @@ export function recoverFromWallet(account, wallet) {
   }
   // A recovered slip the Worker has paid since (it held the real slip and
   // settled it): it shows what it paid, not the nothing it showed before.
-  const kept = account.slips.map(s => {
+  const recheck = account.slips.map(s => {
     if (!s.recovered || s.refunded || !paid.has(s.id)) return s;
     const payout = paidOf(s.id);
     return s.payout === payout ? s : { ...s, payout, settledAt: paid.get(s.id).t };
+  });
+  // The sports tax back charged on a slip paid before it went to the whole
+  // slip (the Worker's `tax-<slip>`): the slip shows what it pays after it.
+  const taxes = new Map(all.filter(e => e.kind === 'tax' && e.slipId && e.amount < 0).map(e => [e.slipId, -e.amount]));
+  const kept = recheck.map(s => {
+    const tax = taxes.get(s.id);
+    if (!tax || s.backTax || s.status !== 'settled') return s;
+    return { ...s, gross: s.gross ?? s.payout, payout: s.payout - tax, backTax: tax };
   });
   if (!ledger.length && !slips.length && kept.every((s, i) => s === account.slips[i])) return account;
   return {
