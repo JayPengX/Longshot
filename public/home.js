@@ -64,6 +64,19 @@ export const tasteKey = wallet => JSON.stringify([fixturesTaste(cachedPayload, w
 // drawn again on every live read and when the pass's follows come in, and the
 // row reshuffled (or filled in) seconds after the page opened.
 let mineKept = [];
+let grouped = { of: null, map: new Map() };
+const groupOnce = list => {
+  if (grouped.of === list) return grouped.map;
+  const map = new Map();
+  for (const b of list || []) {
+    if (!b.gameId) continue;
+    const had = map.get(b.gameId);
+    if (had) had.push(b);
+    else map.set(b.gameId, [b]);
+  }
+  grouped = { of: list, map };
+  return map;
+};
 
 export function renderHome(ctx) {
   const { state, el, fmtMoney, gameTime } = ctx;
@@ -82,12 +95,9 @@ export function renderHome(ctx) {
   // A game's affinity keys, as a pick on it records them (app.js betKeys:
   // the sport by its family, 'sport:baseball', never the league again).
   const gameKeys = g => [`league:${g.sport}`, `sport:${familyOf(g.sport) || g.sport}`, teamKey(g, 'away'), teamKey(g, 'home')];
-  const group = list => {
-    const map = new Map();
-    for (const b of list || []) if (b.gameId) map.set(b.gameId, [...(map.get(b.gameId) || []), b]);
-    return map;
-  };
-  const betsOf = group(state.bets);
+  // (Each game's picks, gathered once a board: copying a game's list for
+  // every pick was most of drawing 首頁 on a full board.)
+  const betsOf = groupOnce(state.bets);
 
   // ---- 為你推薦, then 焦點賽事 (other games, other teams, none already bet on).
   const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now });

@@ -11,7 +11,7 @@ const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, balance, newSlipId, placeSlip, placeFreeSlip, FREE_MIN_ODDS, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { cashOutState, CASHOUT_MAX_OPEN } from './lib/cashout.mjs';
-import { boardBets, futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
+import { futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, takeForCashOut, placeSlips, revealPending } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
@@ -393,61 +393,89 @@ let extrasStamp = 0;
 let priced = null;
 const pricedKey = data => [data, data.games, data.f1, extrasStamp, state.locale, taipeiDayKey(new Date().toISOString())];
 const pricedFor = data => priced && priced.key.every((v, i) => v === pricedKey(data)[i]) ? priced.bets : null;
+// Each game priced once (the kit's steps for it: its options, named, the
+// house's rules, its markets held whole) and kept until its options change
+// (its Kambi markets or players arriving, a read with other prices) or the
+// language or the Taipei day does: a game's markets arriving, a tab or a
+// filter priced every market on the board again, 1 to 3 s frozen on a phone.
+const gamePriced = new Map();
+function priceGame(game, name, locale, day) {
+  const opts = optionsOf(game);
+  const memo = optionsMemo.get(game.id);
+  const hit = gamePriced.get(game.id);
+  if (hit && hit.key === memo.key && hit.offers === memo.offers && hit.players === memo.players && hit.locale === locale && hit.day === day) {
+    if (hit.game !== game) Object.assign(hit, { game, bets: hit.bets.map(b => ({ ...b, game })) });
+    return hit.bets;
+  }
+  const bets = lockWhole(opts.map(o => withRules(name(game, o))));
+  gamePriced.set(game.id, { key: memo.key, offers: memo.offers, players: memo.players, locale, day, game, bets });
+  return bets;
+}
+// The race's picks, kept for the race read (its 40,000 drawn finishes).
+let f1Priced = null;
+function priceF1(data, locale, day) {
+  if (!data.f1) return [];
+  if (f1Priced?.f1 === data.f1 && f1Priced.locale === locale && f1Priced.day === day) return f1Priced.bets;
+  const bets = f1Bets(data.f1, { now: new Date(), memo: f1MarketsMemo, loadedAt: data.loadedAt }).map(b => withRules(b)).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
+  f1Priced = { f1: data.f1, locale, day, bets };
+  return bets;
+}
 function buildBets(data) {
   const hit = pricedFor(data);
   if (hit) return hit;
   takeExtras(data);
-  const bets = lockWhole(boardBets(data, { optionsOf, name: namer(), memo: f1MarketsMemo }).map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b)));
-  priced = { key: pricedKey(data), bets };
+  const key = pricedKey(data);
+  const [, , , , locale, day] = key;
+  const name = namer();
+  const bets = [];
+  for (const game of data.games) for (const b of priceGame(game, name, locale, day)) bets.push(b);
+  for (const b of priceF1(data, locale, day)) bets.push(b);
+  fillTypicalMargins(bets);
+  priced = { key, bets };
   return bets;
 }
-// The same pricing (boardBets, step for step) in slices that give the page
-// its turn between them: the full read's thousands of picks froze the
-// screen two to three seconds on a phone. Kept for buildBets; false when a
-// newer pricing started meanwhile.
+// The same, the games not priced yet in slices that give the page its turn
+// between them (the full read's thousands of picks froze the screen two to
+// three seconds). Kept for buildBets; false when a newer pricing started
+// meanwhile or the board moved on.
 let slicing = 0;
 async function priceInSlices(data) {
   if (pricedFor(data)) return true;
   const mine = ++slicing;
   const key = pricedKey(data);
+  const [, , , , locale, day] = key;
   takeExtras(data);
-  let since = performance.now();
-  const breathe = async () => {
-    if (performance.now() - since < 30) return;
-    await new Promise(resolve => setTimeout(resolve, 0));
-    since = performance.now();
-  };
-  const name = namer();
-  const bets = [];
-  for (const game of data.games) {
-    for (const o of optionsOf(game)) bets.push(name(game, o));
-    await breathe();
-    if (mine !== slicing) return false;
-  }
-  // (The race's 40,000 drawn finishes, a task of their own.)
-  if (data.f1) {
-    await new Promise(resolve => setTimeout(resolve, 0));
-    bets.push(...f1Bets(data.f1, { now: new Date(), memo: f1MarketsMemo, loadedAt: data.loadedAt }));
-    await new Promise(resolve => setTimeout(resolve, 0));
-    since = performance.now();
-  }
-  fillTypicalMargins(bets);
-  for (let i = 0; i < bets.length; i++) {
-    withRules(bets[i]);
-    if (i % 100 === 99) await breathe();
-  }
   const pause = () => new Promise(resolve => setTimeout(resolve, 0));
+  let since = performance.now();
+  const name = namer();
+  for (const game of data.games) {
+    priceGame(game, name, locale, day);
+    if (performance.now() - since > 30) {
+      await pause();
+      if (mine !== slicing) return false;
+      since = performance.now();
+    }
+  }
+  if (data.f1 && f1Priced?.f1 !== data.f1) {
+    await pause();
+    priceF1(data, locale, day);
+  }
   await pause();
-  const named = bets.map(b => (b.sport === 'f1' && !b.label ? nameF1(b, data.f1) : b));
-  await pause();
-  const held = lockWhole(named);
-  if (mine !== slicing) return false;
-  // (The board moved on meanwhile: a markets' read, another day. Drawn as before, at once.)
-  if (!key.every((v, i) => v === pricedKey(data)[i])) return false;
-  priced = { key, bets: held };
+  if (mine !== slicing || !key.every((v, i) => v === pricedKey(data)[i])) return false;
+  buildBets(data);
   // (The drawing that follows, a task of its own.)
   await pause();
   return true;
+}
+// A redraw (a tap, a tab) while the board isn't priced yet: drawn with the
+// picks it has, the board priced in slices behind it, then drawn again.
+let soon = null;
+let recsFor = null;
+function pricedSoon() {
+  soon ??= priceInSlices(state.data).then(done => {
+    soon = null;
+    if (done) renderAll();
+  });
 }
 // renderAll, the board priced in slices first (the full read's swaps).
 async function renderAllSliced() {
@@ -1526,6 +1554,7 @@ function refreshLive({ now = false } = {}) {
   });
   return (liveBusy = read);
 }
+let liveHomeKey = '';
 async function readLive(asked) {
   try {
     const data = await loadLive(new Date(), LIVE_MIN_LIQUIDITY, { also: liveHint });
@@ -1552,7 +1581,11 @@ async function readLive(asked) {
     // The slip: with a live pick on it (its price now), or one just gone.
     if (state.parlay.length !== had) slipChanged();
     else if (state.parlay.some(id => id.startsWith('live|'))) renderParlay();
-    if (state.tab === 'home') drawHome();
+    // 首頁 shows the games on now by their scores and state: drawn again
+    // only when one of those moved (every read redrew the whole page).
+    const homeKey = games.map(g => `${g.id}:${g.live?.awayScore}:${g.live?.homeScore}:${liveStateText(g.live)}`).join('|');
+    if (state.tab === 'home' && homeKey !== liveHomeKey) drawHome();
+    liveHomeKey = homeKey;
   } catch (error) {
     console.error(error);
   }
@@ -1695,15 +1728,28 @@ function slipCandidates() {
 }
 // …by id (the first board's, as a search of them finds it), made again only
 // when a board's bets do.
+// (Two indexes: the board's and the championships' made again only when they
+// change, the games in play's on every live read: one index of all of them
+// was made again over 40,000 picks every few seconds, a tenth of a second
+// each time the home or the slip bar was drawn.)
 let betIndex = { of: [], map: new Map() };
+let liveIndex = { of: null, map: new Map() };
 function betById() {
-  const of = [state.bets, state.liveBets, state.futures];
+  const of = [state.bets, state.futures];
   if (of.some((x, i) => x !== betIndex.of[i])) {
     const map = new Map();
-    for (const b of slipCandidates()) if (!map.has(b.id)) map.set(b.id, b);
+    for (const list of of) for (const b of list || []) if (!map.has(b.id)) map.set(b.id, b);
     betIndex = { of, map };
   }
-  return betIndex.map;
+  if (liveIndex.of !== state.liveBets) {
+    const map = new Map();
+    for (const b of state.liveBets || []) if (!map.has(b.id)) map.set(b.id, b);
+    liveIndex = { of: state.liveBets, map };
+  }
+  const board = betIndex.map;
+  const live = liveIndex.map;
+  // (Their ids never meet: a game in play's start live|, a championship's fut|.)
+  return { get: id => board.get(id) ?? live.get(id), has: id => board.has(id) || live.has(id) };
 }
 
 // Championships have no start time: they stay open until the lottery closes them.
@@ -3144,11 +3190,12 @@ function renderAll() {
     state.bets = lockWhole(state.boardBets);
     state.futures = [];
     state.recs = state.boardRecs;
-  } else {
+    recsFor = null;
+  } else if (pricedFor(state.data) || !state.bets?.length) {
     state.bets = buildBets(state.data);
     state.futures = buildFutures(state.data);
-    state.recs = recommend(state.bets);
-  }
+    if (state.bets !== recsFor) ((recsFor = state.bets), (state.recs = recommend(state.bets)));
+  } else pricedSoon();
   offersForSlip();
   // (A pick not on the board stays in the slip: its league may still be on
   // its way. The slip shows only the picks it finds; saveSlip lets go of the
@@ -3963,7 +4010,11 @@ async function boot() {
   // The slip bar waits for the account (a slip kept on the device shows now).
   renderSlipBar();
   renderSaved();
+  // (彩券 and 首頁 a task each: all of it at once, then fitted, froze the
+  // page half a second at half a phone's speed.)
+  await new Promise(resolve => setTimeout(resolve, 0));
   lotteryUi.render();
+  await new Promise(resolve => setTimeout(resolve, 0));
   if (state.tab === 'home' && state.data) drawHome();
   accountDone();
   // The sign-in's reply was the pass's copy and inbox, just merged: asked
