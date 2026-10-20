@@ -67,3 +67,9 @@ test('taxPaid counts back: a slip settled before gross was kept has its tax work
   // Recomputing gives the same total every time: nothing adds up twice.
   assert.deepEqual(taxPaid({ slips: [old, old] }).sports, 2 * (r.gross - r.net));
 });
+
+test('taxPaid counts the sports tax back charged on an old payout (the wallet’s odds:tax-<slip>)', async () => {
+  const { taxPaid } = await import('../public/lib/account.mjs');
+  const account = { slips: [], tickets: [], ledger: [{ id: 'payout-a', kind: 'payout', amount: 30_920, slipId: 'a' }, { id: 'tax-a', kind: 'tax', amount: -6_184, slipId: 'a' }] };
+  assert.deepEqual(taxPaid(account), { sports: 6_184, lottery: 0 });
+});

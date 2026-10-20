@@ -211,6 +211,9 @@ export function taxPaid(account) {
     if (x.gross > 0) lottery += Math.max(0, x.gross - (x.prize || 0));
     else if (x.gross == null && x.prize > 0) lottery += ticketTaxAgain(x);
   }
+  // The sports tax back charged on payouts from before it went to the whole
+  // slip (the Worker's `odds:tax-<slip>` entries).
+  for (const e of account?.ledger || []) if (e.kind === 'tax' && e.amount < 0) sports -= e.amount;
   return { sports: Math.round(sports), lottery: Math.round(lottery) };
 }
 // An older slip's tax: its payout table again, before tax less after.
@@ -218,7 +221,9 @@ function slipTaxAgain(slip) {
   try {
     if (!slip.legs?.length || !slip.sizes?.length || !(slip.stake > 0) || slip.legs.some(l => !l.result || !(l.odds > 0))) return 0;
     const r = settleSlip({ legs: slip.legs, sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 });
-    return r.taxed > 0 && r.gross > r.net ? r.gross - r.net : 0;
+    // Only when the rule gives back what the slip was paid (one paid before
+    // the tax went to the whole slip owes its back charge, counted apart).
+    return r.taxed > 0 && r.gross > r.net && Math.abs(r.net - slip.payout) < 1 ? r.gross - r.net : 0;
   } catch {
     return 0;
   }
@@ -251,8 +256,8 @@ export function resultByMarket(account) {
   const out = {};
   for (const e of account.ledger) {
     let key = null;
-    const slipId = e.slipId || /^(?:stake|payout|refund|plus)-(.+)$/.exec(e.id)?.[1];
-    if (['stake', 'payout', 'cashout', 'refund', 'plusboost'].includes(e.kind) && slipId) {
+    const slipId = e.slipId || /^(?:stake|payout|refund|plus|tax)-(.+)$/.exec(e.id)?.[1];
+    if (['stake', 'payout', 'cashout', 'refund', 'plusboost', 'tax'].includes(e.kind) && slipId) {
       const slip = slips.get(slipId);
       if (slip?.status !== 'settled') continue;
       const sports = new Set(slip.legs.map(l => l.sport).filter(Boolean));
@@ -283,7 +288,7 @@ export function recoverFromWallet(account, wallet) {
     const id = e.id.slice(5);
     if (have.has(id)) continue;
     const entry = { id, t: new Date(e.t).toISOString(), kind: e.kind, amount: e.amount };
-    const slipId = /^(?:stake|payout|refund)-(.+)$/.exec(id)?.[1];
+    const slipId = /^(?:stake|payout|refund|tax)-(.+)$/.exec(id)?.[1];
     if (slipId) entry.slipId = slipId;
     ledger.push(entry);
   }
