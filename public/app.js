@@ -845,6 +845,8 @@ function renderGames() {
 function drawGames() {
   const t = state.t;
   const container = $('games-list');
+  // (A newer draw stops an older one's rows still on their way.)
+  const turn = ++gamesTurn;
   const searching = Boolean(state.query);
   document.body.classList.toggle('searching', searching);
   if (!searching) renderDayFilter();
@@ -867,9 +869,7 @@ function drawGames() {
   const sections = shown.map(([sport, list]) => gameSection([leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })], list.length, list.map(g => gameRow(g, byGame.get(g.id)))));
   const f1 = f1Section();
   if (f1) sections.splice(sections.length && shownTier(shown[0][0]) === 'major' ? 1 : 0, 0, f1);
-  container.replaceChildren(
-    ...sections,
-    ...[rest
+  const tail = [rest
       ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showThin = true), renderGames()) }, [
           el('span', { class: 'pl-fold-logos', 'aria-hidden': 'true' }, folded.slice(0, 3).map(([s]) => leagueImg(s, 'logo-xs'))),
           el('span', { class: 'pl-fold-text', text: t('moreLeagues', { n: rest }) }),
@@ -877,9 +877,30 @@ function drawGames() {
         ])
       : null,
     // Nothing this day: said only when 場中 and 冠軍 have nothing either (styles.css hides it beside them).
-    !sections.length && !rest ? Object.assign(emptyK({ icon: 'calendar', title: t('noBets') }), { className: 'q-empty pl-none' }) : null].filter(Boolean)
-  );
+    !sections.length && !rest ? Object.assign(emptyK({ icon: 'calendar', title: t('noBets') }), { className: 'q-empty pl-none' }) : null].filter(Boolean);
+  // At the top of the list (賽事 just tapped): the first screen's leagues
+  // now and the rest a few dozen rows a task after, as all of a busy day's
+  // rows laid out in one froze the tap half a second at a phone's speed.
+  // Scrolled down (a redraw as prices move): all at once, so nothing jumps.
+  if (scrollY > innerHeight) return void container.replaceChildren(...sections, ...tail);
+  const rowsOf = section => section.querySelectorAll('.pl-game').length || 1;
+  let i = 0;
+  const next = (budget) => {
+    const part = [];
+    for (let n = 0; i < sections.length && (n < budget || !part.length); i++) (n += rowsOf(sections[i])), part.push(sections[i]);
+    return part;
+  };
+  container.replaceChildren(...next(12));
+  const more = () => {
+    if (turn !== gamesTurn || !container.isConnected) return;
+    container.append(...next(30));
+    if (i < sections.length) setTimeout(more, 0);
+    else container.append(...tail);
+  };
+  if (i < sections.length) setTimeout(more, 0);
+  else container.append(...tail);
 }
+let gamesTurn = 0;
 function gameSection(title, count, rows) {
   return el('section', { class: 'q-section' }, [
     el('div', { class: 'q-section-head' }, [el('h2', { class: 'pl-league-h' }, title), count ? el('span', { class: 'pl-count', text: String(count) }) : null]),
