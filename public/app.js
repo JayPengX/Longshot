@@ -696,11 +696,13 @@ function redraw(root, draw) {
     recycled.set(node.dataset.pic, list);
   }
   // Every other picture already painted (the kit's logo tiles: home's cards,
-  // the live strip) moves into the new layout too, by its address.
+  // the live strip) moves into the new layout too, by its address; one still
+  // on its way too, so its load goes on instead of starting over (a redraw as
+  // the loading screen lifted had 首頁's logos still loading after it).
   const painted = new Map();
   const was = new Set(root.querySelectorAll('img'));
   for (const img of was) {
-    if (!img.complete || !img.naturalWidth) continue;
+    if (img.complete && !img.naturalWidth) continue;
     const list = painted.get(img.src) ?? [];
     list.push(img);
     painted.set(img.src, list);
