@@ -1,5 +1,5 @@
 import { slipPayoutTable, settleSlip, boostRate, PARLAY_BOOST, SLIP_RULES, combosBySize } from './lib/odds.mjs';
-import { useSourcesSession, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers, loadLeagueTeams } from './lib/sources.mjs';
+import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
 import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
@@ -407,7 +407,8 @@ function priceGame(game, name, locale, day) {
     if (hit.game !== game) Object.assign(hit, { game, bets: hit.bets.map(b => ({ ...b, game })) });
     return hit.bets;
   }
-  const bets = lockWhole(opts.map(o => withRules(name(game, o))));
+  // (A game past its time that hasn't begun: on sale until lateUntil, as the kit's boardBets marks it.)
+  const bets = lockWhole(opts.map(o => withRules(game.lateUntil ? { ...name(game, o), waitsUntil: game.lateUntil } : name(game, o))));
   gamePriced.set(game.id, { key: memo.key, offers: memo.offers, players: memo.players, locale, day, game, bets });
   return bets;
 }
@@ -1634,10 +1635,44 @@ async function readLive(asked) {
 // values (紀錄, home's 你的投注, the slip).
 function livePulse({ force = false } = {}) {
   if (document.visibilityState !== 'visible') return;
+  refreshLate();
   if (state.tab === 'games' || state.tab === 'home' || (slipOpen() && state.parlay.some(id => id.startsWith('live|')))) refreshLive();
   if (state.data && (state.tab === 'history' || state.tab === 'home' || slipOpen())) checkResults(force);
 }
 everyDev('playLive', () => livePulse());
+
+// A game whose listed time has come but which hasn't begun (an NBA game's
+// intro) stays on sale (the kit keeps it while ESPN says it's still to come,
+// lateUntil, two minutes a read): its league is read again as its time comes
+// and as each hold runs out, once a minute at most, so it neither drops off
+// at its listed time nor stays a minute past the real start. One that has
+// begun leaves the board for 場中.
+const lateAsked = new Map();
+async function refreshLate() {
+  if (!state.data || state.fromBoard) return;
+  const now = Date.now();
+  const due = g => {
+    const start = Date.parse(g.startUtc);
+    return start <= now + 15_000 && start > now - LATE_MS && !(g.lateUntil > now + 40_000);
+  };
+  const sports = [...new Set(state.data.games.filter(due).map(g => g.sport))].filter(s => !(lateAsked.get(s) > now - 60_000));
+  if (!sports.length) return;
+  for (const s of sports) lateAsked.set(s, now);
+  const fresh = await Promise.all(sports.map(s => loadLeague(s, new Date()).catch(() => null)));
+  if (!state.data || state.fromBoard) return;
+  const at = Date.now();
+  const byId = new Map(fresh.flat().filter(Boolean).map(g => [g.id, g]));
+  const read = new Set(sports.filter((s, i) => fresh[i]));
+  // (Only the games around their time change: a league's others stay as the full read had them.)
+  const games = state.data.games.flatMap(g => {
+    if (!read.has(g.sport) || !(Date.parse(g.startUtc) <= at + 15_000)) return [g];
+    const now2 = byId.get(g.id);
+    return now2 && now2.lateUntil > at ? [now2] : Date.parse(g.startUtc) > at ? [g] : [];
+  });
+  state.data = { ...state.data, games };
+  renderAll();
+  renderGameSheet();
+}
 
 // ---- Championships and F1: one board each -------------------------------------
 
