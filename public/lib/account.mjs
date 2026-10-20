@@ -8,7 +8,8 @@
 // 'payout-<slip>', 'plus-<slip>', 'refund-<slip>', 'fb-<token>',
 // 'lotto-<id>', 'prize-<id>'), so two devices' copies merge by taking the
 // union, and nothing counts twice.
-import { mergeTickets } from './lottery.mjs';
+import { mergeTickets, ticketPrize } from './lottery.mjs';
+import { settleSlip, prizeAfterTax } from './odds.mjs';
 import { taipeiDayKey } from './sources.mjs';
 
 // What Play itself gave before Quadra paid into the pool (a pass made since
@@ -190,16 +191,54 @@ export function poolEntries(account) {
 // less after; a free bet's stake, never paid back, isn't tax), and the
 // lottery's and scratch cards' 20% tax and 0.4% stamp duty on a prize over
 // NT$5,000 (a settled ticket's gross less what it paid).
+//
+// All time, from the whole history: a slip or ticket settled before `gross`
+// was kept has its tax worked out again from its picks' results (a slip) or
+// its draw (a ticket), the same way it was settled. Totals, never sums of
+// what was sent before, so a sync can't count anything twice.
 export function taxPaid(account) {
   let sports = 0;
   for (const slip of account?.slips || []) {
-    if (slip.status !== 'settled' || !(slip.gross > 0)) continue;
-    const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
-    sports += Math.max(0, slip.gross - back);
+    if (slip.status !== 'settled') continue;
+    if (slip.gross > 0) {
+      const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
+      sports += Math.max(0, slip.gross - back);
+    } else if (slip.gross == null && !slip.cashedOut && slip.payout > 0) sports += slipTaxAgain(slip);
   }
   let lottery = 0;
-  for (const x of account?.tickets || []) if (x.status === 'settled' && x.gross > 0) lottery += Math.max(0, x.gross - (x.prize || 0));
+  for (const x of account?.tickets || []) {
+    if (x.status !== 'settled') continue;
+    if (x.gross > 0) lottery += Math.max(0, x.gross - (x.prize || 0));
+    else if (x.gross == null && x.prize > 0) lottery += ticketTaxAgain(x);
+  }
   return { sports: Math.round(sports), lottery: Math.round(lottery) };
+}
+// An older slip's tax: its payout table again, before tax less after.
+function slipTaxAgain(slip) {
+  try {
+    if (!slip.legs?.length || !slip.sizes?.length || !(slip.stake > 0) || slip.legs.some(l => !l.result || !(l.odds > 0))) return 0;
+    const r = settleSlip({ legs: slip.legs, sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 });
+    return r.taxed > 0 && r.gross > r.net ? r.gross - r.net : 0;
+  } catch {
+    return 0;
+  }
+}
+// An older ticket's tax: a drawn one's prizes again from its draw, each bet
+// taxed on its own; a scratch card's from its prize when that is before tax.
+function ticketTaxAgain(ticket) {
+  try {
+    if (ticket.card) return 0;
+    if (!ticket.drawn) return 0;
+    const r = ticketPrize(ticket, ticket.drawn);
+    if (!r || r.pending || !r.wins?.length) return 0;
+    const m = ticket.multiple || 1;
+    const gross = m * r.wins.reduce((s, w) => s + w.n * w.prize, 0);
+    const net = m * r.wins.reduce((s, w) => s + w.n * prizeAfterTax(w.prize), 0);
+    // Only when the draw gives back what the ticket was paid.
+    return Math.abs(net - ticket.prize) < 1 ? gross - net : 0;
+  } catch {
+    return 0;
+  }
 }
 
 // The account's settled money by market, for the admin page's totals (sent

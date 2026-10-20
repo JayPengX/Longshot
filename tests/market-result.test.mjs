@@ -52,3 +52,18 @@ test('taxPaid: what the government withheld from slips and lottery prizes, never
   assert.deepEqual(taxPaid(account), { sports: 11_990, lottery: 2_040 });
   assert.deepEqual(taxPaid({}), { sports: 0, lottery: 0 });
 });
+
+test('taxPaid counts back: a slip settled before gross was kept has its tax worked out again', async () => {
+  const { taxPaid } = await import('../public/lib/account.mjs');
+  const { settleSlip } = await import('../public/lib/odds.mjs');
+  const legs = [{ gameId: 'g1', odds: 600, result: 'won' }];
+  const r = settleSlip({ legs, sizes: [1], stake: 10 });
+  assert.ok(r.taxed > 0 && r.gross === 6_000);
+  const old = { status: 'settled', legs, sizes: [1], stake: 10, cost: 10, payout: r.net };
+  assert.deepEqual(taxPaid({ slips: [old] }), { sports: r.gross - r.net, lottery: 0 });
+  // A small win, a loss or a cash out: no tax.
+  assert.equal(taxPaid({ slips: [{ ...old, legs: [{ gameId: 'g1', odds: 2, result: 'won' }], payout: 20 }] }).sports, 0);
+  assert.equal(taxPaid({ slips: [{ ...old, cashedOut: true }] }).sports, 0);
+  // Recomputing gives the same total every time: nothing adds up twice.
+  assert.deepEqual(taxPaid({ slips: [old, old] }).sports, 2 * (r.gross - r.net));
+});
