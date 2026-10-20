@@ -147,6 +147,8 @@ export function faceDrawer({ el, t, lang, money }) {
       const counts = new Map();
       for (const v of g.cells) counts.set(v, (counts.get(v) || 0) + 1);
       const hit = v => counts.get(v) >= g.k;
+      // (With `syms`, each symbol its own amount: the card's table under it.)
+      if (g.syms) return [el('div', { class: 'gf-cells' }, g.cells.map(v => el('span', { class: 'gf-cell' }, [item(v, { win: hit(v) })]))), table(g.syms, k => t('threeOf', { s: k }), won)];
       return [el('div', { class: 'gf-cells' }, g.cells.map(v => (g.a ? el('span', { class: 'gf-cell' }, [item(v, { win: hit(v) })]) : cell(spotMoney(v), undefined, { win: hit(v) })))), g.a ? el('div', { class: 'gf-box' }, [el('small', { text: t('prizeCol') }), prize(g.a, won)]) : null];
     }
     if (g.type === 'tally') return [el('div', { class: 'gf-cells' }, g.cells.map(x => cell(x, undefined, { win: x === g.need && won > 0, hit: x === g.need }))), table(g.table, k => t('countN', { n: k }), won)];
@@ -159,8 +161,8 @@ export function faceDrawer({ el, t, lang, money }) {
       ];
     if (g.type === 'duel')
       return [
-        el('div', { class: 'gf-grid3 head' }, [el('small'), el('small', { text: t('yourScores') }), el('small', { text: t('strongman') }), el('small', { text: t('prizeCol') })]),
-        ...g.rows.map((r, i) => el('div', { class: `gf-grid3${r.you > r.them ? ' win' : ''}` }, [el('small', { class: 'gf-round num', text: String(i + 1) }), el('b', { class: 'num', text: String(r.you) }), el('b', { class: 'num them', text: String(r.them) }), prize(r.a, r.you > r.them)]))
+        el('div', { class: 'gf-grid3 head' }, [el('small'), el('small', { text: t(g.dice ? 'yourDice' : 'yourScores') }), el('small', { text: t(g.dice ? 'theirDice' : 'strongman') }), el('small', { text: t('prizeCol') })]),
+        ...g.rows.map((r, i) => el('div', { class: `gf-grid3${r.you > r.them ? ' win' : ''}` }, [el('small', { class: 'gf-round num', text: String(i + 1) }), el('b', { class: `num${g.dice ? ' gf-die' : ''}`, text: g.dice ? DIE[r.you] : String(r.you) }), el('b', { class: `num them${g.dice ? ' gf-die' : ''}`, text: g.dice ? DIE[r.them] : String(r.them) }), prize(r.a, r.you > r.them)]))
       ];
     if (g.type === 'sum') return [head(t('sumTo', { n: g.target })), el('div', { class: 'gf-rows' }, g.rows.map((r, i) => el('div', { class: `gf-row${r.n[0] + r.n[1] === g.target ? ' win' : ''}` }, [el('small', { class: 'gf-round', text: t('roundN', { n: i + 1 }) }), el('span', { class: 'gf-row-items' }, [item(r.n[0]), el('i', { class: 'gf-op', text: '+' }), item(r.n[1])]), prize(r.a, r.n[0] + r.n[1] === g.target)])))];
     if (g.type === 'code')

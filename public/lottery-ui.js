@@ -30,7 +30,7 @@ const T = {
     periods: '期數', periodsN: '{n} 期', buyAskP: '買 {n} 注 × {p} 期，共 {v}？', boughtNP: '已買 {n} 注 × {p} 期，共 {v}', betsP: '{n} 注 × {p} 期', drawsSpan: '{from} 至 {to}，共 {n} 期',
     pendingPay: '已開獎，等待派彩公告', system: '包牌', systemBets: '包牌 {n} 注', upTo: '包牌至 {n}', lastDraw: '上期開獎', bySize: '大小順序', byOrder: '開出順序', notPaidYet: '獎金尚未公告',
     seriesN: '多期 {k}/{n}', seriesLeft: '連續 {n} 期，還有 {k} 期待開獎', tooMany: '一次最多 {n} 注，請分次購買', perDraw: '{v} / 期', comboNote: '每期獎金以台灣彩券公告為準',
-    strongman: '大力士分數', yourScores: '您的分數', roundN: '第{n}局', pickNow: '去選號', inMinShort: '{n} 分後截止', inHourShort: '{h} 小時後截止',
+    strongman: '大力士分數', yourScores: '您的分數', yourDice: '您的骰子', theirDice: '對手的骰子', threeOf: '3個{s}', roundN: '第{n}局', pickNow: '去選號', inMinShort: '{n} 分後截止', inHourShort: '{h} 小時後截止',
     gameN: '遊戲{n}', thanks: '謝謝', zoneX: '獎金{x}倍區', countN: '{n}個', xN: '{x}倍', sumTo: '兩數相加為 {n}', luckyCode: '幸運密碼', yourCode: '您的密碼', hitsN: '對中{n}個', hitsSp: '{n}個＋特別號', linesN: '{n}條連線', goldNums: '金樂透號碼 ＋ 特別號', onePt: '1分區', tenPt: '10分區', ptsTotal: '對中總分數', ptsN: '{n}分', soldUntil: '{d}停售', allPrices: '全部'
   },
   en: {
@@ -45,7 +45,7 @@ const T = {
     periods: 'Draws', periodsN: '{n}', buyAskP: 'Buy {n} × {p} draws for {v}?', boughtNP: 'Bought {n} bets × {p} draws, {v}', betsP: '{n} × {p} draws', drawsSpan: '{from} to {to}, {n} draws',
     pendingPay: 'Drawn: awaiting the prize announcement', system: 'System', systemBets: 'System: {n} bets', upTo: 'system to {n}', lastDraw: 'Last draw', bySize: 'In order of size', byOrder: 'In order drawn', notPaidYet: 'Prizes not announced yet',
     seriesN: 'Multi-draw {k}/{n}', seriesLeft: '{n} draws in a row, {k} still to come', tooMany: 'At most {n} bets at once: buy the rest after', perDraw: '{v} a draw', comboNote: 'Each draw pays as Taiwan Lottery announces',
-    strongman: 'Strongman', yourScores: 'Your scores', roundN: 'Round {n}', pickNow: 'Pick numbers', inMinShort: '{n} min left', inHourShort: '{h}h left',
+    strongman: 'Strongman', yourScores: 'Your scores', yourDice: 'Your die', theirDice: 'Their die', threeOf: '3 × {s}', roundN: 'Round {n}', pickNow: 'Pick numbers', inMinShort: '{n} min left', inHourShort: '{h}h left',
     gameN: 'Game {n}', thanks: 'ZERO', zoneX: '{x}× zone', countN: '{n}', xN: '{x}×', sumTo: 'Two that add up to {n}', luckyCode: 'Lucky code', yourCode: 'Your code', hitsN: '{n} match', hitsSp: '{n} + special', linesN: '{n} lines', goldNums: 'Gold lotto + special', onePt: '1-point zone', tenPt: '10-point zone', ptsTotal: 'Points', ptsN: '{n} pts', soldUntil: 'Ends {d}', allPrices: 'All'
   }
 };
