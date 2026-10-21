@@ -527,7 +527,12 @@ function futureName(market, team) {
 // One bet per team of every championship market (play-bets.mjs), named here.
 function buildFutures(data) {
   const t = state.t;
-  return futureBets(data.futures).map(b => {
+  // A championship as good as decided (its favourite too short to sell, under
+  // 1.12) is off the board whole: never one side locked beside the rest open
+  // (Jay 2026-10-21, F1 車隊冠軍: Mercedes locked, McLaren at 300).
+  const all = futureBets(data.futures);
+  const decided = new Set(all.filter(b => b.lock === 'low').map(b => b.market));
+  return all.filter(b => !decided.has(b.market)).map(b => {
     const title = t(`future_${b.futureMarket.key}`, { season: b.futureMarket.season });
     const cardTitle = t(`future_${b.futureMarket.key}`, { season: '' }).trim();
     const name = futureName(b.futureMarket, b.futureTeam);
@@ -1676,7 +1681,7 @@ function entryRow(bet, i, picture, sub, name = bet.shortLabel) {
   return el('div', { class: `pl-entry${inSlip ? ' in-slip' : ''}${bet.lock ? ' locked' : ''}`, 'data-bet': bet.id, title: pickTitle(bet) }, [
     el('span', { class: 'pl-entry-rank', text: String(i + 1) }),
     picture,
-    el('span', { class: 'pl-entry-name' }, [el('span', { text: name }), sub ? el('small', { text: sub }) : null]),
+    el('span', { class: 'pl-entry-name' }, [el('span', { class: 'q-fit', text: name }), sub ? el('small', { text: sub }) : null]),
     pickButton(bet, '')
   ]);
 }

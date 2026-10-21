@@ -239,6 +239,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-entries { gap: 0; }
 .pl-entry { position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; }
 .pl-entry + .pl-entry::before { content: ''; position: absolute; top: 0; left: 48px; right: 0; border-top: var(--q-hairline) solid var(--q-sep); }
+.pl-entry > .pick { flex: none; width: 84px; }
 .pl-entry-rank { flex: none; width: 20px; color: var(--q-label-3); font: 600 13px/1 var(--q-font-rounded); text-align: center; }
 .pl-entry-name { flex: 1; display: grid; min-width: 0; }
 .pl-entry-name > span { overflow: hidden; font: 500 16px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
