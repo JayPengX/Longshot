@@ -1,5 +1,6 @@
 // The account card's numbers over the practice account's slips and tickets.
 // Pure: the page and the tests both use it.
+import { slipEndedAt } from './slip.mjs';
 
 // The money riding on an open slip: what it cost, and a free bet's whole
 // stake (its cost is nothing: "NT$0 · 1 張" said nothing was in play).
@@ -33,3 +34,37 @@ export function accountRecord(account) {
   };
 }
 
+
+// 紀錄's months: what was decided in each Taiwan month (a slip by the day its
+// last game was played, a ticket by its draw), newest last, the last `n`
+// months up to `now` and back no further than the first one played.
+// { key: 'YYYY-MM', spent, paid, net, n }; months with nothing decided are
+// kept (an even row of bars), all zero.
+const TAIPEI = 8 * 3_600_000;
+export const monthKey = at => new Date(new Date(at).getTime() + TAIPEI).toISOString().slice(0, 7);
+const ticketAt = x => x.draw?.at ?? x.settledAt ?? x.t;
+export function slipMonth(slip) {
+  return monthKey(slip.status === 'settled' ? slipEndedAt(slip) : slip.t);
+}
+export function monthsOf(account, { n = 6, now = Date.now() } = {}) {
+  const decided = [
+    ...(account?.slips || []).filter(s => s.status === 'settled').map(s => ({ key: slipMonth(s), spent: Number(s.cost) || 0, paid: Number(s.payout) || 0 })),
+    ...(account?.tickets || []).filter(x => x.status === 'settled').map(x => ({ key: monthKey(ticketAt(x)), spent: Number(x.cost) || 0, paid: Number(x.prize) || 0 }))
+  ];
+  if (!decided.length) return [];
+  const first = decided.reduce((m, x) => (x.key < m ? x.key : m), monthKey(now));
+  const keys = [];
+  let [y, m] = monthKey(now).split('-').map(Number);
+  for (let i = 0; i < n; i++) {
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    if (key < first && keys.length >= 3) break;
+    keys.unshift(key);
+    [y, m] = m === 1 ? [y - 1, 12] : [y, m - 1];
+  }
+  return keys.map(key => {
+    const in_ = decided.filter(x => x.key === key);
+    const spent = in_.reduce((s, x) => s + x.spent, 0);
+    const paid = in_.reduce((s, x) => s + x.paid, 0);
+    return { key, spent, paid, net: paid - spent, n: in_.length };
+  });
+}

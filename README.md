@@ -75,7 +75,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   words: 幸運號碼, 大力士分數); a `retired` card is never sold but one bought
   before still scratches. A kit export added from now on is used with a
   `?.` fallback until phones have it (the rulebook's §4).
-- **紀錄:** slips (live progress), tickets, 戰績 (wins only).
+- **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress, cash out), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
 - **Opens fast:** on the saved board (3 days, `SNAPSHOT_V`); the loading
   screen lifts once today's board, the balance and the live games are in
   (2 s at most). Model fits are kept by their inputs, so a reopen prices

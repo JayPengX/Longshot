@@ -20,7 +20,7 @@ import { icon, kitGlyph } from './icons.js';
 
 import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, freeBets, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
-import { accountRecord } from './lib/history.mjs';
+import { accountRecord, monthsOf, slipMonth } from './lib/history.mjs';
 import { makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
 import { flagUrl } from '#kit/logos.mjs';
@@ -87,6 +87,8 @@ const state = {
   wallet: null,
   // Slips saved or settled since the page opened, highlighted.
   freshSlips: new Set(),
+  // 紀錄's settled slips opened from their pass to the whole ticket.
+  openPasses: new Set(),
   checking: false,
   checkedAt: 0,
   // Games in progress on open slips: leg id -> its outcome so far.
@@ -95,6 +97,8 @@ const state = {
   legOutcome: new Map(),
   showAllSaved: false,
   historyFilter: 'all',
+  // 紀錄's month chosen on its bars ('YYYY-MM'), or null for every month.
+  historyMonth: null,
   // 紀錄 shows the slips or the stats.
   historyView: 'slips'
 };
@@ -2712,30 +2716,67 @@ function renderAccount() {
   if (!state.accountReady || !state.account) return;
   const t = state.t;
   const account = state.account;
-  const r = accountRecord(account);
-  // What's in play and the most it can pay, two big numbers; the record so
-  // far under them.
-  const open = account.slips.filter(x => x.status === 'open');
-  const most = slipsMost(open);
-  const stat = (label, value, sub, cls = '') => el('div', { class: 'q-stat' }, [el('small', { text: label }), el('strong', { class: `stat-value ${cls}`.trim(), text: value }), sub ? el('span', { class: 'pl-stat-sub', text: sub }) : null]);
-  // The record so far: four figures in an even 2×2 block (pills wrapped,
-  // leaving one alone on a second line).
-  const fig = (label, value, cls = '') => el('div', { class: 'pl-fig' }, [el('small', { text: label }), el('strong', { class: cls, text: value })]);
-  const record = r.decided
-    ? el('div', { class: 'pl-record' }, [
-        fig(t('accountSettled'), t('sumSlips', { n: r.decided })),
-        fig(t('accountWon'), fmtMoney(r.won, { sign: false })),
-        fig(t('accountNet'), r.net != null ? fmtMoney(r.net, { sign: true }) : '—', r.net > 0 ? 'green' : r.net < 0 ? 'red' : ''),
-        fig(t('accountBack'), r.back == null ? '—' : r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%`)
-      ])
-    : el('div', { class: 'q-tags pl-record-none' }, [el('span', { class: 'q-tag', text: t('accountNoneYet') })]);
-  // No slips yet: no zero tiles, no stray pill (the empty state below says it).
+  // No slips yet: no zero figures (the empty state below says it).
   if (!account.slips.length) return void $('account-body').replaceChildren();
-  $('account-body').replaceChildren(
-    el('div', { class: 'q-stats pl-acct', style: '--q-stats-n:2' }, [stat(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })), stat(t('sumMost'), fmtMoney(most, { sign: false }), '', most > 0 ? 'tint' : '')]),
-    record
-  );
+  const r = accountRecord(account);
+  const most = slipsMost(account.slips.filter(x => x.status === 'open'));
+  // One hero: the net so far, big; 回收率 and the tax withheld (to 政府, the
+  // Pass's 真相 a tap away) under it; then the record as an even 2×2 of
+  // figures (pills wrapped, leaving one alone on a second line).
+  const tax = taxPaid(account);
+  const taxed = (tax.sports || 0) + (tax.lottery || 0);
+  const cell = (label, value, sub = '') => el('div', { class: 'pl-hc-cell' }, [el('small', { text: label }), el('strong', { class: 'num', text: value }), sub ? el('span', { class: 'pl-hc-sub', text: sub }) : null]);
+  const hero = el('section', { class: `q-hero-card pl-hero pl-rec-hero${r.net > 0 ? ' up' : r.net < 0 ? ' down' : ''}` }, [
+    el('span', { class: 'q-hc-eyebrow' }, [kitGlyph(kitUI, 'chart'), el('span', { text: t('accountNet') })]),
+    el('strong', { class: 'q-hc-big num', text: r.net != null ? fmtMoney(r.net, { sign: true }) : '—' }),
+    el('div', { class: 'pl-rec-sub' }, [
+      el('span', { class: 'pl-rec-fig' }, [el('small', { text: t('accountBack') }), el('strong', { class: 'num', text: r.back == null ? '—' : r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%` })]),
+      el('button', { class: 'pl-rec-fig', type: 'button', onclick: () => kit.accountSheet?.(q, { tab: 'truth' }) }, [el('small', { text: `${t('accountTax')} ›` }), el('strong', { class: 'num', text: fmtMoney(taxed, { sign: false }) })])
+    ]),
+    el('div', { class: 'pl-hc-stats pl-record' }, [
+      cell(t('accountSettled'), t('sumSlips', { n: r.decided })),
+      cell(t('accountWon'), fmtMoney(r.won, { sign: false })),
+      cell(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })),
+      cell(t('sumMost'), fmtMoney(most, { sign: false }))
+    ])
+  ]);
+  $('account-body').replaceChildren(hero, monthsCard(account));
 }
+
+// 每月: a bar a month (green up, red down, from the middle line), the
+// month chosen (or this one) in figures under it. A tap on a month shows
+// its slips only; again, all of them.
+function monthsCard(account) {
+  const t = state.t;
+  const months = monthsOf(account);
+  if (!months.length) return null;
+  const chosen = months.find(m => m.key === state.historyMonth) ?? null;
+  const focus = chosen ?? months.at(-1);
+  const max = Math.max(1, ...months.map(m => Math.abs(m.net)));
+  const name = key => monthName(key);
+  const bar = m =>
+    el('button', { class: `pl-mo-bar${m.net > 0 ? ' up' : m.net < 0 ? ' down' : ''}${m === focus ? ' on' : ''}`, type: 'button', 'aria-pressed': String(m === chosen), 'aria-label': `${name(m.key)} ${fmtMoney(m.net)}`, onclick: () => ((state.historyMonth = m === chosen ? null : m.key), (state.showAllSaved = false), renderAccount(), renderSaved()) }, [
+      el('span', { class: 'pl-mo-track' }, [el('i', { style: `--h:${m.net ? Math.max(6, Math.round((Math.abs(m.net) / max) * 100)) : 0}%` })]),
+      el('small', { text: name(m.key) })
+    ]);
+  const fig = (label, value, cls = '') => el('div', { class: 'pl-fig' }, [el('small', { text: label }), el('strong', { class: `num ${cls}`.trim(), text: value })]);
+  return el('section', { class: 'q-section pl-months' }, [
+    el('div', { class: 'q-section-head' }, [el('h2', { text: t('monthsTitle') }), el('span', { class: 'pl-count', text: name(focus.key) })]),
+    el('div', { class: 'pl-mo-card' }, [
+      el('div', { class: 'pl-mo-bars', style: `--n:${months.length}` }, months.map(bar)),
+      el('div', { class: 'pl-mo-figs' }, [
+        fig(t('monthSpent'), fmtMoney(focus.spent, { sign: false })),
+        fig(t('monthPaid'), fmtMoney(focus.paid, { sign: false })),
+        fig(t('accountNet'), focus.n ? fmtMoney(focus.net, { sign: true }) : '—', focus.net > 0 ? 'green' : focus.net < 0 ? 'red' : '')
+      ])
+    ])
+  ]);
+}
+// '2026-10' → 「10月」 / “Oct”.
+const monthName = key => {
+  const [y, m] = key.split('-').map(Number);
+  return state.locale === 'en' ? new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }) : `${m}月`;
+};
 
 // (Where a pick stands, legState, and what an open slip has locked in and can
 // still pay, slipRange: lib/slip.mjs.)
@@ -2968,7 +3009,8 @@ function legChip(leg, st) {
     const [cls, key] = { won: ['winning', 'legNowWinning'], lost: ['losing', 'legNowLosing'], void: ['level', 'legNowLevel'], level: ['level', 'legNowLevel'] }[now] || ['live', 'legChipLive'];
     return el('span', { class: `leg-chip ${cls}`, text: t(key) });
   }
-  if (['won', 'lost', 'void', 'cashed', 'moot', 'off', 'late'].includes(st)) return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
+  if (st === 'won' || st === 'lost') return el('span', { class: `leg-mark ${st}`, role: 'img', 'aria-label': t(`legChip_${st}`) }, [kitGlyph(kitUI, st === 'won' ? 'check' : 'x')]);
+  if (['void', 'cashed', 'moot', 'off', 'late'].includes(st)) return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
   return null;
 }
 // A saved pick: its picture, the pick and its market on one row, the second
@@ -3026,8 +3068,11 @@ function savedSlipCard(slip) {
   // Fresh: glows once as it's first shown, then plain (never on every redraw).
   const fresh = state.freshSlips.has(slip.id);
   if (fresh) setTimeout(() => state.freshSlips.delete(slip.id), 2600);
-  return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}` }, [
-    el('div', { class: 'pl-slip-head' }, [
+  const head = settled ? (kids => el('button', { class: 'pl-slip-head', type: 'button', 'aria-expanded': 'true', onclick: () => (state.openPasses.delete(slip.id), renderSaved()) }, kids)) : (kids => el('div', { class: 'pl-slip-head' }, kids));
+  // The tax withheld on a big win (台灣運彩 §29), shown where it was taken.
+  const tax = settled && slip.gross > 0 ? Math.max(0, slip.gross - slip.payout - (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0)) : 0;
+  return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}`, style: `--sport:${slipTint(slip)}` }, [
+    head([
       el('span', { class: 'pl-slip-title' }, [
         el('strong', { text: `${mode} · ${t('slipLegs', { n })}` }),
         el('small', { text: [fmtTime(slip.t), slip.free ? t('freeBetTag') : '', boost ? t('slipBoosted', { v: boost }) : ''].filter(Boolean).join(' · ') })
@@ -3044,6 +3089,7 @@ function savedSlipCard(slip) {
       ? [
           payCell(t('slipCost'), fmtMoney(slip.free ? slip.stake : slip.cost, { sign: false }), '', slip.free ? freeLine(slip) : ''),
           payCell(t('slipPaidLabel'), fmtMoney(slip.payout, { sign: false })),
+          tax > 0 ? payCell(t('slipTax'), `−${fmtMoney(tax, { sign: false })}`, 'back-low') : null,
           profit > 0 ? payCell(t('slipResult'), fmtMoney(profit), 'back-high') : null
         ]
       : [
@@ -3053,6 +3099,44 @@ function savedSlipCard(slip) {
           payCell(decided ? t('slipMost') : slip.free ? t('payAllFree') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : 'tint')
         ]),
     settled || dead || slip.free ? null : cashOutRow(slip)
+  ]);
+}
+// A slip's colour: its sport's (a parlay over several sports, Play's purple).
+const FAMILY_TINT = { baseball: 'var(--q-indigo)', basketball: 'var(--q-orange)', soccer: 'var(--q-green)', football: 'var(--q-brown)', hockey: 'var(--q-cyan)', racing: 'var(--q-red)' };
+function slipTint(slip) {
+  const families = new Set(slip.legs.map(leg => familyOf(leg.sport) ?? 'other'));
+  return families.size === 1 ? FAMILY_TINT[[...families][0]] ?? 'var(--q-teal)' : 'var(--q-purple)';
+}
+// A settled slip as a pass: its sport's colour down the side, each pick's
+// logo with a mark for right or wrong, the picks and when, and what it made
+// (green up, red down) at the side. A tap opens the whole ticket.
+function slipPass(slip) {
+  const t = state.t;
+  const n = slip.legs.length;
+  const order = byStart(slip.legs);
+  const result = slip.cashedOut ? 'cashed' : allVoid(slip) ? 'void' : slip.payout > 0 ? 'won' : 'lost';
+  const profit = (slip.payout || 0) - (slip.cost || 0);
+  // Two logos at most (the count is in the line beside them).
+  const shown = order.slice(0, 2);
+  const logos = el('span', { class: 'pl-pass-logos', 'aria-hidden': 'true' }, [
+    ...shown.map(k => {
+      const leg = slip.legs[k];
+      const st = leg.result ?? 'moot';
+      return el('span', { class: `pl-pass-logo ${st}` }, [legIcon(leg, 'logo-sm'), st === 'won' || st === 'lost' ? el('i', { class: `leg-mark ${st}` }, [kitGlyph(kitUI, st === 'won' ? 'check' : 'x')]) : null]);
+    })
+  ]);
+  const picks = order.map(k => shortPick(slip.legs[k]));
+  const mode = slip.mode === 'system' ? slip.sizes.map(k => sizeName(k, n)).join('、') : t(`slipMode_${slip.mode}`);
+  return el('button', { class: `pl-pass ${result}`, type: 'button', style: `--sport:${slipTint(slip)}`, 'aria-expanded': 'false', onclick: () => (state.openPasses.add(slip.id), renderSaved()) }, [
+    logos,
+    el('span', { class: 'pl-pass-text' }, [
+      el('strong', { class: 'q-fit', text: n > 2 ? t('passPicks', { first: picks[0], n, m: n - 1 }) : picks.join('、') }),
+      // Right or wrong is the colour; a cash out or a refund says so first.
+      el('small', { text: [result === 'cashed' || result === 'void' ? t(`pass_${result}`) : '', slip.mode === 'parlay' && n > 1 ? t('passParlay', { n }) : n > 1 ? mode : shortMatchup(slip.legs[0]) || mode].filter(Boolean).join(' · ') })
+    ]),
+    el('span', { class: 'pl-pass-end' }, [
+      el('strong', { class: 'num', text: result === 'cashed' || result === 'void' ? fmtMoney(slip.payout, { sign: false }) : fmtMoney(profit, { sign: true }) })
+    ])
   ]);
 }
 const HISTORY_FILTERS = {
@@ -3083,9 +3167,10 @@ function groupSummary(key, slips) {
   const t = state.t;
   const cost = slips.reduce((s, x) => s + x.cost, 0);
   // Settled days: what they paid, never a net.
+  // Settled days: the day's net, a coloured figure.
   if (key.startsWith('day|') || key === 'recovered') {
-    const paid = slips.reduce((s, x) => s + (x.payout || 0), 0);
-    return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupSlips', { n: slips.length })), paid > 0 ? el('strong', { class: 'back-high', text: t('groupPaid', { v: fmtMoney(paid, { sign: false }) }) }) : null]);
+    const net = slips.reduce((s, x) => s + (x.payout || 0) - (x.cost || 0), 0);
+    return el('span', { class: `q-tag num pl-day-net ${net > 0 ? 'green' : net < 0 ? 'red' : ''}`.trim(), text: fmtMoney(net, { sign: true }) });
   }
   if (key === 'dead') return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupSlips', { n: slips.length }))]);
   const most = slipsMost(slips);
@@ -3153,7 +3238,9 @@ function drawSaved() {
     return void $('saved-body').replaceChildren(emptyK({ icon: 'ticket', title: t('noSlipsYet'), action: go }), ...(rows.length ? [el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: state.locale === 'en' ? 'Featured today' : '今日焦點' })]), el('div', { class: 'q-rowcard' }, rows)])] : []));
   }
   const now = Date.now();
-  const filtered = slips.filter(HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all);
+  const month = state.historyMonth;
+  const inMonth = s => !month || slipMonth(s) === month;
+  const filtered = slips.filter(s => inMonth(s) && (HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all)(s));
   // Open slips all show; settled ones fold after SAVED_SHOWN.
   let settledShown = 0;
   const groups = new Map();
@@ -3182,21 +3269,21 @@ function drawSaved() {
           chip({
             pressed: key === state.historyFilter,
             text: t(`filter_${key}`),
-            count: String(slips.filter(HISTORY_FILTERS[key]).length),
+            count: String(slips.filter(s => inMonth(s) && HISTORY_FILTERS[key](s)).length),
             onclick: () => {
               state.historyFilter = key;
               state.showAllSaved = false;
               renderSaved();
             }
           })
-        )
+        ).concat(month ? [el('button', { class: 'q-chip pl-month-chip', type: 'button', 'aria-pressed': 'true', onclick: () => ((state.historyMonth = null), renderAccount(), renderSaved()) }, [el('span', { text: monthName(month) }), kitGlyph(kitUI, 'x')])] : [])
       )
     ]),
     ...(order.length
       ? order.map(key =>
           el('section', { class: `q-section pl-group group-${key.split('|')[0]}` }, [
             el('div', { class: 'q-section-head' }, [el('h2', { text: groupTitle(key) }), groupSummary(key, groups.get(key))]),
-            el('div', { class: 'pl-slips' }, groups.get(key).map(savedSlipCard))
+            el('div', { class: 'pl-slips' }, groups.get(key).map(slip => (slip.status === 'settled' && !slip.recovered && slip.legs.length && !state.openPasses.has(slip.id) ? slipPass(slip) : savedSlipCard(slip))))
           ])
         )
       : [kitUI.empty({ title: t('filterEmpty') })]),
@@ -3964,7 +4051,7 @@ actions = topActions(q, { refresh: load });
 // on phones. The slip, 戰績 and 首頁 have such numbers (and 首頁's picks'
 // names, a ticket's picks and their second lines, and 你的投注's rows: a long
 // name a little smaller, not cut).
-const FIT_SELECTOR = '.slip-bar-main small, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
+const FIT_SELECTOR = '.slip-bar-main small, .pl-rec-fig strong, .pl-mo-figs strong, .pl-pass-end strong, .pl-hc-cell strong, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
 // (watchFit is new: a phone may still run a kit from before it, and then the numbers are fitted as they're drawn only.)
 kit.watchFit?.(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery'].map($) });
 
