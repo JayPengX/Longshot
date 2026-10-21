@@ -157,6 +157,10 @@ span.pick.locked { pointer-events: none; }
 /* ==== 5 賽事 ==== */
 /* The day strip is the kit's (.q-day-bar, ui.mjs dayStrip). On a phone the kit's bar with the tab's name is pinned above it (44px). */
 @media (max-width: 720px) { .q-day-bar { top: calc(var(--q-top) + 44px); } .q-day-bar::before { inset: 0; } }
+/* Only the few days on sale (運彩 sells no further ahead): no 📅, and no fade at
+   the strip's ends over the chosen day (it blurred and cut the first chip). */
+#day-bar .q-day-pick { display: none; }
+#day-bar .q-day-strip { -webkit-mask-image: none; mask-image: none; padding-inline: 0; scroll-padding-inline: 0; }
 #panel-games > .q-search { margin-bottom: 12px; }
 #league-filter { margin-top: 4px; }
 body.searching #sport-filter, body.searching #league-filter, body.searching #day-bar { display: none; }

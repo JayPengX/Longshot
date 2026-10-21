@@ -655,7 +655,7 @@ const f1Day = () => (state.data?.f1?.startUtc ? taipeiDayKey(state.data.f1.start
 // The strip is the kit's (ui.mjs dayStrip, Orbit Sports' too), its record here.
 const dayStrip = {};
 function pickDay(day) {
-  if (!day || day === state.day) return;
+  if (!day || day === state.day || !state.data) return;
   state.day = day;
   state.dayPicked = true;
   rerenderFiltered();
@@ -669,7 +669,9 @@ function renderDayFilter() {
   // Today stays while games are on (場中 lives there).
   const dayKeys = [state.bets, state.sport, liveNow > 0, today];
   if (!sameKeys(dayKeys, dayMemo.key)) dayMemo = { key: dayKeys, days: [...new Set([...state.bets.filter(b => inSport(b.sport)).map(betDay), ...(liveNow ? [today] : [])])].sort() };
-  const days = dayMemo.days;
+  // Before the board is read: the days on sale as they usually are (today and
+  // the next three), so the strip is there at once, not seconds after the page.
+  const days = state.data ? dayMemo.days : [0, 1, 2, 3].map(n => taipeiDayKey(new Date(Date.now() + n * 86_400_000).toISOString()));
   // The earliest day with games until one is picked.
   if (!state.dayPicked || !days.includes(state.day)) {
     state.day = days[0] ?? null;
@@ -896,7 +898,8 @@ function drawGames() {
   const rest = folded.reduce((n, [, list]) => n + list.length, 0);
   const sections = shown.map(([sport, list]) => gameSection([leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })], list.length, list.map(g => gameRow(g, byGame.get(g.id)))));
   const f1 = f1Section();
-  if (f1) sections.splice(sections.length && shownTier(shown[0][0]) === 'major' ? 1 : 0, 0, f1);
+  // F1's board after the leagues' games, never at the top of 全部 (Jay 2026-10-21).
+  if (f1) sections.push(f1);
   const tail = [rest
       ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showThin = true), renderGames()) }, [
           el('span', { class: 'pl-fold-logos', 'aria-hidden': 'true' }, folded.slice(0, 3).map(([s]) => leagueImg(s, 'logo-xs'))),
@@ -3952,6 +3955,8 @@ function saveSlip() {
 }
 
 async function boot() {
+  // 賽事's days drawn before anything is read.
+  renderDayFilter();
   let accountDone;
   state.accountIn = new Promise(resolve => (accountDone = resolve));
   restoreSlip();
