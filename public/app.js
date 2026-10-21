@@ -172,18 +172,24 @@ function legWhen(iso) {
   if (day(at) === day(Date.now() + 86_400_000)) return `${state.locale === 'zh' ? '明天' : 'Tomorrow'} ${hm}`;
   return fmtShort(iso);
 }
-// A saved pick's name as shown now: a driver as the apps name them today,
-// in English (a ticket from before keeps "G.羅素" or "羅素": George Russell).
-// A driver's surname as the grid writes it ("Carlos Sainz Jr." is Sainz, not "Jr.").
+// A driver in Chinese as 台灣運彩 writes him ("維斯塔潘"), English's full
+// name otherwise (Jay 2026-10-21: drivers translated, like every team).
+const driverZh = name => F1_NAMES_ZH[f1Driver(name).surname] || null;
+const driverName = name => (state.locale === 'zh' && driverZh(name)) || name;
+// A driver's surname as the grid writes it ("Carlos Sainz Jr." is Sainz, not "Jr."); Chinese's name in Chinese.
 function shortDriver(name) {
+  if (state.locale === 'zh' && driverZh(name)) return driverZh(name);
   const words = String(name || '').split(' ').filter(w => !/^(jr|sr|ii|iii|iv)\.?$/i.test(w));
   const known = f1Driver(name).surname;
   return (known && words.find(w => w.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === known.toLowerCase())) || words.slice(-1)[0] || '';
 }
 const F1_EN = Object.fromEntries(Object.entries(F1_NAMES_ZH).map(([surname, zh]) => [zh, F1_PAGE[surname] ? F1_PAGE[surname].split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : surname]));
+// A saved pick's name as shown now: a driver in the page's language (a
+// ticket from before keeps "G.羅素", "羅素" or "George Russell").
 const shownLabel = leg => {
   const label = String(leg.shortLabel || leg.label || '').replace(/^[A-Z]{1,3}\.(?=[\u4e00-\u9fff])/, '');
-  return F1_EN[label] || label;
+  if (state.locale !== 'zh') return F1_EN[label] || label;
+  return leg.sport === 'f1' && !/[\u4e00-\u9fff]/.test(label) ? driverZh(label) || label : label;
 };
 // A game's time: its day and 待定 while its hour isn't set (a play-off's
 // next game: sold until the earliest it can start, the time it carries).
@@ -501,12 +507,11 @@ const F1_FLAG_NAME = { sc: 'f1Sc', vsc: 'f1Vsc', red: 'f1Red' };
 function nameF1(b, f1) {
   const t = state.t;
   const matchup = raceName(f1.title, state.locale);
-  const nameOf = driver => (state.locale === 'zh' ? driver.zh : null);
-  const name = b.driver ? nameOf(b.driver) ?? b.driverEn : '';
+  const name = b.driver ? driverName(b.driverEn) : '';
   if (b.kind === 'f1') return { ...b, matchup, label: `F1 ${name}`, shortLabel: name };
   if (F1_SHORT[b.kind]) return { ...b, matchup, label: `F1 ${t(F1_SHORT[b.kind])} ${name}`, shortLabel: name };
   if (b.kind === 'f1h2h') {
-    const rival = nameOf(b.rivalDriver) ?? b.rival;
+    const rival = driverName(b.rival);
     return { ...b, matchup, rivalLabel: rival, label: `F1 ${name} ${t('f1H2HBeats')} ${rival}`, shortLabel: `${shortDriver(b.driverEn)} ${t('f1H2HBeats')} ${shortDriver(b.rival)}` };
   }
   if (b.kind === 'f1team') return { ...b, matchup, label: `F1 ${t('f1TeamShort')} ${b.team}`, shortLabel: b.team };
@@ -520,7 +525,7 @@ function nameF1(b, f1) {
 
 // A championship pick's name: drivers as the lottery writes them.
 function futureName(market, team) {
-  if (market.key === 'f1drivers' && state.locale === 'zh') return f1Driver(team.name.en).zh;
+  if (market.key === 'f1drivers') return driverName(team.name.en);
   return teamName(team.name);
 }
 
@@ -3080,22 +3085,42 @@ const F1_TABS = [
   { kind: 'f1vsc', tab: 'f1Vsc', sub: 'f1VscSub', notes: ['f1FlagsNote'], flag: true },
   { kind: 'f1red', tab: 'f1Red', sub: 'f1RedSub', notes: ['f1FlagsNote'], flag: true }
 ];
-// The race in the games list on its day: one section, one row opening its board.
+// The race in the games list on its day: a card like a game's (Jay
+// 2026-10-21: the plain row was boring), the host's flag, the race and its
+// time on top, the four favourites with their faces and prices, and the
+// whole grid a tap away.
+const GP_FLAG = [[/las vegas|miami|united states|austin/, 'us'], [/mexico/, 'mx'], [/s[aã]o paulo|brazil/, 'br'], [/qatar/, 'qa'], [/abu dhabi/, 'ae'], [/saudi/, 'sa'], [/bahrain/, 'bh'], [/australia/, 'au'], [/chin/, 'cn'], [/japan/, 'jp'], [/canad/, 'ca'], [/monaco/, 'mc'], [/austria/, 'at'], [/brit/, 'gb'], [/belgi/, 'be'], [/hungar/, 'hu'], [/dutch|netherlands/, 'nl'], [/ital|monza|emilia|imola/, 'it'], [/azerbaijan|baku/, 'az'], [/singapore/, 'sg'], [/spa(in|nish)|barcelona|madrid/, 'es']];
+const gpFlag = title => GP_FLAG.find(([re]) => re.test(String(title || '').toLowerCase()))?.[1] ?? null;
 function f1Section() {
   const t = state.t;
   const f1 = state.data?.f1;
   if (!f1 || !inSport('f1') || f1Day() !== state.day) return null;
-  const tabs = F1_TABS.filter(x => state.bets.some(b => b.kind === x.kind));
-  if (!tabs.length) return null;
-  return gameSectionOf([leagueImg('f1', 'logo-xs'), el('span', { text: t('sport_f1') })], [
-    el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard('f1') }, [
-      el('span', { class: 'pl-fut-logo' }, leagueImg('f1', 'logo-sm')),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: raceName(f1.title, state.locale) }), el('small', { text: `${hhmm(f1.startUtc)} · ${t(f1.phase === 'pre' ? 'f1PhasePre' : 'f1PhasePost')}` })]),
-      el('span', { class: 'q-ritem-value', text: t('marketsN', { n: tabs.length }) })
-    ])
+  const winners = state.bets.filter(b => b.kind === 'f1');
+  if (!winners.length) return null;
+  const open = winners.filter(b => !b.lock);
+  const floor = legsFloor(winners);
+  const favourites = [...(open.length ? open : winners)].sort((x, y) => effectiveOdds(x) - effectiveOdds(y)).slice(0, 4);
+  const flag = gpFlag(f1.title);
+  const team = b => (state.locale === 'zh' ? f1Constructor(b.driver.team).zh || b.driver.team : b.driver.team);
+  const card = el('article', { class: 'pl-game pl-f1', 'data-game': 'f1', onclick: e => !e.target.closest('button') && openBoard('f1') }, [
+    el('div', { class: 'pl-game-top' }, [
+      flag ? logoPicture(flagUrl(flag), null, 'logo logo-xs player-flag', () => leagueImg('f1', 'logo-xs')) : leagueImg('f1', 'logo-xs'),
+      el('span', { class: 'pl-when', text: hhmm(f1.startUtc) }),
+      el('span', { class: 'pl-event q-fit', text: raceName(f1.title, state.locale) }),
+      floor > 1 ? el('span', { class: 'pl-legs', title: t('minLegsNoteEvent', { n: floor }), text: t('minLegsGameTag', { n: floor }) }) : null,
+      el('span', { class: 'pl-more', text: t('f1AllDrivers', { n: winners.length }) }, [el('i', { class: 'pl-chev', 'aria-hidden': 'true' })])
+    ]),
+    ...favourites.map(b =>
+      el('div', { class: 'pl-team' }, [
+        driverBadge(b.driverEn, 'logo-sm'),
+        el('span', { class: 'pl-team-name pl-driver' }, [el('span', { class: 'q-fit', text: driverName(b.driverEn) }), el('small', { text: team(b) })]),
+        pickButton(b, '', floor)
+      ])
+    )
   ]);
+  return gameSectionOf([leagueImg('f1', 'logo-xs'), el('span', { text: t('sport_f1') })], [card]);
 }
-const gameSectionOf = (title, rows) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { class: 'pl-league-h' }, title)]), el('div', { class: 'q-rowcard' }, rows)]);
+const gameSectionOf = (title, rows) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { class: 'pl-league-h' }, title)]), el('div', { class: 'q-rowcard pl-games' }, rows)]);
 // F1's board: a tab per market (the winner, places, head to heads, the
 // winning team, and safety car, VSC and red flag each on their own).
 function f1Board() {

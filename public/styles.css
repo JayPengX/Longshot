@@ -943,3 +943,7 @@ html .q-logo img { width: 88%; height: 88%; }
 .sc-real.revealed .tk-i.win::after { content: ''; position: absolute; inset: -4%; border: 0.55cqw solid rgba(225, 29, 72, 0.9); border-radius: 50%; transform: rotate(-6deg); animation: tk-ring 0.5s ease-out both; }
 @keyframes tk-ring { from { opacity: 0; transform: rotate(-30deg) scale(1.3); } }
 .pl-search-n { margin: 4px 0 -4px; font: 600 15px/20px var(--q-font); color: var(--q-text-2, inherit); }
+/* F1's card: a driver's name over his team. */
+.pl-driver { display: grid; line-height: 1.2; }
+.pl-driver > small { overflow: hidden; color: var(--q-label-2); font: 400 12px/16px var(--q-font); text-overflow: ellipsis; }
+.pl-f1 .q-driver.logo-sm, .pl-f1 .q-driver-badge.logo-sm { width: 32px; height: 32px; }

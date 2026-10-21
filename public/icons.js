@@ -12,7 +12,7 @@ const ICONS = {
   sport_basketball: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="M3.5 12h17M12 3.5v17M6 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M18 6c-2 1.8-3 3.8-3 6s1 4.2 3 6" ${S}/>`),
   sport_soccer: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="m12 7.8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2zM12 3.5v4.3M20.3 10.1l-4.7.3M17 19l-2.8-4.4M7 19l2.8-4.4M3.7 10.1l4.7.3" ${S}/>`),
   sport_football: SVG(`<path d="M5 19C4 14 6 8 10 6s8.6-1.6 9 -1c.4 .4 1 5-1 9s-8 6-13 5z" ${S}/><path d="M9.5 14.5l5-5M10.8 10.8l1.4 1.4M12.6 9l1.4 1.4M9 12.6l1.4 1.4" ${S}/>`),
-  sport_hockey: SVG(`<path d="M8 3.5l3.5 12.5c.3 1 1 1.5 2 1.5h5.5v3h-7c-1.6 0-2.8-.9-3.3-2.5L5 3.5" ${S}/><ellipse cx="7" cy="19" rx="3" ry="1.5" ${S}/>`),
+  sport_hockey: SVG(`<ellipse cx="12" cy="9.5" rx="8.5" ry="3.5" ${S}/><path d="M3.5 9.5v5c0 1.9 3.8 3.5 8.5 3.5s8.5-1.6 8.5-3.5v-5" ${S}/>`),
   sport_f1: SVG(`<path d="M6 21V4" ${S}/><path d="M6 4h12v9H6" ${S}/><path d="M6 4h3v3H6zM12 4h3v3h-3zM9 7h3v3H9zM15 7h3v3h-3zM6 10h3v3H6zM12 10h3v3h-3z" fill="currentColor"/>`),
   // The boards F1's marshals and screens show.
   f1sc: SVG('<rect x="1" y="5" width="30" height="22" rx="4" fill="#facc15"/><text x="16" y="21" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="13" font-weight="900" fill="#111">SC</text>', '0 0 32 32'),
