@@ -33,8 +33,8 @@ test('a game with only a winner price gets the full board', () => {
   // (運彩's first inning: 單局大小 and 單局不讓分, and [1-5局]讓分.)
   for (const k of ['ml', 'total', 'runline', 'teamtotal', 'f5', 'margin', 'inningtotal', 'inningml', 'f5runline']) assert.ok(mlb.has(k), `mlb ${k}`);
   assert.equal(mlb.has('firstinning'), false);
-  // Odd or even is no longer sold.
-  assert.ok(!mlb.has('oddeven'));
+  // 單雙: on 運彩's list for every sport (its 玩法 list, 2026).
+  assert.ok(mlb.has('oddeven'));
   const nba = kinds(game('nba', { polymarket: { home: 0.7, away: 0.3 } }));
   for (const k of ['ml', 'runline', 'total', 'teamtotal', 'htotal', 'half', 'q1', 'margin']) assert.ok(nba.has(k), `nba ${k}`);
   const soccer = kinds(game('scotland', { draftKings: { home: 0.48, draw: 0.28, away: 0.24 } }));

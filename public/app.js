@@ -282,7 +282,7 @@ function named(game, o, matchup) {
     default: {
       const name = pickName(game, o.m, o.pick);
       // Double chance's buttons in the sheet's words (主勝或和): two teams' names on one wrapped it.
-      const chip = o.m.kind === 'dc' && /^(home|draw|away)\|(home|draw|away)$/.test(o.pick.side) ? t(`dc_${o.pick.side.replace('|', '_')}`) : name;
+      const chip = (o.m.kind === 'dc' || o.m.kind === 'hdc') && /^(home|draw|away)\|(home|draw|away)$/.test(o.pick.side) ? t(`dc_${o.pick.side.replace('|', '_')}`) : name;
       return { ...o, matchup, marketLabel: marketLabelOf(game, o.m), chip, label: `${matchup} ${name}`, shortLabel: name };
     }
   }
@@ -306,6 +306,9 @@ function marketLabelOf(game, m) {
   // One inning's market (單局不讓分 / 單局大小) by its inning: [第1局]不讓分.
   if (m.period != null && (m.kind === 'inningml' || m.kind === 'inningtotal')) return t(m.kind === 'inningml' ? 'inningMlN' : 'inningTotalN', { n: m.period });
   if (m.market === 'margin6') return t('secMargin6');
+  if (m.kind === 'raceto') return t('raceToN', { n: m.line });
+  if (m.kind === 'teamgoals') return t('teamGoalsOf', { team: teamName(game[m.team]) });
+  // 第一節 of hockey is its first period: the section's names say 節 for both.
   return t(secName(SECTIONS.find(sec => sec.kind === m.kind) ?? { kind: m.kind, title: m.kind }, game.sport, true));
 }
 
@@ -318,14 +321,23 @@ function pickName(game, market, pick) {
   if ((market.kind === 'runline' || HCAP_KINDS.has(market.kind)) && (pick.side === 'away' || pick.side === 'home') && pick.line != null) return `${teamName(game[pick.side])} ${fmtLine(pick.line)}`;
   // Soccer's three-way 讓分: each team with its own whole-goal line, then 和.
   if (market.kind === 'hcap3') return pick.side === 'draw' ? t('draw') : `${teamName(game[pick.side])} ${fmtLine(pick.side === 'away' ? market.awayLine : -market.awayLine)}`;
-  if (market.kind === 'dc') return pick.side.split('|').map(x => (x === 'draw' ? t('draw') : teamName(game[x]))).join(' / ');
+  // 不讓分/大小 and 不讓分/兩隊是否都進球: the result, then the other.
+  if (market.kind === 'mltotal' || market.kind === 'mlbtts') {
+    const [res, other] = pick.side.split('|');
+    const first = res === 'draw' ? t('draw') : teamName(game[res]);
+    return `${first} / ${market.kind === 'mltotal' ? `${t(other)} ${market.line}` : t(other === 'yes' ? 'bothYes' : 'bothNo')}`;
+  }
+  if (market.kind === 'topperiod') return pick.side === 'tie' ? t('periodTie') : t('periodN', { n: pick.side });
+  if (market.kind === 'higherhalf') return t({ first: 'firstHalfShort', second: 'secondHalfShort', tie: 'periodTie' }[pick.side]);
+  if (pick.side === 'none') return t(market.kind === 'raceto' ? 'nobody' : 'noGoal');
+  if (market.kind === 'dc' || market.kind === 'hdc') return pick.side.split('|').map(x => (x === 'draw' ? t('draw') : teamName(game[x]))).join(' / ');
   if (market.kind === 'htft') return `${t(RESULT_SHORT[pick.ht])}/${t(RESULT_SHORT[pick.ft])}`;
   // 總進球數 bands; 正確進球數 one total each (9+ the last).
-  if (market.kind === 'goalbands' || market.kind === 'goalcount') return pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? String(pick.lo) : `${pick.lo}-${pick.hi}`;
+  if (market.kind === 'goalbands' || market.kind === 'goalcount' || market.kind === 'teamgoals') return pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? String(pick.lo) : `${pick.lo}-${pick.hi}`;
   // Hockey's 勝分差 on 60 minutes has a 和局 pick (台灣運彩's), no team.
   if (market.kind === 'margin' && pick.side === 'draw') return state.t('draw');
   if (market.kind === 'margin') return `${teamName(game[pick.team])} ${pick.hi == null ? `${pick.lo}+` : pick.lo === pick.hi ? pick.lo : `${pick.lo}-${pick.hi}`}`;
-  if (market.kind === 'score' || market.kind === 'setscore') return pick.score === 'other' ? t('scoreOther') : pick.score.replace('-', ':');
+  if (market.kind === 'score' || market.kind === 'setscore' || market.kind === 'hscore') return pick.score === 'other' ? t('scoreOther') : pick.score.replace('-', ':');
   if (pick.side === 'away' || pick.side === 'home') return teamName(game[pick.side]);
   // Over or under with its line (半場大小 大 4.5, 單局大小 小 0.5): a market of several lines read the same without it.
   if ((pick.side === 'over' || pick.side === 'under') && market.line != null) return `${t(pick.side)} ${market.line}`;
@@ -1221,7 +1233,7 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
       .sort((a, b) => Math.abs(awayLineOf(a[0])) - Math.abs(awayLineOf(b[0])) || awayLineOf(a[0]) - awayLineOf(b[0]))
       .map(pair => lineRow(sides.map(side => by(pair, side)), sides.map(side => fmtLine(ownLine(pair[0], side))), { posted: pair[0].posted }));
     body = rows.length ? [lineTable(sides.map(side => shortTeamName(game.sport, game[side].en, teamName(game[side]))), rows, titled ? null : t(secName(section, game.sport, true)))] : [];
-  } else if (section.kind === 'teamtotal') {
+  } else if (section.kind === 'teamtotal' || section.kind === 'teamhits') {
     body = ['away', 'home']
       .map(team => {
         const lines = [...groupBy(bets.filter(b => b.team === team), b => b.teamLine).values()].sort((a, b) => a[0].teamLine - b[0].teamLine);
@@ -1247,20 +1259,34 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
     // Hockey's 和局 (a 60-minute tie), on its own row after the teams'.
     const draw = bets.find(b => b.pick?.side === 'draw');
     if (draw) body.push(el('div', { class: 'market-picks bands', style: '--n:1' }, [pickButton(draw, t('draw'))]));
+  } else if (section.kind === 'mltotal' || section.kind === 'mlbtts') {
+    // 不讓分/大小 and 不讓分/兩隊是否都進球: a row per result under its name,
+    // the other half on the buttons (a team's name on each cut it off).
+    const other = b => {
+      const x = b.side.split('|')[1];
+      return section.kind === 'mltotal' ? `${t(x)} ${b.m?.line ?? b.line}` : t(x === 'yes' ? 'bothYes' : 'bothNo');
+    };
+    body = ['home', 'draw', 'away'].flatMap(res => {
+      const list = bets.filter(b => b.side.startsWith(`${res}|`));
+      if (!list.length) return [];
+      return [el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: res === 'draw' ? t('draw') : teamName(game[res]) })]), el('div', { class: 'market-picks bands', style: `--n:${list.length}` }, list.map(b => pickButton(b, other(b))))];
+    });
   } else {
     // One block per market (最高單局 has one; 第N分 one per run).
     const markets = [...groupBy(bets, b => b.market).values()];
     body = markets.flatMap(list => [
       // Under 更多 the section's own title already names a lone market.
       titled && markets.length === 1 ? null : el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: list[0].marketLabel ?? t(section.title) })]),
-      el('div', { class: 'market-picks' }, list.map(b => pickButton(b, b.chip ?? b.shortLabel)))
+      // A short list in one even row (正確進球數 0 1 2 3+, 得分最高單節): no lone last button.
+      BAND_ROW.has(section.kind) && list.length <= 5 ? el('div', { class: 'market-picks bands', style: `--n:${list.length}` }, list.map(b => pickButton(b, b.chip ?? b.shortLabel))) : el('div', { class: 'market-picks' }, list.map(b => pickButton(b, b.chip ?? b.shortLabel)))
     ]);
   }
   return el('div', { class: `market-panel ${section.kind}` }, body);
 }
 
+const BAND_ROW = new Set(['teamgoals', 'topperiod']);
 // Kinds laid out as tables of lines: over/under, and one team giving a line.
-const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners', 'tdtotal', 'inningtotal', 'gametotal']);
+const TOTAL_KINDS = new Set(['total', 'htotal', 'f5total', 'corners', 'tdtotal', 'inningtotal', 'gametotal', 'qtotal', 'hits']);
 // Set sports scored in points, not games (volleyball, badminton, table tennis): 讓分 and 大小 on points.
 const POINT_SETS = new Set(['volleyball', 'badminton', 'tabletennis']);
 // A market's name by its sport: a handicap is baseball's run line, hockey's
@@ -1311,6 +1337,16 @@ const SECTIONS = [
   { kind: 'inningtotal', title: 'secInningTotal' },
   { kind: 'q1', title: 'secQ1' },
   { kind: 'nextrun', title: 'secNextRun' },
+  { kind: 'raceto', title: 'secRaceTo' },
+  { kind: 'oddeven', title: 'secOddEven' },
+  { kind: 'qrunline', title: 'secQ1Spread' },
+  { kind: 'qtotal', title: 'secQ1Total' },
+  { kind: 'hdc', title: 'secHalfDc' },
+  { kind: 'firstgoal', title: 'secFirstGoal' },
+  { kind: 'lastgoal', title: 'secLastGoal' },
+  { kind: 'higherhalf', title: 'secHigherHalf' },
+  { kind: 'hits', title: 'secHits' },
+  { kind: 'teamhits', title: 'secTeamHits' },
   // Set sports (tennis, volleyball, badminton, table tennis, esports).
   { kind: 'set1', title: 'secSet1' },
   { kind: 'sethcap', title: 'secSetHcap' },
@@ -1323,6 +1359,11 @@ const SECTIONS = [
   { kind: 'margin', title: 'secMargin', extra: true },
   { kind: 'goalbands', title: 'secGoalBands', extra: true },
   { kind: 'goalcount', title: 'secGoalCount', extra: true },
+  { kind: 'teamgoals', title: 'secTeamGoals', extra: true },
+  { kind: 'hscore', title: 'secHalfScore', extra: true },
+  { kind: 'mltotal', title: 'secMlTotal', extra: true },
+  { kind: 'mlbtts', title: 'secMlBtts', extra: true },
+  { kind: 'topperiod', title: 'secTopPeriod', extra: true },
   { kind: 'inning', title: 'secTopInning', short: 'topInningShort', extra: true }
 ];
 const MORE_SECTION = { kind: 'more', title: 'secMore' };

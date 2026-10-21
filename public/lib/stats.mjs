@@ -71,7 +71,6 @@ export function achievementsOf(account) {
     ['parlay3', slips.some(w => w.full && w.legs >= 3), slips.some(w => w.full) ? 0.5 : 0, first(slips.filter(w => w.full && w.legs >= 3))],
     ['x10', topMult >= 10, Math.min(1, topMult / 10), first(slips.filter(w => w.cost > 0 && w.amount / w.cost >= 10))],
     ['lotto', all.some(w => w.kind === 'lotto'), 0, first(all.filter(w => w.kind === 'lotto'))],
-    ['cash', slips.some(w => w.cashed && w.amount > w.cost), 0, first(slips.filter(w => w.cashed && w.amount > w.cost))],
     ['run5', run >= 5, Math.min(1, run / 5)],
     ['parlay5', slips.some(w => w.full && w.legs >= 5), 0, first(slips.filter(w => w.full && w.legs >= 5))],
     ['10k', best >= 10_000, Math.min(1, best / 10_000), first(all.filter(w => w.amount >= 10_000))],

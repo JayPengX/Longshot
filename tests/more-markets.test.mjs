@@ -5,13 +5,14 @@ import { legResult } from '../public/lib/account.mjs';
 
 const sum = picks => picks.reduce((s, p) => s + p.fair, 0);
 
-test('Hockey: both teams to score, total goals and margin (on 60 minutes, as 台灣運彩 sells it)', () => {
+test('Hockey: total goals, margin and 單雙 (on 60 minutes, as 台灣運彩 sells it)', () => {
   const markets = goalMarkets(fitHockey(0.55, { line: 5.5, overFair: 0.5 }), { family: 'hockey', totalLine: 5.5 });
   const kinds = new Set(markets.map(m => m.kind));
   // 運彩's hockey list: 正確進球數 in place of both teams to score and the goal bands.
   const goals = ['goalcount'];
   for (const k of ['runline', 'teamtotal', 'total', ...goals, 'margin']) assert.ok(kinds.has(k), k);
-  assert.ok(!kinds.has('oddeven'), 'odd/even is no longer sold');
+  // 單雙 on 60 minutes: on 運彩's hockey list.
+  assert.ok(kinds.has('oddeven'));
   for (const k of [...goals, 'margin']) assert.ok(Math.abs(sum(markets.find(m => m.kind === k).picks) - 1) < 1e-6, k);
   assert.ok(!kinds.has('btts') && !kinds.has('goalbands'));
   // No final ends level.

@@ -25,7 +25,6 @@ const T = {
     b_x10: '十倍奉還', b_x10D: '一張投注單拿回 10 倍以上',
     b_10k: '萬元大獎', b_10kD: '單筆中獎 NT$10,000 以上',
     b_lotto: '彩券得主', b_lottoD: '電腦彩券或刮刮樂中獎',
-    b_cash: '見好就收', b_cashD: '用提前兌現獲利了結',
     b_100k: '十萬俱樂部', b_100kD: '累計中獎 NT$100,000',
     b_1m: '百萬贏家', b_1mD: '累計中獎 NT$1,000,000'
   },
@@ -46,7 +45,6 @@ const T = {
     b_x10: 'Ten-bagger', b_x10D: 'A slip that paid 10× its stake',
     b_10k: 'Big win', b_10kD: 'A single win of NT$10,000+',
     b_lotto: 'Lucky ticket', b_lottoD: 'A lottery or scratch card prize',
-    b_cash: 'Locked it in', b_cashD: 'A profit taken with cash out',
     b_100k: '100K club', b_100kD: 'NT$100,000 won in all',
     b_1m: 'Millionaire', b_1mD: 'NT$1,000,000 won in all'
   }
