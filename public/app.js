@@ -1079,23 +1079,26 @@ function gameMore(game, bets) {
     }
     moreShown.add(game.id);
   }
+  // A game's markets in a few groups, as 運彩's pages have them (全場, 半場 or
+  // 前五局, 單節 or 單局, 特殊, 更多), every market of a group under its own
+  // name on the group's page: a row of a dozen chips of one market each
+  // (第一節不讓分 beside 單雙 beside 第一節讓分) read as a jumble.
   const all = SECTIONS.filter(sec => sec.kind !== 'ml' && bets.some(b => b.kind === sec.kind));
-  const extra = all.filter(sec => sec.extra);
-  const kinds = [...all.filter(sec => !sec.extra), ...(extra.length ? [MORE_SECTION] : [])];
-  const current = kinds.find(sec => sec.kind === state.marketTab.get(game.id)) ?? kinds[0];
+  const groups = MARKET_GROUPS.map(g => ({ ...g, secs: all.filter(sec => groupOfSection(sec) === g.key) })).filter(g => g.secs.length);
+  const current = groups.find(g => g.key === state.marketTab.get(game.id)) ?? groups[0];
   const tabs =
-    kinds.length > 1
+    groups.length > 1
       ? el('div', { class: 'q-chips market-tabs', role: 'tablist', 'aria-label': t('moreMarkets') },
-          kinds.map(sec =>
+          groups.map(g =>
             el('button', {
               type: 'button',
               role: 'tab',
               class: 'q-chip',
-              'aria-selected': String(sec === current),
-              'aria-pressed': String(sec === current),
-              text: t(secName(sec, game.sport)),
+              'aria-selected': String(g === current),
+              'aria-pressed': String(g === current),
+              text: t(groupName(g.key, game.sport)),
               onclick: () => {
-                state.marketTab.set(game.id, sec.kind);
+                state.marketTab.set(game.id, g.key);
                 renderGameSheet();
               }
             })
@@ -1108,10 +1111,8 @@ function gameMore(game, bets) {
       const on = tabs.querySelector('[aria-selected="true"]');
       if (on && tabs.scrollWidth > tabs.clientWidth) tabs.scrollLeft = Math.max(0, on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2);
     });
-  let panel = null;
-  if (current === MORE_SECTION)
-    panel = el('div', { class: 'market-more' }, extra.map(sec => el('section', { class: 'more-block' }, [el('h4', { class: 'more-title', text: t(secName(sec, game.sport, true)) }), marketPanel(game, sec, bets.filter(b => b.kind === sec.kind), { titled: true })])));
-  else if (current) panel = marketPanel(game, current, bets.filter(b => b.kind === current.kind));
+  // Each market of the group under its name (a lone one too: the group's chip is not its name).
+  const panel = current ? el('div', { class: 'market-more' }, current.secs.map(sec => el('section', { class: 'more-block' }, [el('h4', { class: 'more-title', text: t(secName(sec, game.sport, true)) }), marketPanel(game, sec, bets.filter(b => b.kind === sec.kind), { titled: true })]))) : null;
   // Kambi's full list on its way: say so under the model's markets.
   const waiting = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id));
   // The markets keep the tallest height they've had while this game is open:
@@ -1215,6 +1216,10 @@ function lineTable(heads, rows, title = null) {
   ]);
 }
 
+// A market's picks in even rows, none left alone: up to three in one row,
+// then rows of three or of two (a lone last one across its row).
+const evenPicks = n => (n <= 3 ? 'bands' : n % 3 === 0 ? 'q-even3' : 'q-even');
+
 // Each kind of market laid out as a table of its lines.
 function marketPanel(game, section, bets, { titled = false } = {}) {
   const t = state.t;
@@ -1287,7 +1292,7 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
       // Under 更多 the section's own title already names a lone market.
       titled && markets.length === 1 ? null : el('div', { class: 'market-head' }, [el('span', { class: 'market-title', text: list[0].marketLabel ?? t(section.title) })]),
       // A short list in one even row (正確進球數 0 1 2 3+, 得分最高單節): no lone last button.
-      BAND_ROW.has(section.kind) && list.length <= 5 ? el('div', { class: 'market-picks bands', style: `--n:${list.length}` }, list.map(b => pickButton(b, b.chip ?? b.shortLabel))) : el('div', { class: 'market-picks' }, list.map(b => pickButton(b, b.chip ?? b.shortLabel)))
+      BAND_ROW.has(section.kind) && list.length <= 5 ? el('div', { class: 'market-picks bands', style: `--n:${list.length}` }, list.map(b => pickButton(b, b.chip ?? b.shortLabel))) : el('div', { class: `market-picks ${evenPicks(list.length)}`, style: list.length <= 3 ? `--n:${list.length}` : null }, list.map(b => pickButton(b, b.chip ?? b.shortLabel)))
     ]);
   }
   return el('div', { class: `market-panel ${section.kind}` }, body);
@@ -1377,7 +1382,22 @@ const SECTIONS = [
   { kind: 'topperiod', title: 'secTopPeriod', extra: true },
   { kind: 'inning', title: 'secTopInning', short: 'topInningShort', extra: true }
 ];
-const MORE_SECTION = { kind: 'more', title: 'secMore' };
+// The groups of a game's markets, in order; a market's group by its kind
+// (the long shots, `extra`, under 更多; anything else not named, 全場).
+const MARKET_GROUPS = [{ key: 'full' }, { key: 'half' }, { key: 'period' }, { key: 'special' }, { key: 'more' }];
+const GROUP_OF = {
+  half: 'half', hrunline: 'half', htotal: 'half', hdc: 'half', hoddeven: 'half', f5: 'half', f5runline: 'half', f5total: 'half',
+  q1: 'period', qrunline: 'period', qtotal: 'period', firstinning: 'period', inningml: 'period', inningtotal: 'period', set1: 'period',
+  nextrun: 'special', raceto: 'special', firstgoal: 'special', nextgoal: 'special', lastgoal: 'special', higherhalf: 'special'
+};
+const groupOfSection = sec => (sec.extra ? 'more' : GROUP_OF[sec.kind] ?? 'full');
+// 半場 is baseball's 前五局; a period is a quarter (節), an inning (局) or a set (盤).
+function groupName(key, sport) {
+  const family = familyOf(sport);
+  if (key === 'half') return family === 'baseball' ? 'grpF5' : 'grpHalf';
+  if (key === 'period') return family === 'baseball' ? 'grpInning' : family === 'basketball' || family === 'hockey' || family === 'football' ? 'grpQuarter' : 'grpSet';
+  return { full: 'grpFull', special: 'grpSpecial', more: 'secMore' }[key];
+}
 
 // A pick's tooltip: what it is, its odds, and whether the house limits it.
 function pickTitle(bet) {
