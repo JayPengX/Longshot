@@ -152,14 +152,30 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   let g = null;
   let k = 1;
   let finished = !open;
-  let samples = [];
+  // What's been scraped, kept as points over each scratch-off (never read
+  // back off the canvas: that stalled a phone mid-stroke). A scratch-off
+  // 90% scraped comes off whole; the card is done when every one is off.
+  const sp = Math.max(4, Math.sqrt(zones.reduce((n, z) => n + z.r[2] * z.r[3], 0) / 6000));
+  const spots = zones.map((z, zi) => {
+    const list = [];
+    const [zx, zy, rw, rh] = z.r;
+    for (let j = zy + sp / 2; j < zy + rh; j += sp) for (let i = zx + sp / 2; i < zx + rw; i += sp) if (inZones([z], i, j)) list.push({ x: i, y: j, zi, off: false });
+    // (A sliver of a zone still gets a point.)
+    if (!list.length) list.push({ x: zx + rw / 2, y: zy + rh / 2, zi, off: false });
+    return { z, list, off: 0, gone: false };
+  });
+  const grid = new Map();
+  for (const z of spots) for (const p of z.list) {
+    const key = `${Math.floor(p.x / sp)},${Math.floor(p.y / sp)}`;
+    grid.set(key, [...(grid.get(key) || []), p]);
+  }
+  const allPts = spots.flatMap(z => z.list);
   // The win items under the latex, each with its points (shown when most are off).
   const watch = items.filter(it => it.under).map(it => {
     const [ix, iy, iw, ih] = it.r;
-    const pts = [];
-    for (let i = 0.2; i < 1; i += 0.3) for (let j = 0.2; j < 1; j += 0.3) if (inZones(zones, ix + iw * i, iy + ih * j)) pts.push([ix + iw * i, iy + ih * j]);
-    return { it, pts, shown: false };
+    return { it, pts: allPts.filter(p => p.x >= ix && p.x <= ix + iw && p.y >= iy && p.y <= iy + ih), shown: false };
   });
+  let ready = false;
   let silver = null;
   let cmap = null;
   const colorAt = (px, py) => {
@@ -181,7 +197,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       }
     return g.createPattern(tile, 'repeat');
   };
-  const alphaAt = (data, [px, py]) => data[(Math.floor(py * k) * cover.width + Math.floor(px * k)) * 4 + 3];
   const paint = () => {
     if (finished || g || !node.isConnected || !img.complete || !img.naturalWidth || !fw) return;
     // Its resolution once, for the play area's zoom (capped: a phone's canvas has a limit).
@@ -203,16 +218,11 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     c.fillStyle = sheen;
     c.fillRect(0, 0, W, H);
     c.restore();
-    const data = c.getImageData(0, 0, cover.width, cover.height).data;
-    samples = [];
-    for (const { r: [zx, zy, rw, rh] } of zones)
-      for (let i = 0.1; i < 1; i += 0.2)
-        for (let j = 0.1; j < 1; j += 0.2) {
-          const p = [zx + rw * i, zy + rh * j];
-          if (inZones(zones, ...p) && alphaAt(data, p) > 200) samples.push(p);
-        }
     // The picture not drawable yet (a phone still decoding it): again shortly, and what's under stays hidden till then.
-    if (!samples.length) return void setTimeout(paint, 150);
+    // (Checked at one point on the latex, not the whole canvas.)
+    // (A zone's middle: its rect's corner may be rounded off.)
+    const [zx, zy, zw, zh] = zones[0].r;
+    if (c.getImageData(Math.floor((zx + zw / 2) * k), Math.floor((zy + zh / 2) * k), 1, 1).data[3] < 200) return void setTimeout(paint, 150);
     g = c;
     silver = grain();
     // The print's colours, small: what a flake that comes off shows.
@@ -246,8 +256,8 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       scraped.add(key);
       if (Math.random() < (few ? 0.2 : 0.8)) flake(px, py, dir);
     }
+    mark(px, py, r * 0.95);
     g.save();
-    g.clip(clip);
     g.globalCompositeOperation = 'source-atop';
     g.fillStyle = silver;
     g.beginPath();
@@ -260,7 +270,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     g.arc(px, py, r, 0, Math.PI * 2);
     g.fill();
     g.globalAlpha = 1;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       const a = Math.random() * Math.PI * 2;
       const d = r * (0.85 + Math.random() * 0.3);
       g.beginPath();
@@ -268,6 +278,33 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       g.fill();
     }
     g.restore();
+  };
+  // The points under a dab, scraped.
+  const mark = (px, py, r) => {
+    const [c0, c1, r0, r1] = [Math.floor((px - r) / sp), Math.floor((px + r) / sp), Math.floor((py - r) / sp), Math.floor((py + r) / sp)];
+    for (let cy = r0; cy <= r1; cy++)
+      for (let cx = c0; cx <= c1; cx++)
+        for (const p of grid.get(`${cx},${cy}`) || []) if (!p.off && (p.x - px) ** 2 + (p.y - py) ** 2 <= r * r) (p.off = true), spots[p.zi].off++;
+  };
+  // A scratch-off taken off whole (its last bits): the latex fades off it.
+  const lift = z => {
+    z.gone = true;
+    for (const p of z.list) p.off = true;
+    z.off = z.list.length;
+    let a = 0;
+    const path = outline([z.z]);
+    const step = () => {
+      if (finished) return;
+      a += 0.25;
+      g.save();
+      g.globalCompositeOperation = 'destination-out';
+      g.globalAlpha = Math.min(1, a);
+      g.fill(path);
+      g.restore();
+      if (a < 1) requestAnimationFrame(step);
+    };
+    step();
+    setTimeout(() => !finished && (g.save(), (g.globalCompositeOperation = 'destination-out'), g.fill(path), g.restore()), 200);
   };
   // The coin's size on the screen stays a fingertip's, however zoomed.
   const R = () => Math.max(10, Math.min(15, fw * 0.036)) / s;
@@ -278,7 +315,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const stroke = (a, b, quiet) => {
     const r = R();
     const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const step = Math.max(r * 0.22, 0.5);
+    const step = Math.max(r * 0.3, 0.5);
     const dir = dist ? [(b[0] - a[0]) / dist, (b[1] - a[1]) / dist] : [0, 0];
     for (let d = 0; d <= dist; d += step) {
       const q = dist ? d / dist : 0;
@@ -287,19 +324,19 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     travel += dist * s;
     if (travel > 40 && !quiet) (travel = 0), navigator.vibrate?.(3);
   };
-  // What's showing: a win popped as it shows; most of it off, the card is done.
+  // What's showing: a win popped as it shows; a scratch-off 90% scraped
+  // comes off whole; every one off, the card is done (only then its result).
   const look = () => {
     if (finished || !g) return;
-    const data = g.getImageData(0, 0, cover.width, cover.height).data;
     for (const w of watch) {
       if (w.shown || !w.pts.length) continue;
-      if (w.pts.filter(p => alphaAt(data, p) < 60).length / w.pts.length >= 0.6) {
+      if (w.pts.filter(p => p.off).length / w.pts.length >= 0.6) {
         w.shown = true;
         if (w.it.win) pop(w.it);
       }
     }
-    const off = samples.filter(p => alphaAt(data, p) < 40).length;
-    if (off / samples.length > 0.55) doneOnce();
+    for (const z of spots) if (!z.gone && z.off / z.list.length >= 0.9) lift(z);
+    if (spots.every(z => z.gone)) setTimeout(doneOnce, 260);
   };
   let lastLook = 0;
   const pop = it => {
@@ -366,13 +403,16 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     pts.set(e.pointerId, p);
     if (mode === 'scratch' && !finished) {
       e.preventDefault();
-      const q = pic(p);
+      // (Every point the finger passed since the last frame, not just the last: no gaps, no corners cut.)
       const now = performance.now();
-      const dist = Math.hypot(q[0] - last[0], q[1] - last[1]) * s;
-      stroke(last, q);
-      last = q;
+      const all = e.getCoalescedEvents?.() || [];
+      for (const ev of all.length ? all : [e]) {
+        const q = pic(local(ev));
+        stroke(last, q);
+        last = q;
+      }
       lastMove = now;
-      if (now - lastLook > 90) (lastLook = now), look();
+      if (now - lastLook > 40) (lastLook = now), look();
     } else if (mode === 'pan') {
       x = from.x - (p[0] - from.p[0]) / s;
       y = from.y - (p[1] - from.p[1]) / s;
@@ -387,6 +427,8 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       draw();
     }
   });
+  // (Safari: nothing behind scrolls or bounces while a finger is on the ticket.)
+  frame.addEventListener('touchmove', e => e.cancelable && e.preventDefault(), { passive: false });
   const up = e => {
     if (!pts.delete(e.pointerId)) return;
     if (mode === 'scratch') look();
