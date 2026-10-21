@@ -947,3 +947,17 @@ html .q-logo img { width: 88%; height: 88%; }
 .pl-driver { display: grid; line-height: 1.2; }
 .pl-driver > small { overflow: hidden; color: var(--q-label-2); font: 400 12px/16px var(--q-font); text-overflow: ellipsis; }
 .pl-f1 .q-driver.logo-sm, .pl-f1 .q-driver-badge.logo-sm { width: 32px; height: 32px; }
+/* 首頁's hero: the headline game (never the balance), its win prices on the card's colour. */
+.pl-hero-match { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; width: 100%; margin: 8px 0 4px; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
+.pl-hero-team { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.pl-hero-team > strong { max-width: 100%; overflow: hidden; font: 700 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-hero-logo { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
+.pl-hero-logo .q-logo.q-logo, :root .pl-hero-logo .q-logo { background: none; box-shadow: none; border: 0; outline: 0; }
+.pl-hero-vs { color: rgba(255, 255, 255, 0.7); font: 700 15px/1 var(--q-font); }
+.pl-hero-odds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+.pl-hero-odds.n3 { grid-template-columns: repeat(3, 1fr); }
+.pl-hero-odd { display: grid; justify-items: center; gap: 2px; min-height: 52px; padding: 6px 4px; border: 2px solid transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.16); color: #fff; cursor: pointer; }
+.pl-hero-odd > small { color: rgba(255, 255, 255, 0.8); font: 500 12px/16px var(--q-font); }
+.pl-hero-odd > strong { font: 700 18px/22px var(--q-font); font-variant-numeric: tabular-nums; }
+.pl-hero-odd[aria-pressed='true'] { border-color: #fff; background: rgba(255, 255, 255, 0.3); }
+.pl-hero-odd:disabled { opacity: 0.5; }

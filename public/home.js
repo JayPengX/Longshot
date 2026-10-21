@@ -1,5 +1,5 @@
 // The home tab asks one thing: what to bet on now. Eight sections, in order:
-//  1 wallet hero (balance + open bets + most) · 2 quick actions · 3 場中焦點 ·
+//  1 headline game hero (its win prices + search) · 2 quick actions · 3 場中焦點 ·
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below, on the kit's components.
 import { rank, affinity, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
@@ -8,7 +8,6 @@ import { icon, gameLogo, cardArt } from './icons.js';
 import * as kitUI from '#kit/ui.mjs';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
-import { slipsMost } from './lib/slip.mjs';
 import { CARDS } from './lib/scratch.mjs';
 import { GAMES } from './lib/lottery.mjs';
 
@@ -22,14 +21,14 @@ const glyph = name => {
 
 const TXT = {
   zh: {
-    balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
+    headline: '焦點大戰', balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
     why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
-    balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
+    headline: 'Big game', balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
@@ -206,17 +205,28 @@ export function renderHome(ctx) {
   };
   const combos = styles.map(x => parlayCard(x.legs, x.title, x.tone));
 
-  // ---- 1 The hero: the balance, two stat cells (open bets, most they pay), the search pill.
-  const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);
-  const most = slipsMost(open);
-  const cash = state.account ? ctx.funds() : null;
-  const cell = (label, value) => el('button', { class: 'pl-hc-cell', type: 'button', onclick: () => ctx.showTab('history') }, [el('small', { text: label }), el('strong', { class: 'num', text: value })]);
+  // ---- 1 The hero sells (Jay 2026-10-21: a betting service shows what's on,
+  // never your balance on its front page; the balance is on the slip and in
+  // 紀錄): the day's headline game, its two sides and win prices a tap from
+  // the slip, and the search pill.
+  const top = featured[0]?.game ?? null;
+  const topBets = top ? (betsOf.get(top.id) || []).filter(b => b.kind === 'ml') : [];
+  const mark = { home: lang === 'zh' ? '主勝' : 'Home', away: lang === 'zh' ? '客勝' : 'Away', draw: T.draw };
+  const heroSide = side => el('span', { class: 'pl-hero-team' }, [el('span', { class: 'pl-hero-logo' }, [kitUI.logoTile(ctx.logoUrl(top.sport, top[side].en), { size: 48, alt: '' })]), el('strong', { class: 'q-fit', text: ctx.shortTeam(top.sport, top[side]) })]);
+  const heroPrice = side => {
+    const b = topBets.find(x => x.side === side);
+    if (!b) return null;
+    const on = state.parlay?.includes(b.id);
+    return el('button', { class: 'pl-hero-odd q-press', type: 'button', 'aria-pressed': String(Boolean(on)), ...(b.lock ? { disabled: true } : {}), onclick: () => ctx.toggleLeg(b) }, [el('small', { text: mark[side] }), el('strong', { class: 'num', text: b.lock ? '—' : ctx.fmtOdds(ctx.effectiveOdds(b)) })]);
+  };
+  const sides = top ? ctx.winnerSides(top, topBets) : [];
+  const teams = sides.filter(x => x !== 'draw');
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [
-    el('span', { class: 'q-hc-eyebrow' }, [glyph('wallet'), el('span', { text: T.balance })]),
-    // Drawn from the saved board before the account has loaded: the balance a moment later.
-    el('strong', { class: 'q-hc-big num pl-balance', 'data-q-live': 'play:balance', text: cash == null ? '—' : fmtMoney(cash, { sign: cash < 0 }) }),
-    cash < 0 ? el('button', { class: 'pl-hero-line', type: 'button', onclick: () => ctx.q.go('stock', 'portfolio') }, [el('span', { text: T.overdrawn }), el('strong', { text: `${T.cover} ›` })]) : null,
-    el('div', { class: 'pl-hc-stats' }, [cell(T.openN, lang === 'zh' ? `${open.length} ${T.unit}` : String(open.length)), cell(T.most, money(most))]),
+    el('span', { class: 'q-hc-eyebrow' }, top ? [kitUI.logoTile(ctx.leagueUrl(top.sport), { size: 18, alt: '' }), el('span', { class: 'q-fit', text: `${T.headline} · ${state.t(`sport_${top.sport}`)} · ${top.timeTbd ? gameTime(top) : ctx.legWhen(top.startUtc)}` })] : [glyph('spark'), el('span', { text: T.headline })]),
+    top
+      ? el('button', { class: 'pl-hero-match', type: 'button', onclick: () => ctx.openGame(top.id) }, [heroSide(teams[0]), el('span', { class: 'pl-hero-vs', text: 'VS' }), heroSide(teams[1])])
+      : null,
+    top && topBets.length ? el('div', { class: `pl-hero-odds n${sides.length}` }, sides.map(heroPrice).filter(Boolean)) : null,
     state.wallet && welcomeDue(state.wallet) ? el('p', { class: 'pl-hero-line plain' }, [icon('gift'), el('span', { text: f('welcome', { v: money(WELCOME.bet) }) })]) : null,
     el('button', { class: 'q-hc-pill pl-hero-search', type: 'button', onclick: () => ctx.openSearch() }, [el('span', { text: T.search }), el('i', { 'aria-hidden': 'true' })])
   ]);
@@ -271,7 +281,7 @@ export function renderHome(ctx) {
   // (A price reason, 划算/穩/值博, about a total or spread pick isn't shown over the win row.)
   const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.bet.kind === 'ml' || !['value', 'steady', 'shot'].includes(x.why) ? x.why : null }));
   // 5 今日焦點賽事: a vertical list (up to 4), so the page is full (the card's `wide` variant).
-  const wide = featured.slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
+  const wide = featured.slice(1, 5).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
   const emptyGames = () => kitUI.empty({ icon: 'calendar', tint: 'var(--q-blue)', title: T.none, action: { label: lang === 'zh' ? '看賽事' : 'See games', onTap: () => ctx.showTab('games') } });
 
   // 7 彩券: the biggest jackpot as a hero card, the next two games under it; a skeleton while the feeds load.
