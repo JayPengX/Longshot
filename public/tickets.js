@@ -533,6 +533,8 @@ export const TICKETS = {
     // Game 1: 18 rounds as tile pyramids printed on the ticket (4 pyramids, rounds 1-5, 6-8, 9-12, 13-18), 18 您的麻將 under the green tiles;
     // game 2: two tiles under the 中中 pair by 遊戲二.
     size: [1080, 393],
+    // (A wide ticket: its left half first, big enough to read; it moves for the rest.)
+    view: [0, 0, 600, 393],
     lay(f, k) {
       const [g1, g2] = f.games;
       // Pyramid: centre x, first row's top, row pitch, rounds in it (a round a row).

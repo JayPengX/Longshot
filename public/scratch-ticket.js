@@ -5,9 +5,9 @@
 // edge, the silver under the print round it, a little haze), flakes of it
 // curling off and falling away under the finger (no sound: the owner's call);
 // each win popping as it shows, and the card's prize
-// celebrated once it's all off. Two fingers zoom and move it (one, once it's
-// all off), and then a double tap goes from the play area to the whole
-// ticket and back.
+// celebrated once it's all off. Two fingers zoom and move it, one finger
+// away from the latex (or once it's all off) moves it, and a double tap there
+// goes from the play area to the whole ticket and back.
 
 const ease = k => (k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -93,6 +93,9 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     node.style.width = `${W * base}px`;
     node.style.transform = `translate3d(${-x * s}px, ${-y * s}px, 0)${s === base ? '' : ` scale(${s / base})`}`;
     frame.classList.toggle('zoomed', s > whole() * 1.02);
+    // (More of the ticket off a side: that side shaded, so it's known to move.)
+    frame.classList.toggle('more-l', x > 2);
+    frame.classList.toggle('more-r', x + fw / s < W - 2);
   };
   const commit = () => ((base = 0), draw());
   // The camera on a rect (picture px), centred.
@@ -334,11 +337,13 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       return;
     }
     if (pts.size > 2) return;
-    // A double tap (once it's all off): the play area, or the whole ticket.
+    // A double tap off the latex: the play area, or the whole ticket.
     const now = Date.now();
     const q = pic(p);
-    // (Till it's all off, one finger scratches wherever it starts, as a coin on the card; two move it.)
-    const onLatex = !finished && g;
+    // (Till it's all off, one finger scratches when it starts on or near the
+    // latex, as a coin would; well away from it, it moves the ticket.)
+    const near = R() * 2.5;
+    const onLatex = !finished && g && [[0, 0], ...[...Array(8)].map((_, i) => [Math.cos(i * 0.785) * near, Math.sin(i * 0.785) * near])].some(([dx, dy]) => inZones(zones, q[0] + dx, q[1] + dy));
     if (!onLatex && now - tapAt < 320 && Math.hypot(p[0] - tapAtXY[0], p[1] - tapAtXY[1]) < 30) {
       tapAt = 0;
       mode = null;
