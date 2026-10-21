@@ -155,28 +155,8 @@ span.pick.locked { pointer-events: none; }
 @media (max-width: 340px) { .pl-combo-pay small { font-size: 12px; } .pl-combo-foot { gap: 8px; } .pl-combo-go { padding: 0 8px; font-size: 14px; } }
 
 /* ==== 5 賽事 ==== */
-.day-bar { position: sticky; top: var(--q-top); z-index: 30; display: flex; align-items: center; gap: 6px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))) 6px; padding: 6px max(16px, env(safe-area-inset-left)) 8px; }
-.day-bar[hidden] { display: none; }
-.day-bar::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--q-top)) 0 0; background: var(--q-page); opacity: 0; transition: opacity 0.2s; box-shadow: inset 0 -0.5px 0 var(--q-sep); pointer-events: none; }
-.day-bar.stuck::before { opacity: 1; }
-/* On a phone the kit's bar with the tab's name is pinned above it (44px). */
-@media (max-width: 720px) { .day-bar { top: calc(var(--q-top) + 44px); } .day-bar::before { inset: 0; } }
-.day-strip-wrap { display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; }
-.day-bar .day-strip { flex: 1 1 auto; min-width: 0; gap: 4px; margin: 0; scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); padding-inline: 6px; scroll-padding-inline: 6px; }
-.day-bar .day-strip .q-chip.day { flex: none; display: grid; justify-items: center; min-width: 50px; min-height: 54px; padding: 6px; border-radius: 16px; background: none; color: var(--q-label); gap: 3px; }
-.day-bar .day-strip .q-chip.day > span { font: 600 12px/1.1 var(--q-font); color: var(--q-label-2); }
-.day-bar .day-strip .q-chip.day small { font: 700 16px/1.1 var(--q-font); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--q-label); opacity: 1; }
-.day-bar .day-strip .q-chip.day.is-today > span, .day-bar .day-strip .q-chip.day.is-today small { color: var(--accent); }
-.day-bar .day-strip .q-chip.day[aria-pressed='true'] { background: var(--accent); }
-.day-bar .day-strip .q-chip.day[aria-pressed='true'] > span, .day-bar .day-strip .q-chip.day[aria-pressed='true'] small { color: #fff; }
-.day-bar .day-pick { position: relative; flex: none; display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; overflow: hidden; }
-.day-pick-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
-.tab-panel.swiping > :not(.day-bar) { transform: translateX(var(--swipe, 0)); opacity: 0.85; }
-.tab-panel.day-in-next > :not(.day-bar) { animation: day-in-next 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.tab-panel.day-in-prev > :not(.day-bar) { animation: day-in-prev 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
-@keyframes day-in-next { from { transform: translateX(36px); opacity: 0; } }
-@keyframes day-in-prev { from { transform: translateX(-36px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .tab-panel.day-in-next > *, .tab-panel.day-in-prev > * { animation: none; } }
+/* The day strip is the kit's (.q-day-bar, ui.mjs dayStrip). On a phone the kit's bar with the tab's name is pinned above it (44px). */
+@media (max-width: 720px) { .q-day-bar { top: calc(var(--q-top) + 44px); } .q-day-bar::before { inset: 0; } }
 #panel-games > .q-search { margin-bottom: 12px; }
 #league-filter { margin-top: 4px; }
 body.searching #sport-filter, body.searching #league-filter, body.searching #day-bar { display: none; }

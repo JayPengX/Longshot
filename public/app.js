@@ -636,8 +636,7 @@ const f1Day = () => (state.data?.f1?.startUtc ? taipeiDayKey(state.data.f1.start
 // middle; 📅 for any day (the nearest day with games on or after it); a
 // swipe across the page for the day before or after (daySwipe); the 賽事 tab
 // tapped again goes back to the first day.
-// The strip is made once and changed in place (rebuilding it under a finger
-// made it jump on iPhone, a new date input closed iOS's open picker).
+// The strip is the kit's (ui.mjs dayStrip, Orbit Sports' too), its record here.
 const dayStrip = {};
 function pickDay(day) {
   if (!day || day === state.day) return;
@@ -647,52 +646,6 @@ function pickDay(day) {
   // The new day from its top (the strip stays in view).
   const bar = $('day-bar');
   if (bar && scrollY > bar.offsetTop) scrollTo({ top: 0 });
-}
-function makeDayStrip() {
-  const s = dayStrip;
-  s.row = el('div', { class: 'q-chips day-strip' });
-  s.input = el('input', { class: 'day-pick-input', type: 'date', 'aria-label': state.t('pickDate') });
-  // Any day: the first one with games on or after it (the last one past them).
-  s.input.addEventListener('change', () => {
-    const v = s.input.value;
-    if (!v) return;
-    const days = dayMemo.days;
-    pickDay(days.find(d => d >= v) ?? days.at(-1));
-  });
-  s.input.addEventListener('blur', () => syncDayInput());
-  const glyph = el('span', { class: 'day-pick-icon', 'aria-hidden': 'true' });
-  glyph.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>';
-  const cal = el('label', { class: 'q-chip day-pick', title: state.t('pickDate') }, [glyph, s.input]);
-  $('day-bar').replaceChildren(el('div', { class: 'day-strip-wrap' }, [s.row, cal]));
-}
-function syncDayInput() {
-  const s = dayStrip;
-  if (!s.input || document.activeElement === s.input) return;
-  const days = dayMemo.days;
-  if (state.day && s.input.value !== state.day) s.input.value = state.day;
-  for (const [k, v] of [['min', days[0]], ['max', days.at(-1)]]) v ? s.input.setAttribute(k, v) : s.input.removeAttribute(k);
-}
-function dayChip(day) {
-  const [, m, d] = day.split('-').map(Number);
-  const today = taipeiDayKey(new Date().toISOString());
-  return el('button', { class: `q-chip day${day === today ? ' is-today' : ''}`, type: 'button', 'aria-pressed': 'false', 'data-day': day, onclick: () => pickDay(day) }, [el('span', { text: dayLabel(day) }), el('small', { class: 'num', text: `${m}/${d}` })]);
-}
-// The chosen chip to the middle of the row, once the row has a width (drawn
-// under the loading screen it has none): at once the first time, gently after.
-function revealDay() {
-  const s = dayStrip;
-  const go = () => {
-    const chip = s.row.querySelector('[aria-pressed="true"]');
-    if (!chip || !s.row.isConnected || !s.row.clientWidth) return false;
-    s.row.scrollTo({ left: chip.offsetLeft - s.row.offsetLeft - s.row.clientWidth / 2 + chip.clientWidth / 2, behavior: s.shown ? 'smooth' : 'auto' });
-    s.shown = true;
-    return true;
-  };
-  requestAnimationFrame(() => {
-    if (go() || typeof ResizeObserver === 'undefined' || s.waiting) return;
-    s.waiting = new ResizeObserver(() => s.row.clientWidth && (s.waiting.disconnect(), (s.waiting = null), go()));
-    s.waiting.observe(s.row);
-  });
 }
 function renderDayFilter() {
   const today = taipeiDayKey(new Date().toISOString());
@@ -706,21 +659,21 @@ function renderDayFilter() {
     state.day = days[0] ?? null;
     state.dayPicked = false;
   }
-  if (!dayStrip.row) makeDayStrip();
-  const s = dayStrip;
   $('day-bar').hidden = !days.length;
-  const key = `${state.locale}|${today}|${days.join()}`;
-  if (key !== s.key) {
-    s.row.replaceChildren(...days.map(dayChip));
-    s.key = key;
-    s.current = null;
-  }
-  for (const chip of s.row.children) chip.setAttribute('aria-pressed', String(chip.dataset.day === state.day));
-  syncDayInput();
-  if (state.day !== s.current) {
-    s.current = state.day;
-    revealDay();
-  }
+  const strip = kitUI.dayStrip(dayStrip, {
+    days,
+    current: state.day,
+    today,
+    onPick: pickDay,
+    label: dayLabel,
+    sub: day => day.split('-').slice(1).map(Number).join('/'),
+    // Any day: the first one with games on or after it (the last one past them).
+    clamp: v => days.find(d => d >= v) ?? days.at(-1) ?? v,
+    bounds: { from: days[0], to: days.at(-1) },
+    follow: true,
+    pickLabel: state.t('pickDate')
+  });
+  if (strip.parentElement !== $('day-bar')) $('day-bar').replaceChildren(strip);
   // 場中 shows on today only.
   renderLive();
 }
@@ -730,61 +683,11 @@ const dayStep = dir => {
   const i = days.indexOf(state.day);
   return i < 0 ? null : days[i + dir] ?? null;
 };
-// A swipe across the page (not across a row that scrolls sideways, nor the
-// strip): the next day or the one before, the page following the finger and
-// the new day sliding in (Orbit Sports' daySwipe).
-function daySwipe(panel, step) {
-  let start = null;
-  const sideways = node => {
-    for (let n = node; n && n !== panel; n = n.parentElement) {
-      if (n.matches?.('input, select, textarea, .day-bar, [data-noswipe]')) return true;
-      if (n.scrollWidth > n.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
-    }
-    return false;
-  };
-  const settle = () => {
-    panel.classList.remove('swiping');
-    panel.style.removeProperty('--swipe');
-  };
-  panel.addEventListener('touchstart', ev => {
-    start = ev.touches.length === 1 && !document.querySelector('dialog[open]') && !sideways(ev.target) ? { x: ev.touches[0].clientX, y: ev.touches[0].clientY, at: Date.now(), lock: null } : null;
-  }, { passive: true });
-  panel.addEventListener('touchmove', ev => {
-    if (!start) return;
-    const dx = ev.touches[0].clientX - start.x;
-    const dy = ev.touches[0].clientY - start.y;
-    if (start.lock == null && Math.hypot(dx, dy) > 10) start.lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
-    if (start.lock !== 'x') return;
-    ev.preventDefault();
-    panel.classList.add('swiping');
-    panel.style.setProperty('--swipe', `${Math.round(dx * 0.45)}px`);
-  }, { passive: false });
-  panel.addEventListener('touchend', ev => {
-    const s = start;
-    start = null;
-    if (!s || s.lock !== 'x') return settle();
-    const dx = (ev.changedTouches?.[0]?.clientX ?? s.x) - s.x;
-    const fast = Math.abs(dx) > 30 && Date.now() - s.at < 250;
-    const dir = Math.abs(dx) > 70 || fast ? (dx < 0 ? 1 : -1) : 0;
-    settle();
-    if (!dir || !step(dir)) return;
-    panel.classList.remove('day-in-next', 'day-in-prev');
-    void panel.offsetWidth;
-    panel.classList.add(dir > 0 ? 'day-in-next' : 'day-in-prev');
-    clearTimeout(panel.swipeTimer);
-    panel.swipeTimer = setTimeout(() => panel.classList.remove('day-in-next', 'day-in-prev'), 320);
-  }, { passive: true });
-  panel.addEventListener('touchcancel', () => ((start = null), settle()), { passive: true });
-}
-daySwipe($('panel-games'), dir => {
+// A swipe across the page: the day before or after (the kit's daySwipe, as Orbit Sports').
+kitUI.daySwipe($('panel-games'), dir => {
   const d = !state.query && dayStep(dir);
   return Boolean(d && (pickDay(d), true));
 });
-// The pinned strip takes the page's colour once stuck under the status bar.
-addEventListener('scroll', () => {
-  const bar = $('day-bar');
-  if (bar?.offsetParent) bar.classList.toggle('stuck', scrollY > 0 && bar.getBoundingClientRect().top <= parseFloat(getComputedStyle(bar).top) + 0.5);
-}, { passive: true });
 
 // Two initials of a name ("Sarah De Nutte" → SD; a Chinese name's first character).
 const initialsOf = name => {
