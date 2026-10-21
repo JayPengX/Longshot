@@ -43,18 +43,13 @@ test('the model prices every regular, scaled by the team\'s expected score', () 
   assert.ok(!soccer.some(p => p.player === 'Keeper'));
 });
 
-test('the board falls back to the model: corners for soccer, players once read', () => {
+test('the board falls back to the model: corners for soccer, never players', () => {
   const soccer = { id: 's', sport: 'epl', startUtc: '2026-10-10T11:30:00.000Z', home: { en: 'A' }, away: { en: 'B' }, draftKings: { home: 0.5, draw: 0.27, away: 0.23 }, polymarket: null, house: null, total: { line: 2.5, overFair: 0.5 }, spread: null };
   const kinds = new Set(gameOptions(soccer).map(o => o.kind));
   for (const k of ['corners', 'btts', 'dc', 'score']) assert.ok(kinds.has(k), k);
   // 和局退款 isn't on 運彩's list.
   assert.equal(kinds.has('dnb'), false);
-  // Players: the model's picks, with the player's picture.
-  const withPlayers = { ...soccer, players: [{ name: 'Striker', side: 'home', pos: 'F', gp: 10, photo: 'x.png', totals: { gp: 10, subIns: 0, goals: 7, assists: 2, sot: 15 } }] };
-  const props = gameOptions(withPlayers).filter(o => o.kind === 'prop');
-  assert.ok(props.length >= 5 && props.every(p => p.photo === 'x.png' && p.cap === 'prop'));
-  // Kambi's own pick for the same player and line wins over the model's.
-  const both = gameOptions({ ...withPlayers, offers: { markets: [], props: [{ stat: 'goals', line: 1, side: 'yes', player: 'Striker', fair: 0.3 }] } }).filter(o => o.kind === 'prop' && o.stat === 'goals' && o.propLine === 1);
-  assert.equal(both.length, 1);
-  assert.equal(both[0].fairChance, 0.3);
+  // No players' markets: 台灣運彩 sells none, read players or Kambi's or not.
+  const withPlayers = { ...soccer, players: [{ name: 'Striker', side: 'home', pos: 'F', gp: 10, photo: 'x.png', totals: { gp: 10, subIns: 0, goals: 7, assists: 2, sot: 15 } }], offers: { markets: [], props: [{ stat: 'goals', line: 1, side: 'yes', player: 'Striker', fair: 0.3 }] } };
+  assert.equal(gameOptions(withPlayers).filter(o => o.kind === 'prop').length, 0);
 });

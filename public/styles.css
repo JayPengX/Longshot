@@ -216,26 +216,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-body > .market-panel > .market-head:first-child { margin-top: 0; }
 .more-block .line-table { padding: 0; background: none; }
 .offers-wait { padding: 12px; color: var(--q-label-2); font: var(--q-t-footnote); text-align: center; }
-/* Players' markets: a chip a market, a row a player. */
-.props { gap: 10px; }
-.prop-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
-.prop-chips::-webkit-scrollbar { display: none; }
-.prop-chip { min-height: 30px; padding: 0 12px; font-size: 14px; }
-.prop-head, .prop-row { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
-.prop-head, .prop-row.two { grid-template-columns: minmax(0, 1fr) 70px 70px; }
-.prop-head span { color: var(--q-label-2); font: 600 12px/1 var(--q-font); text-align: center; }
-.prop-head span:first-child { text-align: left; }
-.prop-list { display: grid; gap: 4px; padding: 6px 12px; border-radius: 18px; background: var(--q-surface); }
-.prop-row { min-height: 52px; }
-.prop-row .pick { min-width: 0; }
-.prop-row.two .pick-name { display: none; }
-.prop-player { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.prop-avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; font-weight: 700; }
-.prop-photo { object-fit: cover; object-position: top; }
-.prop-name { min-width: 0; overflow: hidden; font: 500 15px/1.25 var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
-.prop-name.q-wrapped { display: -webkit-box; white-space: normal; text-overflow: clip; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-/* (Balanced lines: no lone word or 「的單，」 left on a line of its own.) */
-.prop-note { color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
 /* Its markets still on their way: their shape. */
 .more-shape { display: grid; gap: 12px; }
 .shape-tabs { display: flex; gap: 6px; }

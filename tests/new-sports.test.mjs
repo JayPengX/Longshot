@@ -13,7 +13,9 @@ test('Play leagues come from the shared catalogue; the purged sports are gone, n
   assert.equal(familyOf('euroleague'), 'basketball');
   for (const key of ['atp', 'wta', 'ufc', 'badminton', 'boxing', 'tennis', 'tabletennis', 'volleyball', 'snooker', 'cricket', 'rugbyunion', 'acb', 'cba', 'kbl', 'bleague', 'acl', 'asiancup', 'wcqeurope', 'nrl', 'afl']) assert.equal(LEAGUES[key], undefined, key);
   for (const l of Object.values(LEAGUES)) assert.equal(l.off, undefined);
-  for (const key of ['ncaaf', 'nbl', 'championship', 'eredivisie', 'ligamx', 'brasileirao']) assert.ok(LEAGUES[key].path && LEAGUES[key].book, key);
+  for (const key of ['nbl', 'championship', 'eredivisie', 'ligamx', 'brasileirao']) assert.ok(LEAGUES[key].path && LEAGUES[key].book, key);
+  // 運彩's 美式足球 is the NFL alone: college football isn't sold.
+  assert.equal(LEAGUES.ncaaf, undefined);
   // An ESPN league Kambi lists: Kambi's prices first.
   assert.equal(LEAGUES.epl.book, 'football/england/premier_league');
 });

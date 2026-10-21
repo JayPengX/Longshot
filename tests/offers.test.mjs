@@ -7,7 +7,6 @@ import { parseOffers, LINES_SHOWN } from '#kit/play-offers.mjs';
 import { propOf, boxPlayers, propOutcome, propResult, firstScorer } from '../public/lib/props.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 import { legResult } from '../public/lib/account.mjs';
-import { slipErrors, SLIP_RULES } from '../public/lib/odds.mjs';
 
 const offer = (label, type, outcomes, tags = []) => ({ criterion: { englishLabel: label }, betOfferType: { englishName: type }, tags, outcomes });
 const o = (type, odds, extra = {}) => ({ type, odds, status: 'OPEN', ...extra });
@@ -54,7 +53,7 @@ test('Kambi\'s markets: the board\'s sides, margin-free prices, only lines the p
   assert.deepEqual(flipped.find(m => m.kind === 'dc').picks.map(p => p.side), ['draw|away', 'home|away', 'home|draw']);
 });
 
-test('the board takes Kambi\'s markets over the model\'s; players\' picks cap the ticket', () => {
+test('the board takes Kambi\'s markets over the model\'s; no players\' picks', () => {
   const g = game('Arsenal', 'Leeds United');
   const model = gameOptions(g);
   g.offers = parseOffers(data, g);
@@ -64,12 +63,9 @@ test('the board takes Kambi\'s markets over the model\'s; players\' picks cap th
   assert.deepEqual(real.filter(x => x.kind === 'total').map(x => x.totalLine), [2.5, 2.5]);
   assert.ok(real.some(x => x.kind === 'corners'));
   assert.equal(real.some(x => x.kind === 'dnb'), false);
-  const props = real.filter(x => x.kind === 'prop');
-  assert.equal(props.length, 4);
-  const saka = props.find(x => x.stat === 'goals');
-  assert.ok(Math.abs(saka.fairChance - 1 / 3.3 / 1.1) < 1e-9);
-  assert.ok(props.every(x => x.cap === 'prop'));
-  assert.deepEqual(slipErrors({ mode: 'single', legs: [{ ...saka, odds: saka.estOdds }], sizes: [1], stake: SLIP_RULES.capped + 10 }), ['ticketCapped']);
+  // Kambi's players' markets read, none sold: 台灣運彩 has none.
+  assert.ok(g.offers.props.length > 0);
+  assert.equal(real.some(x => x.kind === 'prop'), false);
 });
 
 test('only whole-game player markets the box score has', () => {

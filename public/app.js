@@ -1,13 +1,11 @@
 import { slipPayoutTable, settleSlip, boostRate, SLIP_RULES, combosBySize } from './lib/odds.mjs';
-import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadPlayers, loadLeagueTeams } from './lib/sources.mjs';
+import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
-import { hasPlayers } from './lib/players.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
 import * as kit from '#kit/quadra.mjs';
 import * as kitBoard from '#kit/play-board.mjs';
 import * as kitUI from '#kit/ui.mjs';
 import * as kitTeams from '#kit/play-teams.mjs';
-const { personPhoto } = kitPhotos;
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, balance, newSlipId, placeSlip, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
@@ -75,7 +73,6 @@ const state = {
   sheetGame: null,
   // Each open game's market tab (大小, 讓分, 主隊/客隊大小, 得分最高單局).
   marketTab: new Map(),
-  propTab: new Map(),
   // The practice account (play money) and its sync.
   account: null,
   accountReady: false,
@@ -384,8 +381,6 @@ function takeExtras(data) {
   for (const game of data.games) {
     // Kambi's own markets of the game once read (loadOffers), whatever read of the board this is.
     if (gameOffers.has(game.id)) game.offers = gameOffers.get(game.id).offers;
-    // And its players with their season numbers (players.mjs), once read.
-    if (gamePlayers.get(game.id)?.players) game.players = gamePlayers.get(game.id).players;
   }
 }
 // The priced board kept for what it was priced from (the games, the race,
@@ -689,12 +684,6 @@ kitUI.daySwipe($('panel-games'), dir => {
   return Boolean(d && (pickDay(d), true));
 });
 
-// Two initials of a name ("Sarah De Nutte" → SD; a Chinese name's first character).
-const initialsOf = name => {
-  const n = String(name || '?').trim();
-  if (/[\u3400-\u9fff]/.test(n)) return n.slice(0, 1);
-  return n.split(/\s+/).filter(w => w && !/^(jr|sr)\.?$/i.test(w)).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-};
 // ---- Pictures kept across redraws ----------------------------------------------------
 //
 // The boards and a game's sheet are drawn anew whenever anything changes (a
@@ -1008,8 +997,8 @@ function gameDetail(game, bets) {
   const others = bets.filter(b => b.kind !== 'ml' && !b.lock);
   const held = gameHeld(game, bets);
   const floor = legsFloor(bets);
-  // A game Kambi lists, or with players' markets, has more on the way while its lists are read.
-  const more = others.length > 0 || Boolean(game.live && game.kambiId) || (!moreShown.has(game.id) && (Boolean(game.kambiId) || (Boolean(game.espnTeams) && hasPlayers(game.sport))));
+  // A game Kambi lists has more on the way while its list is read.
+  const more = others.length > 0 || Boolean(game.live && game.kambiId) || (!moreShown.has(game.id) && Boolean(game.kambiId));
   const win = sides.map(s => ml.find(b => b.side === s)).filter(Boolean);
   return el('div', { class: 'gs' }, [
     // sheetHero: the two logos, the time (or score) big, the matchup under it.
@@ -1056,7 +1045,7 @@ const moreSince = new Map();
 function gameMore(game, bets) {
   const t = state.t;
   wantOffers(game);
-  const pending = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id)) || gamePlayers.get(game.id)?.loading;
+  const pending = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id));
   if (!moreShown.has(game.id)) {
     if (!moreSince.has(game.id)) moreSince.set(game.id, Date.now());
     const left = moreSince.get(game.id) + 4000 - Date.now();
@@ -1080,7 +1069,7 @@ function gameMore(game, bets) {
             el('button', {
               type: 'button',
               role: 'tab',
-              class: `q-chip${sec.kind === 'prop' ? ' tab-props' : ''}`,
+              class: 'q-chip',
               'aria-selected': String(sec === current),
               'aria-pressed': String(sec === current),
               text: t(secName(sec, game.sport)),
@@ -1101,10 +1090,9 @@ function gameMore(game, bets) {
   let panel = null;
   if (current === MORE_SECTION)
     panel = el('div', { class: 'market-more' }, extra.map(sec => el('section', { class: 'more-block' }, [el('h4', { class: 'more-title', text: t(secName(sec, game.sport, true)) }), marketPanel(game, sec, bets.filter(b => b.kind === sec.kind), { titled: true })])));
-  else if (current?.kind === 'prop') panel = propsPanel(game, bets.filter(b => b.kind === 'prop'));
   else if (current) panel = marketPanel(game, current, bets.filter(b => b.kind === current.kind));
   // Kambi's full list on its way: say so under the model's markets.
-  const waiting = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id)) || gamePlayers.get(game.id)?.loading;
+  const waiting = (game.kambiId && !gameOffers.has(game.id) && offersLoading.has(game.id));
   // The markets keep the tallest height they've had while this game is open:
   // a shorter tab no longer pulls the page (and the tabs under the finger) up.
   if (marketTall.game !== game.id) Object.assign(marketTall, { game: game.id, h: 0 });
@@ -1116,58 +1104,6 @@ function gameMore(game, bets) {
 }
 
 const marketTall = { game: null, h: 0 };
-
-// Players' markets: one chip per market (進球, 射正 1.5 …), then each
-// player with their price, the likeliest first.
-function propsPanel(game, bets) {
-  const t = state.t;
-  const groups = [...groupBy(bets, b => b.group).entries()];
-  const ORDER = ['first', 'goals', 'ga', 'assists', 'sot', 'points', 'shots', 'hr', 'hits', 'rbi', 'runs', 'hrr', 'td', 'passYds', 'rushYds', 'recYds', 'rec', 'rushRecYds', 'passRushYds', 'passTD', 'passComp', 'passAtt', 'rushAtt', 'ints', 'pts', 'reb', 'ast', 'threes'];
-  const rank = ([key]) => {
-    const [stat, line] = key.split('|');
-    return (ORDER.indexOf(stat) + 1 || 99) * 1000 + Number(line || 0);
-  };
-  groups.sort((a, b) => rank(a) - rank(b));
-  const chosen = groups.find(([key]) => key === state.propTab.get(game.id)) ?? groups[0];
-  if (!chosen) return null;
-  const chipFor = ([key, list]) => {
-    const [stat, line] = key.split('|');
-    const side = list.some(b => b.side === 'yes') ? 'yes' : 'over';
-    const text = side === 'yes' ? propText(stat, Number(line) || 1, 'yes') : `${propName(stat, state.locale)} ${line}`;
-    return el('button', {
-      type: 'button',
-      class: 'q-chip prop-chip',
-      'aria-pressed': String(key === chosen[0]),
-      text,
-      onclick: () => {
-        state.propTab.set(game.id, key);
-        renderGameSheet();
-      }
-    });
-  };
-  const chips = el('div', { class: 'chip-row prop-chips' }, groups.map(chipFor));
-  requestAnimationFrame(() => {
-    const on = chips.querySelector('[aria-pressed="true"]');
-    if (on && chips.scrollWidth > chips.clientWidth) chips.scrollLeft = Math.max(0, on.offsetLeft - (chips.clientWidth - on.offsetWidth) / 2);
-  });
-  const [, list] = chosen;
-  const players = [...groupBy(list, b => b.player).values()].sort((a, b) => Math.min(...a.map(x => x.estOdds)) - Math.min(...b.map(x => x.estOdds)));
-  const ou = list.some(b => b.side === 'over');
-  const rows = players.map(picks => {
-    const name = picks[0].player;
-    const cells = ou ? ['over', 'under'].map(side => picks.find(b => b.side === side)) : [picks[0]];
-    return el('div', { class: `prop-row ${ou ? 'two' : ''}` }, [
-      el('span', { class: 'prop-player' }, [playerPhoto(picks[0].photo, name, game.sport, picks[0].photoGuessed), el('span', { class: 'prop-name q-fit-wrap', text: name })]),
-      ...cells.map(b => (b ? pickButton(b, ou ? t(b.side) : '') : el('span')))
-    ]);
-  });
-  return el('div', { class: 'market-panel props' }, [
-    chips,
-    ou ? el('div', { class: 'prop-head' }, [el('span', { text: t('colPlayer') }), el('span', { text: t('over') }), el('span', { text: t('under') })]) : null,
-    el('div', { class: 'prop-list' }, rows),
-    el('p', { class: 'muted prop-note', text: t('propsNote', { capped: fmtMoney(SLIP_RULES.capped, { sign: false }) }) })
-  ]);
-}
 
 // Whether a live score just changed: the score each place last showed, and
 // for a few seconds after it changes the place says so (a brief highlight).
@@ -1184,17 +1120,6 @@ function scoreMoved(key, value) {
   return now - shownScores.get(key).at < SCORE_FLASH_MS;
 }
 
-// A player's picture, found the way every Quadra app finds one (the kit's
-// personPhoto): the roster's (ESPN's by id is only a guess), one found
-// before on this device, then a search by name; the initials meanwhile.
-function playerPhoto(url, name, league, guessed = false) {
-  return keptPic(`player|${league}|${name}`, () => drawPlayer(url, name, league, guessed));
-}
-function drawPlayer(url, name, league, guessed) {
-  const initials = () => el('span', { class: 'prop-avatar', 'aria-hidden': 'true', text: initialsOf(name) });
-  return personPhoto(name, league, { urls: guessed ? [] : [url], guess: guessed ? url : null, cls: 'prop-avatar prop-photo', fallback: initials });
-}
-
 // ---- A game's own markets from Kambi (offers.mjs) ------------------------------------
 //
 // Read when a game is opened (and for the games of picks on the slip): its
@@ -1204,26 +1129,7 @@ const gameOffers = new Map();
 const offersLoading = new Set();
 const OFFERS_FRESH_MS = 2 * 60_000;
 const LIVE_OFFERS_FRESH_MS = 12_000;
-// A game's players (ESPN's rosters and seasons): read once a game is opened,
-// for the model's players' markets and everyone's picture.
-const gamePlayers = new Map();
-// A read that failed is tried again the next time the game is wanted, 20 s on.
-const PLAYERS_RETRY_MS = 20_000;
-function wantPlayers(game) {
-  if (game?.live || !game?.espnTeams || !hasPlayers(game.sport)) return;
-  const had = gamePlayers.get(game.id);
-  if (had && !(had.failed && Date.now() - had.failed > PLAYERS_RETRY_MS)) return;
-  gamePlayers.set(game.id, { loading: true });
-  loadPlayers(game)
-    .then(players => gamePlayers.set(game.id, { players: players ?? [] }))
-    .catch(() => {
-      gamePlayers.set(game.id, { failed: Date.now() });
-      setTimeout(() => state.sheetGame === game.id && wantPlayers(game), PLAYERS_RETRY_MS + 100);
-    })
-    .finally(rebuildBoard);
-}
 function wantOffers(game) {
-  wantPlayers(game);
   if (!game?.kambiId || offersLoading.has(game.id)) return;
   const had = gameOffers.get(game.id);
   if (had && Date.now() - had.at < (game.live ? LIVE_OFFERS_FRESH_MS : OFFERS_FRESH_MS)) return;
@@ -1269,7 +1175,7 @@ function offersForSlip() {
   }
 }
 // A game whose markets or players are still on their way (a pick on it stays on the slip).
-const gameWaiting = game => Boolean(game && ((game.kambiId && !gameOffers.has(game.id)) || (game.espnTeams && hasPlayers(game.sport) && !gamePlayers.get(game.id)?.players && !gamePlayers.get(game.id)?.failed)));
+const gameWaiting = game => Boolean(game && game.kambiId && !gameOffers.has(game.id));
 
 // One line of a two-way market: its two picks, each with its own line on it
 // (雷霆 −6.5 | 馬刺 +6.5, 大 220.5 | 小 220.5); the lottery's main line tinted.
@@ -1388,9 +1294,7 @@ const SECTIONS = [
   { kind: 'runline', title: 'secRunLine' },
   // Soccer's 讓分: three ways on whole goals (主-1 / 讓分和 / 客+1).
   { kind: 'hcap3', title: 'secHandicap' },
-  { kind: 'prop', title: 'secProps' },
   { kind: 'teamtotal', title: 'secTeamTotal' },
-  { kind: 'dnb', title: 'secDnb' },
   { kind: 'dc', title: 'secDoubleChance' },
   { kind: 'btts', title: 'secBtts' },
   { kind: 'half', title: 'secHalf' },
