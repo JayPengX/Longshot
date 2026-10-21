@@ -217,8 +217,21 @@ function fmtTime(iso) {
 // (A player's or another sport's side Taiwan has no name for in the kit's
 // lists: its Chinese once the kit has read it, names.mjs warm.)
 function teamName(team) {
-  if (state.locale !== 'zh') return playerShort(team.en) ?? team.en;
-  return team.zh && team.zh !== team.en ? team.zh : (kitNames.nameZh?.(team.en, 'p') ?? kitNames.nameZh?.(team.en, 'team') ?? playerShort(team.en) ?? team.zh ?? team.en);
+  if (state.locale !== 'zh') return playerShort(team.en) ?? clubShort(team.en);
+  return team.zh && team.zh !== team.en ? team.zh : (kitNames.nameZh?.(team.en, 'p') ?? kitNames.nameZh?.(team.en, 'team') ?? playerShort(team.en) ?? (team.zh && team.zh !== team.en ? team.zh : clubShort(team.en)));
+}
+// A long club name without the sport's word in it ("Skanderborg Aarhus
+// Håndbold" was cut on a small phone): the club is the rest.
+// Still long, its first words (its town or name: "Skanderborg").
+const CLUB_WORDS = new Set(['håndbold', 'handbold', 'handball', 'handbal', 'handboll', 'håndball', 'balonmano', 'pallamano', 'rukomet', 'futsal', 'rugby', 'volley', 'volleyball', 'club', 'hc', 'hb', 'hk', 'kc', 'rk', 'cs', 'fc', 'sc', 'sk', 'tsv', 'sg', 'vfl', 'rc', 'rfc']);
+function clubShort(en) {
+  const name = String(en ?? '');
+  if (name.length <= 16) return name;
+  // (Only a name with such a word: a league club's English name stays whole.)
+  const words = name.split(/\s+/).filter(w => !CLUB_WORDS.has(w.toLowerCase()));
+  if (!words.length || words.length === name.split(/\s+/).length) return name;
+  while (words.length > 1 && words.join(' ').length > 16) words.pop();
+  return words.join(' ');
 }
 // A player with no Chinese yet (or in English): by surname, a pair by both,
 // as a ticket prints them (a whole "A. Paulson/N. Serdarusic" was cut on a small phone).
@@ -573,7 +586,7 @@ const SPORT_GROUPS_ALL = {
   hockey: { icon: 'target', leagues: ['nhl'] },
   f1: { icon: 'flag', leagues: ['f1'] },
   // The sports 台灣運彩 sells besides the leagues (the kit's catalogue), each its own chip.
-  ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
+  ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma', 'cricket'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
 };
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
@@ -797,7 +810,7 @@ function logoImg(sport, enName, label, size = '') {
 // The sports 台灣運彩 sells besides the leagues (the kit's catalogue): a
 // player's headshot or their country's flag, a national side's flag, a
 // pair as two; otherwise no picture at all, never an initial or a shield.
-const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma']);
+const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma', 'cricket']);
 const isSideSport = sport => SIDE_SPORTS.has(familyOf(sport));
 const noPic = size => el('span', { class: `logo logo-none ${size}`, 'aria-hidden': 'true' });
 // The same as an address, for the kit's tiles (home's cards): a club's logo,

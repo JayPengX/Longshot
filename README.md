@@ -61,8 +61,11 @@ Live: https://jaypengx.github.io/Quadra-Play/
   surname in Chinese (the kit's names.mjs, Google's reading kept on the
   phone), a doubles pair a partner a line; a headshot (ESPN, TheSportsDB) or
   their country's flag, else no picture. 綜合格鬥: UFC's cards, Kambi's
-  勝負 (a draw void), each bout settled on ESPN's card. Not yet: golf,
-  MotoGP, boxing and cricket (no result to settle on).
+  勝負 (a draw void), each bout settled on ESPN's card. 板球: one-day and
+  T20 internationals and the big T20 leagues, 勝負 settled on ESPN's
+  scorepanel (a tie or no result void). Not yet: golf, MotoGP and boxing
+  (no result to settle on). A long club name with a sport word in it
+  ("Skanderborg Aarhus Håndbold") reads shorter (app.js clubShort).
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.

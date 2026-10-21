@@ -23,6 +23,7 @@ const ICONS = {
   sport_handball: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="M12 3.5l2.5 5.5h-5zM20 10l-5.5 1M4 10l5.5 1M8 19l2-5M16 19l-2-5" ${S}/>`),
   sport_rugby: SVG(`<ellipse cx="12" cy="12" rx="9" ry="5.5" transform="rotate(-35 12 12)" ${S}/><path d="M8.5 15.5l7-7M10.5 11.5l2 2M12.5 9.5l2 2" ${S}/>`),
   sport_futsal: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="m12 7.8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2zM12 3.5v4.3M20.3 10.1l-4.7.3M17 19l-2.8-4.4M7 19l2.8-4.4M3.7 10.1l4.7.3" ${S}/>`),
+  sport_cricket: SVG(`<path d="M14.5 3.5l3 3-9 9-3-3z" ${S}/><path d="M7 14l-3.5 3.5 3 3L10 17" ${S}/><circle cx="17.5" cy="17.5" r="2.5" ${S}/>`),
   sport_mma: SVG(`<path d="M7 10V7.5a2.5 2.5 0 0 1 5 0V9M12 8.5a2.5 2.5 0 0 1 5 0v4.5a6 6 0 0 1-6 6h-1a4 4 0 0 1-4-4v-3.5a2 2 0 0 1 2-2h3" ${S}/><path d="M9 13h3" ${S}/>`),
   sport_f1: SVG(`<path d="M6 21V4" ${S}/><path d="M6 4h12v9H6" ${S}/><path d="M6 4h3v3H6zM12 4h3v3h-3zM9 7h3v3H9zM15 7h3v3h-3zM6 10h3v3H6zM12 10h3v3h-3z" fill="currentColor"/>`),
   // The boards F1's marshals and screens show.
