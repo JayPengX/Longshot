@@ -33,7 +33,7 @@ const TXT = {
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
-    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced treble', comboBold: 'Long-shot 4-fold', comboTotals: 'Totals treble', comboSpread: 'Handicap treble', comboLeague: '{league} treble', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
+    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced 3', comboBold: 'Long shot 4', comboTotals: 'Totals 3', comboSpread: 'Handicap 3', comboLeague: '{league} 3', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
 
@@ -189,17 +189,17 @@ export function renderHome(ctx) {
     const odds = legs.reduce((m, b) => m * b.estOdds, 1);
     const boost = ctx.boostPct(legs.length);
     return el('article', { class: `q-rail-card pl-combo ${tone}` }, [
-      el('div', { class: 'pl-combo-head' }, [el('strong', { text: title }), el('span', { class: 'q-tag tint num', text: `×${ctx.fmtOdds(odds)}` }), boost ? el('span', { class: 'q-tag green', text: f('comboBoost', { b: boost }) }) : null]),
+      el('div', { class: 'pl-combo-head' }, [el('strong', { class: 'q-fit-wrap', text: title }), el('span', { class: 'q-tag tint num', text: `×${ctx.fmtOdds(odds)}` }), boost ? el('span', { class: 'q-tag green', text: f('comboBoost', { b: boost }) }) : null]),
       el('div', { class: 'pl-combo-legs' }, legs.map(b => {
         const g = (state.data?.games || []).find(x => x.id === b.gameId);
         return el('div', { class: 'pl-combo-leg' }, [
           g && g[b.side] ? ctx.logoImg(g.sport, g[b.side].en, ctx.teamName(g[b.side]), 'logo-sm') : g ? ctx.leagueImg(g.sport, 'logo-sm') : null,
-          el('span', { class: 'pl-combo-pick' }, [el('span', { text: ctx.shortPick(b) }), b.kind === 'ml' ? null : el('small', { text: ctx.shortMatchup(b) })]),
+          el('span', { class: 'pl-combo-pick' }, [el('span', { class: 'q-fit-wrap', text: ctx.shortPick(b) }), b.kind === 'ml' ? null : el('small', { class: 'q-fit', text: ctx.shortMatchup(b) })]),
           el('b', { class: 'num', text: ctx.fmtOdds(b.estOdds) })
         ]);
       })),
       el('div', { class: 'pl-combo-foot' }, [
-        el('span', { class: 'pl-combo-pay' }, [el('small', { text: f('comboStake', { v: money(PARLAY_STAKE) }) }), el('strong', { class: 'num', text: money(ctx.parlayPays(legs, PARLAY_STAKE)) })]),
+        el('span', { class: 'pl-combo-pay' }, [el('small', { class: 'q-fit', text: f('comboStake', { v: money(PARLAY_STAKE) }) }), el('strong', { class: 'num', text: money(ctx.parlayPays(legs, PARLAY_STAKE)) })]),
         el('button', { class: 'q-btn primary pl-combo-go', type: 'button', text: T.comboGo, onclick: () => (ctx.track([...new Set(legs.flatMap(b => ctx.betKeys(b)))], 1), ctx.takeParlay(legs.map(b => b.id))) })
       ])
     ]);

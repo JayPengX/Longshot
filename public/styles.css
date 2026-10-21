@@ -132,6 +132,9 @@ span.pick.locked { pointer-events: none; }
 .pl-hero-search > i svg { width: 18px; height: 18px; }
 /* A match card in a rail. */
 .pl-mcards { --q-rail-w: min(80%, 290px); }
+/* A 為你推薦 card with its reason: in English the league's name goes (its logo
+   stays), or "NBA" was squeezed onto three lines beside "Value" and the time. */
+:lang(en) .q-match-top:has(.q-tag) .q-match-lg { display: none; }
 /* 精選串關: three picks and what they pay together. */
 .pl-combos { --q-rail-w: min(84%, 300px); }
 .pl-combo { gap: 10px; grid-template-rows: auto 1fr auto; align-content: stretch; }
@@ -142,6 +145,7 @@ span.pick.locked { pointer-events: none; }
 .pl-combo-pick { flex: 1; display: grid; min-width: 0; font: 500 15px/1.25 var(--q-font); }
 .pl-combo-pick > * { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pl-combo-pick small { color: var(--q-label-2); font: var(--q-t-caption); }
+.pl-combo-head strong.q-wrapped, .pl-combo-pick > .q-wrapped { white-space: normal; text-overflow: clip; }
 .pl-combo-leg b { flex: none; font: 700 15px/1 var(--q-font-rounded); }
 .pl-combo-foot { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pl-combo-pay { flex: 1; display: grid; min-width: 0; }
@@ -151,12 +155,31 @@ span.pick.locked { pointer-events: none; }
 @media (max-width: 340px) { .pl-combo-pay small { font-size: 12px; } .pl-combo-foot { gap: 8px; } .pl-combo-go { padding: 0 8px; font-size: 14px; } }
 
 /* ==== 5 賽事 ==== */
-.pl-day { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 4px 0 12px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--q-fill-3); color: var(--q-label); font: 600 15px/1 var(--q-font); font-variant-numeric: tabular-nums; }
-.pl-day:disabled { cursor: default; opacity: 1; }
-.pl-day-chev { width: 7px; height: 7px; margin: -3px 0 0 2px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); opacity: 0.6; }
+.day-bar { position: sticky; top: var(--q-top); z-index: 30; display: flex; align-items: center; gap: 6px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))) 6px; padding: 6px max(16px, env(safe-area-inset-left)) 8px; }
+.day-bar[hidden] { display: none; }
+.day-bar::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--q-top)) 0 0; background: var(--q-page); opacity: 0; transition: opacity 0.2s; box-shadow: inset 0 -0.5px 0 var(--q-sep); pointer-events: none; }
+.day-bar.stuck::before { opacity: 1; }
+/* On a phone the kit's bar with the tab's name is pinned above it (44px). */
+@media (max-width: 720px) { .day-bar { top: calc(var(--q-top) + 44px); } .day-bar::before { inset: 0; } }
+.day-strip-wrap { display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; }
+.day-bar .day-strip { flex: 1 1 auto; min-width: 0; gap: 4px; margin: 0; scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); padding-inline: 6px; scroll-padding-inline: 6px; }
+.day-bar .day-strip .q-chip.day { flex: none; display: grid; justify-items: center; min-width: 50px; min-height: 54px; padding: 6px; border-radius: 16px; background: none; color: var(--q-label); gap: 3px; }
+.day-bar .day-strip .q-chip.day > span { font: 600 12px/1.1 var(--q-font); color: var(--q-label-2); }
+.day-bar .day-strip .q-chip.day small { font: 700 16px/1.1 var(--q-font); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--q-label); opacity: 1; }
+.day-bar .day-strip .q-chip.day.is-today > span, .day-bar .day-strip .q-chip.day.is-today small { color: var(--accent); }
+.day-bar .day-strip .q-chip.day[aria-pressed='true'] { background: var(--accent); }
+.day-bar .day-strip .q-chip.day[aria-pressed='true'] > span, .day-bar .day-strip .q-chip.day[aria-pressed='true'] small { color: #fff; }
+.day-bar .day-pick { position: relative; flex: none; display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; overflow: hidden; }
+.day-pick-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
+.tab-panel.swiping > :not(.day-bar) { transform: translateX(var(--swipe, 0)); opacity: 0.85; }
+.tab-panel.day-in-next > :not(.day-bar) { animation: day-in-next 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tab-panel.day-in-prev > :not(.day-bar) { animation: day-in-prev 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes day-in-next { from { transform: translateX(36px); opacity: 0; } }
+@keyframes day-in-prev { from { transform: translateX(-36px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tab-panel.day-in-next > *, .tab-panel.day-in-prev > * { animation: none; } }
 #panel-games > .q-search { margin-bottom: 12px; }
 #league-filter { margin-top: 4px; }
-body.searching #sport-filter, body.searching #league-filter, body.searching #day-pick { display: none; }
+body.searching #sport-filter, body.searching #league-filter, body.searching #day-bar { display: none; }
 h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-width: 0; font: 600 17px/22px var(--q-font); }
 .pl-league-h > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-live-h { display: flex; align-items: center; gap: 8px; }
