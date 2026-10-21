@@ -11,9 +11,9 @@ import { legResult } from '../public/lib/account.mjs';
 test('Play leagues come from the shared catalogue; the purged sports are gone, not hidden', () => {
   assert.equal(LEAGUES.facup.path, 'soccer/eng.fa');
   assert.equal(familyOf('euroleague'), 'basketball');
-  for (const key of ['atp', 'wta', 'ufc', 'boxing', 'cricket', 'acb', 'cba', 'kbl', 'bleague', 'acl', 'asiancup', 'wcqeurope', 'nrl', 'afl']) assert.equal(LEAGUES[key], undefined, key);
+  for (const key of ['atp', 'wta', 'boxing', 'cricket', 'acb', 'cba', 'kbl', 'bleague', 'acl', 'asiancup', 'wcqeurope', 'nrl', 'afl']) assert.equal(LEAGUES[key], undefined, key);
   // 台灣運彩's other sports (its 玩法 list): from Kambi, each its own kind.
-  for (const key of ['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugbyunion', 'rugbyleague', 'futsal']) assert.ok(LEAGUES[key]?.kambi, key);
+  for (const key of ['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugbyunion', 'rugbyleague', 'futsal', 'ufc']) assert.ok(LEAGUES[key]?.kambi, key);
   assert.equal(familyOf('rugbyleague'), 'rugby');
   for (const l of Object.values(LEAGUES)) assert.equal(l.off, undefined);
   for (const key of ['nbl', 'championship', 'eredivisie', 'ligamx', 'brasileirao']) assert.ok(LEAGUES[key].path && LEAGUES[key].book, key);

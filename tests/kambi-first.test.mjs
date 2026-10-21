@@ -47,7 +47,7 @@ test('a house-priced pick caps the ticket', () => {
   assert.deepEqual(slipErrors({ mode: 'single', legs: [leg(undefined, 'a')], sizes: [1], stake: SLIP_RULES.capped + 10 }), []);
 });
 
-test('tennis and UFC are no longer sold: an open pick on one is void', async () => {
+test('the old ATP and UFC picks (before they came back) are void when no result is found', async () => {
   const { fetchOutcomes } = await import('../public/lib/sources.mjs');
   const legs = ['atp', 'ufc'].map(sport => ({ id: sport, sport, kind: 'ml', side: 'home', start: '2026-10-02T02:00:00Z', home: 'A', away: 'B' }));
   const out = await fetchOutcomes(legs, new Date('2026-10-11T00:00:00Z'));

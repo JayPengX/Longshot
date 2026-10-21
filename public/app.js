@@ -573,7 +573,7 @@ const SPORT_GROUPS_ALL = {
   hockey: { icon: 'target', leagues: ['nhl'] },
   f1: { icon: 'flag', leagues: ['f1'] },
   // The sports 台灣運彩 sells besides the leagues (the kit's catalogue), each its own chip.
-  ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
+  ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
 };
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
@@ -797,7 +797,7 @@ function logoImg(sport, enName, label, size = '') {
 // The sports 台灣運彩 sells besides the leagues (the kit's catalogue): a
 // player's headshot or their country's flag, a national side's flag, a
 // pair as two; otherwise no picture at all, never an initial or a shield.
-const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal']);
+const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma']);
 const isSideSport = sport => SIDE_SPORTS.has(familyOf(sport));
 const noPic = size => el('span', { class: `logo logo-none ${size}`, 'aria-hidden': 'true' });
 // The same as an address, for the kit's tiles (home's cards): a club's logo,
