@@ -821,7 +821,7 @@ export function mountLottery(ctx) {
       const tw = g.measureText(text).width + 36;
       g.fillStyle = getComputedStyle(wrap).getPropertyValue('--lotto').trim() || '#6b7280';
       g.beginPath();
-      g.roundRect((w - tw) / 2, h / 2 - 20, tw, 40, 20);
+      g.roundRect ? g.roundRect((w - tw) / 2, h / 2 - 20, tw, 40, 20) : g.rect((w - tw) / 2, h / 2 - 20, tw, 40);
       g.fill();
       g.fillStyle = '#fff';
       g.textAlign = 'center';
@@ -996,11 +996,37 @@ export function mountLottery(ctx) {
           continue;
         }
         if (shape === 'round') path.moveTo((x + rw) * k, (y + rh / 2) * k), path.ellipse((x + rw / 2) * k, (y + rh / 2) * k, (rw / 2) * k, (rh / 2) * k, 0, 0, Math.PI * 2);
-        else path.roundRect(x * k, y * k, rw * k, rh * k, (rad ?? Math.min(rw, rh) * 0.12) * k);
+        else {
+          // (A rounded rect by hand: older iPhones' Path2D has no roundRect.)
+          const [x0, y0, x1, y1] = [x * k, y * k, (x + rw) * k, (y + rh) * k];
+          const c = Math.min((rad ?? Math.min(rw, rh) * 0.12) * k, (x1 - x0) / 2, (y1 - y0) / 2);
+          path.moveTo(x0 + c, y0);
+          path.arcTo(x1, y0, x1, y1, c);
+          path.arcTo(x1, y1, x0, y1, c);
+          path.arcTo(x0, y1, x0, y0, c);
+          path.arcTo(x0, y0, x1, y0, c);
+          path.closePath();
+        }
       }
       return path;
     };
     let clip = null;
+    // Is a point (in the picture's pixels) on a scratch-off?
+    const inZone = (px, py) =>
+      real.zones.some(({ r: [x, y, rw, rh], shape, poly }) => {
+        if (px < x || py < y || px > x + rw || py > y + rh) return false;
+        if (shape === 'round') return ((px - x - rw / 2) / (rw / 2)) ** 2 + ((py - y - rh / 2) / (rh / 2)) ** 2 <= 1;
+        if (!poly) return true;
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const [xi, yi] = poly[i];
+          const [xj, yj] = poly[j];
+          if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
+      });
+    // Points over the scratch-offs where the latex was laid (picture pixels): what's checked for how much is off.
+    let samples = [];
     // Silver latex (under the print), a little grainy.
     let silver = null;
     const silverOf = ctx2 => {
@@ -1016,9 +1042,9 @@ export function mountLottery(ctx) {
     };
     const paint = () => {
       const nw = node.clientWidth;
-      if (!nw || finished || !img.complete || !img.naturalWidth) return;
+      if (!nw || finished || !node.isConnected || !img.complete || !img.naturalWidth) return;
       const nh = (nw * H) / W;
-      const old = w && g ? (() => {
+      const old = samples.length ? (() => {
         const c2 = document.createElement('canvas');
         c2.width = cover.width;
         c2.height = cover.height;
@@ -1040,7 +1066,6 @@ export function mountLottery(ctx) {
         g.setTransform(ratio, 0, 0, ratio, 0, 0);
         return;
       }
-      node.classList.add('ready');
       g.save();
       g.clip(clip);
       g.drawImage(img, 0, 0, nw, nh);
@@ -1052,6 +1077,18 @@ export function mountLottery(ctx) {
       g.fillStyle = sheen;
       g.fillRect(0, 0, nw, nh);
       g.restore();
+      const data = g.getImageData(0, 0, cover.width, cover.height).data;
+      const k = (nw / W) * ratio;
+      samples = [];
+      for (const { r: [x, y, rw, rh] } of real.zones)
+        for (let i = 0.1; i < 1; i += 0.2)
+          for (let j = 0.1; j < 1; j += 0.2) {
+            const [px, py] = [x + rw * i, y + rh * j];
+            if (inZone(px, py) && data[(Math.floor(py * k) * cover.width + Math.floor(px * k)) * 4 + 3] > 200) samples.push([px, py]);
+          }
+      // The picture not drawable yet (a phone still decoding it): again shortly, and what's under stays hidden till then.
+      if (!samples.length) return void setTimeout(paint, 150);
+      node.classList.add('ready');
     };
     new ResizeObserver(paint).observe(node);
     img.decode?.().then(paint, paint);
@@ -1060,7 +1097,7 @@ export function mountLottery(ctx) {
     const dab = (x, y, R) => {
       const r = R * (0.82 + Math.random() * 0.3);
       // (Off the scratch-offs, the card's print: nothing comes off.)
-      const on = (dx, dy) => g.isPointInPath(clip, (x + dx) * ratio, (y + dy) * ratio);
+      const on = (dx, dy) => inZone(((x + dx) * W) / w, ((y + dy) * W) / w);
       if (!on(0, 0) && !on(r, 0) && !on(-r, 0) && !on(0, r) && !on(0, -r)) return;
       g.save();
       g.clip(clip);
@@ -1149,20 +1186,12 @@ export function mountLottery(ctx) {
     };
     // How much of the scratch-offs is off (points spread over them).
     const check = () => {
-      if (finished || !g) return;
+      // (Never before the latex is on: nothing to count yet.)
+      if (finished || !g || !samples.length) return;
       const data = g.getImageData(0, 0, cover.width, cover.height).data;
       const k = (w / W) * ratio;
-      let n = 0;
-      let off = 0;
-      for (const { r: [x, y, rw, rh] } of real.zones)
-        for (let i = 0.1; i < 1; i += 0.2)
-          for (let j = 0.1; j < 1; j += 0.2) {
-            const px = Math.floor((x + rw * i) * k);
-            const py = Math.floor((y + rh * j) * k);
-            n++;
-            if (data[(py * cover.width + px) * 4 + 3] < 40) off++;
-          }
-      if (off / n > 0.55) done();
+      const off = samples.filter(([px, py]) => data[(Math.floor(py * k) * cover.width + Math.floor(px * k)) * 4 + 3] < 40).length;
+      if (off / samples.length > 0.55) done();
     };
     cover.addEventListener('pointerdown', e => {
       fingers.add(e.pointerId);
@@ -1200,15 +1229,18 @@ export function mountLottery(ctx) {
             lines.push(i % 2 ? [[(x + rw) * k, yy], [x * k, yy]] : [[x * k, yy], [(x + rw) * k, yy]]);
           }
         }
-        const per = Math.max(1, Math.ceil(lines.length / 40));
+        // (By the clock, not by frames: a slow or throttled phone takes no longer.)
+        const t0 = performance.now();
         let i = 0;
         const tick = () => {
           if (finished) return;
-          for (let j = 0; j < per && i < lines.length; j++, i++) stroke(...lines[i], true);
+          const to = Math.min(lines.length, Math.ceil((lines.length * (performance.now() - t0 + 16)) / 700));
+          for (; i < to; i++) stroke(...lines[i], true);
           if (i < lines.length) requestAnimationFrame(tick);
           else setTimeout(done, 250);
         };
         tick();
+        setTimeout(done, 1500);
       }
     };
   }
