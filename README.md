@@ -63,8 +63,10 @@ Live: https://jaypengx.github.io/Quadra-Play/
   their country's flag, else no picture. 綜合格鬥: UFC's cards, Kambi's
   勝負 (a draw void), each bout settled on ESPN's card. 板球: one-day and
   T20 internationals and the big T20 leagues, 勝負 settled on ESPN's
-  scorepanel (a tie or no result void). Not yet: golf, MotoGP and boxing
-  (no result to settle on). A long club name with a sport word in it
+  scorepanel (a tie or no result void). 高爾夫 冠軍: each tour's next
+  tournament (PGA and majors, DP World, LPGA) as a 冠軍 board from Kambi's
+  winner prices (never longer than Kambi's), settled on ESPN's leaderboard.
+  Not yet: MotoGP and boxing (no result to settle on). A long club name with a sport word in it
   ("Skanderborg Aarhus Håndbold") reads shorter (app.js clubShort).
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The

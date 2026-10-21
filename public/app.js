@@ -550,6 +550,7 @@ function nameF1(b, f1) {
 // A championship pick's name: drivers as the lottery writes them.
 function futureName(market, team) {
   if (market.key === 'f1drivers') return driverName(team.name.en);
+  if (market.sport === 'golf') return state.locale === 'zh' ? teamName(team.name) : team.name.en;
   return teamName(team.name);
 }
 
@@ -562,8 +563,12 @@ function buildFutures(data) {
   const all = futureBets(data.futures);
   const decided = new Set(all.filter(b => b.lock === 'low').map(b => b.market));
   return all.filter(b => !decided.has(b.market)).map(b => {
-    const title = t(`future_${b.futureMarket.key}`, { season: b.futureMarket.season });
-    const cardTitle = t(`future_${b.futureMarket.key}`, { season: '' }).trim();
+    // (A golf tournament: its name, the board's own: "Butterfield Bermuda Championship 冠軍".)
+    const golf = b.futureMarket.sport === 'golf';
+    const key = golf ? 'golf' : b.futureMarket.key;
+    const season = golf ? sideEvent(b.futureMarket.season) : b.futureMarket.season;
+    const title = t(`future_${key}`, { season });
+    const cardTitle = golf ? title : t(`future_${key}`, { season: '' }).trim();
     const name = futureName(b.futureMarket, b.futureTeam);
     return { ...b, matchup: cardTitle, label: `${title} ${name}`, shortLabel: name };
   });
@@ -585,13 +590,15 @@ const SPORT_GROUPS_ALL = {
   football: { icon: 'flag', leagues: ['nfl', 'ncaaf'] },
   hockey: { icon: 'target', leagues: ['nhl'] },
   f1: { icon: 'flag', leagues: ['f1'] },
+  // 高爾夫: a tournament's winner (冠軍) only.
+  golf: { leagues: ['golf'] },
   // The sports 台灣運彩 sells besides the leagues (the kit's catalogue), each its own chip.
   ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma', 'cricket'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
 };
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
   Object.entries(SPORT_GROUPS_ALL)
-    .map(([g, x]) => [g, { ...x, leagues: x.leagues.filter(k => k === 'f1' || LEAGUES[k]) }])
+    .map(([g, x]) => [g, { ...x, leagues: x.leagues.filter(k => k === 'f1' || k === 'golf' || LEAGUES[k]) }])
     .filter(([, x]) => x.leagues.length)
 );
 const groupOfSport = sport => Object.keys(SPORT_GROUPS).find(g => SPORT_GROUPS[g].leagues.includes(sport));
@@ -810,8 +817,8 @@ function logoImg(sport, enName, label, size = '') {
 // The sports 台灣運彩 sells besides the leagues (the kit's catalogue): a
 // player's headshot or their country's flag, a national side's flag, a
 // pair as two; otherwise no picture at all, never an initial or a shield.
-const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma', 'cricket']);
-const isSideSport = sport => SIDE_SPORTS.has(familyOf(sport));
+const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal', 'mma', 'cricket', 'golf']);
+const isSideSport = sport => SIDE_SPORTS.has(familyOf(sport) ?? sport);
 const noPic = size => el('span', { class: `logo logo-none ${size}`, 'aria-hidden': 'true' });
 // The same as an address, for the kit's tiles (home's cards): a club's logo,
 // a country's flag, a player's picture found before (the first partner's in
@@ -862,7 +869,8 @@ function leagueImg(sport, size = '') {
 }
 function drawLeague(sport, size) {
   // A sport with no league logo (tennis, snooker…): its own ball, drawn.
-  if (!leagueLogo(sport) && hasIcon(`sport_${familyOf(sport)}`)) return el('span', { class: `league-badge glyph ${size}` }, icon(`sport_${familyOf(sport)}`, 'league-glyph'));
+  const kind = familyOf(sport) ?? sport;
+  if (!leagueLogo(sport) && hasIcon(`sport_${kind}`)) return el('span', { class: `league-badge glyph ${size}` }, icon(`sport_${kind}`, 'league-glyph'));
   const own = LEAGUES[sport]?.icon;
   const fallback = () => (own ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ball')]) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
   return el('span', { class: `league-badge ${size}` }, logoPicture(leagueLogo(sport), leagueLogo(sport, true), 'league-img', fallback));
@@ -1791,10 +1799,10 @@ function futuresBoard(market) {
   const bets = state.futures.filter(b => b.market === market);
   if (!bets.length) return null;
   const { matchup, sport } = bets[0];
-  const picture = b => (market === 'f1drivers' ? driverBadge(b.teamEn) : market === 'f1constructors' ? constructorBadge(b.teamEn) : logoImg(b.sport, b.teamEn, b.shortLabel));
+  const picture = b => (market === 'f1drivers' ? driverBadge(b.teamEn) : market === 'f1constructors' ? constructorBadge(b.teamEn) : b.sport === 'golf' ? drawSide('golf', b.teamEn, 'logo-sm') : logoImg(b.sport, b.teamEn, b.shortLabel));
   return {
     title: [leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })],
-    body: boardBody({ emblem: sport, title: matchup, sub: `${t('futureSettles')} ${t(`futureSettle_${market}`)}`, entries: bets.map((b, i) => entryRow(b, i, picture(b))) })
+    body: boardBody({ emblem: sport, title: matchup, sub: `${t('futureSettles')} ${t(`futureSettle_${sport === 'golf' ? 'golf' : market}`)}`, entries: bets.map((b, i) => entryRow(b, i, picture(b))) })
   };
 }
 
@@ -3274,10 +3282,14 @@ kitNames.onNames?.(() => {
 });
 const sideOf = x => (typeof x === 'string' ? { en: x } : x);
 const warmSides = games => state.locale === 'zh' && kitNames.warm?.(games.filter(g => isSideSport(g.sport)).map(g => ({ ...g, home: sideOf(g.home), away: sideOf(g.away), event: g.group ? [g.group] : [] })), { wait: 0 });
+// A golf board's tournament and its first forty players (the rest by their
+// English names until someone asks), as a race's field.
+const warmGolf = futures => state.locale === 'zh' && kitNames.warm?.((futures || []).filter(f => f.sport === 'golf').map(f => ({ sport: 'golf', home: { zh: '高' }, away: { zh: '高' }, event: [f.season], field: f.teams.slice(0, 40).map(t => ({ name: t.name.en })) })), { wait: 0 });
 function renderAll() {
   renderStatic();
   if (!state.data) return;
   warmSides(state.data.games);
+  warmGolf(state.data.futures);
   if (state.fromBoard) {
     // The proxy's board: its picks are already priced and tagged (nothing to
     // price here, no futures); the full read replaces them whole.
