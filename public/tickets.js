@@ -28,6 +28,8 @@ export const TICKETS = {
   // <cards> (each card's entry; kept in CARD_ORDER's order)
   golddice: {
     size: [1080, 810],
+    // (Its 第1局–第5局 in the play area too.)
+    view: [34, 200, 625, 600],
     lay(f, k) {
       const [g] = f.games;
       return g.rows.flatMap((r, i) => {
@@ -553,6 +555,37 @@ export const TICKETS = {
   // </cards>
 };
 
+// Where each ticket prints its serial (the white box: a barcode and
+// 123456-001 on the picture), painted out and printed with the ticket's own.
+export const SERIAL = {
+  lucky7: [[540,  33,  508,  100]],
+  hi123: [[675,  25,  381,  75]],
+  gift: [[675,  25,  381,  75]],
+  fruit: [[676,  25,  380,  75]],
+  battle: [[811,  17,  254,  50]],
+  double: [[676,  26,  380,  74]],
+  ingot: [[811,  17,  253,  50]],
+  beat: [[676,  26,  380,  74]],
+  code: [[676,  26,  380,  73]],
+  goldlotto: [[676,  26,  379,  73]],
+  crazy10: [[676,  25,  380,  75]],
+  rising: [[676,  25,  380,  75]],
+  fafa: [[810,  17,  253,  49]],
+  goal: [[676,  27,  378,  72]],
+  multiply: [[676,  26,  380,  74]],
+  numbers: [[676,  26,  380,  73]],
+  touch: [[676,  25,  380,  75]],
+  hunter: [[676,  26,  380,  74]],
+  machine: [[565,  22,  318,  62],  [565,  1838,  318,  62]],
+  super777: [[12,  13,  179,  34],  [890,  13,  179,  34]],
+  mjbingo: [[566,  22,  317,  61],  [566,  1838,  317,  61]],
+  ten: [[810,  17,  253,  50]],
+  million: [[811,  17,  253,  50]],
+  mahjong: [[9,  9,  138,  27],  [934,  9,  138,  27]],
+  golddice: [[675,  26,  381,  74]],
+  rolling: [[811,  18,  253,  49]]
+};
+
 // The parts of a card's ticket for face `f` (null: it has no ticket picture).
 export function ticketParts(id, f, has) {
   const t = TICKETS[id];
@@ -576,9 +609,16 @@ export function ticketParts(id, f, has) {
     inset
   };
   for (const p of t.lay(f, k).flat(2)) parts.push(p);
+  // What the sheet opens onto: the card's play area (its `view`, or all its parts with a margin).
+  const xs = parts.flatMap(p => [p.r[0], p.r[0] + p.r[2]]);
+  const ys = parts.flatMap(p => [p.r[1], p.r[1] + p.r[3]]);
+  const m = t.size[0] * 0.03;
+  const [x0, y0] = [Math.max(0, Math.min(...xs) - m), Math.max(0, Math.min(...ys) - m)];
+  const view = t.view || [x0, y0, Math.min(t.size[0], Math.max(...xs) + m) - x0, Math.min(t.size[1], Math.max(...ys) + m) - y0];
+  for (const r of SERIAL[id] || []) parts.push({ r, v: { t: 'serial' }, under: false });
   // Whatever lies inside a scratch-off is under it.
   const zones = parts.filter(p => p.zone);
   const inside = ([x, y, w, h]) => zones.some(({ r: [zx, zy, zw, zh] }) => x + w / 2 > zx && x + w / 2 < zx + zw && y + h / 2 > zy && y + h / 2 < zy + zh);
   for (const p of parts) if (!p.zone && p.under === undefined) p.under = inside(p.r);
-  return { size: t.size, parts };
+  return { size: t.size, parts, view };
 }

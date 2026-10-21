@@ -140,23 +140,42 @@ export function faceDrawer({ el, t, lang, money }) {
     if (v.t === 'tile') return [tile(v.x)];
     if (v.t === 'cell') return [el('span', { class: 'tk-cell' }, thing(v.top, h * 0.62, w).filter(Boolean)), el('b', { class: 'tk-ca num', text: v.a ? tkMoney(v.a) : t('thanks') })];
     if (v.t === 'free') return [el('b', { class: 'tk-s', text: 'FREE' })];
+    if (v.t === 'serial') return [el('span', { class: 'tk-code', style: `background-image:url("${matrix(v.n)}")` }), el('b', { class: 'tk-sn', text: v.n })];
     return [el('b', { class: `tk-s${v.s === '$' ? ' tk-dollar' : ''}`, text: String(v.s) })];
   };
-  function ticketFace(id, f) {
+  // The ticket's own serial (book-ticket, 548721-037) beside its code: a
+  // rectangular Data Matrix's look (solid left and foot, dotted top and
+  // right), its modules from the serial, so the same ticket reads the same.
+  const matrix = n => {
+    let h = 2166136261;
+    const bit = () => ((h = Math.imul(h ^ (h >>> 15), 2246822519) ^ 0x9e3779b9), (h >>> 7) & 1);
+    for (const c of n) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    const [C, R] = [18, 8];
+    let d = '';
+    for (let y = 0; y < R; y++)
+      for (let x = 0; x < C; x++) if (x === 0 || y === R - 1 || (y === 0 ? x % 2 === 0 : x === C - 1 ? y % 2 === 1 : bit())) d += `M${x} ${y}h1v1h-1z`;
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${C} ${R}' shape-rendering='crispEdges'><path d='${d}'/></svg>`)}`;
+  };
+  function ticketFace(id, f, serial = '') {
     const pool = new Set(f?.pool || []);
     const tk = ticketParts(id, f, x => pool.has(x));
     if (!tk) return null;
+    for (const p of tk.parts) if (p.v?.t === 'serial') p.v = { t: 'serial', n: serial };
+    if (!serial) tk.parts = tk.parts.filter(p => p.v?.t !== 'serial');
     const [W, H] = tk.size;
     const box = ([x, y, w, h]) => `left:${(x / W) * 100}%;top:${(y / H) * 100}%;width:${(w / W) * 100}%;height:${(h / H) * 100}%`;
     // (A picture off the ticket itself, k.pic: its own symbol from its prize table.)
     const pic = ([x, y, w, h], scale = 1) => el('span', { class: 'tk-pic', style: `width:${((w / h) * scale).toFixed(3)}em;height:${scale}em;background-image:url(art/ticket/${id}.webp);background-size:${(W / w) * 100}% ${(H / h) * 100}%;background-position:${W === w ? 0 : (x / (W - w)) * 100}% ${H === h ? 0 : (y / (H - h)) * 100}%` });
     const draw = (v, h, w) => (v.t === 'pic' ? [pic(v.r, v.scale)] : v.t === 'cell' && v.top.t === 'pic' ? [el('span', { class: 'tk-cell' }, [pic(v.top.r, v.top.scale)]), el('b', { class: 'tk-ca num', text: v.a ? tkMoney(v.a) : t('thanks') })] : thing(v, h, w));
+    const items = tk.parts.filter(p => !p.zone).map(p => ({ ...p, el: el('span', { class: `tk-i${p.under ? ' under' : ''}${p.win ? ' win' : ''}${p.v.t === 'serial' ? ' tk-serial' : ''}${p.cls ? ` ${p.cls}` : ''}`, style: `${box(p.r)};font-size:${((p.r[3] * (p.fs || 0.5)) / W) * 100}cqw${p.ink ? `;color:${p.ink}` : ''}` }, draw(p.v, p.r[3], p.r[2]).filter(Boolean)) }));
+    const zones = tk.parts.filter(p => p.zone);
     const node = el('div', { class: 'tk', style: `aspect-ratio:${W}/${H};--tint:${ticketLook(id)['--panel']}` }, [
       el('img', { class: 'tk-art', src: `art/ticket/${id}.webp`, alt: CARDS[id][lang], decoding: 'async' }),
-      ...tk.parts.filter(p => p.zone).map(p => el('span', { class: `tk-paper${p.shape === 'round' ? ' round' : ''}`, style: `${box(p.r)}${p.rad ? `;border-radius:${(p.rad / W) * 100}cqw` : ''}${p.poly ? `;border-radius:0;clip-path:polygon(${p.poly.map(([x, y]) => `${((x - p.r[0]) / p.r[2]) * 100}% ${((y - p.r[1]) / p.r[3]) * 100}%`).join(',')})` : ''}` })),
-      ...tk.parts.filter(p => !p.zone).map(p => el('span', { class: `tk-i${p.under ? ' under' : ''}${p.win ? ' win' : ''}${p.cls ? ` ${p.cls}` : ''}`, style: `${box(p.r)};font-size:${((p.r[3] * (p.fs || 0.5)) / W) * 100}cqw${p.ink ? `;color:${p.ink}` : ''}` }, draw(p.v, p.r[3], p.r[2]).filter(Boolean)))
+      ...zones.map(p => el('span', { class: `tk-paper${p.shape === 'round' ? ' round' : ''}`, style: `${box(p.r)}${p.rad ? `;border-radius:${(p.rad / W) * 100}cqw` : ''}${p.poly ? `;border-radius:0;clip-path:polygon(${p.poly.map(([x, y]) => `${((x - p.r[0]) / p.r[2]) * 100}% ${((y - p.r[1]) / p.r[3]) * 100}%`).join(',')})` : ''}` })),
+      ...items.map(p => p.el)
     ]);
-    return { node, size: tk.size, zones: tk.parts.filter(p => p.zone), small: Math.min(...tk.parts.filter(p => !p.zone).map(p => p.r[3])) };
+    // (`view`: where it's played, what the sheet zooms onto.)
+    return { node, size: tk.size, view: tk.view, zones, items };
   }
   faceEl.ticket = ticketFace;
 
