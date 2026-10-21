@@ -21,14 +21,14 @@ const glyph = name => {
 
 const TXT = {
   zh: {
-    headline: '焦點大戰', balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
+    headline: '焦點大戰', whyFollowHero: '你追蹤的球隊', whyBackedHero: '你押過的球隊', whyLevel: '勢均力敵', balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
     why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
-    headline: 'Big game', balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
+    headline: 'Big game', whyFollowHero: 'Your team', whyBackedHero: 'You backed them', whyLevel: 'Too close to call', balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
@@ -54,6 +54,42 @@ export function compactMoney(x, lang) {
 const norm = name => normalizeTeamName(String(name || ''));
 
 const TIER_WEIGHT = { major: 0.6, minor: 0.3, thin: 0.05 };
+// The meetings a fan knows by name: 首頁's headline says which one it is.
+// [family, one side's names, the other's, zh, en] (names as the feeds write
+// them, matched inside the team's English name).
+const RIVALRIES = [
+  ['soccer', ['arsenal'], ['tottenham'], '北倫敦德比', 'North London derby'],
+  ['soccer', ['manchester united'], ['manchester city'], '曼徹斯特德比', 'Manchester derby'],
+  ['soccer', ['liverpool'], ['everton'], '默西塞德德比', 'Merseyside derby'],
+  ['soccer', ['liverpool'], ['manchester united'], '英格蘭宿敵戰', 'North-West derby'],
+  ['soccer', ['real madrid'], ['barcelona'], '西班牙國家德比', 'El Clásico'],
+  ['soccer', ['real madrid'], ['atletico', 'atlético'], '馬德里德比', 'Madrid derby'],
+  ['soccer', ['internazionale', 'inter milan'], ['ac milan'], '米蘭德比', 'Derby della Madonnina'],
+  ['soccer', ['roma'], ['lazio'], '羅馬德比', 'Derby della Capitale'],
+  ['soccer', ['juventus'], ['internazionale', 'inter milan'], '義大利國家德比', "Derby d'Italia"],
+  ['soccer', ['bayern'], ['dortmund'], '德國國家德比', 'Der Klassiker'],
+  ['soccer', ['paris saint-germain', 'psg'], ['marseille'], '法國國家德比', 'Le Classique'],
+  ['soccer', ['celtic'], ['rangers'], '老字號德比', 'Old Firm'],
+  ['soccer', ['ajax'], ['feyenoord'], '荷蘭國家德比', 'De Klassieker'],
+  ['baseball', ['yankees'], ['red sox'], '洋基紅襪世仇戰', 'Yankees-Red Sox'],
+  ['baseball', ['dodgers'], ['giants'], '道奇巨人世仇戰', 'Dodgers-Giants'],
+  ['baseball', ['cubs'], ['cardinals'], '小熊紅雀世仇戰', 'Cubs-Cardinals'],
+  ['basketball', ['lakers'], ['celtics'], '湖人塞爾提克世仇戰', 'Lakers-Celtics'],
+  ['basketball', ['lakers'], ['clippers'], '洛城德比', 'LA derby'],
+  ['basketball', ['knicks'], ['nets'], '紐約德比', 'New York derby'],
+  ['football', ['packers'], ['bears'], '熊包世仇戰', 'Bears-Packers'],
+  ['football', ['cowboys'], ['eagles'], '牛仔老鷹世仇戰', 'Cowboys-Eagles']
+];
+const LONDON = ['arsenal', 'chelsea', 'tottenham', 'west ham', 'crystal palace', 'fulham', 'brentford'];
+function rivalryOf(game, lang) {
+  const fam = familyOf(game.sport) || game.sport;
+  const name = side => String(game[side]?.en ?? '').toLowerCase();
+  const has = (side, list) => list.some(x => name(side).includes(x));
+  const hit = RIVALRIES.find(([f, a, b]) => f === fam && ((has('home', a) && has('away', b)) || (has('home', b) && has('away', a))));
+  if (hit) return lang === 'zh' ? hit[3] : hit[4];
+  if (game.sport === 'epl' && has('home', LONDON) && has('away', LONDON)) return lang === 'zh' ? '倫敦德比' : 'London derby';
+  return null;
+}
 
 // What 為你推薦 is drawn from on the pass (Orbit Sports' follows, every
 // app's affinity): when it changes, home is drawn again (app.js).
@@ -116,7 +152,37 @@ export function renderHome(ctx) {
     return { id: `game:${g.id}`, game: g, keys: gameKeys(g), quality, group: g.sport };
   });
   // One game a league (two of a league the person likes).
-  const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 4 });
+  const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 5 });
+
+  // 首頁's headline game, by a rule it says on its card (Jay 2026-10-21: why
+  // is this the big game?): a team the person follows or has backed, a
+  // derby or a famous rivalry, two sides priced level; a top league and an
+  // early start break ties. Within three days.
+  const headlineOf = () => {
+    const winPrices = g => (betsOf.get(g.id) || []).filter(b => b.kind === 'ml' && b.side !== 'draw' && !b.lock).map(b => ctx.effectiveOdds(b));
+    const scored = later
+      .filter(g => Date.parse(g.startUtc) - now < 72 * 3_600_000)
+      .map(g => {
+        const like = gameInterest(g, taste);
+        const derby = rivalryOf(g, lang);
+        const p = winPrices(g);
+        const level = p.length === 2 && Math.max(...p) / Math.min(...p) < 1.3;
+        const reasons = [
+          like.why === 'follow' && [4, T.whyFollowHero],
+          like.why === 'backed' && [3, T.whyBackedHero],
+          derby && [3, derby],
+          level && [1.5, T.whyLevel]
+        ].filter(Boolean);
+        const tier = ctx.leagueTier(g.sport);
+        if (!reasons.length || (tier !== 'major' && !like.side)) return null;
+        const score = reasons.reduce((n, [w]) => n + w, 0) + TIER_WEIGHT[tier] + ((Date.parse(g.startUtc) - now) / 3_600_000 < 24 ? 0.3 : 0);
+        return { game: g, score, tag: reasons.sort((a, b) => b[0] - a[0])[0][1] };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score || a.game.startUtc.localeCompare(b.game.startUtc));
+    return scored[0] ?? (featured[0] ? { game: featured[0].game, tag: null } : null);
+  };
+  const headline = headlineOf();
 
   // ---- 場中焦點: games on now with a live win price, ranked the same way.
   // (Every game on now: the strip is scores, and a held game's sheet says so.)
@@ -209,10 +275,10 @@ export function renderHome(ctx) {
   // never your balance on its front page; the balance is on the slip and in
   // 紀錄): the day's headline game, its two sides and win prices a tap from
   // the slip, and the search pill.
-  const top = featured[0]?.game ?? null;
+  const top = headline?.game ?? null;
   const topBets = top ? (betsOf.get(top.id) || []).filter(b => b.kind === 'ml') : [];
   const mark = { home: lang === 'zh' ? '主勝' : 'Home', away: lang === 'zh' ? '客勝' : 'Away', draw: T.draw };
-  const heroSide = side => el('span', { class: 'pl-hero-team' }, [el('span', { class: 'pl-hero-logo' }, [kitUI.logoTile(ctx.logoUrl(top.sport, top[side].en), { size: 48, alt: '' })]), el('strong', { class: 'q-fit', text: ctx.shortTeam(top.sport, top[side]) })]);
+  const heroSide = side => el('span', { class: 'pl-hero-team' }, [kitUI.logoTile(ctx.logoUrl(top.sport, top[side].en), { size: 60, alt: '' }), el('strong', { class: 'q-fit', text: ctx.shortTeam(top.sport, top[side]) })]);
   const heroPrice = side => {
     const b = topBets.find(x => x.side === side);
     if (!b) return null;
@@ -222,7 +288,7 @@ export function renderHome(ctx) {
   const sides = top ? ctx.winnerSides(top, topBets) : [];
   const teams = sides.filter(x => x !== 'draw');
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [
-    el('span', { class: 'q-hc-eyebrow' }, top ? [kitUI.logoTile(ctx.leagueUrl(top.sport), { size: 18, alt: '' }), el('span', { class: 'q-fit', text: `${T.headline} · ${state.t(`sport_${top.sport}`)} · ${top.timeTbd ? gameTime(top) : ctx.legWhen(top.startUtc)}` })] : [glyph('spark'), el('span', { text: T.headline })]),
+    el('span', { class: 'q-hc-eyebrow' }, top ? [kitUI.logoTile(ctx.leagueUrl(top.sport), { size: 18, alt: '' }), el('span', { class: 'q-fit', text: `${state.t(`sport_${top.sport}`)} · ${top.timeTbd ? gameTime(top) : ctx.legWhen(top.startUtc)}` }), headline.tag ? el('span', { class: 'pl-hero-tag', text: headline.tag }) : null] : [glyph('spark'), el('span', { text: T.headline })]),
     top
       ? el('button', { class: 'pl-hero-match', type: 'button', onclick: () => ctx.openGame(top.id) }, [heroSide(teams[0]), el('span', { class: 'pl-hero-vs', text: 'VS' }), heroSide(teams[1])])
       : null,
@@ -281,7 +347,7 @@ export function renderHome(ctx) {
   // (A price reason, 划算/穩/值博, about a total or spread pick isn't shown over the win row.)
   const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.bet.kind === 'ml' || !['value', 'steady', 'shot'].includes(x.why) ? x.why : null }));
   // 5 今日焦點賽事: a vertical list (up to 4), so the page is full (the card's `wide` variant).
-  const wide = featured.slice(1, 5).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
+  const wide = featured.filter(x => x.game.id !== top?.id).slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
   const emptyGames = () => kitUI.empty({ icon: 'calendar', tint: 'var(--q-blue)', title: T.none, action: { label: lang === 'zh' ? '看賽事' : 'See games', onTap: () => ctx.showTab('games') } });
 
   // 7 彩券: the biggest jackpot as a hero card, the next two games under it; a skeleton while the feeds load.
