@@ -173,6 +173,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-game.live .pl-team-name { font-weight: 600; }
 /* 冠軍 and F1: a row a market, its board in the sheet. */
 .pl-fut .pl-fut-logo { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--q-fill-3); }
+/* (The league's logo fills its tile, not a coin in the middle of it: Jay 2026-10-21 "the logo is so small".) */
+.pl-fut .pl-fut-logo .league-badge { --s: 34px; }
 .pl-fut { --q-ritem-sep: 64px; }
 .pl-fut small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
@@ -936,6 +938,13 @@ html .q-logo img { width: 88%; height: 88%; }
     box-shadow: inset 0 0 0 0.5px var(--q-sep);
   }
 }
+/* (On a dark tile the tile is the disc: the logo takes most of it, never clipped round.) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .pl-fut-logo .league-badge { border-radius: 0; background: none; box-shadow: none; }
+  :root:not([data-theme='light']) .pl-fut-logo .league-badge .logo-wrap { width: 92%; height: 92%; }
+}
+:root[data-theme='dark'] .pl-fut-logo .league-badge { border-radius: 0; background: none; box-shadow: none; }
+:root[data-theme='dark'] .pl-fut-logo .league-badge .logo-wrap { width: 92%; height: 92%; }
 :root[data-theme='dark'] .q-logo:not(.text),
 :root[data-theme='dark'] .league-badge {
   background: var(--q-logo-bg);

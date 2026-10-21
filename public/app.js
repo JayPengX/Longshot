@@ -759,16 +759,16 @@ function drawLogo(sport, enName, label, size) {
   return logoPicture(url, url === teamLogo(sport, enName) ? teamLogo(sport, enName, true) : null, `logo ${code && url === flagUrl(code) ? 'player-flag ' : ''}${size}`, fallback);
 }
 
-// The league's own logo on a small white disc, the same for every league in
-// light and dark mode, so no logo ever vanishes
-// into a dark background and none stands out.
+// The league's own logo on a disc: on a dark screen its dark-screen version
+// (ESPN's 500-dark, the white lion), and the kit draws a dark mark with none
+// white, so no logo vanishes into the dark.
 function leagueImg(sport, size = '') {
   return keptPic(`league|${sport}|${size}`, () => drawLeague(sport, size));
 }
 function drawLeague(sport, size) {
   const icon = LEAGUES[sport]?.icon;
   const fallback = () => (icon ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ball')]) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
-  return el('span', { class: `league-badge ${size}` }, logoPicture(leagueLogo(sport), null, 'league-img', fallback));
+  return el('span', { class: `league-badge ${size}` }, logoPicture(leagueLogo(sport), leagueLogo(sport, true), 'league-img', fallback));
 }
 
 // ---- Rendering: static text ------------------------------------------------
