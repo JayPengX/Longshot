@@ -26,14 +26,14 @@ const TXT = {
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
     why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
-    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 3 串', comboBold: '高賠 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
+    combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
     balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
-    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Favourites', comboBold: 'Big prices', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
+    combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced treble', comboBold: 'Long-shot 4-fold', comboTotals: 'Totals treble', comboSpread: 'Handicap treble', comboLeague: '{league} treble', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
 
@@ -144,23 +144,46 @@ export function renderHome(ctx) {
     });
   };
 
-  // ---- 精選串關: ready-made parlays from the big leagues' win prices, one
-  // of favourites, one of longer prices; one pick a game, games in the next
-  // two days, none that must be bought with more picks.
+  // ---- 精選串關: ready-made parlays in different styles: a safe double of
+  // favourites, a balanced treble across sports, a long-shot 4-fold, a
+  // totals treble, a handicap treble, one league's treble. One pick a game
+  // (運彩 sells no same-game parlay), games in the next two days, nothing
+  // locked or capped and no pick that must be bought with more picks
+  // (限關) than the card has; each card leans on games the others left out.
   const soonest = (a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
-  const winPicks = (state.bets || []).filter(b => b.kind === 'ml' && b.side !== 'draw' && !b.lock && !b.cap && !(b.minLegs > 3) && ctx.leagueTier(b.sport) !== 'thin' && Date.parse(b.start) > now && Date.parse(b.start) - now < 48 * 3_600_000);
+  const open48 = b => !b.lock && !b.cap && ctx.leagueTier(b.sport) !== 'thin' && Date.parse(b.start) > now && Date.parse(b.start) - now < 48 * 3_600_000;
+  const winPicks = (state.bets || []).filter(b => b.kind === 'ml' && b.side !== 'draw' && open48(b));
+  const linePicks = kind => (state.bets || []).filter(b => b.kind === kind && open48(b) && (kind === 'total' ? b.mainLine || b.posted : b.posted));
   const onePerGame = list => {
     const seen = new Set();
     return list.filter(b => !seen.has(b.gameId) && seen.add(b.gameId));
   };
-  // The person's leagues first, then the big ones; three sports when it can.
-  const build = (lo, hi) => {
-    const pool = onePerGame(winPicks.filter(b => b.estOdds >= lo && b.estOdds <= hi).sort((a, b) => leagueTaste(b.sport, taste) - leagueTaste(a.sport, taste) || (ctx.leagueTier(a.sport) === 'major' ? 0 : 1) - (ctx.leagueTier(b.sport) === 'major' ? 0 : 1) || soonest(a, b)));
-    const wide = spreadLeagues(pool, taste, { n: 3, liked: 1, perSport: 1, sportOf: b => b.sport });
-    return wide.length === 3 ? wide : spreadLeagues(pool, taste, { n: 3, liked: 1, perSport: 2, sportOf: b => b.sport });
+  const used = new Map();
+  const ranked = list => list.sort((a, b) => (used.get(a.gameId) || 0) - (used.get(b.gameId) || 0) || leagueTaste(b.sport, taste) - leagueTaste(a.sport, taste) || (ctx.leagueTier(a.sport) === 'major' ? 0 : 1) - (ctx.leagueTier(b.sport) === 'major' ? 0 : 1) || soonest(a, b));
+  // The person's leagues first, then the big ones; as many sports as it can.
+  const build = (picks, n, lo, hi, { spread = true } = {}) => {
+    const pool = onePerGame(ranked(picks.filter(b => b.estOdds >= lo && b.estOdds <= hi && !(b.minLegs > n))));
+    let legs = spread ? spreadLeagues(pool, taste, { n, liked: 1, perSport: 1, sportOf: b => b.sport }) : pool.slice(0, n);
+    if (spread && legs.length < n) legs = spreadLeagues(pool, taste, { n, liked: 2, perSport: 2, sportOf: b => b.sport });
+    if (spread && legs.length < n) legs = pool.slice(0, n);
+    if (legs.length < n) return [];
+    legs.forEach(b => used.set(b.gameId, (used.get(b.gameId) || 0) + 1));
+    return legs;
   };
-  const safe = build(1.3, 1.8);
-  const bold = build(1.9, 4).filter(b => !safe.some(x => x.gameId === b.gameId));
+  const styles = [];
+  const add = (legs, title, tone) => legs.length && !styles.some(x => x.legs.map(b => b.id).sort().join() === legs.map(b => b.id).sort().join()) && styles.push({ legs, title, tone });
+  const mineLegs = mine.filter(x => !x.bet.cap && !(x.bet.minLegs > 3)).slice(0, 3).map(x => x.bet);
+  if (onePerGame(mineLegs).length === 3) (add(mineLegs, T.comboMine, 'mine'), mineLegs.forEach(b => used.set(b.gameId, 1)));
+  add(build(winPicks, 2, 1.25, 1.6), T.comboSafe, 'safe');
+  add(build(winPicks, 3, 1.55, 2.3), T.comboEven, 'even');
+  add(build(winPicks, 4, 1.9, 4), T.comboBold, 'bold');
+  add(build(linePicks('total'), 3, 1.5, 2.3), T.comboTotals, 'totals');
+  add(build(linePicks('runline'), 3, 1.5, 2.3), T.comboSpread, 'spread');
+  // One league's treble: the person's league, else the one with the most games.
+  const byLeague = new Map();
+  for (const b of onePerGame(winPicks.filter(b => b.estOdds >= 1.4 && b.estOdds <= 2.6 && !(b.minLegs > 3)))) byLeague.set(b.sport, [...(byLeague.get(b.sport) || []), b]);
+  const league = [...byLeague.entries()].filter(([, list]) => list.length >= 3).sort(([a, x], [b, y]) => leagueTaste(b, taste) - leagueTaste(a, taste) || y.length - x.length)[0];
+  if (league) add(build(league[1], 3, 1.4, 2.6, { spread: false }), f('comboLeague', { league: ctx.state.t(`sport_${league[0]}`) }), 'league');
   const PARLAY_STAKE = 500;
   const parlayCard = (legs, title, tone) => {
     const odds = legs.reduce((m, b) => m * b.estOdds, 1);
@@ -171,7 +194,7 @@ export function renderHome(ctx) {
         const g = (state.data?.games || []).find(x => x.id === b.gameId);
         return el('div', { class: 'pl-combo-leg' }, [
           g && g[b.side] ? ctx.logoImg(g.sport, g[b.side].en, ctx.teamName(g[b.side]), 'logo-sm') : g ? ctx.leagueImg(g.sport, 'logo-sm') : null,
-          el('span', { class: 'pl-combo-pick', text: ctx.shortPick(b) }),
+          el('span', { class: 'pl-combo-pick' }, [el('span', { text: ctx.shortPick(b) }), b.kind === 'ml' ? null : el('small', { text: ctx.shortMatchup(b) })]),
           el('b', { class: 'num', text: ctx.fmtOdds(b.estOdds) })
         ]);
       })),
@@ -181,8 +204,7 @@ export function renderHome(ctx) {
       ])
     ]);
   };
-  const mineLegs = mine.filter(x => !x.bet.cap && !(x.bet.minLegs > 3)).slice(0, 3).map(x => x.bet);
-  const combos = [mineLegs.length === 3 ? parlayCard(mineLegs, T.comboMine, 'mine') : null, safe.length === 3 ? parlayCard(safe, T.comboSafe, 'safe') : null, bold.length === 3 ? parlayCard(bold, T.comboBold, 'bold') : null].filter(Boolean);
+  const combos = styles.map(x => parlayCard(x.legs, x.title, x.tone));
 
   // ---- 1 The hero: the balance, two stat cells (open bets, most they pay), the search pill.
   const open = (state.account?.slips || []).filter(s => s.status === 'open' && !s.recovered && s.legs?.length);

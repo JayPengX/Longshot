@@ -134,12 +134,14 @@ span.pick.locked { pointer-events: none; }
 .pl-mcards { --q-rail-w: min(80%, 290px); }
 /* 精選串關: three picks and what they pay together. */
 .pl-combos { --q-rail-w: min(84%, 300px); }
-.pl-combo { gap: 10px; }
+.pl-combo { gap: 10px; grid-template-rows: auto 1fr auto; align-content: stretch; }
 .pl-combo-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .pl-combo-head strong { flex: 1; min-width: 0; overflow: hidden; font: 700 17px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.pl-combo-legs { display: grid; gap: 8px; }
+.pl-combo-legs { display: grid; align-content: start; gap: 8px; }
 .pl-combo-leg { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.pl-combo-pick { flex: 1; min-width: 0; overflow: hidden; font: 500 15px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-combo-pick { flex: 1; display: grid; min-width: 0; font: 500 15px/1.25 var(--q-font); }
+.pl-combo-pick > * { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pl-combo-pick small { color: var(--q-label-2); font: var(--q-t-caption); }
 .pl-combo-leg b { flex: none; font: 700 15px/1 var(--q-font-rounded); }
 .pl-combo-foot { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pl-combo-pay { flex: 1; display: grid; min-width: 0; }
