@@ -916,3 +916,17 @@ html .q-logo img { width: 88%; height: 88%; }
 /* A team's name shrinks to fit its line (the kit's .q-fit) from Play's 16px. */
 .pl-team-name.q-fit { display: block; font-size: calc(16px * var(--q-fit, 1)); text-overflow: clip; }
 .logo-fallback svg { width: 62%; height: 62%; }
+
+/* No white in dark mode (Jay 2026-10-21): logos on a dark tile, in their dark versions (the kit swaps ESPN's). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .q-logo:not(.text),
+  :root:not([data-theme='light']) .league-badge {
+    background: var(--q-logo-bg);
+    box-shadow: inset 0 0 0 0.5px var(--q-sep);
+  }
+}
+:root[data-theme='dark'] .q-logo:not(.text),
+:root[data-theme='dark'] .league-badge {
+  background: var(--q-logo-bg);
+  box-shadow: inset 0 0 0 0.5px var(--q-sep);
+}
