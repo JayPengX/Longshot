@@ -1254,20 +1254,15 @@ function offersForSlip() {
 // A game whose markets or players are still on their way (a pick on it stays on the slip).
 const gameWaiting = game => Boolean(game && ((game.kambiId && !gameOffers.has(game.id)) || (game.espnTeams && hasPlayers(game.sport) && !gamePlayers.get(game.id)?.players && !gamePlayers.get(game.id)?.failed)));
 
-// One line of a two-way market: the line (tagged when the lottery posts it)
-// and its two picks.
-function lineRow(label, pair, { posted = false, main = false } = {}) {
+// One line of a two-way market: its two picks, each with its own line on it
+// (雷霆 −6.5 | 馬刺 +6.5, 大 220.5 | 小 220.5); the lottery's main line tinted.
+function lineRow(pair, labels, { posted = false, main = false } = {}) {
   // Outside MLB the tagged line is DraftKings' main line, not a checked lottery line.
-  if (posted && pair[0]?.sport !== 'mlb') main = true;
-  return el('div', { class: `line-row ${posted ? 'posted' : ''} ${main ? 'main' : ''}` }, [
-    el('span', { class: 'line-label' }, [
-      el('strong', { text: label }),
-    ]),
-    ...pair.map(b => (b ? pickButton(b, '') : el('span')))
-  ]);
+  if (posted && pair.some(b => b && b.sport !== 'mlb')) main = true;
+  return el('div', { class: `line-row ${posted ? 'posted' : ''} ${main ? 'main' : ''}` }, pair.map((b, i) => (b ? pickButton(b, labels[i]) : el('span'))));
 }
 
-// A block of lines under its own heading: [first column, pick A, pick B].
+// A block of lines under its own heading: the two sides' names over their picks.
 function lineTable(heads, rows, title = null) {
   return el('div', { class: 'line-table' }, [
     title ? el('p', { class: 'line-title', text: title }) : null,
@@ -1288,31 +1283,28 @@ function marketPanel(game, section, bets, { titled = false } = {}) {
     body = [...groupBy(bets, b => b.period ?? b.m?.period ?? '').entries()].map(([period, list]) => {
       const rows = [...groupBy(list, lineOf).values()]
         .sort((a, b) => lineOf(a[0]) - lineOf(b[0]))
-        .map(pair => lineRow(String(lineOf(pair[0])), [by(pair, 'over'), by(pair, 'under')], { posted: pair[0].posted, main: pair[0].mainLine }));
-      return lineTable([t('colLine'), t('over'), t('under')], rows, period !== '' && section.kind === 'inningtotal' ? t('inningTotalN', { n: period }) : null);
+        .map(pair => lineRow([by(pair, 'over'), by(pair, 'under')], [String(lineOf(pair[0])), String(lineOf(pair[0]))], { posted: pair[0].posted, main: pair[0].mainLine }));
+      return lineTable([t('over'), t('under')], rows, period !== '' && section.kind === 'inningtotal' ? t('inningTotalN', { n: period }) : null);
     });
   } else if (HCAP_KINDS.has(section.kind)) {
-    // One block per team giving the runs: "遊騎兵 讓分" -1.5, -2.5, …
-    const giverOf = b => b.giver ?? b.m?.giver;
+    // One table, the two teams by their short names over their own picks,
+    // each pick with its own line (雷霆 −6.5 | 馬刺 +6.5), under the market's
+    // name: the full names and one 盤口 column of the favourite's line read wrong.
     const awayLineOf = b => b.awayLine ?? b.m?.awayLine;
-    body = ['away', 'home']
-      .map(giver => {
-        const taker = giver === 'away' ? 'home' : 'away';
-        const markets = [...groupBy(bets.filter(b => giverOf(b) === giver), b => b.market).values()].sort((a, b) => Math.abs(awayLineOf(a[0])) - Math.abs(awayLineOf(b[0])));
-        if (!markets.length) return null;
-        const rows = markets.map(pair => lineRow(fmtLine(-Math.abs(awayLineOf(pair[0]))), [by(pair, giver), by(pair, taker)], { posted: pair[0].posted }));
-        const team = teamName(game[giver]);
-        const heading = section.kind === 'runline' ? t(isSoccer(game.sport) || familyOf(game.sport) === 'hockey' ? 'giveGoals' : familyOf(game.sport) === 'baseball' ? 'giveRuns' : 'givePoints', { team }) : section.kind === 'gamehcap' ? t(POINT_SETS.has(familyOf(game.sport) ?? game.sport) ? 'givePoints' : 'giveGames', { team }) : section.kind === 'sethcap' ? t('giveSets', { team }) : `${team} · ${t(secName(section, game.sport, true))}`;
-        return lineTable([t('colLine'), teamName(game[giver]), teamName(game[taker])], rows, heading);
-      })
-      .filter(Boolean);
+    const sides = sidesOf(game).map(team => (team === game.away ? 'away' : 'home'));
+    const ownLine = (b, side) => (side === 'away' ? awayLineOf(b) : -awayLineOf(b));
+    const rows = [...groupBy(bets, b => b.market).values()]
+      // (The smallest line first, as before: −5.5, −6.5, …)
+      .sort((a, b) => Math.abs(awayLineOf(a[0])) - Math.abs(awayLineOf(b[0])) || awayLineOf(a[0]) - awayLineOf(b[0]))
+      .map(pair => lineRow(sides.map(side => by(pair, side)), sides.map(side => fmtLine(ownLine(pair[0], side))), { posted: pair[0].posted }));
+    body = rows.length ? [lineTable(sides.map(side => shortTeamName(game.sport, game[side].en, teamName(game[side]))), rows, titled ? null : t(secName(section, game.sport, true)))] : [];
   } else if (section.kind === 'teamtotal') {
     body = ['away', 'home']
       .map(team => {
         const lines = [...groupBy(bets.filter(b => b.team === team), b => b.teamLine).values()].sort((a, b) => a[0].teamLine - b[0].teamLine);
         if (!lines.length) return null;
-        const rows = lines.map(pair => lineRow(String(pair[0].teamLine), [by(pair, 'over'), by(pair, 'under')], { posted: pair[0].posted, main: pair[0].posted }));
-        return lineTable([t('colLine'), t('over'), t('under')], rows, teamName(game[team]));
+        const rows = lines.map(pair => lineRow([by(pair, 'over'), by(pair, 'under')], [String(pair[0].teamLine), String(pair[0].teamLine)], { posted: pair[0].posted, main: pair[0].posted }));
+        return lineTable([t('over'), t('under')], rows, shortTeamName(game.sport, game[team].en, teamName(game[team])));
       })
       .filter(Boolean);
   } else if (section.kind === 'margin' && bets.length && bets.every(b => b.pick?.team || b.pick?.side === 'draw')) {

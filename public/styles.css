@@ -196,12 +196,11 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-panel, .market-more { display: grid; gap: 12px; }
 .line-table, .more-block { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: var(--q-surface); }
 .line-title, .more-title { margin: 0; font: 600 15px/1.25 var(--q-font); }
-.line-head, .line-row { display: grid; grid-template-columns: minmax(4em, 0.8fr) 1fr 1fr; gap: 8px; align-items: center; }
+.line-head, .line-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
 .line-head span { overflow: hidden; color: var(--q-label-2); font: 600 12px/1.2 var(--q-font); text-align: center; white-space: nowrap; text-overflow: ellipsis; }
-.line-head span:first-child { text-align: left; }
-.line-label strong { font: 600 16px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
 .line-row .pick { min-width: 0; }
-.line-row.main .line-label strong { color: var(--accent); }
+.line-row .pick-name { font-variant-numeric: tabular-nums; }
+.line-row.main .pick:not(.in-slip) .pick-name { color: var(--accent); }
 .market-head { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--q-label-2); font: 600 13px/1.25 var(--q-font); }
 .market-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
 .market-picks .pick { min-width: 0; min-height: 52px; }
