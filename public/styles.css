@@ -664,24 +664,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .wheel-label.zero b { color: var(--lotto); text-shadow: none; }
 .sc-ticket.revealed .scratch-face.wheel.won .wheel-label.at b { color: #fde047; font-size: 14px; }
 .wheel-pointer { position: absolute; left: 50%; top: -8px; width: 0; height: 0; border: 12px solid transparent; border-top: 22px solid var(--q-label); transform: translateX(-50%); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3)); }
-/* A card on sale: the pool, then a panel a game (遊戲1…), lit when it pays.
-   In the pool: boxed. Mahjong: ivory tiles with the character on them. */
-.scratch-face.games { gap: 10px; min-height: 0; padding: 10px; }
-.gf-pool, .gf-game { display: grid; gap: 6px; min-width: 0; padding: 10px; border-radius: 12px; background: var(--q-surface); box-shadow: inset 0 0 0 1px var(--q-sep); }
-.gf-pool { background: color-mix(in srgb, var(--lotto) 10%, var(--q-surface)); }
-.gf-title { margin: 0; color: var(--lotto); font: 800 13px/1.2 var(--q-font); }
-.gf-h { margin: 0; color: var(--q-label-2); font: 700 11px/1.3 var(--q-font); letter-spacing: 0.03em; }
-.gf-items { display: flex; flex-wrap: wrap; gap: 4px; }
-.gf-items.lucky, .gf-items.tens { gap: 6px; }
-.gf-n { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 4px; border-radius: 7px; background: var(--q-fill-3); color: var(--q-label); font: 700 13px/1 var(--q-font); }
-.gf-n.free { background: color-mix(in srgb, var(--lotto) 18%, transparent); color: var(--lotto); font-size: 9px; font-weight: 900; }
-.gf-n.gf-ball { min-width: 30px; height: 30px; border-radius: 50%; background: var(--lotto); color: #fff; }
-.gf-n.gf-sp { background: transparent; box-shadow: inset 0 0 0 2px var(--lotto); color: var(--lotto); }
-.gf-n.gf-lucky { background: color-mix(in srgb, var(--lotto) 70%, #000); }
-.gf-pyramid.balls .gf-n { border-radius: 50%; background: var(--ball, var(--lotto)); color: #fff; }
-.gf-op { align-self: center; color: var(--q-label-2); font-style: normal; font-weight: 800; }
-:is(.gf-n, .gf-cell).hit { box-shadow: 0 0 0 2px var(--lotto); }
-.gf-n.gf-ball.hit, .gf-pyramid.balls .gf-n.hit { box-shadow: none; outline: 2.5px solid var(--q-label); outline-offset: 1.5px; }
+/* Mahjong: ivory tiles with the character on them (a real ticket's tiles). */
 .mj { display: inline-grid; place-items: center; align-content: center; width: 26px; height: 34px; border-radius: 5px; background: linear-gradient(#fffdf5, #f1e7cf); box-shadow: inset 0 -3px 0 #d7c79d, 0 1px 2px rgba(0, 0, 0, 0.25); color: #1f2937; line-height: 1; }
 .mj b { font: 800 14px/1 var(--q-font); }
 .mj i { font: 700 10px/1 var(--q-font); font-style: normal; }
@@ -689,68 +672,14 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .mj-pin i, .mj-blue b { color: #1d4ed8; }
 .mj-sou i, .mj-green b { color: #15803d; }
 .mj-blue::after { content: ''; width: 14px; height: 20px; border: 2px solid #1d4ed8; border-radius: 3px; }
-.mj.hit { box-shadow: inset 0 -3px 0 #d7c79d, 0 0 0 2px var(--lotto); }
-.gf-cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 5px; }
-.gf-cells.one { grid-template-columns: minmax(0, 120px); }
-/* 好運強強滾's 16 symbols: four rows of four, no lone one at the end. */
-.gt-match .gf-cells:has(+ .gf-table) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.gf-cell { display: grid; place-items: center; align-content: center; gap: 2px; min-width: 0; min-height: 44px; padding: 4px 2px; border-radius: 10px; background: var(--q-fill-4, var(--q-fill-3)); text-align: center; }
-.gf-cell b { max-width: 100%; overflow: hidden; color: var(--lotto); font: 800 15px/1.1 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.gf-cell small { max-width: 100%; overflow: hidden; color: var(--q-label-2); font-size: 11px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
-.gf-zone { display: grid; gap: 4px; }
-.gf-zone-h { color: var(--lotto); font-size: 11px; font-weight: 800; }
-.gf-prize { font: 800 14px/1.1 var(--q-font-rounded); white-space: nowrap; }
-.gf-box { display: grid; place-items: center; gap: 2px; padding: 6px 10px; border-radius: 10px; background: color-mix(in srgb, var(--lotto) 12%, transparent); }
-.gf-box small { color: var(--q-label-2); font-size: 10px; font-weight: 700; }
-.gf-table { display: flex; flex-wrap: wrap; gap: 4px; }
-.gf-table span { display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 7px; border-radius: 8px; background: var(--q-fill-3); white-space: nowrap; }
-.gf-table b { font-size: 11px; font-weight: 700; color: var(--q-label-2); }
-.gf-table small { font-size: 12px; font-weight: 800; }
-.gf-rows { display: grid; gap: 5px; }
-.gf-row { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 5px 8px; border-radius: 10px; background: var(--q-fill-4, var(--q-fill-3)); }
-.gf-row-items { display: flex; flex: 1; justify-content: center; gap: 3px; min-width: 0; }
-.gf-row-items .gf-n { min-width: 26px; padding: 0 2px; }
-.gf-row .gf-prize { min-width: 52px; text-align: right; }
-.gf-round { color: var(--q-label-2); font-size: 11px; font-weight: 700; white-space: nowrap; }
-.gf-x { padding: 2px 6px; border-radius: 6px; background: var(--lotto); color: #fff; font-size: 11px; font-weight: 800; }
-.gf-grid3 { display: grid; grid-template-columns: 22px 1fr 1fr minmax(58px, auto); align-items: center; gap: 6px; padding: 4px 8px; border-radius: 10px; text-align: center; }
-.gf-grid3:not(.head) { background: var(--q-fill-4, var(--q-fill-3)); }
-.gf-grid3.head small { color: var(--q-label-2); font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gf-grid3 b { font: 800 17px/1.2 var(--q-font-rounded); }
-.gf-grid3 b.them { color: var(--q-label-2); }
-.gf-grid3 b.gf-die { font-size: 30px; line-height: 1; color: #ca8a04; }
-.gf-grid3 b.gf-die.them { color: var(--q-label-2); }
-.gf-grid3 .gf-prize, .gf-grid3.head small:last-child { text-align: right; }
-.gf-code { letter-spacing: 0.18em; }
-.gf-rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 5px; }
-.gf-rounds.dense { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.gf-round-box { display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; padding: 6px 4px; border-radius: 10px; background: var(--q-fill-4, var(--q-fill-3)); }
-.gf-round-box:only-child { justify-items: stretch; }
-.gf-pyramid { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; }
-.gf-round-box .gf-table { justify-content: center; }
-.gf-board-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
-.gf-board { display: grid; grid-template-columns: repeat(var(--n), auto); gap: 4px; }
-.gf-board .gf-n { min-width: 34px; height: 34px; }
-.gf-board .mj { width: 30px; height: 38px; }
-.gf-total { display: flex; align-items: baseline; gap: 6px; margin: 0; color: var(--q-label-2); font-size: 12px; font-weight: 700; }
-.gf-total strong { color: var(--lotto); font: 800 20px/1 var(--q-font-rounded); }
-.gf-cross { display: grid; grid-template-columns: 32px repeat(var(--n), minmax(0, 1fr)); gap: 4px; align-items: center; justify-items: center; }
-.gf-cross .gf-cell { width: 100%; min-height: 34px; }
-/* Scratched: what pays lights up in gold, the game round it glows. */
-.sc-ticket.revealed .gf-game.won { box-shadow: 0 0 0 2px #f5b301, 0 6px 18px -8px #f5b301; }
-.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-round-box, .gf-n, .gf-table span, .gf-prize).win { background: #fde68a; color: #713f12; animation: sc-win 0.6s ease-out 2; }
-.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-table span).win :is(b, small) { color: #713f12; }
-/* The ticket as printed: its frame colour around its art, its games on its
+/* A retired card (no ticket picture): its frame colour around its art, its games on its
    coloured panel, every scratched spot on the light security paper (the
    wavy TAIWAN LOTTERY print) in black ink, as the real cards are. */
 .sc-ticket { --paper: #fdf4f8; display: grid; gap: 10px; padding: 10px; background: var(--frame); box-shadow: 0 18px 40px -22px var(--frame); color: var(--frame-ink); }
 .sc-top-art { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; }
 .sc-ticket .sc-play { margin: 0; border: 0; border-radius: 14px; background: var(--panel); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--panel) 70%, #000); }
 .sc-ticket .sc-how { padding: 0 4px 2px; color: var(--frame-ink); opacity: 0.9; }
-.sc-ticket .scratch-face.games { gap: 8px; }
-.sc-ticket :is(.gf-pool, .gf-game) { padding: 2px; background: none; box-shadow: none; }
-.sc-ticket :is(.gf-h, .gf-title, .gf-zone-h, .gf-round, .gf-grid3.head small, .gf-total) { color: var(--panel-ink); }
-.sc-ticket :is(.gf-cell, .gf-n:not(.gf-ball):not(.free), .gf-row, .gf-grid3:not(.head), .gf-round-box, .gf-table span, .gf-box, .spot, .bcell) {
+.sc-ticket :is(.spot, .bcell) {
   background:
     repeating-linear-gradient(115deg, transparent 0 5px, rgba(236, 72, 153, 0.07) 5px 6px),
     repeating-linear-gradient(25deg, transparent 0 7px, rgba(59, 130, 246, 0.07) 7px 8px),
@@ -758,18 +687,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   color: #1c1917;
 }
-.sc-ticket :is(.gf-cell b, .gf-cell small, .gf-prize, .gf-table b, .gf-table small, .gf-grid3 b, .gf-n, .spot small, .spot strong, .gf-box small) { color: #1c1917; }
-.sc-ticket .gf-cell b { font: 900 17px/1.05 var(--q-font-rounded); letter-spacing: -0.01em; }
-.sc-ticket .gf-cell b.amt { overflow: visible; font-size: 14px; text-overflow: clip; }
-.sc-ticket .gf-cell small { overflow: visible; font: 800 11px/1.1 var(--q-font-rounded); letter-spacing: -0.02em; text-overflow: clip; }
-.sc-ticket .gf-grid3 b.them, .sc-ticket .gf-grid3 b.gf-die.them { color: #57534e; }
-.sc-ticket .gf-n.gf-ball { background: #fff; box-shadow: inset 0 0 0 2.5px var(--frame); color: #1c1917; }
-.sc-ticket .gf-cell b.gf-dollar { color: #e11d48; font: 900 26px/1 var(--q-font-rounded); -webkit-text-stroke: 1px #fff; text-shadow: 1.5px 1.5px 0 #9ca3af; }
-.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-round-box, .gf-n, .gf-table span).win { background: #fde047; box-shadow: 0 0 0 2.5px #dc2626; color: #1c1917; }
-.sc-ticket.revealed :is(.gf-cell, .gf-row, .gf-grid3, .gf-table span).win :is(b, small) { color: #1c1917; }
-.sc-ticket.revealed .gf-prize.win, .sc-ticket.revealed :is(.gf-row, .gf-grid3, .gf-round-box).win .gf-prize { background: none; box-shadow: none; color: #b91c1c; }
-.sc-ticket :is(.gf-round-box, .gf-row, .gf-grid3:not(.head)) .gf-round { color: #57534e; }
-.sc-ticket.revealed .mj.win { box-shadow: 0 0 0 3px #f5b301; }
+.sc-ticket :is(.spot small, .spot strong) { color: #1c1917; }
 .sc-prices { margin-bottom: 10px; }
 .sc-result { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin: 12px 0 0; padding: 8px 14px; border-radius: 16px; color: var(--q-label-2); font-weight: 700; text-align: center; }
 .sc-result.won { background: var(--wash-good); color: var(--good); animation: lt-pop 0.4s ease-out; }
@@ -780,6 +698,15 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .sc-bar .sc-result { flex: 1; min-width: 0; min-height: 50px; margin: 0; padding: 6px 12px; gap: 6px; white-space: nowrap; }
 .sc-bar .sc-result-amount { font-size: 19px; }
 .sc-bar .sc-result-icon { width: 22px; height: 22px; }
+@media (max-width: 360px) {
+  .sc-bar { gap: 8px; }
+  .sc-bar .sc-result { padding: 6px 8px; gap: 4px; font-size: 14px; }
+  .sc-bar .sc-result-icon { display: none; }
+  /* (A win shows its amount alone: the green says it won.) */
+  .sc-bar .sc-result.won .sc-result-label { display: none; }
+  .sc-bar .sc-result-amount { font-size: 16px; }
+  .sc-bar .q-btn.primary { padding-inline: 14px; }
+}
 /* Fitting one screen: a shorter top, then no rules line. */
 .sc-ticket.tight .sc-top-art { aspect-ratio: 3.4 / 1; }
 .sc-ticket.tighter .sc-how { display: none; }
@@ -962,3 +889,44 @@ html .q-logo img { width: 88%; height: 88%; }
   background: var(--q-logo-bg);
   box-shadow: inset 0 0 0 0.5px var(--q-sep);
 }
+
+/* A card on sale as its real ticket (tickets.js): its picture, what's under
+   each scratch-off printed on white, the latex over it (a canvas). */
+.sc-real { display: grid; justify-items: center; }
+.tk-hint { margin: 8px 0 0; color: var(--q-label-2); font: 600 12px/1.2 var(--q-font); }
+.tk-frame { width: 100%; max-width: 100%; overflow: hidden; border-radius: 1.6cqw; touch-action: none; }
+.tk-frame .tk { transform-origin: 0 0; }
+.tk { position: relative; width: 100%; overflow: hidden; container-type: inline-size; border-radius: 1.6cqw; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 30px -16px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18); touch-action: none; user-select: none; -webkit-user-select: none; }
+.tk-art, .tk-cover, .tk-crumbs { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tk-art { display: block; object-fit: fill; pointer-events: none; }
+.tk-crumbs { pointer-events: none; }
+/* (Nothing under the latex shows before the latex is on.) */
+.sc-real:not(.revealed) .tk:not(.ready) :is(.tk-i.under, .tk-paper) { visibility: hidden; }
+.tk-paper { position: absolute; overflow: hidden; border-radius: 1.2cqw; background: color-mix(in srgb, var(--tint, #ec4899) 16%, #fff); box-shadow: inset 0 0 0 0.2cqw rgba(0, 0, 0, 0.06); }
+/* The security print under the latex: the card's colour in fine waves, as on the real ones. */
+.tk-paper::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--tint, #ec4899) 70%, #fff); opacity: 0.55; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.1'%3E%3Cpath d='M0 4 Q10 0 20 4 T40 4'/%3E%3Cpath d='M0 8 Q10 4 20 8 T40 8' stroke-width='.6'/%3E%3Cpath d='M0 12 Q10 8 20 12 T40 12'/%3E%3Cpath d='M0 16 Q10 12 20 16 T40 16' stroke-width='.6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 7cqw 2.8cqw repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.1'%3E%3Cpath d='M0 4 Q10 0 20 4 T40 4'/%3E%3Cpath d='M0 8 Q10 4 20 8 T40 8' stroke-width='.6'/%3E%3Cpath d='M0 12 Q10 8 20 12 T40 12'/%3E%3Cpath d='M0 16 Q10 12 20 16 T40 16' stroke-width='.6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 7cqw 2.8cqw repeat; }
+.tk-paper.round { border-radius: 50%; }
+.tk-i { position: absolute; display: grid; place-content: center; justify-items: center; gap: 0.04em; color: #1c1917; line-height: 0.95; text-align: center; pointer-events: none; }
+.tk-n { font: 500 1.2em/0.9 'Helvetica Neue', Arial, 'Roboto', sans-serif; letter-spacing: -0.02em; font-variant-numeric: normal; }
+.tk-i:not(.under) :is(.tk-n, .tk-w) { font-style: italic; }
+.tk-i:not(.under) .tk-w { text-transform: none; letter-spacing: 0.02em; }
+.tk-w { font: 600 0.32em/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: 0.06em; text-transform: uppercase;  white-space: nowrap; }
+.tk-a { font: 700 0.8em/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.02em; white-space: nowrap; }
+.tk-i .tk-a + .tk-w { font-weight: 700; font-family: var(--q-font); letter-spacing: 0; white-space: nowrap; }
+.tk-s { font: 900 1em/1 var(--q-font-rounded, var(--q-font)); white-space: nowrap; }
+.tk-dollar { color: #e11d48; font-size: 1.6em; }
+.tk-die { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; width: 1.55em; height: 1.55em; padding: 0.14em; border-radius: 0.3em; background: linear-gradient(145deg, #fff, #ece7dc); box-shadow: inset 0 -0.06em 0 rgba(0, 0, 0, 0.18), 0 0.04em 0.1em rgba(0, 0, 0, 0.3); }
+.tk-die i { width: 0.28em; height: 0.28em; border-radius: 50%; }
+.tk-die i.on { background: radial-gradient(circle at 35% 35%, #444, #111); }
+.tk-die i.on:only-of-type, .tk-die:has(i.on:nth-child(5):last-of-type) i.on { background: #111; }
+.tk-pic { display: block; background-repeat: no-repeat; mix-blend-mode: multiply; }
+.tk-cell { display: grid; justify-items: center; font-size: 0.66em; line-height: 0.9; }
+.tk-ca { font: 800 0.34em/1 var(--q-font-rounded, var(--q-font)); letter-spacing: -0.02em; white-space: nowrap; }
+.tk-i .mj { width: 0.8em; height: 1.05em; font-size: 1em; }
+.tk-i .mj { border-radius: 0.14em; box-shadow: inset 0 -0.08em 0 #d7c79d, 0 0.03em 0.06em rgba(0, 0, 0, 0.25); }
+.tk-i .mj b { font-size: 0.6em; }
+.tk-i .mj i { font-size: 0.44em; }
+.tk-i .mj-blue::after { width: 0.45em; height: 0.65em; border-width: 0.06em; border-radius: 0.08em; }
+/* What won, once it's all off: ringed in red, like a pen round it. */
+.sc-real.revealed .tk-i.win::after { content: ''; position: absolute; inset: -4%; border: 0.55cqw solid rgba(225, 29, 72, 0.9); border-radius: 50%; transform: rotate(-6deg); animation: tk-ring 0.5s ease-out both; }
+@keyframes tk-ring { from { opacity: 0; transform: rotate(-30deg) scale(1.3); } }
