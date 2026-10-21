@@ -3226,6 +3226,7 @@ function renderAll() {
   renderSaved();
   warmImages();
   loadGameTeams();
+  if (pendingSlip && !state.fromBoard && state.bets?.length) applySlipImport();
 }
 
 // The clubs' logos of the leagues read from Kambi (歐冠, 西甲, 巴甲…): ESPN's
@@ -3763,14 +3764,72 @@ $('game-search').addEventListener('input', event => {
   state.query = event.target.value.trim();
   if (state.data) renderGames();
 });
+// Another app's slip handed over (Slips' 「到 Play 下注」):
+// #slip=<base64url of UTF-8 JSON {legs:[{league, home, away, start, kind, side, line, gameId?}]}>.
+// Each leg is found on today's board and priced here: its odds sent along
+// are never used, a leg off sale is left out, a moved line takes today's.
+let pendingSlip = null;
+function readSlipHash(hash) {
+  const m = /(?:^|[#&])slip=([A-Za-z0-9_-]+)/.exec(hash);
+  if (!m) return null;
+  try {
+    const bin = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const legs = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))))?.legs;
+    return Array.isArray(legs) ? legs.slice(0, 20) : null;
+  } catch {
+    return null;
+  }
+}
+function takeSlipHash(hash) {
+  const legs = readSlipHash(hash);
+  if (!legs) return false;
+  pendingSlip = legs;
+  history.replaceState(null, '', location.pathname + location.search);
+  wantFull();
+  if (state.data && !state.fromBoard) applySlipImport();
+  return true;
+}
+const sameTeam = (a, b) => {
+  const x = normalizeTeamName(a || '');
+  const y = normalizeTeamName(b || '');
+  return Boolean(x && y) && (x === y || x.includes(y) || y.includes(x));
+};
+function importLeg(leg) {
+  const games = state.data?.games ?? [];
+  const game =
+    games.find(g => g.id === leg.gameId) ??
+    games.find(g => g.sport === leg.league && sameTeam(g.home?.en, leg.home) && sameTeam(g.away?.en, leg.away) && (!leg.start || Math.abs(Date.parse(g.startUtc) - Date.parse(leg.start)) < 36 * 3_600_000));
+  if (!game) return null;
+  const kind = { ml: 'ml', total: 'total', ou: 'total', runline: 'runline', spread: 'runline', handicap: 'runline' }[leg.kind] ?? leg.kind;
+  const open = state.bets.filter(b => b.gameId === game.id && b.kind === kind && b.side === leg.side && !b.lock);
+  if (kind === 'ml') return open[0] ? { bet: open[0], moved: false } : null;
+  const lineOf = b => (kind === 'total' ? b.totalLine : b.runLine);
+  const want = Number(leg.line);
+  const exact = open.find(b => lineOf(b) === want);
+  if (exact) return { bet: exact, moved: false };
+  const near = [...open].sort((a, b) => Math.abs(lineOf(a) - want) - Math.abs(lineOf(b) - want))[0];
+  return near && Number.isFinite(want) && Math.abs(lineOf(near) - want) <= 2 ? { bet: near, moved: true } : null;
+}
+function applySlipImport() {
+  const legs = pendingSlip;
+  pendingSlip = null;
+  const found = legs.map(importLeg).filter(Boolean);
+  const ids = [...new Set(found.map(x => x.bet.id))];
+  const t = state.t;
+  const notes = [ids.length ? t('slipImported', { n: ids.length }) : t('slipImportNone'), legs.length > found.length ? t('slipImportDropped', { n: legs.length - found.length }) : '', found.some(x => x.moved) ? t('slipImportMoved', { n: found.filter(x => x.moved).length }) : ''].filter(Boolean);
+  kitUI.toast(notes.join(' · '));
+  if (ids.length) takeParlay([...new Set([...state.parlay, ...ids])]);
+}
 {
   const fromHash = location.hash.slice(1);
+  takeSlipHash(fromHash);
   if (TABS.includes(fromHash)) state.tab = state.wantedTab = fromHash;
   if (fromHash === 'slip') state.wantSlip = true;
   if (fromHash === 'tickets') ((state.tab = state.wantedTab = 'history'), (state.historyView = 'tickets'));
 }
 window.addEventListener('hashchange', () => {
   const hash = location.hash.slice(1);
+  if (takeSlipHash(hash)) return;
   // A notice's tap: its tab, or 紀錄's tickets.
   if (hash === 'tickets') return showTickets();
   if (hash === 'slip') return openSlip();
@@ -3843,15 +3902,15 @@ function drawHome() {
   if (state.tab !== 'home') return;
   redraw($('home-body'), () => renderHome(homeCtx()));
 }
+// A ready-made parlay onto the slip in one tap (replacing what's there).
+function takeParlay(ids) {
+  state.parlay = [...ids];
+  state.slipMode = 'parlay';
+  state.modeChosen = false;
+  slipChanged();
+  openSlip();
+}
 function homeCtx() {
-  // A ready-made parlay onto the slip in one tap (replacing what's there).
-  const takeParlay = ids => {
-    state.parlay = [...ids];
-    state.slipMode = 'parlay';
-    state.modeChosen = false;
-    slipChanged();
-    openSlip();
-  };
   // A live game's card on the games tab, open with its markets (null: the live list's top).
   const openLive = id => {
     if (id && sheetGameOf(id)) return openGameSheet(id);
