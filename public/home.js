@@ -344,6 +344,7 @@ export function renderHome(ctx) {
 
   const section = (title, body, more = null, count = null, panel = false) =>
     el('section', { class: `q-section${panel ? ' pl-panel' : ''}` }, [kitUI.sectionHead(title, { more: more ? T.seeAll : '', onMore: more, count }), body]);
+  const half = s => (s.classList.add('pl-half'), s);
 
   // 4 為你推薦: a rail of cards.
   // (A price reason, 划算/穩/值博, about a total or spread pick isn't shown over the win row.)
@@ -382,8 +383,9 @@ export function renderHome(ctx) {
       forYou.length ? section(T.forYou, el('div', { class: 'q-rail pl-mcards' }, forYou), () => ctx.showTab('games')) : null,
       section(T.featured, wide.length ? el('div', { class: 'pl-wide' }, wide) : emptyGames(), () => ctx.showTab('games'), null, true),
       combos.length ? section(T.combos, el('div', { class: 'q-rail pl-combos' }, combos)) : null,
-      section(T.lottery, lotteryCard(), () => ctx.showTab('lottery')),
-      section(T.recent, recentBody, () => ctx.showTab('history'), null, true)
+      // (Side by side on an iPad in landscape: styles.css .pl-half.)
+      half(section(T.lottery, lotteryCard(), () => ctx.showTab('lottery'))),
+      half(section(T.recent, recentBody, () => ctx.showTab('history'), null, true))
     ].filter(Boolean)
   );
 }

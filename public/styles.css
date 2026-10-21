@@ -33,7 +33,8 @@ h1, h2, h3, p { margin: 0; }
 .num { font-variant-numeric: tabular-nums; }
 .back-high { color: var(--good); }
 .back-low { color: var(--bad); }
-.page { max-width: var(--q-page-max, 720px); margin: 0 auto; padding: 8px var(--q-margin, 16px) calc(48px + var(--q-nav)); }
+/* The kit's column (quadra.css .q-col): the phone's 16 px in, the iPad's whole width. */
+.page { --q-margin: var(--q-gutter, 16px); max-width: var(--q-col, 640px); margin: 0 auto; padding: 8px var(--q-margin) calc(48px + var(--q-nav)); }
 body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(120px + var(--q-nav)); }
 .q-gl { display: inline-grid; place-items: center; width: 16px; height: 16px; }
 .q-gl svg { width: 100%; height: 100%; }
@@ -1002,3 +1003,21 @@ html .q-logo img { width: 88%; height: 88%; }
 .pl-hero-odd > strong { font: 700 18px/22px var(--q-font); font-variant-numeric: tabular-nums; }
 .pl-hero-odd[aria-pressed='true'] { border-color: #fff; background: rgba(255, 255, 255, 0.3); }
 .pl-hero-odd:disabled { opacity: 0.5; }
+
+/* ==== iPad (700 px up): the games on now as whole cards across the
+   column (fewer stretch to fill it); from 900 a card of games runs two
+   across and 焦點賽事 two by two (a lone last one takes the row); in
+   landscape 彩券 and 最近的投注 sit side by side. ==== */
+@media (min-width: 700px) {
+  .page .q-live-strip > .q-live-card { flex: 1 0 calc((100% - (var(--q-rail-n, 3) - 1) * 8px) / var(--q-rail-n, 3)); width: auto; min-width: 0; }
+}
+@media (min-width: 900px) {
+  .page .q-rowcard:has(> :nth-child(2)), .pl-wide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; align-content: start; }
+  .page .q-rowcard:has(> :nth-child(2)) > :last-child:nth-child(odd), .pl-wide > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .page .q-rowcard:has(> :nth-child(2)) > :nth-child(2)::before { display: none; }
+}
+@media (min-width: 1100px) {
+  #home-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; align-items: start; }
+  #home-body > * { grid-column: 1 / -1; min-width: 0; }
+  #home-body > .pl-half { grid-column: auto; }
+}
