@@ -487,7 +487,7 @@ export const TICKETS = {
   },
   ten: {
     // Game 1's 8 spots: 4 round spots on the roulette ring + 4 under the card fan; game 2 the 3×3 slot boxes + 獎金 tabs;
-    // game 3 the gold coin; game 4 the $+$=cash rows; game 5 five chips (of the 6 drawn) + the 獎金 circle.
+    // game 3 the gold coin; game 4 the $+$=cash rows; game 5 the six chips + the 獎金 circle.
     size: [1080, 1080],
     lay(f, k) {
       const [g1, g2, g3, g4, g5] = f.games;
@@ -508,7 +508,7 @@ export const TICKETS = {
       });
       const [need, prize] = g5.table[0];
       const won = g5.cells.filter(x => x === g5.need).length >= need;
-      const chips = [[1000, 617], [915, 663], [865, 747], [858, 845], [912, 927]].map(([x, y], i) => k.spot([x - 43, y - 43, 86, 86], k.sym(g5.cells[i]), { win: won && g5.cells[i] === g5.need, fs: 0.42, shape: 'round' }));
+      const chips = [[1000, 617], [915, 663], [865, 747], [858, 845], [912, 927], [1000, 977]].map(([x, y], i) => k.spot([x - 43, y - 43, 86, 86], k.sym(g5.cells[i]), { win: won && g5.cells[i] === g5.need, fs: 0.42, shape: 'round' }));
       return [one, rows, coin, sums, chips, k.spot([930, 742, 118, 116], k.amt(prize), { win: won, fs: 0.5, shape: 'round' })];
     }
   },
@@ -533,7 +533,7 @@ export const TICKETS = {
     size: [1080, 393],
     lay(f, k) {
       const [g1, g2] = f.games;
-      // Pyramid: centre x, first row's top, row pitch, rounds in it.
+      // Pyramid: centre x, first row's top, row pitch, rounds in it (a round a row).
       const P = [[224.5, 50, 42.75, 5], [466.7, 135, 42.5, 3], [680, 92, 42.7, 4], [893.3, 89, 43.6, 6]];
       const won = new Set();
       let i = 0;
