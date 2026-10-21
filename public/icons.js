@@ -48,7 +48,7 @@ export function initialTile(name, color, cls = '') {
   return s;
 }
 // Taiwan Lottery's own pictures (art/, from its site): a draw game's logo on a
-// white plate, as its slips print it; a scratch card's printed face. Without a
+// white plate, as its slips print it (dark mode: outlined, no plate); a scratch card's printed face. Without a
 // picture (a retired game or card), the colour tile.
 export function gameLogo(id, name, color, cls = '') {
   const s = document.createElement('span');
@@ -60,7 +60,15 @@ export function gameLogo(id, name, color, cls = '') {
   img.decoding = 'async';
   img.onerror = () => s.replaceWith(initialTile(name, color, cls));
   img.src = `art/lotto/${id}.webp`;
-  s.append(img);
+  // In dark mode, no plate: its white-outlined version on the card (styles.css; lazy, so one loads).
+  const dk = new Image();
+  dk.alt = '';
+  dk.className = 'dk';
+  dk.loading = 'lazy';
+  dk.decoding = 'async';
+  dk.src = `art/lotto/${id}-dark.webp`;
+  img.loading = 'lazy';
+  s.append(img, dk);
   return s;
 }
 export function cardArt(id, name, color, cls = '') {

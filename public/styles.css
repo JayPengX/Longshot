@@ -462,6 +462,16 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .lt-mark-hero { --lm: 24px; padding: 5px 9px; border-radius: 10px; }
 .lt-mark-row { --lm: 26px; justify-content: center; width: 64px; padding: 6px; }
 .lt-mark-ask { --lm: 40px; padding: 8px 14px; border-radius: 16px; }
+/* Dark mode: no white plate; the logo sits on the card in its white-outlined version. */
+.lt-mark img.dk { display: none; }
+:root[data-theme='dark'] .lt-mark { background: none; box-shadow: none; }
+:root[data-theme='dark'] .lt-mark img:not(.dk) { display: none; }
+:root[data-theme='dark'] .lt-mark img.dk { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .lt-mark { background: none; box-shadow: none; }
+  :root:not([data-theme='light']) .lt-mark img:not(.dk) { display: none; }
+  :root:not([data-theme='light']) .lt-mark img.dk { display: block; }
+}
 .sc-art { display: block; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; background: color-mix(in srgb, var(--lotto, #888) 25%, var(--q-fill-3)); }
 .sc-card-art { width: 100%; margin-bottom: 4px; border-radius: 12px; }
 .sc-thumb { flex: none; width: 53px; height: 40px; border-radius: 8px; }
