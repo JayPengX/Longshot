@@ -307,6 +307,7 @@ function marketLabelOf(game, m) {
   if (m.period != null && (m.kind === 'inningml' || m.kind === 'inningtotal')) return t(m.kind === 'inningml' ? 'inningMlN' : 'inningTotalN', { n: m.period });
   if (m.market === 'margin6') return t('secMargin6');
   if (m.kind === 'raceto') return t('raceToN', { n: m.line });
+  if (m.kind === 'nextgoal') return t('nextGoalN', { n: m.line });
   if (m.kind === 'teamgoals') return t('teamGoalsOf', { team: teamName(game[m.team]) });
   // 第一節 of hockey is its first period: the section's names say 節 for both.
   return t(secName(SECTIONS.find(sec => sec.kind === m.kind) ?? { kind: m.kind, title: m.kind }, game.sport, true));
@@ -635,7 +636,15 @@ let dayMemo = { key: [], days: [] };
 const sameKeys = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 // The day a bet is shown on: its own, but an F1 weekend's all on race day
 // (its pole closes at qualifying, the day before in Taipei).
-const betDay = b => taipeiDayKey(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
+// (Kept by start time: tens of thousands of bets share a few hundred starts,
+// and the strip worked each one out again on every sport filter tap.)
+const dayOfStart = new Map();
+const startDay = start => {
+  let day = dayOfStart.get(start);
+  if (day === undefined) dayOfStart.set(start, (day = taipeiDayKey(start)));
+  return day;
+};
+const betDay = b => startDay(b.sport === 'f1' && state.data.f1?.startUtc ? state.data.f1.startUtc : b.start);
 const f1Day = () => (state.data?.f1?.startUtc ? taipeiDayKey(state.data.f1.startUtc) : null);
 // The day the board shows: Orbit Sports' date strip, pinned under the status
 // bar as the page scrolls: a chip a day with games (今天, 明天, then the
@@ -870,7 +879,7 @@ function drawGames() {
   document.body.classList.toggle('searching', searching);
   if (!searching) renderDayFilter();
   const byGame = groupBy(state.bets, b => b.gameId);
-  const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && taipeiDayKey(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
+  const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && startDay(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
   if (searching) {
     container.replaceChildren(
       games.length
@@ -1343,7 +1352,9 @@ const SECTIONS = [
   { kind: 'qtotal', title: 'secQ1Total' },
   { kind: 'hdc', title: 'secHalfDc' },
   { kind: 'firstgoal', title: 'secFirstGoal' },
+  { kind: 'nextgoal', title: 'secNextGoal' },
   { kind: 'lastgoal', title: 'secLastGoal' },
+  { kind: 'hoddeven', title: 'secHalfOddEven' },
   { kind: 'higherhalf', title: 'secHigherHalf' },
   { kind: 'hits', title: 'secHits' },
   { kind: 'teamhits', title: 'secTeamHits' },

@@ -452,7 +452,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .st-badge { position: relative; overflow: hidden; gap: 6px; min-height: 132px; }
 .st-badge .q-tile { margin-bottom: 2px; }
 .st-badge-name { font: 600 15px/1.25 var(--q-font); }
-.st-badge small { display: block; margin-bottom: 10px; overflow: visible; white-space: normal; color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
+.st-badge.q-rail-card > small { display: block; margin-bottom: 10px; overflow: visible; white-space: normal; color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
 .st-badge:not(.done) { color: var(--q-label-2); }
 .st-progress { position: relative; display: block; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 2px; background: var(--q-fill-3); }
 .st-progress::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 2px; background: var(--gold); }
@@ -517,6 +517,10 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .ls-slip-head strong { color: var(--lotto); font: 600 15px/1.2 var(--q-font); }
 .ls-status { color: var(--q-label-2); font: 600 12px/1.3 var(--q-font); text-align: right; font-variant-numeric: tabular-nums; }
 .ls-slots { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-height: 32px; }
+/* 威力彩's 6 + 1 on one row: the circles shrink a little rather than leave the 2nd zone's alone below. */
+.ls-slots:has(.ls-plus) { flex-wrap: nowrap; }
+.ls-slots:has(.ls-plus) > .ls-slot { flex: 0 1 31px; min-width: 0; height: auto; aspect-ratio: 1; }
+.ls-slots:has(.ls-plus) > .ls-plus { flex: none; }
 .ls-slot { display: inline-grid; place-items: center; width: 31px; height: 31px; padding: 0; border: 1.5px dashed color-mix(in srgb, var(--lotto) 45%, var(--q-sep)); border-radius: 50%; background: transparent; color: #fff; font: 700 13px/1 var(--q-font); font-variant-numeric: tabular-nums; }
 .ls-slot.on { border: 0; background: var(--lotto); }
 .ls-slot.special { border-color: var(--lotto); }
