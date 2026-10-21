@@ -24,8 +24,13 @@ Live: https://jaypengx.github.io/Quadra-Play/
   periods, soccer's full set, players' markets (Kambi's, else the model's).
   Every market past the winner comes from two numbers: the win chance and
   the expected total (kit `play-lines.mjs`).
-- **F1:** winner, pole, podium/top six/top ten (Harville draws), teammates,
-  team, safety car/VSC/red flag.
+- **F1:** the race winner (冠軍) alone, as 台灣運彩 sells it (pole, podium,
+  top six/ten, teammates, team and the safety-car markets were removed
+  2026-10-21; an old slip holding one still settles).
+- **冠軍 boards** list only who can still win (kit `play-alive.mjs`): ESPN's
+  'e' (out of the play-offs), a lost play-off series (MLB's list), a soccer
+  club that can't catch the leader on points, an F1 driver or team that
+  can't with every race left won.
 - **Live** (`lib/live.mjs`): modelled from the pregame lines and the live
   state, blended with Polymarket where liquid. One 5 s beat (`playLive`).
 - **Pricing:** fair chances from the sources with margins removed, then one
@@ -35,9 +40,10 @@ Live: https://jaypengx.github.io/Quadra-Play/
   shaded. 限2關 / 限3關 is 運彩's own per game or market (`eventMinLegs`,
   「這場比賽限串」), else the house's price bands (「賠率 x 偏低」).
 - **The slip:** the lottery's ticket rules: singles, parlays and systems;
-  1–12 picks; NT$100–100,000; a 20 M cap; 20% tax when a NT$10 bet wins over NT$5,000 (台灣運彩 §29, no stamp duty for members). A
-  parlay boost of 5–20% for 3+ picks. Free bets need picks at
-  1.50 or longer.
+  1–12 picks; NT$100–100,000; a 20 M cap; 20% of a slip's whole payout
+  over NT$5,000 withheld (the owner's rule, stricter than 運彩's per-注 one;
+  no stamp duty for members). No parlay boost and no free bets: a 運彩
+  ticket pays its odds and is paid for in full.
 - **Markets as 台灣運彩 sells them:** hockey on 60 minutes (不讓分 three
   ways, 勝分差 with 和局), 過關組合 from 2 games with 過1關, a postponed game
   void after 48 hours. Markets it doesn't sell are not made by the kit; a
@@ -52,10 +58,8 @@ Live: https://jaypengx.github.io/Quadra-Play/
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.
-- **Cash out** (`lib/cashout.mjs`), a Quadra extra (real 運彩 can't cancel,
-  cash out or edit a bet): each open pick's fair chance less the house's
-  margin, every way they can land, less 3%. Never worth more than
-  holding.
+- **A bet is final:** as at 台灣運彩, no cash out, cancel or edit (cash out
+  was removed 2026-10-21; the Worker refuses one).
 - **The proxy places and settles** (`Shared-Proxy/settle.js`):
   - Placing re-prices every pick and takes the stake, or says the price
     moved. Live bets wait 5 s.
@@ -92,7 +96,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   they paid, the lottery shows prizes, not odds.
 - 為你推薦 picks are on the team cared about, never against it.
 - Only what Taiwan can watch. Tennis and UFC were removed; no edit-slip.
-- Promotions and free bets stay under 30% of the take.
+- No promotions on the ticket: no boosts, free bets or cash out (2026-10-21).
 - Empty passive document-wide touch listeners fix iOS's double-tap. Don't
   remove them.
 - Not betting advice; real lottery tickets are 18+, and overseas betting
@@ -102,7 +106,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
 
 Most of `lib/` is the shared kit's logic (`export * from '#kit/play-*.mjs'`):
 `board`, `bets`, `odds`, `rules`, `live`, `players`, `props`, `recommend`,
-`cashout`, `lottery`, `scratch`, `teams`. Tests of other kit parts (`house`,
+`lottery`, `scratch`, `teams`. Tests of other kit parts (`house`,
 `kambi`, `lines`, `markets`, `offers`, `propmodel`, `schedules`) import
 `#kit/play-*.mjs` directly.
 
@@ -132,8 +136,8 @@ deploys to Pages.
 
 | This | Also check |
 | --- | --- |
-| A cut, rule or the boost | The kit's `truth.mjs` and `help.mjs`, `tools/economy.mjs` |
-| A market | Its settling, cash out's price |
+| A cut or rule | The kit's `truth.mjs` and `help.mjs`, `tools/economy.mjs` |
+| A market | Its settling |
 | F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports |
 | Ledger ids | Merging, the Worker's `ENTRY_APPS` and VIP stakes |
 | The slip's rules (`lib/slip.mjs`) | Shared-Proxy `price.js` `checkSlip`: the phone must say what the Worker will |

@@ -310,8 +310,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .leg-odds.down .leg-was { color: var(--bad); }
 .sl-label { padding: 0 4px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 .sl-chips { margin-top: -6px; flex-wrap: wrap; overflow: visible; }
-.sl-free-chip .pi { width: 16px; height: 16px; }
-.sl-free { display: grid; gap: 12px; }
 /* The stake: NT$ and a big number, the usual amounts a tap away. */
 .sl-stake { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--q-surface); }
 .sl-stake-field { display: grid; gap: 4px; }
@@ -329,22 +327,9 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pay-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--q-label-2); font: 400 14px/1.3 var(--q-font); }
 .pay-line span { min-width: 0; }
 .pay-line strong { flex: none; color: var(--q-label); font: 600 15px/1.3 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
-.pay-line.pay-boost strong { color: var(--good); }
-/* The parlay boost as a ladder of sizes. */
-.boost { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--q-surface); }
-.boost-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
-.boost-head strong { font: 600 15px/1.2 var(--q-font); }
-.boost.on .boost-head strong { color: var(--good); }
-.boost-head small { color: var(--q-label-2); font: var(--q-t-footnote); }
-.boost-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
-.boost-steps li { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; }
-.boost-steps li b { font: 700 13px/1 var(--q-font-rounded); }
-.boost-steps li.hit { background: var(--wash-good); color: var(--good); }
 /* The one button, the balance under it. */
 .place-row { display: grid; gap: 8px; justify-items: center; }
 .place-button { width: 100%; min-height: 52px; font-size: 17px; box-shadow: 0 14px 26px -16px var(--accent); }
-.place-button.two-line { display: grid; gap: 2px; padding-block: 6px; }
-.place-button small { font: 500 12px/1.2 var(--q-font); opacity: 0.85; }
 .place-button:disabled { box-shadow: none; opacity: 0.5; }
 .place-row > small { color: var(--q-label-2); font: var(--q-t-footnote); font-variant-numeric: tabular-nums; }
 .sl-rules { justify-self: center; font-size: 14px; }
@@ -424,7 +409,7 @@ button.pl-rec-fig { cursor: pointer; }
 .group-sum strong.back-high { color: var(--good); }
 .group-live .q-section-head h2::before { content: ''; display: inline-block; width: 9px; height: 9px; margin: 0 8px 2px 0; border-radius: 50%; background: var(--q-red); animation: pl-pulse 1.6s ease-in-out infinite; }
 .pl-slips { display: grid; gap: 12px; }
-/* A slip: what it is and how it stands, its picks, its money, its cash out. */
+/* A slip: what it is and how it stands, its picks, its money. */
 .pl-slip { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--q-surface); }
 .pl-slip.fresh { animation: pl-fresh 2.4s ease-out; }
 @keyframes pl-fresh { 0%, 35% { box-shadow: 0 0 0 2px var(--accent); } }
@@ -487,14 +472,6 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .pay-cell strong { overflow: hidden; font: 700 18px/1.2 var(--q-font-rounded); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .pay-cell strong.tint { color: var(--accent); }
 .pay-cell .pay-sub { color: var(--q-label-2); font-size: 11px; }
-/* Cash out: one big button, why it's paused and the rules under it. */
-.pl-cash { display: grid; gap: 8px; }
-.pl-cash-btn { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wash-accent); color: var(--accent); font: 600 16px/1 var(--q-font); }
-.pl-cash-btn strong { font: 700 18px/1 var(--q-font-rounded); }
-.pl-cash-btn:disabled { background: var(--q-fill-3); color: var(--q-label-2); cursor: default; }
-.pl-cash-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 0 4px; }
-.pl-cash-why { flex: 1 1 100%; color: var(--q-label-2); font: var(--q-t-footnote); }
-.pl-cash-foot .sl-link { margin-left: auto; font-size: 13px; }
 .pl-slip.recovered .pl-slip-money { border-top: 0; padding-top: 0; }
 
 /* 紀錄 › 戰績 */

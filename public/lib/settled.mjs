@@ -1,8 +1,8 @@
 // Slips placed and settled by the Worker (Shared-Proxy settle.js, /play):
 // each slip is placed there, the Worker reads each game once when it should be over,
 // pays the pass's wallet (the ledger's own ids, `payout-<slip>`: never twice)
-// and keeps each slip's results here for Play to apply. Cash out first takes
-// the slip from the Worker, so a slip is never both cashed out and settled.
+// and keeps each slip's results here for Play to apply. (No cash out since
+// 2026-10-21; a slip cashed before still comes back as `cashedOut`.)
 const PLAY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/play';
 
 let tokenOf = () => '';
@@ -51,7 +51,3 @@ export async function revealPending(account, wallet) {
 export const readSettled = async () => (await call('GET')).settled || {};
 // Applied: the Worker forgets them.
 export const ackSettled = async ids => (ids.length ? call('POST', { op: 'ack', ids }) : null);
-// Cash out at `value`: { cashedOut, wallet } (paid by the Worker),
-// { settled: record } (it was settled first) or { refused: { value } } (the
-// house's value now, null: paused).
-export const takeForCashOut = (id, value) => call('POST', { op: 'cashout', id, value });

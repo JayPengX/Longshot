@@ -49,11 +49,12 @@ export function ticketErrors({ mode, legs, sizes, stake, free = false }) {
 
 // The slip being made: `bets` (the board's, at their odds now), the mode,
 // the 過關組合 sizes chosen ('all' for 全過), the stake per combination, the
-// free bet chosen (or null) and the parlay boost's multiplier.
+// free bet chosen (or null) and the parlay boost's multiplier (none since
+// 2026-10-21: a 台灣運彩 ticket has neither; both stay for older slips' sums).
 // A free bet takes one single or one parlay whose odds together are long
 // enough; its stake is the usual one, never below the free bet, and only the
 // rest is paid from the balance.
-export function slipQuote({ bets, mode, chosen = [], stake, free = null, boost = 1 }) {
+export function slipQuote({ bets, mode, chosen = [], stake, free = null, boost = 0 }) {
   const n = bets.length;
   const legs = bets.map(ruleLeg);
   const sizes = slipSizes(mode, n, [...chosen].map(k => (k === 'all' ? n : k)));
@@ -144,7 +145,7 @@ export function dropPicks({ parlay, pickedOdds }, ids) {
 // what it costs, what every pick won pays before and after tax (a free bet's
 // stake not paid back off the after), the least any win pays, and what the
 // boost adds. Singles are one ticket each, each with its own cap and tax.
-export function payoutTotals({ legs, sizes, stake, mode, free = 0, boost = 1 }) {
+export function payoutTotals({ legs, sizes, stake, mode, free = 0, boost = 0 }) {
   const n = legs.length;
   const combos = comboCount(legs, sizes);
   const bySize = combosBySize(legs);
