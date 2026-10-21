@@ -588,7 +588,7 @@ function chip({ pressed, icon, text, count, onclick }) {
 // leagues in a second row.
 function renderSportFilter() {
   const t = state.t;
-  const present = new Set([...state.bets, ...state.futures].map(b => b.sport));
+  const present = new Set([...state.bets, ...state.futures, ...state.liveGames].map(b => b.sport));
   const groups = Object.keys(SPORT_GROUPS).filter(g => SPORT_GROUPS[g].leagues.some(l => present.has(l)));
   const valid = state.sport === 'all' || (state.sport.startsWith('g:') && groups.includes(state.sport.slice(2))) || present.has(state.sport);
   if (!valid) state.sport = 'all';
@@ -615,11 +615,8 @@ function renderSportFilter() {
 // A kind of sport's picture: its one league's logo, else its glyph.
 // A kind of sport shows its own art: the kit's sport glyph when it has one, else its
 // lead league's logo (MLB for 棒球, NBA for 籃球), never one ball for every sport.
-const groupIcon = g => {
-  if (kitUI.icons[`sport_${g}`]) return kitGlyph(kitUI, `sport_${g}`, 'chip-glyph');
-  const lead = SPORT_GROUPS[g].leagues.find(l => leagueLogo(l));
-  return lead ? leagueImg(lead, 'logo-xs') : kitGlyph(kitUI, SPORT_GROUPS[g].icon, 'chip-glyph');
-};
+// Each kind's own ball, never one league's logo standing in for the sport.
+const groupIcon = g => icon(`sport_${g}`, 'chip-glyph');
 // A sideways row keeps its chosen chip in view.
 function keepInView(row) {
   const on = row?.querySelector('[aria-pressed="true"]');
@@ -888,10 +885,15 @@ function drawGames() {
   const byGame = groupBy(state.bets, b => b.gameId);
   const games = (searching ? searchGames() : state.data.games.filter(g => inSport(g.sport) && startDay(g.startUtc) === state.day)).filter(g => byGame.get(g.id));
   if (searching) {
+    // One card per league with its name above, as the day's list has, never
+    // every league's games crammed into one card (Jay 2026-10-21).
     container.replaceChildren(
-      games.length
-        ? gameSection(el('span', { text: t('searchResults', { q: state.query, n: games.length }) }), null, games.map(g => gameRow(g, byGame.get(g.id), { league: true, day: true })))
-        : kitUI.empty({ title: t('searchNone') })
+      ...(games.length
+        ? [
+            el('p', { class: 'pl-search-n', text: t('searchResults', { q: state.query, n: games.length }) }),
+            ...[...groupBy(games, g => g.sport).entries()].map(([sport, list]) => gameSection([leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })], list.length, list.map(g => gameRow(g, byGame.get(g.id), { day: true }))))
+          ]
+        : [kitUI.empty({ title: t('searchNone') })])
     );
     return;
   }
