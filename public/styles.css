@@ -437,7 +437,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .st-badge { position: relative; overflow: hidden; gap: 6px; min-height: 132px; }
 .st-badge .q-tile { margin-bottom: 2px; }
 .st-badge-name { font: 600 15px/1.25 var(--q-font); }
-.st-badge small { display: -webkit-box; overflow: hidden; color: var(--q-label-2); font: var(--q-t-caption); -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.st-badge small { display: block; margin-bottom: 10px; overflow: visible; white-space: normal; color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
 .st-badge:not(.done) { color: var(--q-label-2); }
 .st-progress { position: relative; display: block; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 2px; background: var(--q-fill-3); }
 .st-progress::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 2px; background: var(--gold); }
