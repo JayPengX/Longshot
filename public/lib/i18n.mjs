@@ -1,4 +1,5 @@
 import { makeT as kitMakeT } from '#kit/lang.mjs';
+import { CATALOG, SPORTS } from '#kit/catalog.mjs';
 export const STRINGS = {
   zh: {
     marketsN: '{n} 玩法', marketsOne: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payLeastShort: '有中最少',
@@ -831,5 +832,16 @@ export const STRINGS = {
   }
 };
 
-// t(key, vars) in a language: the kit's makeT over Play's words.
-export const makeT = locale => kitMakeT(STRINGS, locale);
+// t(key, vars) in a language: the kit's makeT over Play's words. A league or
+// sport with no word here yet reads as the catalogue names it, never as its
+// key ("sport_snooker" showed on the home page).
+export const makeT = locale => {
+  const t = kitMakeT(STRINGS, locale);
+  return (key, vars) => {
+    const out = t(key, vars);
+    const m = out === key && /^(sport|group)_(.+)$/.exec(key);
+    if (!m) return out;
+    const named = CATALOG[m[2]] ?? Object.values(CATALOG).find(x => x.bet === m[2] || x.sport === m[2]) ?? SPORTS[m[2]];
+    return named ? (locale === 'en' ? named.en : named.zh) : '';
+  };
+};

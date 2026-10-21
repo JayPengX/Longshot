@@ -1262,6 +1262,11 @@ function rebuildBoard() {
   requestAnimationFrame(() => {
     rebuildQueued = false;
     state.bets = buildBets(state.data);
+    // (Golf's 冠軍 boards: their players and tournament as names come in.)
+    if (state.data.futures?.some(f => f.sport === 'golf')) {
+      state.futures = buildFutures(state.data);
+      renderFutures();
+    }
     if (state.liveData) {
       const live = buildLiveBets(state.liveData);
       state.liveGames = live.games;
@@ -1273,6 +1278,7 @@ function rebuildBoard() {
     renderParlay();
     renderSlipBar();
     syncPicks();
+    if (state.tab === 'home') drawHome();
   });
 }
 // The game a pick on the slip is on (its id starts with the game's).
@@ -3622,6 +3628,7 @@ async function load() {
       if (futures) {
         const keys = new Set(fresh.futures.map(f => f.key));
         fresh.futures = [...fresh.futures, ...futures.filter(f => !keys.has(f.key))];
+        warmGolf(futures);
       }
       state.data = fresh;
       state.fromSnapshot = false;
@@ -3642,6 +3649,7 @@ async function load() {
         extraFutures.then(async more => {
           const keys = new Set(state.data.futures.map(f => f.key));
           state.data.futures = [...state.data.futures, ...more.filter(f => !keys.has(f.key))];
+          warmGolf(more);
           renderAllSliced();
           saveSnapshot();
           await loadFutureTeams(state.data.futures).catch(() => {});
@@ -3661,6 +3669,7 @@ async function load() {
       if (!futures.length || !state.data) return;
       const keys = new Set(state.data.futures.map(f => f.key));
       state.data.futures = [...state.data.futures, ...futures.filter(f => !keys.has(f.key))];
+      warmGolf(futures);
     };
     await renderAllSliced();
     if (state.wantSlip) ((state.wantSlip = false), openSlip());
