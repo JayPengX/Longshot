@@ -6,6 +6,7 @@ import * as kit from '#kit/quadra.mjs';
 import * as kitBoard from '#kit/play-board.mjs';
 import * as kitUI from '#kit/ui.mjs';
 import * as kitTeams from '#kit/play-teams.mjs';
+import * as kitNames from '#kit/names.mjs';
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, balance, newSlipId, placeSlip, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
@@ -13,7 +14,7 @@ import { useSettleToken, readSettled, ackSettled, placeSlips, revealPending } fr
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
-import { icon, kitGlyph } from './icons.js';
+import { icon, kitGlyph, hasIcon } from './icons.js';
 
 import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
 import { pack, unpack } from './lib/codec.mjs';
@@ -213,9 +214,15 @@ function fmtTime(iso) {
   ).format(new Date(iso));
 }
 
+// (A player's or another sport's side Taiwan has no name for in the kit's
+// lists: its Chinese once the kit has read it, names.mjs warm.)
 function teamName(team) {
-  return state.locale === 'zh' ? team.zh : team.en;
+  if (state.locale !== 'zh') return playerShort(team.en) ?? team.en;
+  return team.zh && team.zh !== team.en ? team.zh : (kitNames.nameZh?.(team.en, 'p') ?? kitNames.nameZh?.(team.en, 'team') ?? playerShort(team.en) ?? team.zh ?? team.en);
 }
+// A player with no Chinese yet (or in English): by surname, a pair by both,
+// as a ticket prints them (a whole "A. Paulson/N. Serdarusic" was cut on a small phone).
+const playerShort = en => (kitNames.isPlayer?.(en) ? kitNames.shortPlayer(en) : null);
 
 // ---- Bets -------------------------------------------------------------------
 
@@ -238,6 +245,10 @@ function shortTeamName(sport, en, fallback) {
   return zh?.short && zh.short !== zh.full ? EN_TWO_WORD.exec(en)?.[1] || en.split(' ').pop() : fallback;
 }
 
+// A draw's name in the reader's words: Chinese (女雙), or BWF's own short
+// English (WD; "Women Doubles" was cut on a small phone).
+const DRAW_EN = { 'men singles': 'MS', 'women singles': 'WS', 'men doubles': 'MD', 'women doubles': 'WD', 'mixed doubles': 'XD' };
+const sideEvent = group => (state.locale === 'zh' ? (kitNames.eventZh?.([group]) ?? group) : DRAW_EN[group.toLowerCase()] ?? group);
 // Which competition a game is in: its league, and for tours and cups the
 // event (Kambi's group: "Chengdu", "Italy Serie A" …).
 function gameSeries(game) {
@@ -246,7 +257,7 @@ function gameSeries(game) {
   const plain = ['baseball', 'basketball'].includes(familyOf(game.sport));
   // (Against its English name too: Kambi's "K-League 1" is the league, not a stage, in Chinese as well.)
   const same = name => [league, STRINGS.en?.[`sport_${game.sport}`]].some(x => x && normalizeTeamName(x).replace(/[\s-]/g, '') === normalizeTeamName(name).replace(/[\s-]/g, ''));
-  const event = game.group && !plain && !same(game.group) ? game.group : null;
+  const event = game.group && !plain && !same(game.group) ? (isSideSport(game.sport) ? sideEvent(game.group) : game.group) : null;
   return event ? `${league} · ${event}` : league;
 }
 
@@ -560,7 +571,9 @@ const SPORT_GROUPS_ALL = {
   soccer: { icon: 'ball', leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === 'soccer' && !LEAGUES[key].off) },
   football: { icon: 'flag', leagues: ['nfl', 'ncaaf'] },
   hockey: { icon: 'target', leagues: ['nhl'] },
-  f1: { icon: 'flag', leagues: ['f1'] }
+  f1: { icon: 'flag', leagues: ['f1'] },
+  // The sports 台灣運彩 sells besides the leagues (the kit's catalogue), each its own chip.
+  ...Object.fromEntries(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal'].map(g => [g, { leagues: Object.keys(LEAGUES).filter(key => LEAGUES[key].family === g) }]))
 };
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
@@ -781,7 +794,40 @@ function keptPic(key, make) {
 function logoImg(sport, enName, label, size = '') {
   return keptPic(`team|${sport}|${enName}|${label}|${size}`, () => drawLogo(sport, enName, label, size));
 }
+// The sports 台灣運彩 sells besides the leagues (the kit's catalogue): a
+// player's headshot or their country's flag, a national side's flag, a
+// pair as two; otherwise no picture at all, never an initial or a shield.
+const SIDE_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugby', 'futsal']);
+const isSideSport = sport => SIDE_SPORTS.has(familyOf(sport));
+const noPic = size => el('span', { class: `logo logo-none ${size}`, 'aria-hidden': 'true' });
+// The same as an address, for the kit's tiles (home's cards): a club's logo,
+// a country's flag, a player's picture found before (the first partner's in
+// doubles); one not looked for yet is, and home redrawn once it's in.
+let sidePicsAsked = false;
+function sidePicUrl(sport, en) {
+  for (const name of String(en || '').split('/').map(x => x.trim()).filter(Boolean)) {
+    const code = countryCode(name);
+    const url = teamLogo(sport, name) ?? (code ? flagUrl(code) : null) ?? kitPhotos.knownPhoto(name, familyOf(sport));
+    if (url) return url;
+    if (kitPhotos.knownPhoto(name, familyOf(sport)) === undefined)
+      kitPhotos.findPhoto(name, sport).then(found => {
+        if (!found || sidePicsAsked) return;
+        sidePicsAsked = true;
+        requestAnimationFrame(() => ((sidePicsAsked = false), state.tab === 'home' && drawHome()));
+      });
+  }
+  return null;
+}
+function drawSide(sport, enName, size) {
+  const names = String(enName || '').split('/').map(x => x.trim()).filter(Boolean);
+  if (names.length > 1) return el('span', { class: `logo logo-pair ${size}`, 'aria-hidden': 'true' }, names.slice(0, 2).map(n => drawSide(sport, n, '')));
+  const code = countryCode(enName);
+  const club = teamLogo(sport, enName);
+  if (club || code) return logoPicture(club ?? flagUrl(code), null, `logo ${club ? '' : 'player-flag '}${size}`, () => noPic(size));
+  return kitPhotos.personPhoto(enName, sport, { cls: `logo ${size}`, fallback: () => noPic(size) });
+}
 function drawLogo(sport, enName, label, size) {
+  if (isSideSport(sport)) return drawSide(sport, enName, size);
   // A national team's flag; else one character: a Chinese name's first
   // character, or an English initial.
   const flag = countryFlag(enName);
@@ -802,8 +848,10 @@ function leagueImg(sport, size = '') {
   return keptPic(`league|${sport}|${size}`, () => drawLeague(sport, size));
 }
 function drawLeague(sport, size) {
-  const icon = LEAGUES[sport]?.icon;
-  const fallback = () => (icon ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ball')]) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
+  // A sport with no league logo (tennis, snooker…): its own ball, drawn.
+  if (!leagueLogo(sport) && hasIcon(`sport_${familyOf(sport)}`)) return el('span', { class: `league-badge glyph ${size}` }, icon(`sport_${familyOf(sport)}`, 'league-glyph'));
+  const own = LEAGUES[sport]?.icon;
+  const fallback = () => (own ? el('span', { class: 'league-img league-icon', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'ball')]) : el('span', { class: 'league-img league-missing', 'aria-hidden': 'true' }));
   return el('span', { class: `league-badge ${size}` }, logoPicture(leagueLogo(sport), leagueLogo(sport, true), 'league-img', fallback));
 }
 
@@ -985,7 +1033,10 @@ function gameRow(game, bets, { league = false, day = false } = {}) {
     const bet = ml.find(b => b.side === side);
     if (side === 'draw') return bet ? el('div', { class: 'pl-team draw' }, [el('span', { class: 'pl-draw-mark', 'aria-hidden': 'true', text: '=' }), el('span', { class: 'pl-team-name', text: t('draw') }), cell(bet)]) : null;
     const score = game.live ? el('span', { class: `pl-score${scoreMoved(`${game.id}|${side}`, game.live[`${side}Score`]) ? ' moved' : ''}`, text: String(game.live[`${side}Score`]) }) : null;
-    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), el('span', { class: 'pl-team-name q-fit', text: rowTeam(game, side) }), score, cell(bet)]);
+    // (A doubles pair: a partner a line, as tennis writes them.)
+    const name = rowTeam(game, side);
+    const pair = isSideSport(game.sport) && name.includes('/') ? name.split('/') : null;
+    return el('div', { class: 'pl-team' }, [logoImg(game.sport, game[side].en, teamName(game[side]), 'logo-sm'), pair ? el('span', { class: 'pl-team-name pl-pair' }, pair.map(p => el('span', { class: 'q-fit', text: p }))) : el('span', { class: 'pl-team-name q-fit', text: name }), score, cell(bet)]);
   });
   const n = marketCount(bets.filter(b => !b.lock));
   // (Its stage only: with the league's logo beside it, the league's name again was cut to "Cham…" on a small phone.)
@@ -1039,7 +1090,8 @@ function gameDetail(game, bets) {
   return el('div', { class: 'gs' }, [
     // sheetHero: the two logos, the time (or score) big, the matchup under it.
     kitUI.sheetHero({
-      logos: [left, right].map(s => teamUrl(game.sport, game[s].en)),
+      // (The other sports' players: their faces or flags, or nothing, never a shield.)
+      ...(isSideSport(game.sport) ? { logo: el('span', { class: 'gs-faces' }, [left, right].map(s => drawSide(game.sport, game[s].en, 'logo-lg'))) } : { logos: [left, right].map(s => teamUrl(game.sport, game[s].en)) }),
       eyebrow: game.live ? liveStateText(game.live) : `${dayLabel(day)} ${m}/${d}`,
       big: game.live ? `${game.live[`${left}Score`]} : ${game.live[`${right}Score`]}` : game.timeTbd ? TBD[state.locale === 'zh' ? 'zh' : 'en'] : hhmm(game.startUtc),
       sub: [left, right].map(s => shortTeamName(game.sport, game[s].en, teamName(game[s]))).join(' vs '),
@@ -1606,6 +1658,7 @@ async function readLive(asked) {
     const { games, bets } = buildLiveBets(data);
     state.liveRecs = recommend(bets);
     state.liveGames = games;
+    warmSides(games);
     state.liveBets = bets;
     state.liveAt = data.loadedAt;
     // A live pick whose line is gone (the game moved on, or ended) leaves the slip.
@@ -3195,9 +3248,23 @@ function f1Board() {
 
 // ---- Boot ---------------------------------------------------------------------
 
+// The other sports' players and sides read into Chinese (the kit's
+// translate, kept on the phone), the board redrawn as they come in.
+kitNames.useTranslator?.(kit.translate);
+kitNames.onNames?.(() => {
+  if (state.data && !state.fromBoard) return rebuildBoard();
+  if (!state.liveData) return;
+  const live = buildLiveBets(state.liveData);
+  state.liveGames = live.games;
+  state.liveBets = live.bets;
+  renderLive();
+});
+const sideOf = x => (typeof x === 'string' ? { en: x } : x);
+const warmSides = games => state.locale === 'zh' && kitNames.warm?.(games.filter(g => isSideSport(g.sport)).map(g => ({ ...g, home: sideOf(g.home), away: sideOf(g.away), event: g.group ? [g.group] : [] })), { wait: 0 });
 function renderAll() {
   renderStatic();
   if (!state.data) return;
+  warmSides(state.data.games);
   if (state.fromBoard) {
     // The proxy's board: its picks are already priced and tagged (nothing to
     // price here, no futures); the full read replaces them whole.
@@ -3934,7 +4001,9 @@ function homeCtx() {
   const lotteryOpen = id => (showTab('lottery'), lotteryUi?.openGame?.(id));
   return {
     openSearch, effectiveOdds,
-    logoUrl: (sport, en) => (/\//.test(en || '') ? null : teamLogo(sport, en) ?? findTeamLogo(futureTeamLeagues(sport), en) ?? (countryCode(en) ? flagUrl(countryCode(en)) : null)),
+    // (The other sports' sides: a face or flag found, else no picture: logoKind.)
+    logoKind: sport => (isSideSport(sport) ? 'none' : undefined),
+    logoUrl: (sport, en) => isSideSport(sport) ? sidePicUrl(sport, en) : (/\//.test(en || '') ? null : teamLogo(sport, en) ?? findTeamLogo(futureTeamLeagues(sport), en) ?? (countryCode(en) ? flagUrl(countryCode(en)) : null)),
     leagueUrl: sport => leagueLogo(sport),
     lotteryHome, lotteryOpen, showTickets,
     openSlip: () => openSlip(),

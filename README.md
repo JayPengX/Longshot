@@ -52,9 +52,16 @@ Live: https://jaypengx.github.io/Quadra-Play/
   半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
   總進球數); soccer no 和局退款, its 讓分 three ways on whole goals (主-1 /
   讓分和 / 客+1, `hcap3`), no Asian half-goal line; baseball [第1局]大小, [第1局]不讓分 and
-  [1-5局]讓分 in place of 首局得分. Tennis, volleyball, badminton, table
-  tennis and esports (單盤不讓分, 讓盤, 讓局, 大小, 正確比數) are named and
-  settle but have no league on the board yet.
+  [1-5局]讓分 in place of 首局得分. The rest of 運彩's 玩法 list from Kambi: tennis (the ATP and WTA tours
+  and the Slams), volleyball, badminton, table tennis (WTT, ITTF) and esports
+  (League of Legends, Counter-Strike's top events) with 單盤不讓分, 讓盤,
+  讓局, 大小 and 正確比數 where Kambi prices them, settled on the sets; snooker
+  (撞球), darts, rugby (winner, a draw void) and handball and futsal (three
+  ways, futsal's 大小 too), settled on Kambi's last score. Players by
+  surname in Chinese (the kit's names.mjs, Google's reading kept on the
+  phone), a doubles pair a partner a line; a headshot (ESPN, TheSportsDB) or
+  their country's flag, else no picture. Not yet: golf, MotoGP, MMA, boxing
+  and cricket (no result to settle on).
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.

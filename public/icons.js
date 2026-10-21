@@ -13,6 +13,16 @@ const ICONS = {
   sport_soccer: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="m12 7.8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2zM12 3.5v4.3M20.3 10.1l-4.7.3M17 19l-2.8-4.4M7 19l2.8-4.4M3.7 10.1l4.7.3" ${S}/>`),
   sport_football: SVG(`<path d="M5 19C4 14 6 8 10 6s8.6-1.6 9 -1c.4 .4 1 5-1 9s-8 6-13 5z" ${S}/><path d="M9.5 14.5l5-5M10.8 10.8l1.4 1.4M12.6 9l1.4 1.4M9 12.6l1.4 1.4" ${S}/>`),
   sport_hockey: SVG(`<ellipse cx="12" cy="9.5" rx="8.5" ry="3.5" ${S}/><path d="M3.5 9.5v5c0 1.9 3.8 3.5 8.5 3.5s8.5-1.6 8.5-3.5v-5" ${S}/>`),
+  sport_tennis: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="M4.4 8.2c2.9 1 4.6 2.3 4.6 3.8s-1.7 2.8-4.6 3.8M19.6 8.2c-2.9 1-4.6 2.3-4.6 3.8s1.7 2.8 4.6 3.8" ${S}/>`),
+  sport_volleyball: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="M12 3.5c0 4 1.5 7 4.5 8.5M12 12c-3.5 1.5-6 1.5-8.2-.2M12 12c.5 3.8 2.5 6.6 5.6 7.6" ${S}/>`),
+  sport_badminton: SVG(`<path d="M9.2 14.5 5 3.5h14l-4.2 11z" ${S}/><path d="M8 9h8M12 3.5v11" ${S}/><circle cx="12" cy="17.8" r="2.7" ${S}/>`),
+  sport_tabletennis: SVG(`<circle cx="10" cy="10" r="6.5" ${S}/><path d="M14.6 14.6 20 20" ${S}/><circle cx="18.6" cy="5.6" r="1.8" ${S}/>`),
+  sport_esports: SVG(`<path d="M7 8h10a4 4 0 0 1 4 4.5l-.6 4a2.4 2.4 0 0 1-4.2 1.1L14.5 16h-5l-1.7 1.6a2.4 2.4 0 0 1-4.2-1.1l-.6-4A4 4 0 0 1 7 8z" ${S}/><path d="M8 11v3M6.5 12.5h3M15.5 12h.01M17.5 13.5h.01" ${S}/>`),
+  sport_snooker: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><circle cx="12" cy="12" r="3.6" ${S}/><path d="M12 10.4v3.2" ${S}/>`),
+  sport_darts: SVG(`<circle cx="11" cy="13" r="8" ${S}/><circle cx="11" cy="13" r="4" ${S}/><path d="M11 13l9-9M17 4h3v3" ${S}/>`),
+  sport_handball: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="M12 3.5l2.5 5.5h-5zM20 10l-5.5 1M4 10l5.5 1M8 19l2-5M16 19l-2-5" ${S}/>`),
+  sport_rugby: SVG(`<ellipse cx="12" cy="12" rx="9" ry="5.5" transform="rotate(-35 12 12)" ${S}/><path d="M8.5 15.5l7-7M10.5 11.5l2 2M12.5 9.5l2 2" ${S}/>`),
+  sport_futsal: SVG(`<circle cx="12" cy="12" r="8.5" ${S}/><path d="m12 7.8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2zM12 3.5v4.3M20.3 10.1l-4.7.3M17 19l-2.8-4.4M7 19l2.8-4.4M3.7 10.1l4.7.3" ${S}/>`),
   sport_f1: SVG(`<path d="M6 21V4" ${S}/><path d="M6 4h12v9H6" ${S}/><path d="M6 4h3v3H6zM12 4h3v3h-3zM9 7h3v3H9zM15 7h3v3h-3zM6 10h3v3H6zM12 10h3v3h-3z" fill="currentColor"/>`),
   // The boards F1's marshals and screens show.
   f1sc: SVG('<rect x="1" y="5" width="30" height="22" rx="4" fill="#facc15"/><text x="16" y="21" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="13" font-weight="900" fill="#111">SC</text>', '0 0 32 32'),
@@ -30,6 +40,7 @@ const ICONS = {
   gift: SVG(`<rect x="3.5" y="9" width="17" height="11.5" rx="2" ${LINE}/><path d="M2.5 9h19M12 9v11.5M12 9c-1.5-3.5-6-4.5-6-1.5C6 9 9 9 12 9zm0 0c1.5-3.5 6-4.5 6-1.5C18 9 15 9 12 9z" ${LINE}/>`)
 };
 
+export const hasIcon = name => Boolean(ICONS[name]);
 export function icon(name, cls = '') {
   const span = document.createElement('span');
   span.className = `pi pi-${name}${cls ? ` ${cls}` : ''}`;
