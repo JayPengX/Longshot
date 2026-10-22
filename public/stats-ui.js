@@ -6,6 +6,7 @@ import { gameName } from './lib/lottery.mjs';
 import { CARDS } from './lib/scratch.mjs';
 import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
 import { vipStatus, vipName, VIP, tell } from '#kit/quadra.mjs';
+import * as kitUI from '#kit/ui.mjs';
 
 const T = {
   zh: {
@@ -91,7 +92,7 @@ export function mountStats(ctx) {
     const total = list.reduce((s, w) => s + w.amount, 0);
     const biggest = [...list].sort((a, b) => b.amount - a.amount);
     const rerender = () => render(root);
-    const section = (title, body, sub = '') => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title }), sub ? el('span', { class: 'pl-count', text: sub }) : null]), body]);
+    const section = (title, body, sub = '') => kitUI.section(title, body, { action: sub ? el('span', { class: 'pl-count', text: sub }) : null });
     const chips = el('div', { class: 'q-chips pl-chips', role: 'group' }, Object.keys(PERIODS).map(key => el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(period === key), text: t(key), onclick: () => ((state.statsPeriod = key), rerender()) })));
     // What's been won in the period, big, with its rhythm under it.
     const hero = el('section', { class: 'q-ambient st-total' }, [

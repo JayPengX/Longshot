@@ -340,7 +340,7 @@ export function renderHome(ctx) {
   };
 
   const section = (title, body, more = null, count = null, panel = false) =>
-    el('section', { class: `q-section${panel ? ' pl-panel' : ''}` }, [kitUI.sectionHead(title, { more: more ? T.seeAll : '', onMore: more, count }), body]);
+    kitUI.section(title, body, { shd: true, more: more ? T.seeAll : '', onMore: more, count, cls: panel ? 'pl-panel' : '' });
   const half = s => (s.classList.add('pl-half'), s);
 
   // 4 為你推薦: a rail of cards.

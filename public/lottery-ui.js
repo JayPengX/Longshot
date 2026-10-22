@@ -215,7 +215,7 @@ export function mountLottery(ctx) {
       el('span', { class: 'q-hc-row' }, [el('span', { class: 'q-hc-btn', text: t('pickNow') })])
     ]);
     const open = (ctx.getAccount().tickets || []).filter(x => x.card && x.status === 'open');
-    const section = (title, body) => el('section', { class: 'q-section' }, [el('div', { class: 'q-section-head' }, [el('h2', { text: title })]), body]);
+    const section = (title, body) => kitUI.section(title, body);
     root.replaceChildren(
       hero,
       section(t('draws'), drawGames(leadId)),
@@ -552,7 +552,7 @@ export function mountLottery(ctx) {
       const plays = Object.keys(g.plays);
       return el('div', { class: 'lotto-pick' }, [
         // One play (3星彩 and 4星彩 since 2024): nothing to choose.
-        plays.length > 1 ? el('div', { class: 'q-seg small', role: 'group' }, plays.map(p => el('button', { type: 'button', 'aria-pressed': String(sel.play === p), text: playName(g, p), onclick: () => ((sel.play = p), paint()) }))) : null,
+        plays.length > 1 ? kitUI.pickSeg(plays.map(p => [p, playName(g, p)]), sel.play, p => ((sel.play = p), paint()), { cls: 'small', seg: true }) : null,
         el(
           'div',
           { class: 'digit-row' },
@@ -569,7 +569,7 @@ export function mountLottery(ctx) {
     if (g.combo) {
       const sizes = Object.keys(g.combo.sizes).map(Number);
       return el('div', { class: 'lotto-pick' }, [
-        el('div', { class: 'q-seg small', role: 'group' }, sizes.map(z => el('button', { type: 'button', 'aria-pressed': String(sel.size === z), text: COMBO_NAME[lang][z], onclick: () => ((sel.size = z), paint()) }))),
+        kitUI.pickSeg(sizes.map(z => [z, COMBO_NAME[lang][z]]), sel.size, z => ((sel.size = z), paint()), { cls: 'small', seg: true }),
         numberGrid(g.combo.max, sel.numbers, comboMax(g), paint, { last: lastOf(id), bet: sel.size }),
         lastLegend()
       ]);
