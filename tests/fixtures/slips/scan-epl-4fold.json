@@ -1,0 +1,78 @@
+{
+ "isSlip": true,
+ "picks": [
+  {
+   "sport": "soccer",
+   "league": "epl",
+   "teams": [
+    "切爾西",
+    "艾佛頓"
+   ],
+   "teamsEn": [
+    "Chelsea",
+    "Everton"
+   ],
+   "kind": "ml",
+   "pick": "切爾西",
+   "odds": 2.1,
+   "date": null,
+   "line": null
+  },
+  {
+   "sport": "soccer",
+   "league": "epl",
+   "teams": [
+    "伊普斯維奇",
+    "曼城"
+   ],
+   "teamsEn": [
+    "Ipswich Town",
+    "Manchester City"
+   ],
+   "kind": "ml",
+   "pick": "曼城",
+   "odds": 1.17,
+   "date": null,
+   "line": null
+  },
+  {
+   "sport": "soccer",
+   "league": "epl",
+   "teams": [
+    "利物浦",
+    "布倫特福德"
+   ],
+   "teamsEn": [
+    "Liverpool",
+    "Brentford"
+   ],
+   "kind": "ml",
+   "pick": "布倫特福德",
+   "odds": 2.15,
+   "date": null,
+   "line": null
+  },
+  {
+   "sport": "soccer",
+   "league": "epl",
+   "teams": [
+    "赫爾城",
+    "富勒姆"
+   ],
+   "teamsEn": [
+    "Hull City",
+    "Fulham"
+   ],
+   "kind": "ml",
+   "pick": "富勒姆",
+   "odds": 1.5,
+   "date": null,
+   "line": null
+  }
+ ],
+ "combos": [
+  "4串1"
+ ],
+ "stakePer": 700,
+ "total": 700
+}

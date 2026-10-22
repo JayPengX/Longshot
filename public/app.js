@@ -15,7 +15,8 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon, kitGlyph } from './icons.js';
 
-import { othersBalance, installGate, watchUpdates, passSession, tabBar, topActions, recordAffinity, affinityPatch, notify, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from './kit/core.mjs';
+import { othersBalance, installGate, watchUpdates, tabBar, topActions, recordAffinity, affinityPatch, notify, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from './kit/core.mjs';
+import { q } from './lib/session.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord, monthsOf, slipMonth } from './lib/history.mjs';
 import { makeT, STRINGS } from './lib/i18n.mjs';
@@ -2243,7 +2244,7 @@ function payLine(label, value, cls = '') {
 // at once); its ledger's entries go to the pass's wallet, and the rest of the
 // wallet (the opening money, the Mondays') is money to bet with too.
 
-const q = passSession('odds', { lang: state.locale });
+
 let lotteryUi = null;
 let statsUi = null;
 useSourcesSession(q);
@@ -3732,15 +3733,16 @@ async function load() {
 
 // ---- Tabs ---------------------------------------------------------------------
 
-// Four tabs; the slip (投注單) is a sheet over any of
-// them, opened from the bar above the tab bar (openSlip).
-const TABS = ['home', 'games', 'lottery', 'history'];
+// Five tabs; the slip (投注單) is a sheet over any of them, opened from the
+// bar above the tab bar (openSlip). 注單 is the real tickets you bought
+// (slips/slips.mjs, loaded the first time it opens).
+const TABS = ['home', 'games', 'lottery', 'slips', 'history'];
 
 function tabAvailable() {
   return true;
 }
 
-const TAB_ICONS = { home: 'home', games: 'calendar', lottery: 'balls', history: 'history' };
+const TAB_ICONS = { home: 'home', games: 'calendar', lottery: 'balls', slips: 'ticket', history: 'history' };
 
 // A sheet of the kit's under the id the app addresses it by (#slip-sheet, #game-sheet): built on open, gone on close.
 function kitSheet(id, { title, cls, body, onClose }) {
@@ -3862,6 +3864,12 @@ function collapseAll() {
   }
 }
 
+// 注單: its module, loaded and started the first time the tab opens.
+let slipsMod = null;
+function showSlips() {
+  slipsMod ??= import('./slips/slips.mjs').then(m => (m.mountSlips(), m));
+}
+
 function showTab(tab) {
   // Going anywhere (a bet placed, a tab tapped) puts the slip away.
   closeSlip();
@@ -3876,6 +3884,7 @@ function showTab(tab) {
   if (tab === 'games' && gamesStale && state.data) renderGames();
   if (tab === 'lottery') lotteryUi?.render();
   if (tab === 'history') renderStats();
+  if (tab === 'slips') showSlips();
   // The tab's live games and open bets, now rather than at the next beat
   // (紀錄's results read at once on opening it: no button to ask for them).
   livePulse({ force: tab === 'history' });
@@ -3886,7 +3895,7 @@ $('game-search').addEventListener('input', event => {
   state.query = event.target.value.trim();
   if (state.data) renderGames();
 });
-// Another app's slip handed over (Slips' 「到 Play 下注」):
+// A ticket of 注單's put on the play-money slip (its 「用模擬金下注」):
 // #slip=<base64url of UTF-8 JSON {legs:[{league, home, away, start, kind, side, line, gameId?}]}>.
 // Each leg is found on today's board and priced here: its odds sent along
 // are never used, a leg off sale is left out, a moved line takes today's.
@@ -3977,7 +3986,7 @@ window.addEventListener('resize', () => {
 });
 
 // Top right: refresh, then the account.
-actions = topActions(q, { refresh: load });
+actions = topActions(q, { refresh: () => (state.tab === 'slips' ? slipsMod?.then(m => m.refreshSlips()) : load()) });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
 // fit its box (the kit's fitNumbers), instead of wrapping onto a second row

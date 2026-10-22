@@ -1,0 +1,2276 @@
+/* 注單 (slips/slips.mjs) on kit/core.css (the tokens, sheets, segmented
+   controls, chips and the premium layer: hero card, tiles, row cards, tags,
+   stats). What's here is the tab's own, by screen: the frame, 注單 (the
+   hero, a ticket's card), 戰績, the sheets (a ticket, adding one, picking a
+   bet). Every rule is kept inside .sl-app (the tab and its sheets), so its
+   short class names never reach the rest of the app. */
+
+/* ---- Frame ---- */
+.sl-app {
+  margin: 0;
+  font: var(--q-t-body);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.sl-app input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* 注單 and 戰績 inside the tab (the page's column already sets the width and gutters). */
+.sl-app .sl-panel,
+.sl-panel.sl-app {
+  --q-margin: var(--q-gutter, 16px);
+  box-sizing: border-box;
+  padding-bottom: 32px;
+}
+.sl-app .sl-views {
+  margin: 4px 0 16px;
+}
+.sl-app .sl-panel[hidden],
+.sl-panel[hidden].sl-app {
+  display: none;
+}
+.sl-app .num,
+.num.sl-app {
+  font-variant-numeric: tabular-nums;
+}
+.sl-app .up,
+.up.sl-app {
+  color: var(--q-good);
+}
+.sl-app .down,
+.down.sl-app {
+  color: var(--q-bad);
+}
+.sl-app .sl-count,
+.sl-count.sl-app {
+  color: var(--q-label-2);
+  font: 600 15px/1 var(--q-font);
+}
+.sl-app .sl-count.up,
+.sl-count.up.sl-app {
+  color: var(--q-good);
+}
+.sl-app .sl-count.down,
+.sl-count.down.sl-app {
+  color: var(--q-bad);
+}
+.sl-app .sl-h,
+.sl-h.sl-app {
+  margin: 24px 4px 8px;
+  font: 700 17px/22px var(--q-font);
+}
+.sl-app .sl-foot,
+.sl-foot.sl-app {
+  margin: 6px 4px 0;
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+}
+.sl-app .q-section-head h2,
+.q-section-head.sl-app h2 {
+  font: 700 20px/25px var(--q-font);
+}
+.sl-app .q-ritem-value.up,
+.q-ritem-value.up.sl-app {
+  color: var(--q-good);
+}
+.sl-app .q-ritem-value.down,
+.q-ritem-value.down.sl-app {
+  color: var(--q-bad);
+}
+.sl-app .live-dot,
+.live-dot.sl-app {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: sl-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sl-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+.sl-app .logo,
+.logo.sl-app {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.sl-app .logo.none:not(.q-logo),
+.logo.none:not(.q-logo).sl-app {
+  border-radius: 50%;
+  background: var(--q-fill-3);
+}
+.sl-app .flash,
+.flash.sl-app {
+  animation: sl-flash 0.9s var(--q-ease);
+}
+@keyframes sl-flash {
+  25% {
+    transform: scale(1.3);
+    color: var(--q-orange);
+  }
+}
+
+/* A settled ticket's row: on the narrowest phones, a smaller tile so its kind fits whole. */
+@media (max-width: 359px) {
+  .sl-app .sl-row,
+.sl-row.sl-app {
+    gap: 10px;
+    --q-ritem-sep: 54px;
+  }
+  .sl-app .sl-row > .q-tile,
+.sl-row.sl-app > .q-tile {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .sl-app .sl-row > .q-tile svg,
+.sl-row.sl-app > .q-tile svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ---- 戰績 ---- */
+.sl-app .st-range,
+.st-range.sl-app {
+  margin: 0 0 16px;
+}
+.sl-app .st-range[hidden],
+.st-range[hidden].sl-app {
+  display: none;
+}
+.sl-app .st-chart,
+.st-chart.sl-app {
+  display: block;
+  width: 100%;
+  height: 84px;
+  margin-top: 6px;
+  overflow: visible;
+}
+.sl-app .st-chart .line,
+.st-chart.sl-app .line {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.sl-app .st-chart .area,
+.st-chart.sl-app .area {
+  fill: rgba(255, 255, 255, 0.16);
+}
+.sl-app .st-chart .zero,
+.st-chart.sl-app .zero {
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.sl-app .st-dates,
+.st-dates.sl-app {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.75);
+  font: 600 12px/16px var(--q-font);
+}
+.sl-app .sl-by,
+.sl-by.sl-app {
+  margin: 0 0 12px;
+}
+
+/* ---- Sheets ---- */
+.sl-app .sl-sheet .q-section:first-child,
+.sl-sheet.sl-app .q-section:first-child {
+  margin-top: 4px;
+}
+.sl-app .tkd-acts,
+.tkd-acts.sl-app {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+/* 到 Play 下注: the whole row, over 分享 and 刪除. */
+.sl-app .tkd-acts a.q-btn,
+.tkd-acts.sl-app a.q-btn {
+  grid-column: 1 / -1;
+  text-decoration: none;
+}
+
+/* The numbers behind it, as receipts. */
+.sl-app .mx section,
+.mx.sl-app section {
+  margin-top: 16px;
+  padding: 16px 18px 8px;
+  border-radius: 26px;
+  background: var(--q-surface);
+}
+.sl-app .mx section .sl-h,
+.mx.sl-app section .sl-h {
+  margin: 0 0 4px;
+  font: 700 20px/25px var(--q-font);
+  letter-spacing: -0.015em;
+}
+.sl-app .mx dl,
+.mx.sl-app dl {
+  margin: 0;
+  font: var(--q-t-subhead);
+}
+.sl-app .mx dl > div,
+.mx.sl-app dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+}
+.sl-app .mx dl > div + div,
+.mx.sl-app dl > div + div {
+  box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep);
+}
+.sl-app .mx dt small,
+.mx.sl-app dt small {
+  display: block;
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+}
+.sl-app .mx [class*='k-'] dt::before,
+.mx.sl-app [class*='k-'] dt::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 6px 1px 0;
+  border-radius: 50%;
+  background: var(--k);
+}
+.sl-app .k-back,
+.k-back.sl-app {
+  --k: var(--q-green);
+}
+.sl-app .k-take,
+.k-take.sl-app {
+  --k: var(--q-orange);
+}
+.sl-app .k-tax,
+.k-tax.sl-app {
+  --k: var(--q-red);
+}
+.sl-app .mx dd,
+.mx.sl-app dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sl-app .mx .neg dd,
+.mx.sl-app .neg dd {
+  color: var(--q-label-2);
+  font-weight: 500;
+}
+.sl-app .mx .cut dd,
+.mx.sl-app .cut dd {
+  color: var(--q-warn);
+}
+.sl-app .mx :is(.edge, .up) dd,
+.mx.sl-app :is(.edge, .up) dd {
+  color: var(--q-good);
+}
+.sl-app .mx .down dd,
+.mx.sl-app .down dd {
+  color: var(--q-bad);
+}
+.sl-app .mx .sum dt,
+.mx.sl-app .sum dt {
+  font-weight: 600;
+}
+.sl-app .mx .sum dd,
+.mx.sl-app .sum dd {
+  font: 700 17px/22px var(--q-font-rounded);
+}
+.sl-app .where,
+.where.sl-app {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin: 4px 0 14px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.sl-app .where .back,
+.where.sl-app .back {
+  background: var(--q-green);
+}
+.sl-app .where .take,
+.where.sl-app .take {
+  background: var(--q-orange);
+}
+.sl-app .where .tax,
+.where.sl-app .tax {
+  background: var(--q-red);
+}
+
+/* Adding a ticket: the photo first. */
+.sl-app .scan,
+.scan.sl-app {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 16px;
+  border: 0;
+  border-radius: 22px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sl-app .scan-txt,
+.scan-txt.sl-app {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sl-app .scan-txt b,
+.scan-txt.sl-app b {
+  font: 600 17px/22px var(--q-font);
+}
+.sl-app .scan-txt small,
+.scan-txt.sl-app small {
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.sl-app .scan[data-state='good'] small,
+.scan[data-state='good'].sl-app small {
+  color: var(--q-good);
+}
+.sl-app .scan[data-state='bad'] small,
+.scan[data-state='bad'].sl-app small {
+  color: var(--q-bad);
+}
+.sl-app .scan[data-state='busy'] .q-tile,
+.scan[data-state='busy'].sl-app .q-tile {
+  animation: sl-breathe 1.2s ease-in-out infinite;
+}
+@keyframes sl-breathe {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+.sl-app .missed .q-rowcard,
+.missed.sl-app .q-rowcard {
+  margin-top: 12px;
+}
+.sl-app .lgs,
+.lgs.sl-app {
+  margin: 0 calc(-1 * var(--q-margin));
+  padding: 2px var(--q-margin) 4px;
+}
+.sl-app .add,
+.add.sl-app {
+  min-height: calc(100dvh - var(--q-top, 0px) - 140px);
+}
+.sl-app .games,
+.games.sl-app {
+  align-content: start;
+}
+.sl-app .games:has(> .spin),
+.games:has(.sl-app> .spin) {
+  min-height: 120px;
+}
+.sl-app .games:has(> .note),
+.games:has(.sl-app> .note) {
+  min-height: 0;
+}
+.sl-app .game.q-ritem,
+.game.q-ritem.sl-app {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-height: 64px;
+  color: var(--q-label);
+  font: var(--q-t-subhead);
+}
+.sl-app .game.q-ritem + .game.q-ritem::before,
+.game.q-ritem.sl-app + .game.q-ritem::before {
+  left: 12px;
+}
+.sl-app .game:disabled,
+.game:disabled.sl-app {
+  opacity: 0.45;
+}
+.sl-app .game .when,
+.game.sl-app .when {
+  color: var(--q-label-2);
+  font: 600 13px/16px var(--q-font-rounded);
+  text-align: center;
+}
+.sl-app .game .when.live,
+.game.sl-app .when.live {
+  color: var(--q-red);
+}
+.sl-app .game .sides,
+.game.sl-app .sides {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.sl-app .game .sides > span,
+.game.sl-app .sides > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.sl-app .game .sides .logo,
+.game.sl-app .sides .logo {
+  width: 20px;
+  height: 20px;
+}
+.sl-app .game .sc,
+.game.sl-app .sc {
+  font: 700 15px/24px var(--q-font-rounded);
+  text-align: right;
+}
+.sl-app .note,
+.note.sl-app {
+  padding: 24px 16px;
+  color: var(--q-label-2);
+  font: var(--q-t-subhead);
+  text-align: center;
+}
+.sl-app .spin,
+.spin.sl-app {
+  width: 24px;
+  height: 24px;
+  margin: 40px auto;
+  border: 2.5px solid var(--q-fill-2);
+  border-top-color: var(--q-label-2);
+  border-radius: 50%;
+  animation: sl-spin 0.8s linear infinite;
+}
+@keyframes sl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The ticket being written. */
+.sl-app .dr .q-ritem-title .odds,
+.dr.sl-app .q-ritem-title .odds {
+  margin-left: 4px;
+}
+.sl-app .del,
+.del.sl-app {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--q-red) 14%, transparent);
+  color: var(--q-red);
+  cursor: pointer;
+}
+.sl-app .del svg,
+.del.sl-app svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.6;
+}
+.sl-app .modes,
+.modes.sl-app {
+  margin: 12px 0 0;
+}
+.sl-app .modes button:disabled,
+.modes.sl-app button:disabled {
+  opacity: 0.4;
+}
+.sl-app .sizes,
+.sizes.sl-app {
+  margin-top: 10px;
+}
+.sl-app .field,
+.field.sl-app {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  margin-top: 12px;
+  padding: 0 8px 0 16px;
+  border-radius: 16px;
+  background: var(--q-surface);
+}
+.sl-app .field > span:first-child,
+.field.sl-app > span:first-child {
+  flex: none;
+  color: var(--q-label);
+  font: var(--q-t-body);
+}
+.sl-app .field input,
+.field.sl-app input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--q-label);
+  font: 700 20px/24px var(--q-font-rounded);
+  text-align: right;
+}
+.sl-app .field input::placeholder,
+.field.sl-app input::placeholder {
+  color: var(--q-label-3);
+}
+.sl-app .step,
+.step.sl-app {
+  display: flex;
+  gap: 6px;
+}
+.sl-app .step button,
+.step.sl-app button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--q-fill-3);
+  color: var(--q-label);
+  font: 500 20px/1 var(--q-font);
+  cursor: pointer;
+}
+.sl-app .sums,
+.sums.sl-app {
+  --q-stats-n: 2;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sl-app .sums .q-stat,
+.sums.sl-app .q-stat {
+  padding: 12px 14px;
+}
+.sl-app .sums .q-stat small,
+.sums.sl-app .q-stat small {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.sl-app .sums .q-stat strong,
+.sums.sl-app .q-stat strong {
+  font-size: 20px;
+  line-height: 26px;
+}
+.sl-app .sums strong.warn,
+.sums.sl-app strong.warn {
+  color: var(--q-warn);
+}
+.sl-app .errs,
+.errs.sl-app {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.sl-app .save-bar,
+.save-bar.sl-app {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 16px calc(-1 * var(--q-margin)) 0;
+  padding: 16px var(--q-margin) 4px;
+  background: linear-gradient(transparent, var(--q-sheet) 16px);
+}
+.sl-app .save-bar[hidden],
+.save-bar[hidden].sl-app {
+  display: none;
+}
+
+/* Picking the bet on one game. */
+.sl-app .matchup,
+.matchup.sl-app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 16px;
+  text-align: center;
+}
+.sl-app .matchup div,
+.matchup.sl-app div {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.sl-app .matchup .big,
+.matchup.sl-app .big {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+.sl-app .matchup .big.none:not(.q-logo),
+.matchup.sl-app .big.none:not(.q-logo) {
+  border-radius: 50%;
+  background: var(--q-fill-3);
+}
+.sl-app .matchup b,
+.matchup.sl-app b {
+  font: 600 17px/22px var(--q-font);
+}
+.sl-app .matchup small,
+.matchup.sl-app small {
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+}
+.sl-app .matchup .vs,
+.matchup.sl-app .vs {
+  color: var(--q-label-2);
+  font: 700 22px/1 var(--q-font-rounded);
+}
+.sl-app .pk-body .field:first-child,
+.pk-body.sl-app .field:first-child {
+  margin-top: 16px;
+}
+.sl-app .sides,
+.sides.sl-app {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.sl-app .sides button,
+.sides.sl-app button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 8px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--q-surface);
+  color: var(--q-label);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s, transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.sl-app .sides button:active,
+.sides.sl-app button:active {
+  transform: scale(0.96);
+}
+.sl-app .sides button[aria-pressed='true'],
+.sides.sl-app button[aria-pressed='true'] {
+  background: var(--q-accent);
+  color: var(--q-accent-ink);
+}
+.sl-app .sides b,
+.sides.sl-app b {
+  font: 600 16px/21px var(--q-font);
+  white-space: nowrap;
+}
+.sl-app .sides small,
+.sides.sl-app small {
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+}
+.sl-app .sides [aria-pressed='true'] small,
+.sides.sl-app [aria-pressed='true'] small {
+  color: inherit;
+  opacity: 0.85;
+}
+.sl-app .price,
+.price.sl-app {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 22px;
+  margin: 10px 4px 16px;
+}
+
+/* ---- Confetti for a ticket that won ---- */
+.sl-app .burst,
+.burst.sl-app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sl-app .burst i,
+.burst.sl-app i {
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--c);
+  animation: sl-fly 1.3s var(--q-ease) forwards;
+}
+@keyframes sl-fly {
+  to {
+    transform: translate(var(--x), var(--y)) rotate(var(--r));
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sl-app .live-dot,
+.live-dot.sl-app,
+.sl-app .mark.on,
+.mark.on.sl-app,
+.sl-app .scan[data-state='busy'] .q-tile,
+.scan[data-state='busy'].sl-app .q-tile {
+    animation: none;
+  }
+}
+
+.sl-app .od-note,
+.od-note.sl-app {
+  display: block;
+  margin: 6px 16px 0;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.sl-app .od-note[hidden],
+.od-note[hidden].sl-app {
+  display: none;
+}
+
+/* An F1 race: its head in the pick sheet, the field as rows, flags as logos. */
+.sl-app .race-head,
+.race-head.sl-app {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 4px 0 16px;
+  text-align: center;
+}
+.sl-app .race-head b,
+.race-head.sl-app b {
+  font: 600 17px/22px var(--q-font);
+}
+.sl-app .race-head small,
+.race-head.sl-app small {
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+}
+.sl-app .drivers,
+.drivers.sl-app {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+.sl-app .drivers .q-ritem::before,
+.drivers.sl-app .q-ritem::before {
+  display: none;
+}
+.sl-app .driver.q-ritem,
+.driver.q-ritem.sl-app {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--q-label);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sl-app .driver:disabled,
+.driver:disabled.sl-app {
+  opacity: 0.4;
+}
+.sl-app .driver[aria-pressed='true'],
+.driver[aria-pressed='true'].sl-app {
+  color: var(--q-accent);
+}
+.sl-app .driver > svg,
+.driver.sl-app > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--q-accent);
+}
+.sl-app .driver .logo,
+.driver.sl-app .logo {
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+.sl-app .logo.flag,
+.logo.flag.sl-app {
+  border-radius: 3px;
+  object-fit: cover;
+}
+/* 更多: the lottery's other sections, a rail of chips over their bets. */
+.sl-app .pk-body .secs,
+.pk-body.sl-app .secs {
+  margin: 16px -16px 0;
+  padding: 2px 16px 4px;
+}
+.sl-app .pk-wait,
+.pk-wait.sl-app {
+  margin: 24px 0 8px;
+  color: var(--q-label-2);
+  text-align: center;
+}
+/* A driver's face (the kit's driverPic), as every app shows it. */
+.sl-app .face,
+.face.sl-app {
+  display: contents;
+}
+.sl-app .q-person.logo,
+.q-person.logo.sl-app {
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+.sl-app .driver .q-person.logo,
+.driver.sl-app .q-person.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+@media (max-width: 359px) {
+  .sl-app .driver.q-ritem,
+.driver.q-ritem.sl-app {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+  .sl-app .driver .q-person.logo,
+.driver.sl-app .q-person.logo {
+    width: 28px;
+    height: 28px;
+  }
+  .sl-app .driver .q-ritem-title,
+.driver.sl-app .q-ritem-title {
+    font-size: 14px;
+    letter-spacing: -0.2px;
+  }
+}
+
+/* ==== Round 5: one hero, tickets as Wallet passes, calm panels ==== */
+.sl-app .sl-panel .q-section,
+.sl-panel.sl-app .q-section {
+  margin-top: 32px;
+}
+
+/* The hero: the one focal card, its number big and its two actions. */
+.sl-app .sl-hero,
+.sl-hero.sl-app {
+  gap: 10px;
+  padding: 20px;
+  border-radius: 28px;
+}
+.sl-app .hc-live,
+.hc-live.sl-app {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font: 600 13px/1 var(--q-font);
+}
+.sl-app .hc-live[hidden],
+.hc-live[hidden].sl-app {
+  display: none;
+}
+.sl-app .hc-figs,
+.hc-figs.sl-app {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+.sl-app .hc-figs span,
+.hc-figs.sl-app span {
+  display: grid;
+  gap: 2px;
+}
+.sl-app .hc-figs small,
+.hc-figs.sl-app small {
+  color: rgba(255, 255, 255, 0.78);
+  font: 600 12px/16px var(--q-font);
+  white-space: nowrap;
+}
+.sl-app .hc-figs b,
+.hc-figs.sl-app b {
+  font: 700 17px/22px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app .st-body .hc-figs,
+.st-body.sl-app .hc-figs {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sl-app .hc-acts,
+.hc-acts.sl-app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  gap: 10px;
+  margin-top: 10px;
+}
+.sl-app .hc-acts button,
+.hc-acts.sl-app button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 17px/1 var(--q-font);
+  cursor: pointer;
+  transition: transform 0.2s var(--q-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.sl-app .hc-acts button:active,
+.hc-acts.sl-app button:active {
+  transform: scale(0.96);
+}
+.sl-app .hc-acts svg,
+.hc-acts.sl-app svg {
+  width: 22px;
+  height: 22px;
+}
+.sl-app .hc-scan,
+.hc-scan.sl-app {
+  background: #fff;
+  color: var(--q-hc-b);
+}
+.sl-app .hc-add,
+.hc-add.sl-app {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* A panel: its title inside, rows or figures under it. */
+.sl-app .sl-box,
+.sl-box.sl-app {
+  padding: 16px 16px 6px;
+  border-radius: 26px;
+  background: var(--q-surface);
+}
+.sl-app .sl-box-head,
+.sl-box-head.sl-app {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  margin: 0 0 6px;
+}
+.sl-app .sl-box-head h2,
+.sl-box-head.sl-app h2 {
+  margin: 0;
+  font: 700 20px/25px var(--q-font);
+  letter-spacing: -0.015em;
+}
+.sl-app .sl-box-head small,
+.sl-box-head.sl-app small {
+  color: var(--q-label-2);
+  font: 500 13px/18px var(--q-font);
+}
+.sl-app .sl-box-head button,
+.sl-box-head.sl-app button {
+  min-height: 44px;
+  margin: -8px -4px -8px 0;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--q-accent);
+  font: 400 17px/1 var(--q-font);
+  cursor: pointer;
+}
+/* Its rows the panel's whole width (a button row would shrink to its
+   content), the amount and chevron at the right edge. */
+.sl-app .sl-box,
+.sl-box.sl-app,
+.sl-app #done-rows,
+#done-rows.sl-app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.sl-app .sl-box .q-ritem,
+.sl-box.sl-app .q-ritem {
+  margin: 0 -16px;
+  padding-inline: 16px;
+}
+.sl-app #done-rows,
+#done-rows.sl-app {
+  margin: 0 -16px;
+}
+.sl-app #done-rows > .q-ritem,
+#done-rows.sl-app > .q-ritem {
+  margin: 0;
+}
+.sl-app :is(.sl-box-head, .q-seg) + .q-ritem::before,
+:is(.sl-box-head,.sl-app .q-seg) + .q-ritem::before,
+.sl-app #done-rows > .q-ritem:first-child::before,
+#done-rows.sl-app > .q-ritem:first-child::before {
+  display: none;
+}
+.sl-app .sl-box > .q-seg,
+.sl-box.sl-app > .q-seg {
+  margin: 4px 0 6px;
+}
+.sl-app .sl-row .q-ritem-end b,
+.sl-row.sl-app .q-ritem-end b {
+  font: 700 17px/22px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app .sl-month,
+.sl-month.sl-app {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 16px;
+}
+.sl-app .sl-month-net,
+.sl-month-net.sl-app {
+  font: 700 34px/40px var(--q-font-rounded);
+  letter-spacing: -0.02em;
+}
+.sl-app .sl-month-net.up,
+.sl-month-net.up.sl-app {
+  color: var(--q-good);
+}
+.sl-app .sl-month-net.down,
+.sl-month-net.down.sl-app {
+  color: var(--q-bad);
+}
+.sl-app .sl-month-figs,
+.sl-month-figs.sl-app {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: var(--q-hairline) solid var(--q-sep);
+}
+.sl-app .sl-month-figs span,
+.sl-month-figs.sl-app span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sl-app .sl-month-figs span:nth-child(2),
+.sl-month-figs.sl-app span:nth-child(2) {
+  text-align: center;
+}
+.sl-app .sl-month-figs span:last-child,
+.sl-month-figs.sl-app span:last-child {
+  text-align: right;
+}
+.sl-app .sl-month-figs small,
+.sl-month-figs.sl-app small {
+  color: var(--q-label-2);
+  font: 600 12px/16px var(--q-font);
+}
+.sl-app .sl-month-figs b,
+.sl-month-figs.sl-app b {
+  font: 700 18px/22px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app #sec-today .q-rail,
+#sec-today.sl-app .q-rail {
+  --q-rail-w: min(82%, 280px);
+}
+
+/* ---- A ticket: a Wallet pass ---- */
+.sl-app .tks,
+.tks.sl-app {
+  display: grid;
+  gap: 16px;
+}
+.sl-app .tk,
+.tk.sl-app {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  background: var(--q-surface);
+  box-shadow: var(--q-shadow);
+}
+.sl-app .tk[data-open],
+.tk[data-open].sl-app {
+  cursor: pointer;
+  transition: transform 0.2s var(--q-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.sl-app .tk[data-open]:active,
+.tk[data-open]:active.sl-app {
+  transform: scale(0.985);
+}
+.sl-app .tk.leaving,
+.tk.leaving.sl-app {
+  animation: leave 0.34s var(--q-ease) forwards;
+}
+@keyframes leave {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+.sl-app .tk.won,
+.tk.won.sl-app {
+  --pc: #1f9d55 !important;
+}
+.sl-app .tk.lost,
+.tk.lost.sl-app {
+  --pc: #8e8e93 !important;
+}
+.sl-app .pass-top,
+.pass-top.sl-app {
+  --pc-a: color-mix(in srgb, var(--pc) 72%, #000);
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px 18px;
+  background: radial-gradient(110% 130% at 100% 0%, color-mix(in srgb, var(--pc) 60%, rgba(255, 255, 255, 0.5)), transparent 62%), linear-gradient(135deg, var(--pc-a), var(--pc));
+  color: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sl-app .pass-top,
+:root:not([data-theme='light']) .pass-top.sl-app {
+    --pc-a: color-mix(in srgb, var(--pc) 45%, #05070d);
+  }
+}
+:root[data-theme='dark'] .sl-app .pass-top,
+:root[data-theme='dark'] .pass-top.sl-app {
+  --pc-a: color-mix(in srgb, var(--pc) 45%, #05070d);
+}
+.sl-app .pass-id,
+.pass-id.sl-app {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.sl-app .pass-id .q-tile,
+.pass-id.sl-app .q-tile {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+.sl-app .pass-name,
+.pass-name.sl-app {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.sl-app .pass-name b,
+.pass-name.sl-app b {
+  font: 700 20px/25px var(--q-font);
+  letter-spacing: -0.01em;
+}
+.sl-app .pass-name small,
+.pass-name.sl-app small {
+  color: rgba(255, 255, 255, 0.82);
+  font: 500 13px/18px var(--q-font);
+}
+.sl-app .pass-top .state,
+.pass-top.sl-app .state {
+  align-self: start;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.sl-app .pass-top .state:empty,
+.pass-top.sl-app .state:empty {
+  display: none;
+}
+.sl-app .pass-top .live-dot,
+.pass-top.sl-app .live-dot {
+  background: #fff;
+}
+.sl-app .figs,
+.figs.sl-app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 18px;
+}
+.sl-app .figs span,
+.figs.sl-app span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sl-app .figs span:not(:first-child),
+.figs.sl-app span:not(:first-child) {
+  text-align: right;
+}
+.sl-app .figs small,
+.figs.sl-app small {
+  color: rgba(255, 255, 255, 0.78);
+  font: 600 12px/16px var(--q-font);
+  white-space: nowrap;
+}
+.sl-app .figs b,
+.figs.sl-app b {
+  font: 700 17px/22px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app .figs span:first-child b,
+.figs.sl-app span:first-child b {
+  font: 700 30px/34px var(--q-font-rounded);
+  letter-spacing: -0.02em;
+}
+.sl-app .bar,
+.bar.sl-app {
+  position: relative;
+  height: 6px;
+  margin-top: -4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.sl-app .bar i,
+.bar.sl-app i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--p, 0) * 100%);
+  border-radius: 3px;
+  background: #fff;
+  transition: width 0.7s var(--q-ease);
+}
+.sl-app .bar .pre,
+.bar.sl-app .pre {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: calc(var(--p0, 0) * 100%);
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.7);
+}
+.sl-app .tk:is(.won, .lost) .bar,
+.tk:is(.won,.sl-app .lost) .bar {
+  display: none;
+}
+/* Each pick a segment: won solid, lost struck dark, live beating, to come faint. */
+.sl-app .pips,
+.pips.sl-app {
+  display: grid;
+  gap: 6px;
+}
+.sl-app .pip-row,
+.pip-row.sl-app {
+  display: flex;
+  gap: 4px;
+}
+.sl-app .pip-row i,
+.pip-row.sl-app i {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.sl-app .pip-row i.won,
+.pip-row.sl-app i.won {
+  background: #fff;
+}
+.sl-app .pip-row i.lost,
+.pip-row.sl-app i.lost {
+  background: rgba(0, 0, 0, 0.35);
+}
+.sl-app .pip-row i.void,
+.pip-row.sl-app i.void {
+  background: rgba(255, 255, 255, 0.45);
+}
+.sl-app .pip-row i.live,
+.pip-row.sl-app i.live {
+  background: rgba(255, 255, 255, 0.6);
+  animation: pip-beat 1.6s ease-in-out infinite;
+}
+@keyframes pip-beat {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sl-app .pip-row i.live,
+.pip-row.sl-app i.live {
+    animation: none;
+  }
+}
+.sl-app .pip-t,
+.pip-t.sl-app {
+  color: rgba(255, 255, 255, 0.82);
+  font: 600 12px/16px var(--q-font);
+}
+
+/* A pick: its mark, what it is and its price, its chance; under them its game as a small scoreboard. */
+.sl-app .tk-legs,
+.tk-legs.sl-app {
+  padding: 2px 18px 6px;
+}
+.sl-app .leg,
+.leg.sl-app {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
+  padding: 14px 0;
+}
+.sl-app .leg + .leg::before,
+.leg.sl-app + .leg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 36px;
+  right: 0;
+  border-top: var(--q-hairline) solid var(--q-sep);
+}
+.sl-app .mark,
+.mark.sl-app {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--q-fill-1);
+  border-radius: 50%;
+  color: #fff;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.sl-app .mark svg,
+.mark.sl-app svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+.sl-app .mark.on,
+.mark.on.sl-app {
+  border-color: var(--q-orange);
+  animation: ring 1.8s linear infinite;
+}
+.sl-app .mark.on.ahead,
+.mark.on.ahead.sl-app {
+  border-color: var(--q-green);
+}
+.sl-app .mark.on.behind,
+.mark.on.behind.sl-app {
+  border-color: var(--q-red);
+}
+@keyframes ring {
+  50% {
+    transform: scale(0.86);
+  }
+}
+.sl-app .mark:is(.won, .lost, .void),
+.mark:is(.won,.sl-app .lost, .void) {
+  border-color: transparent;
+}
+.sl-app .mark.won,
+.mark.won.sl-app {
+  background: var(--q-green);
+}
+.sl-app .mark.lost,
+.mark.lost.sl-app {
+  background: var(--q-red);
+}
+.sl-app .mark.void,
+.mark.void.sl-app {
+  background: var(--q-gray);
+}
+.sl-app .pick,
+.pick.sl-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  min-width: 0;
+}
+.sl-app .pick b,
+.pick.sl-app b {
+  font: 600 17px/22px var(--q-font);
+}
+.sl-app .odds,
+.odds.sl-app {
+  color: var(--q-label-2);
+  font: 500 15px/20px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app .ch,
+.ch.sl-app {
+  font: 700 17px/22px var(--q-font-rounded);
+  text-align: right;
+}
+.sl-app .ch.won,
+.ch.won.sl-app {
+  color: var(--q-good);
+}
+.sl-app .ch.lost,
+.ch.lost.sl-app {
+  color: var(--q-bad);
+}
+.sl-app .ch.void,
+.ch.void.sl-app {
+  color: var(--q-label-2);
+}
+.sl-app .tk.one .ch,
+.tk.one.sl-app .ch {
+  display: none;
+}
+.sl-app .match,
+.match.sl-app {
+  grid-column: 2 / 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  align-content: start;
+  row-gap: 8px;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  background: var(--q-fill-4);
+}
+.sl-app .match .sides,
+.match.sl-app .sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 0;
+  min-width: 0;
+}
+.sl-app .board,
+.board.sl-app {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--q-label-2);
+  font: 500 15px/20px var(--q-font);
+  transition: color 0.4s;
+}
+.sl-app .board,
+.board.sl-app {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+}
+/* Every logo in the same rounded box, the same size (a wordmark or a crest alike). */
+.sl-app .board img.logo,
+.board.sl-app img.logo {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 9px;
+  background: var(--q-fill-3);
+  object-fit: contain;
+}
+.sl-app .board .logo,
+.board.sl-app .logo {
+  width: 32px;
+  height: 32px;
+}
+.sl-app .board .q-person.logo,
+.board.sl-app .q-person.logo {
+  font-size: 10px;
+}
+.sl-app .tn,
+.tn.sl-app {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sl-app .ts,
+.ts.sl-app {
+  font: 700 17px/20px var(--q-font-rounded);
+}
+.sl-app .ts:empty,
+.ts:empty.sl-app {
+  display: none;
+}
+.sl-app .board.lead,
+.board.lead.sl-app {
+  color: var(--q-label);
+}
+/* Where the game is (完賽, 第3節 5:21, 今天 19:05): a line over its scoreboard, no column beside it. */
+.sl-app .st,
+.st.sl-app {
+  order: -1;
+  display: block;
+  min-width: 0;
+  color: var(--q-label-2);
+  font: 600 12px/16px var(--q-font);
+  letter-spacing: 0.02em;
+}
+.sl-app .st:empty,
+.st:empty.sl-app {
+  display: none;
+}
+/* How a live pick stands: a line under its scoreboard, green ahead, red behind; a total's bar to its line. */
+.sl-app .need,
+.need.sl-app {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--q-sep);
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+}
+.sl-app .need[hidden],
+.need[hidden].sl-app {
+  display: none;
+}
+.sl-app .need.ahead,
+.need.ahead.sl-app {
+  color: var(--q-green);
+}
+.sl-app .need.behind,
+.need.behind.sl-app {
+  color: var(--q-red);
+}
+.sl-app .need .nb,
+.need.sl-app .nb {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--q-fill-3);
+  overflow: hidden;
+}
+.sl-app .need .nb[hidden],
+.need.sl-app .nb[hidden] {
+  display: none;
+}
+.sl-app .need .nb i,
+.need.sl-app .nb i {
+  display: block;
+  height: 100%;
+  width: calc(var(--p, 0) * 100%);
+  border-radius: inherit;
+  background: currentColor;
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sl-app .st.live,
+.st.live.sl-app {
+  color: var(--q-red);
+  font-weight: 600;
+}
+.sl-app .leg.full .tags,
+.leg.full.sl-app .tags {
+  grid-column: 2 / 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sl-app .leg.full .tags .q-tag[hidden],
+.leg.full.sl-app .tags .q-tag[hidden] {
+  display: none;
+}
+
+/* A ticket in its sheet: the same pass, the numbers behind it, share and delete. */
+.sl-app .tkd,
+.tkd.sl-app {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 8px;
+}
+.sl-app .tkd .tk,
+.tkd.sl-app .tk {
+  box-shadow: none;
+}
+.sl-app .game .sc .win,
+.game.sl-app .sc .win {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 13px/1 var(--q-font);
+}
+.sl-app .game .sc .win svg,
+.game.sl-app .sc .win svg {
+  width: 14px;
+  height: 14px;
+  color: #f5b301;
+}
+/* The narrowest phones: the pass's big number on a row of its own. */
+@media (max-width: 359px) {
+  .sl-app .figs,
+.figs.sl-app {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+  .sl-app .figs span:first-child,
+.figs.sl-app span:first-child {
+    grid-column: 1 / -1;
+  }
+  .sl-app .figs span:nth-child(2),
+.figs.sl-app span:nth-child(2) {
+    text-align: left;
+  }
+  .sl-app .tk-legs,
+.tk-legs.sl-app {
+    padding-inline: 14px;
+  }
+  .sl-app .pass-top,
+.pass-top.sl-app {
+    padding-inline: 14px;
+  }
+}
+.sl-app .sl-row small,
+.sl-row.sl-app small {
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  .sl-app .sl-row .q-ritem-end b,
+.sl-row.sl-app .q-ritem-end b {
+    font-size: 15px;
+  }
+}
+/* The add sheet's focal card: the photo, on the app's colour. */
+.sl-app .scan.q-hero-card,
+.scan.q-hero-card.sl-app {
+  display: flex;
+  padding: 18px 20px;
+  border-radius: 26px;
+  color: #fff;
+}
+.sl-app .scan.q-hero-card .q-tile,
+.scan.q-hero-card.sl-app .q-tile {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+.sl-app .scan.q-hero-card .scan-txt b,
+.scan.q-hero-card.sl-app .scan-txt b {
+  font: 700 20px/25px var(--q-font);
+}
+.sl-app .scan.q-hero-card .scan-txt small,
+.scan.q-hero-card.sl-app .scan-txt small,
+.sl-app .scan.q-hero-card[data-state] small,
+.scan.q-hero-card[data-state].sl-app small {
+  color: rgba(255, 255, 255, 0.85);
+  font: 500 15px/20px var(--q-font);
+}
+.sl-app .pick-games > .sl-h,
+.pick-games.sl-app > .sl-h {
+  margin: 32px 0 12px;
+  font: 700 20px/25px var(--q-font);
+}
+
+/* ---- 選比賽: as Sports and Play pick a game ---- */
+.sl-app .pk-find,
+.pk-find.sl-app {
+  margin: 0 0 12px;
+}
+/* The teams on your tickets, a tap away. */
+.sl-app .q-chips.pk-recent,
+.q-chips.pk-recent.sl-app {
+  margin: 0 -16px 10px;
+  padding: 2px 16px 4px;
+}
+.sl-app .pk-recent-l,
+.pk-recent-l.sl-app {
+  flex: none;
+  align-self: center;
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+}
+.sl-app .add.searching .pk-recent,
+.add.searching.sl-app .pk-recent {
+  display: none;
+}
+/* The leagues, each with its logo, to the sheet's edges. */
+.sl-app .q-chips.lgs,
+.q-chips.lgs.sl-app {
+  margin: 0 -16px 10px;
+  padding: 2px 16px 4px;
+}
+.sl-app .lg-chip,
+.lg-chip.sl-app {
+  gap: 6px;
+  padding-left: 6px;
+}
+.sl-app .lg-chip .lg-logo,
+.lg-chip.sl-app .lg-logo,
+.sl-app .lg-chip .lg-mark,
+.lg-chip.sl-app .lg-mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  object-fit: contain;
+}
+.sl-app .lg-chip .lg-logo,
+.lg-chip.sl-app .lg-logo {
+  padding: 2px;
+}
+.sl-app .lg-chip .lg-mark,
+.lg-chip.sl-app .lg-mark {
+  display: grid;
+  place-items: center;
+  background: var(--t);
+  color: #fff;
+}
+.sl-app .lg-chip .lg-mark svg,
+.lg-chip.sl-app .lg-mark svg {
+  width: 15px;
+  height: 15px;
+}
+/* The days: the kit's strip (ui.mjs dayBar); F1's each race by its Grand Prix (義大利站 over 9/6). */
+.sl-app .pk-days .q-chip.day > span,
+.pk-days.sl-app .q-chip.day > span {
+  max-width: 6.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One-on-one (tennis, badminton, table tennis): a compact row, the time
+   and event at the left, each side's flag and name on its own line. */
+.sl-app .games .duo .q-ritem,
+.games.sl-app .duo .q-ritem {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px;
+  text-align: left;
+}
+.sl-app .duo-when,
+.duo-when.sl-app {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sl-app .duo-when b,
+.duo-when.sl-app b {
+  font: 600 15px/20px var(--q-font);
+}
+.sl-app .duo-when b.live,
+.duo-when.sl-app b.live {
+  color: var(--q-red, #ff3b30);
+}
+.sl-app .duo-when small,
+.duo-when.sl-app small {
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: 12px/15px var(--q-font);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.sl-app .duo-sides,
+.duo-sides.sl-app {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.sl-app .duo-side,
+.duo-side.sl-app {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font: 600 15px/19px var(--q-font);
+}
+.sl-app .duo-side.lost,
+.duo-side.lost.sl-app {
+  color: var(--q-label-2);
+  font-weight: 500;
+}
+.sl-app .duo-pic,
+.duo-pic.sl-app {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sl-app .duo-pic:empty,
+.duo-pic:empty.sl-app {
+  display: none;
+}
+.sl-app .duo-pic img,
+.duo-pic.sl-app img {
+  width: 20px;
+  height: 14px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+.sl-app .duo-pic img:only-child,
+.duo-pic.sl-app img:only-child {
+  height: 15px;
+}
+.sl-app .duo-pic img:not(:only-child),
+.duo-pic.sl-app img:not(:only-child) {
+  width: 16px;
+  height: 11px;
+}
+.sl-app .duo-n,
+.duo-n.sl-app {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sl-app .duo-side b,
+.duo-side.sl-app b {
+  font: 700 16px/1 var(--q-font);
+}
+@media (max-width: 359px) {
+  .sl-app .games .duo .q-ritem,
+.games.sl-app .duo .q-ritem {
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 10px;
+    padding-inline: 12px;
+  }
+  .sl-app .duo-side,
+.duo-side.sl-app {
+    font-size: 14px;
+  }
+}
+/* No white plates in dark mode: the league logos on glass. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sl-app .lg-chip .lg-logo,
+:root:not([data-theme='light']) .lg-chip.sl-app .lg-logo {
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+:root[data-theme='dark'] .sl-app .lg-chip .lg-logo,
+:root[data-theme='dark'] .lg-chip.sl-app .lg-logo {
+  background: rgba(255, 255, 255, 0.14);
+}
+/* Searching: every league's games for the team, the league and day pickers out of the way. */
+.sl-app .searching .lgs,
+.searching.sl-app .lgs,
+.sl-app .searching .pk-days,
+.searching.sl-app .pk-days {
+  display: none;
+}
+.sl-app .games,
+.games.sl-app {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+/* The picker's games can always come up under the sheet's top (as Sports'
+   list), so the sheet never scrolls a sliver: however few they are. */
+.sl-app .add .games,
+.add.sl-app .games {
+  min-height: calc(100dvh - 240px);
+}
+.sl-app .games .day-head,
+.games.sl-app .day-head {
+  margin: 14px 4px 0;
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+  letter-spacing: 0.02em;
+}
+.sl-app .games .day-head:first-child,
+.games.sl-app .day-head:first-child {
+  margin-top: 4px;
+}
+.sl-app .pk-card,
+.pk-card.sl-app {
+  cursor: pointer;
+}
+
+/* No white in dark mode (Jay 2026-10-21): the scan button is glass on the card, as 新增 beside it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sl-app .hc-scan,
+:root:not([data-theme='light']) .hc-scan.sl-app {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    box-shadow: none;
+  }
+}
+:root[data-theme='dark'] .sl-app .hc-scan,
+:root[data-theme='dark'] .hc-scan.sl-app {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* Players (tennis, badminton, table tennis): their flags, a pair's two
+   stacked; none known, no picture at all (never a stand-in shield). */
+.sl-app .pflags,
+.pflags.sl-app {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+.sl-app .pflags img,
+.pflags.sl-app img {
+  width: 22px;
+  height: 15px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+.sl-app .pflags img:not(:only-child),
+.pflags.sl-app img:not(:only-child) {
+  width: 18px;
+  height: 12px;
+}
+/* A player's or pair's name: apart only at the slash, smaller when long. */
+.sl-app .tn,
+.tn.sl-app,
+.sl-app .duo-n,
+.duo-n.sl-app,
+.sl-app .matchup b,
+.matchup.sl-app b {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.sl-app .board.long,
+.board.long.sl-app {
+  font-size: 13px;
+  line-height: 17px;
+}
+.sl-app .duo-n.long,
+.duo-n.long.sl-app {
+  font-size: 14px;
+  line-height: 18px;
+}
+.sl-app .board:has(.nopic),
+.board:has(.nopic).sl-app {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.sl-app .nopic,
+.nopic.sl-app {
+  display: none !important;
+}
+.sl-app .matchup .big.pflags,
+.matchup.sl-app .big.pflags {
+  width: 52px;
+  height: 40px;
+}
+.sl-app .matchup .big.pflags img,
+.matchup.sl-app .big.pflags img {
+  width: 44px;
+  max-height: none;
+}
+.sl-app .matchup .big.pflags img:not(:only-child),
+.matchup.sl-app .big.pflags img:not(:only-child) {
+  width: 32px;
+}
+.sl-app .matchup b,
+.matchup.sl-app b {
+  overflow-wrap: anywhere;
+}
+/* Several picks: their segments stand in for the chance bar (the chance is in the figures). */
+.sl-app .pass-top:has(.pips) .bar,
+.pass-top:has(.pips).sl-app .bar {
+  display: none;
+}
+/* A player's photo (TheSportsDB's cutout): a round tile, their flag until it comes. */
+.sl-app .pface,
+.pface.sl-app {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.sl-app .pface .pphoto,
+.pface.sl-app .pphoto {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--q-fill-3);
+  object-fit: cover;
+  object-position: 50% 0;
+}
+.sl-app .board img.pphoto,
+.board.sl-app img.pphoto {
+  padding: 0;
+}
+.sl-app .duo-pic,
+.duo-pic.sl-app {
+  width: 28px;
+  align-items: center;
+}
+.sl-app .duo-pic .pface,
+.duo-pic.sl-app .pface {
+  width: 28px;
+  min-height: 15px;
+}
+.sl-app .duo-pic .pface:has(.pphoto),
+.duo-pic.sl-app .pface:has(.pphoto) {
+  height: 28px;
+}
+.sl-app .duo-pic .pface .pphoto,
+.duo-pic.sl-app .pface .pphoto {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+.sl-app .duo-when small span,
+.duo-when.sl-app small span {
+  white-space: nowrap;
+}
+/* A lone player's flag the size of their photo, round (ESPN's flags sit in a square: filled to its edge). */
+.sl-app .duo-pic .pface:has(> img:only-child:not(.pphoto)),
+.duo-pic.sl-app .pface:has(> img:only-child:not(.pphoto)) {
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--q-fill-3);
+}
+.sl-app .duo-pic .pface img:only-child:not(.pphoto),
+.duo-pic.sl-app .pface img:only-child:not(.pphoto) {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  object-fit: cover;
+  transform: scale(1.7);
+}
+/* Found across leagues: each league's head (its logo, its name) over its games. */
+.sl-app .games .lg-head,
+.games.sl-app .lg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 4px -2px;
+  color: var(--q-label);
+  font: 600 14px/20px var(--q-font);
+}
+.sl-app .lg-head .lg-logo,
+.lg-head.sl-app .lg-logo,
+.sl-app .lg-head .lg-mark,
+.lg-head.sl-app .lg-mark {
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--q-fill-3);
+  object-fit: contain;
+}
+.sl-app .lg-head .lg-logo,
+.lg-head.sl-app .lg-logo {
+  padding: 2px;
+}
+.sl-app .lg-head .lg-mark,
+.lg-head.sl-app .lg-mark {
+  display: grid;
+  place-items: center;
+  background: var(--t);
+  color: #fff;
+}
+.sl-app .lg-head .lg-mark svg,
+.lg-head.sl-app .lg-mark svg {
+  width: 14px;
+  height: 14px;
+}
+/* 每月損益: a bar a month, up green from the line, down red. */
+.sl-app .mo-bars,
+.mo-bars.sl-app {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+.sl-app .mo,
+.mo.sl-app {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sl-app .mo small,
+.mo.sl-app small {
+  max-width: 100%;
+  color: var(--q-label-2);
+  font: 600 11px/14px var(--q-font-rounded);
+  white-space: nowrap;
+}
+.sl-app .mo.up small,
+.mo.up.sl-app small {
+  color: var(--q-green);
+}
+.sl-app .mo.down small,
+.mo.down.sl-app small {
+  color: var(--q-red);
+}
+.sl-app .mo b,
+.mo.sl-app b {
+  color: var(--q-label-2);
+  font: 600 12px/16px var(--q-font);
+}
+.sl-app .mo-track,
+.mo-track.sl-app {
+  position: relative;
+  width: 100%;
+  height: 88px;
+}
+.sl-app .mo-track::before,
+.mo-track.sl-app::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 var(--z);
+  height: 1px;
+  background: var(--q-sep);
+}
+.sl-app .mo-track i,
+.mo-track.sl-app i {
+  position: absolute;
+  left: 50%;
+  width: min(28px, 70%);
+  height: var(--h);
+  border-radius: 6px;
+  transform: translateX(-50%);
+}
+.sl-app .mo.up .mo-track i,
+.mo.up.sl-app .mo-track i {
+  bottom: var(--z);
+  background: var(--q-green);
+}
+.sl-app .mo.down .mo-track i,
+.mo.down.sl-app .mo-track i {
+  top: calc(100% - var(--z));
+  background: var(--q-red);
+}
+/* The hero: every open pick as a segment, and how they stand. */
+.sl-app .hc-pips,
+.hc-pips.sl-app {
+  margin: 2px 0 4px;
+}
+.sl-app .hc-pips[hidden],
+.hc-pips[hidden].sl-app {
+  display: none;
+}
+.sl-app .pip-row i.live.ahead,
+.pip-row.sl-app i.live.ahead {
+  background: rgba(255, 255, 255, 0.9);
+}
+.sl-app .pip-row i.live.behind,
+.pip-row.sl-app i.live.behind {
+  background: rgba(0, 0, 0, 0.3);
+}
+/* Reading a ticket: the photo in the tile, a light sweeping down it. */
+.sl-app .scan .q-tile:has(.scan-shot),
+.scan.sl-app .q-tile:has(.scan-shot) {
+  position: relative;
+  overflow: hidden;
+  animation: none;
+}
+.sl-app .scan .q-tile .scan-shot,
+.scan.sl-app .q-tile .scan-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+.sl-app .scan-sweep,
+.scan-sweep.sl-app {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: scan-sweep 1.4s ease-in-out infinite;
+}
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(340%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sl-app .scan-sweep,
+.scan-sweep.sl-app {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+.sl-app .missed button.q-ritem,
+.missed.sl-app button.q-ritem {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---- iPad and wider: tickets two a row, sections side by side ---- */
+@media (min-width: 700px) {
+  .sl-app .tks,
+.tks.sl-app {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .sl-app .tks > :last-child:nth-child(odd),
+.tks.sl-app > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  /* 注單: this month beside the settled ones, when both show. */
+  .sl-app #panel-open:has(> #sec-month:not([hidden])):has(> #sec-done:not([hidden])),
+#panel-open:has(.sl-app> #sec-month:not([hidden])):has(> #sec-done:not([hidden])) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+    align-items: start;
+  }
+  .sl-app #panel-open > *,
+#panel-open.sl-app > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .sl-app #panel-open > #sec-month,
+#panel-open.sl-app > #sec-month,
+.sl-app #panel-open > #sec-done,
+#panel-open.sl-app > #sec-done {
+    grid-column: auto;
+  }
+  /* 戰績: the figure beside the months, the highlights beside the breakdown. */
+  .sl-app .st-body,
+.st-body.sl-app {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+    align-items: start;
+  }
+  .sl-app .st-body > *,
+.st-body.sl-app > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .sl-app .st-body > section.q-section:nth-last-child(-n + 2):nth-child(n + 2),
+.st-body.sl-app > section.q-section:nth-last-child(-n + 2):nth-child(n + 2) {
+    grid-column: auto;
+  }
+  .sl-app .st-body:has(> section.q-section:nth-of-type(3)) > .sl-hero,
+.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > .sl-hero,
+.sl-app .st-body:has(> section.q-section:nth-of-type(3)) > section.q-section:first-of-type,
+.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > section.q-section:first-of-type {
+    grid-column: auto;
+  }
+  .sl-app .st-body:has(> section.q-section:nth-of-type(3)) > section.q-section:first-of-type,
+.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > section.q-section:first-of-type {
+    margin-top: 0;
+  }
+}
+/* On its side: tickets three a row, a short last row shared out. */
+@media (min-width: 1100px) {
+  .sl-app .tks,
+.tks.sl-app {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .sl-app .tks > *,
+.tks.sl-app > *,
+.sl-app .tks > :last-child:nth-child(odd),
+.tks.sl-app > :last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+  .sl-app .tks > :last-child:nth-child(3n + 1),
+.tks.sl-app > :last-child:nth-child(3n + 1) {
+    grid-column: 1 / -1;
+  }
+  .sl-app .tks > :nth-last-child(2):nth-child(3n + 1),
+.tks.sl-app > :nth-last-child(2):nth-child(3n + 1),
+.sl-app .tks > :last-child:nth-child(3n + 2),
+.tks.sl-app > :last-child:nth-child(3n + 2) {
+    grid-column: span 3;
+  }
+}

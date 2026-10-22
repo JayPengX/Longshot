@@ -56,13 +56,14 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-n
 
 /* ==== 3 Shared pieces ==== */
 /* Logos: a team's, a league's on a white disc (the same in light and dark), a flag, initials. */
-.logo { flex: none; width: 30px; height: 30px; object-fit: contain; }
+.logo:not(.sl-app *) { flex: none; width: 30px; height: 30px; object-fit: contain; }
 .logo-xs { width: 18px; height: 18px; }
 .logo-sm { width: 24px; height: 24px; }
 .logo-md { width: 34px; height: 34px; }
 .logo-lg { width: 52px; height: 52px; }
 .logo-wrap { display: inline-flex; flex: none; line-height: 0; }
-.logo.player-flag, .logo.photo { border-radius: 50%; object-fit: cover; }
+.logo.player-flag:not(.sl-app *),
+.logo.photo:not(.sl-app *) { border-radius: 50%; object-fit: cover; }
 .logo-fallback { display: inline-grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
 .logo-fallback.logo-lg { font-size: 20px; }
 .logo-flag { display: grid; place-items: center; font-size: 20px; line-height: 1; }
@@ -86,17 +87,18 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-n
 .pi svg { display: block; }
 
 /* A price: tap to put it on the slip. Big rounded odds; on the slip, filled. */
-.pick { position: relative; flex: none; display: grid; align-content: center; justify-items: center; gap: 1px; min-width: 64px; min-height: 40px; padding: 4px 8px; border: 0; border-radius: 12px; background: var(--q-fill-3); color: var(--q-label); text-align: center; font-variant-numeric: tabular-nums; transition: background-color 0.2s, color 0.2s, transform var(--q-dur-snappy) var(--q-spring-snappy); }
-button.pick:active { transform: scale(0.95); }
+.pick:not(.sl-app *) { position: relative; flex: none; display: grid; align-content: center; justify-items: center; gap: 1px; min-width: 64px; min-height: 40px; padding: 4px 8px; border: 0; border-radius: 12px; background: var(--q-fill-3); color: var(--q-label); text-align: center; font-variant-numeric: tabular-nums; transition: background-color 0.2s, color 0.2s, transform var(--q-dur-snappy) var(--q-spring-snappy); }
+button.pick:active:not(.sl-app *) { transform: scale(0.95); }
 .pick-name { max-width: 100%; overflow: hidden; color: var(--q-label-2); font: 500 12px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pick-odds { font: 700 17px/1.15 var(--q-font-rounded); letter-spacing: -0.01em; }
-.pick.in-slip { background: var(--accent); color: #fff; }
-.pick.in-slip .pick-name { color: rgba(255, 255, 255, 0.85); }
-.pick.locked, .pick.stale { opacity: 0.5; cursor: default; }
-.pick .lock { width: 15px; height: 15px; margin: 0 auto; color: var(--q-label-2); }
+.pick.in-slip:not(.sl-app *) { background: var(--accent); color: #fff; }
+.pick.in-slip:not(.sl-app *) .pick-name { color: rgba(255, 255, 255, 0.85); }
+.pick.locked:not(.sl-app *),
+.pick.stale:not(.sl-app *) { opacity: 0.5; cursor: default; }
+.pick:not(.sl-app *) .lock { width: 15px; height: 15px; margin: 0 auto; color: var(--q-label-2); }
 /* A price stricter than its game's 限關: a quiet line under the odds. */
-.pick .min-legs { display: block; margin-top: 1px; color: var(--q-label-2); font: 600 10px/1.1 var(--q-font); letter-spacing: 0; white-space: nowrap; pointer-events: none; }
-.pick.in-slip .min-legs { color: rgba(255, 255, 255, 0.85); }
+.pick:not(.sl-app *) .min-legs { display: block; margin-top: 1px; color: var(--q-label-2); font: 600 10px/1.1 var(--q-font); letter-spacing: 0; white-space: nowrap; pointer-events: none; }
+.pick.in-slip:not(.sl-app *) .min-legs { color: rgba(255, 255, 255, 0.85); }
 /* A game's 限關, said once: on its row's top line, and in its sheet. */
 .pl-legs { flex: none; padding: 2px 7px; border-radius: 6px; background: var(--q-fill-3); color: var(--q-label-2); font: 600 11px/1.3 var(--q-font); white-space: nowrap; }
 .gs-legs { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 2px; color: var(--q-label-2); font: var(--q-t-footnote); }
@@ -104,7 +106,7 @@ button.pick:active { transform: scale(0.95); }
 /* A game with nothing on sale: 暫停銷售 on top, a lock where each price was. */
 .pl-held { color: var(--q-label-2); }
 .pl-held .lock { width: 12px; height: 12px; }
-span.pick.locked { pointer-events: none; }
+span.pick.locked:not(.sl-app *) { pointer-events: none; }
 /* 這天沒有賽事 only when 場中 and 冠軍 are empty too. */
 #panel-games:has(#live:not([hidden])) .pl-none, #panel-games:has(#futures:not([hidden])) .pl-none { display: none; }
 .pick-none { width: 64px; flex: none; }
@@ -898,7 +900,7 @@ html .q-logo img { width: 88%; height: 88%; }
 .sc-prize { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 0 12px; border-radius: 12px; background: var(--q-fill-3); white-space: nowrap; }
 .sc-prize strong { font: 800 15px/1 var(--q-font-rounded, var(--q-font)); }
 .sc-prize span { color: var(--q-label-2); font: 600 12px/1 var(--q-font); }
-.tk { position: relative; width: 100%; overflow: hidden; container-type: inline-size; border-radius: 1.6cqw; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 30px -16px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18); touch-action: none; user-select: none; -webkit-user-select: none; }
+.tk:not(.sl-app *) { position: relative; width: 100%; overflow: hidden; container-type: inline-size; border-radius: 1.6cqw; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 30px -16px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18); touch-action: none; user-select: none; -webkit-user-select: none; }
 .tk-art, .tk-cover { position: absolute; inset: 0; width: 100%; height: 100%; }
 .tk-art { display: block; object-fit: fill; pointer-events: none; }
 /* (Nothing under the latex shows before the latex is on.) */
@@ -995,7 +997,7 @@ html .q-logo img { width: 88%; height: 88%; }
 .sl-pay-rows { display: grid; gap: 8px; }
 .pay-line.good strong { color: var(--good); }
 .pay-line.bad strong { color: var(--bad); }
-.sl-panel.q-sheet-foot { position: sticky; bottom: 0; display: grid; gap: 10px; max-width: none; margin-top: 4px; padding-top: 12px; border-top: 0; border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--q-sep), 0 -12px 24px -18px rgba(0, 0, 0, 0.45); }
+.sl-panel.q-sheet-foot:not(.sl-app *) { position: sticky; bottom: 0; display: grid; gap: 10px; max-width: none; margin-top: 4px; padding-top: 12px; border-top: 0; border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--q-sep), 0 -12px 24px -18px rgba(0, 0, 0, 0.45); }
 .sl-sum { display: none; }
 .sl-panel-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 .sl-panel-top > span { min-width: 0; white-space: nowrap; }
@@ -1012,8 +1014,8 @@ html .q-logo img { width: 88%; height: 88%; }
 .sl-quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .sl-quick button { min-width: 0; height: 34px; padding: 0; border: 0; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label); font: 600 14px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sl-quick button[aria-pressed='true'] { background: color-mix(in srgb, var(--q-blue) 18%, transparent); color: var(--q-blue); }
-.sl-panel .sl-errors { padding: 8px 12px; border-radius: 12px; font-size: 13px; }
-.sl-panel .place-button { width: 100%; min-width: 0; min-height: 52px; padding-inline: 14px; border-radius: 16px; box-shadow: none; font-size: 17px; }
+.sl-panel:not(.sl-app *) .sl-errors { padding: 8px 12px; border-radius: 12px; font-size: 13px; }
+.sl-panel:not(.sl-app *) .place-button { width: 100%; min-width: 0; min-height: 52px; padding-inline: 14px; border-radius: 16px; box-shadow: none; font-size: 17px; }
 .place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
 .sl-win b.q-fit { display: block; }
 /* Typing the stake: the panel alone, at the top of what's seen. */
@@ -1089,7 +1091,7 @@ html .q-logo img { width: 88%; height: 88%; }
 }
 @media (prefers-reduced-motion: reduce) { .sc-result.won { animation: none; } }
 /* A card at the counter or on its page: latex on, nothing under it shown. */
-.tk.tk-sample { flex: none; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5); }
+.tk.tk-sample:not(.sl-app *) { flex: none; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5); }
 .tk-sample :is(.tk-i.under, .tk-paper) { display: none; }
 .sc-hero .tk-sample { width: min(100%, calc(min(34dvh, 360px) * var(--ar))) !important; }
 /* No room left under a tall ticket: its numbers go (they're on the card's page). */
