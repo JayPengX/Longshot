@@ -1,4 +1,4 @@
-// Quadra Play's bets with their prices: everything its board sells, priced,
+// Longshot's bets with their prices: everything its board sells, priced,
 // without names. One copy for Play (app.js names each bet: chip, label,
 // shortLabel, matchup) and the Worker, which prices a placed bet again with
 // it and refuses one sold better than this (Shared-Proxy settle.js).

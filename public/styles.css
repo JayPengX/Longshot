@@ -1,8 +1,8 @@
-/* Quadra Play: one file, by screen.
+/* Longshot: one file, by screen.
    1 Tokens   2 Base   3 Shared pieces (logos, prices, rows)
    4 首頁   5 賽事   6 A game's sheet (and the boards)   7 The slip
    8 紀錄 (slips, 戰績)   9 彩券 (tab, a game's sheet, scratch cards, tickets)
-   The kit (quadra.css) draws the frames: page heads, hero cards, row cards,
+   The kit (core.css) draws the frames: page heads, hero cards, row cards,
    tags, rails, chips, segmented controls, sheets, the tab bar. */
 
 /* ==== 1 Tokens ==== */
@@ -33,7 +33,7 @@ h1, h2, h3, p { margin: 0; }
 .num { font-variant-numeric: tabular-nums; }
 .back-high { color: var(--good); }
 .back-low { color: var(--bad); }
-/* The kit's column (quadra.css .q-col): the phone's 16 px in, the iPad's whole width. */
+/* The kit's column (core.css .q-col): the phone's 16 px in, the iPad's whole width. */
 .page { --q-margin: var(--q-gutter, 16px); max-width: var(--q-col, 640px); margin: 0 auto; padding: 8px var(--q-margin) calc(48px + var(--q-nav)); }
 body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-nav)); }
 .q-gl { display: inline-grid; place-items: center; width: 16px; height: 16px; }

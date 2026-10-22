@@ -1,4 +1,4 @@
-// Every sport and league Quadra covers, once, for Orbit Sports and Play alike
+// Every sport and league Longshot covers, once, for Orbit Sports and Play alike
 // (from the kit). Each app
 // builds its own view of it (Orbit Sports' lib/leagues.mjs, Play's lib/teams.mjs),
 // so a league added or fixed here reaches both.
@@ -9,7 +9,7 @@
 //           'kambi' (kambi path), 'asia' (the leagues' own sites, through the
 //           sports proxy: asiaMonth below). Orbit Sports shows only the leagues on ELTA.tv
 //           or Apple TV in Taiwan (its lib/broadcast.mjs).
-//   bet     Quadra Play's key when Play sells it; `odds` where Play prices it
+//   bet     Longshot's key when Play sells it; `odds` where Play prices it
 //           ('espn': DraftKings through ESPN; 'kambi'), F1 has its own board
 //   espn / kambi   the paths on each source (a league can have both: an
 //           ESPN league with a Kambi path is priced by Kambi first, DraftKings

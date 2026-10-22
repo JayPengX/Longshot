@@ -94,22 +94,35 @@ test('a ticket whose pool tier is not paid out yet waits for it, and is paid whe
 test('a scratch card\'s prize is drawn by the Worker and paid once, when it is scratched', async () => {
   const now = { t: Date.parse('2026-10-12T04:00:00Z') };
   const { deps, doc } = setup(now, money);
-  const r = await post(deps, { op: 'scratch', id: 'scratch001', card: 'lucky7' });
-  const { ticket } = r.body;
+  const r = await post(deps, { op: 'scratch', cards: [{ id: 'scratch001', card: 'lucky7' }] });
+  const [ticket] = r.body.tickets;
   assert.equal(typeof ticket.prize, 'number');
   assert.equal(doc(WALLET_COLLECTION, ACCOUNT).entries.find(e => e.id === 'odds:lotto-scratch001').amount, -ticket.cost);
-  assert.equal((await post(deps, { op: 'scratch', id: 'scratch002', card: 'palace' })).body.refused.problem, 'shape', 'a retired card is not sold');
-  assert.equal((await post(deps, { op: 'scratch', id: 'scratch003', card: 'mahjong' })).body.refused.problem, 'funds', '大麻將 (NT$1,000) is sold: refused only for the NT$900 left');
+  assert.equal((await post(deps, { op: 'scratch', cards: [{ id: 'scratch002', card: 'palace' }] })).body.refused.problem, 'shape', 'a retired card is not sold');
+  assert.equal((await post(deps, { op: 'scratch', cards: [{ id: 'scratch003', card: 'mahjong' }] })).body.refused.problem, 'funds', '大麻將 (NT$1,000) is sold: refused only for the NT$900 left');
   // 一觸即發 left the shops 2026-10-21 17:00 (Taiwan): sold until then, never after.
   now.t = Date.parse('2026-10-21T08:59:00Z');
-  assert.ok((await post(deps, { op: 'scratch', id: 'scratch004', card: 'touch' })).body.ticket);
+  assert.ok((await post(deps, { op: 'scratch', cards: [{ id: 'scratch004', card: 'touch' }] })).body.tickets);
   now.t = Date.parse('2026-10-21T09:00:00Z');
-  assert.equal((await post(deps, { op: 'scratch', id: 'scratch005', card: 'touch' })).body.refused.problem, 'shape', 'a card past its 下市日期 is not sold');
+  assert.equal((await post(deps, { op: 'scratch', cards: [{ id: 'scratch005', card: 'touch' }] })).body.refused.problem, 'shape', 'a card past its 下市日期 is not sold');
   now.t = Date.parse('2026-10-12T04:00:00Z');
   const first = await post(deps, { op: 'reveal', id: 'scratch001' });
   assert.equal(first.body.prize, ticket.prize > 5000 ? Math.round(ticket.prize * 0.796) : ticket.prize);
   assert.equal((await post(deps, { op: 'reveal', id: 'scratch001' })).body.refused.problem, 'unknown');
   assert.ok(doc(WALLET_COLLECTION, ACCOUNT).entries.filter(e => e.id === 'odds:prize-scratch001').length <= 1);
+});
+
+test('several scratch cards bought at once: one charge, all or none', async () => {
+  const now = { t: Date.parse('2026-10-12T04:00:00Z') };
+  const { deps, doc } = setup(now, money);
+  const r = await post(deps, { op: 'scratch', cards: [{ id: 'many00001', card: 'lucky7' }, { id: 'many00002', card: 'lucky7' }, { id: 'many00003', card: 'lucky7' }] });
+  assert.equal(r.body.tickets?.length, 3, JSON.stringify(r.body));
+  assert.equal(doc(WALLET_COLLECTION, ACCOUNT).entries.filter(e => e.kind === 'lottery').length, 3);
+  // NT$700 left: a NT$100 card with a NT$1,000 one is refused whole.
+  assert.equal((await post(deps, { op: 'scratch', cards: [{ id: 'many00004', card: 'lucky7' }, { id: 'many00005', card: 'mahjong' }] })).body.refused.problem, 'funds');
+  assert.equal(doc(WALLET_COLLECTION, ACCOUNT).entries.filter(e => e.kind === 'lottery').length, 3);
+  assert.equal((await post(deps, { op: 'scratch', cards: [...Array(11)].map((_, i) => ({ id: `many1${String(i).padStart(4, '0')}`, card: 'lucky7' })) })).body.refused.problem, 'shape', 'eleven at once');
+  assert.equal((await post(deps, { op: 'scratch', id: 'single001', card: 'lucky7' })).body.refused.problem, 'shape', 'one card is a list of one');
 });
 
 test('one ticket id twice in a sale: refused, nothing charged', async () => {

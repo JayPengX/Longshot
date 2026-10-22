@@ -51,7 +51,6 @@ export const placeSlips = slips => call('POST', { op: 'place', slips: slips.map(
 // scratch card bought { ticket, wallet } (its prize drawn there), scratched
 // { prize, wallet }; { refused: { problem } } when not.
 export const buyTickets = tickets => call('POST', { op: 'tickets', tickets });
-export const buyCard = (id, card) => call('POST', { op: 'scratch', id, card });
 // Several at once ({ tickets, wallet }: one charge, all or none).
 export const buyCardsAt = list => call('POST', { op: 'scratch', cards: list.map(({ id, card }) => ({ id, card })) });
 export const revealCard = id => call('POST', { op: 'reveal', id });

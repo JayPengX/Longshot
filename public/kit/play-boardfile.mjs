@@ -1,4 +1,4 @@
-// Quadra Play's home board as one file (/data/play/board.json): what the first
+// Longshot's home board as one file (/data/play/board.json): what the first
 // screen draws, built by the proxy on its cron (Shared-Proxy builders/play.js)
 // with the same pricing the phone runs (play-sources, play-board), so a price
 // on the file is the price the phone would have worked out itself. One copy

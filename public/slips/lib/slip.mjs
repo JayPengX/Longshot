@@ -1,6 +1,6 @@
 // A Taiwan Sports Lottery (台灣運彩) ticket: its rules, what it pays for
 // every way its picks can land, and how a pick is graded from a score.
-// The rules are Quadra Play's, from the kit (play-odds.mjs: 1-12 games a
+// The rules are Longshot's, from the kit (play-odds.mjs: 1-12 games a
 // ticket, NT$10 units a combination, NT$100-100,000 a ticket, at most NT$20
 // million paid a ticket; two picks of one game never in one combination).
 // Here: the payout walk, exact in whole NT$ as the lottery's 投注規範 has it

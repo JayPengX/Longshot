@@ -44,7 +44,7 @@ export async function shrink(file) {
 }
 
 // What Gemini read, or { error: 'busy' | 'limit' | 'offline' | 'failed' | 'signin' }.
-// (`qt`: the Quadra Pass's session, counted per account: 30 a day.)
+// (`qt`: the Longshot Pass's session, counted per account: 30 a day.)
 export async function readSlip(base64, qt = '') {
   let res;
   try {

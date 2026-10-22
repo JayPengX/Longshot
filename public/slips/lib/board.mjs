@@ -1,5 +1,5 @@
 // Every other bet 台灣運彩 sells on a game (半場, [1-5局], 雙勝, 正確比數,
-// 勝分差…): the kit's board (play-board.mjs gameOptions, Quadra Play's one
+// 勝分差…): the kit's board (play-board.mjs gameOptions, Longshot's one
 // pricing path) for a Slips game, grouped as the lottery's sections, each
 // option as a pick; graded by the kit's legResult (settle.mjs), as Play
 // settles them. The four 不讓分, 讓分, 大小 and 單雙 stay slip.mjs's. No DOM,

@@ -1,10 +1,10 @@
 // The 彩券 tab: Taiwan Lottery's computer-drawn games (lib/lottery.mjs) and
-// scratch cards (lib/scratch.mjs), bought with the Quadra balance. Tickets
+// scratch cards (lib/scratch.mjs), bought with the Longshot Pass balance. Tickets
 // live on the account next to the slips, settle against the real draws as
 // they come out, and pay into the same pool.
 import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, ticketPrize, upcoming, nextDraws, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
 import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize, onSale as cardOnSale } from './lib/scratch.mjs';
-import { buyTickets, buyCard as sellCard, buyCardsAt, revealCard } from './lib/settled.mjs';
+import { buyTickets, buyCardsAt, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
 import { faceDrawer, ticketLook } from './scratch-face.js';
@@ -751,7 +751,7 @@ export function mountLottery(ctx) {
   }
 
   // Buys n of a card (each checked here, then sold by the Worker, which
-  // draws its prize: lib/settled.mjs buyCard), and opens the first.
+  // draws its prize: lib/settled.mjs buyCardsAt), and opens the first.
   async function buyCards(id, n, page, buying = () => {}) {
     if (!cardOnSale(id)) return;
     const c = CARDS[id];
@@ -771,20 +771,8 @@ export function mountLottery(ctx) {
     buying(true);
     let got = [];
     let wallet = null;
-    let sold = await buyCardsAt(asked).catch(() => null);
+    const sold = await buyCardsAt(asked).catch(() => null);
     if (sold?.tickets) [got, wallet] = [sold.tickets, sold.wallet];
-    else if (sold?.refused?.problem === 'shape' || !sold) {
-      // (A Worker from before: one at a time.)
-      for (const x of asked) {
-        const one = await sellCard(x.id, id).catch(() => null);
-        if (!one?.ticket) {
-          sold = one;
-          break;
-        }
-        got.push(one.ticket);
-        wallet = one.wallet;
-      }
-    }
     buying(false);
     if (!got.length) return void (sold?.refused?.problem === 'funds' ? tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(c.price * n) }) }, 'coin') : tell({ lang, icon: '⏳', title: t('failed') }));
     ctx.setWallet(wallet);
@@ -1016,7 +1004,7 @@ export function mountLottery(ctx) {
       g.fillStyle = '#374151';
       g.font = '800 12px system-ui, sans-serif';
       g.rotate(-0.35);
-      for (let y = -h; y < h * 2; y += 26) for (let x = -w; x < w * 2; x += 70) g.fillText('QUADRA', x + ((y / 26) % 2) * 35, y);
+      for (let y = -h; y < h * 2; y += 26) for (let x = -w; x < w * 2; x += 86) g.fillText('LONGSHOT', x + ((y / 26) % 2) * 43, y);
       g.restore();
       for (let i = 0; i < 90; i++) {
         g.fillStyle = `rgba(255,255,255,${0.25 + Math.random() * 0.5})`;

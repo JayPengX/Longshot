@@ -1,4 +1,4 @@
-// Settling Quadra Play's slips: one copy for Play (its account.mjs and
+// Settling Longshot's slips: one copy for Play (its account.mjs and
 // sources.mjs re-export these) and the Worker that settles slips when their
 // games end (settle.js). Pure: a pick's result from its game's outcome, and
 // a slip paid once every pick is decided (the ledger's fixed ids,

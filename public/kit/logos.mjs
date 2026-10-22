@@ -1,7 +1,7 @@
-// Quadra's logos, for every app that shows a team, a league or a driver
-// (Quadra Play and Orbit Sports): ESPN's logo files, TheSportsDB's club
+// Longshot's logos, for every app that shows a team, a league or a driver
+// (Longshot and Orbit Sports): ESPN's logo files, TheSportsDB's club
 // and league badges for what ESPN doesn't carry, national flags, and the F1
-// grid's colours. Keys are Quadra Play's league keys (Orbit Sports maps its own
+// grid's colours. Keys are Longshot's league keys (Orbit Sports maps its own
 // to them). Part of the shared kit.
 
 // Strips club-suffix boilerplate so ESPN's "Liverpool" matches Polymarket's

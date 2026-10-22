@@ -76,7 +76,7 @@ export function parseStatus(s) {
 // ahead (it doesn't bat), or the end of an inning from the 9th apart, or
 // the home side ahead in the bottom of the 9th or later (a walk-off ends it
 // there).
-// (`league`: a catalogue key, Orbit Sports' or Quadra Play's: the same keys.)
+// (`league`: a catalogue key, Orbit Sports' or Longshot's: the same keys.)
 const REGULATION = { basketball: 4 };
 export function overByRule(status, away, home, league) {
   if (!status || status.state !== 'in' || status.void) return status;
@@ -142,7 +142,7 @@ const CDN = 'https://a.espncdn.com/i';
 const HEADSHOTS = { racing: 'rpm' };
 export function fallbackLogo(league, side) {
   if (!side || side.logo) return side?.logo || null;
-  // The shared kit's (Quadra Play's) logo for the club.
+  // The shared kit's (Longshot's) logo for the club.
   const kit = teamLogo(LEAGUES[league]?.play || league, side.name);
   // A side not decided yet (ESPN's "TBD", ids -1 and -2) has no logo.
   if (kit || !/^\d+$/.test(String(side.id ?? '')) || league === 'nba') return kit;

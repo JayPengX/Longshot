@@ -1,4 +1,4 @@
-// Quadra Play's recommendations (the tag on a pick: value, steady, shot), in the shared kit: Play's phone and the Worker's board (builders/play.js) tag from this one copy.
+// Longshot's recommendations (the tag on a pick: value, steady, shot), in the shared kit: Play's phone and the Worker's board (builders/play.js) tag from this one copy.
 // Recommendations, shown on each pick rather than in a separate list. Every
 // pick is judged by the same number the whole page uses, its average back per
 // NT$100 (its chance of winning x the lottery's odds), against the other

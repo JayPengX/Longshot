@@ -1,6 +1,6 @@
 // ---- kit/lang.mjs: the reader's language, the same in every app ----
 // What each app kept its own copy of (Weather's lang.mjs, Words' and
-// Securities' i18n.mjs): the language picked in any Quadra app (else the
+// Securities' i18n.mjs): the language picked in the app (else the
 // phone's), a word-pair helper for short labels, and `makeT` for an app's
 // string tables.
 //

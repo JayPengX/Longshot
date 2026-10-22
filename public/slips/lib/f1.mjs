@@ -2,7 +2,7 @@
 // now and then the season's (年度車手冠軍). Each is a game a pick can be on:
 // a race from ESPN's season (its field, its finishing order; while it runs,
 // the order as it stands from F1's own timing, the kit's f1live.mjs, as
-// Orbit Sports and Quadra Play read it), the championship from ESPN's
+// Orbit Sports and Longshot read it), the championship from ESPN's
 // driver standings. No DOM, so it's tested.
 import * as logos from '../../kit/logos.mjs';
 import { CUT } from './slip.mjs';
@@ -164,7 +164,7 @@ export const placeOf = (order, name) => {
   return i < 0 ? Infinity : i + 1;
 };
 // 'won' or 'lost' once the race (or the season) is over, 'void' when it's
-// called off, as Quadra Play's settling grades its F1 winner picks (the
+// called off, as Longshot's settling grades its F1 winner picks (the
 // kit's legResult); null before.
 export function gradeF1(leg) {
   const g = leg.game;

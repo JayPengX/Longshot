@@ -1,4 +1,4 @@
-// Quadra Play's odds, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
+// Longshot's odds, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
 import { minLegsProblem, BASE_CUT } from './play-rules.mjs';
 // Pure odds math, shared by the browser page and scripts/build-data.mjs.
 
@@ -457,7 +457,7 @@ export function quantile(sorted, q) {
 // payouts capped at NT$20 million per ticket. Tax: a ticket (one slip) whose
 // prize is over NT$5,000 loses 20% income tax on the whole prize (Jay's
 // ruling 2026-10-20: "one slip is one slip"); a member's (online account's)
-// prizes pay no 4‰ stamp duty, and Quadra Play is a member account. §18:
+// prizes pay no 4‰ stamp duty, and Longshot is a member account. §18:
 // prizes rounded to the dollar.
 export const SLIP_RULES = {
   maxLegs: 12,

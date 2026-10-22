@@ -126,7 +126,7 @@ export const EXTRA_FUTURES = [
   { key: 'f1constructors', sport: 'f1', query: "F1 Constructors' Champion", title: /^F1 Constructors' Champion$/i }
 ];
 
-// The proxy answers signed-in apps only: the Quadra session (core.mjs)
+// The proxy answers signed-in apps only: the Longshot Pass session (core.mjs)
 // supplies the token.
 let session = null;
 export function useSourcesSession(s) {
@@ -1248,7 +1248,7 @@ export async function loadLeagueTeams(sport) {
 
 // The team lists kept on the device for a week (clubs change once a
 // season), so opening the app doesn't download every league's again. In
-// the browser's Cache Storage, shared by the Quadra apps on this site; the
+// the browser's Cache Storage, kept by the app; the
 // service workers never clear it.
 const TEAMS_CACHE = 'longshot-teams-v1';
 const TEAMS_FRESH_MS = 7 * 24 * 3600 * 1000;

@@ -1,4 +1,4 @@
-// The tickets on the Quadra Pass (Orbit Slips' payload: { v: 1, slips, gone })
+// The tickets on the Longshot Pass (the 注單 payload: { v: 1, slips, gone })
 // and on this phone (localStorage), put together: every ticket either has,
 // a deleted one (its id in `gone`, kept 120 days) gone from both. The same
 // ticket on both: the one edited last (`edited`), else the one whose games

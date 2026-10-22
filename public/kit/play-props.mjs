@@ -1,4 +1,4 @@
-// Quadra Play's props, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
+// Longshot's props, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
 // Players' markets: which of Kambi's the board sells, what each is called,
 // and how each is settled from the game's ESPN box score.
 //

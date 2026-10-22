@@ -1,5 +1,5 @@
 // Games and live scores. In the app, through the family's sports proxy with
-// the Quadra Pass (useReader: the kit's proxyJson, app=slip, batched and
+// the Longshot Pass (useReader: the kit's proxyJson, app=slip, batched and
 // kept like every Orbit app's reads): ESPN's scoreboards and the Asian
 // leagues' months. CPBL from TheSportsDB straight from the phone when the
 // proxy can't.
@@ -239,7 +239,7 @@ export function parseKambi(data, league, now = Date.now()) {
     })
     .sort((a, b) => a.start.localeCompare(b.start));
 }
-// The Quadra session's token for the proxy's kept copies (the kit's /kambi watch).
+// The Longshot Pass session's token for the proxy's kept copies (the kit's /kambi watch).
 let tokenOf = () => '';
 export const useToken = fn => (tokenOf = fn);
 // Kambi's picks read again: their league's list; a match gone from it
