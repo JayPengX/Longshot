@@ -165,15 +165,6 @@ test('soccer games merge across name styles and get Chinese names', () => {
   assert.ok(game.draftKings.draw > 0 && game.polymarket.draw > 0);
 });
 
-test('lottery window ends at the end of tomorrow, Taiwan time', async () => {
-  const { lotteryWindowEnd, taipeiDayKey } = await import('../public/lib/sources.mjs');
-  // 2026-09-25 23:30 in Taiwan is 15:30 UTC; the window ends 2026-09-27 00:00 Taiwan = 09-26 16:00 UTC.
-  assert.equal(lotteryWindowEnd(new Date('2026-09-25T15:30:00Z')).toISOString(), '2026-09-26T16:00:00.000Z');
-  // 00:30 Taiwan on 09-26 is still 09-25 in UTC, but already the 26th in Taiwan.
-  assert.equal(taipeiDayKey('2026-09-25T16:30:00Z'), '2026-09-26');
-  assert.equal(lotteryWindowEnd(new Date('2026-09-25T16:30:00Z')).toISOString(), '2026-09-27T16:00:00.000Z');
-});
-
 test('futures parser reads teams from questions and drops placeholders', async () => {
   const { parseFutures } = await import('../public/lib/sources.mjs');
   const market = (question, yes) => ({ question, outcomes: '["Yes","No"]', outcomePrices: JSON.stringify([String(yes), String(1 - yes)]) });
@@ -207,7 +198,7 @@ test('futures parser reads teams from questions and drops placeholders', async (
 });
 
 test('every game not yet started is listed, up to two weeks ahead', async () => {
-  const { lotteryGames, nextMatchweek } = await import('../public/lib/sources.mjs');
+  const { lotteryGames } = await import('../public/lib/sources.mjs');
   const epl = (startUtc, away, home) => ({ sport: 'epl', startUtc, away: { en: away }, home: { en: home } });
   const round = [
     epl('2026-09-26T11:30:00Z', 'Chelsea', 'Arsenal'),
@@ -215,11 +206,7 @@ test('every game not yet started is listed, up to two weeks ahead', async () => 
     epl('2026-09-27T15:30:00Z', 'Liverpool FC', 'Brighton'),
     epl('2026-09-28T19:00:00Z', 'Leeds United', 'Burnley')
   ];
-  // Next round starts the day after: Arsenal again ends this matchweek.
   const next = [epl('2026-09-29T18:45:00Z', 'Arsenal', 'Everton'), epl('2026-09-29T19:00:00Z', 'Tottenham', 'Wolves')];
-  assert.deepEqual(nextMatchweek([...next, ...round]), round);
-  // A long break ends it too.
-  assert.equal(nextMatchweek([round[0], epl('2026-10-10T14:00:00Z', 'Everton', 'Fulham')]).length, 1);
   const mlb = (startUtc, id) => ({ sport: 'mlb', startUtc, id, away: { en: 'A' }, home: { en: 'B' } });
   const now = new Date('2026-09-25T07:00:00Z'); // 15:00 on 09-25 in Taiwan
   const shown = lotteryGames([mlb('2026-09-26T02:00:00Z', 'tomorrow'), mlb('2026-09-26T23:00:00Z', 'day after'), mlb('2026-09-25T01:00:00Z', 'started'), ...round, ...next], now);

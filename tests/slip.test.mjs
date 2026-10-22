@@ -48,40 +48,15 @@ test('singles are judged one slip a pick, as each is placed', () => {
 
 test('the slip bar and the slip agree: a system bet costs every combination', () => {
   const legs = [bet('g1', 2), bet('g2', 2), bet('g3', 2)];
-  const q = slipQuote({ bets: legs, mode: 'system', chosen: new Set([2, 'all']), stake: 100, boost: 1 });
+  const q = slipQuote({ bets: legs, mode: 'system', chosen: new Set([2, 'all']), stake: 100 });
   assert.deepEqual(q.sizes, [2, 3]);
   // 3 doubles and the treble: NT$400 (the bar once showed a parlay's NT$100).
   assert.equal(q.cost, 400);
   assert.equal(q.cost, comboCount(q.legs, q.sizes) * 100);
-  // All three won: 3 × 400 + 800 × 1.05 (the treble's boost on its winnings).
-  assert.equal(Math.round(quoteAllPays(q)), 3 * 400 + Math.round(100 + 700 * 1.05));
+  // All three won: the three doubles' 3 × 400 and the treble's 800.
+  assert.equal(Math.round(quoteAllPays(q)), 3 * 400 + 800);
   // A system needs two games (台灣運彩's 過關組合); 'all' follows the number of picks.
   assert.ok(slipQuote({ bets: legs.slice(0, 1), mode: 'system', chosen: ['all'], stake: 100 }).errors.includes('systemNeedsTwo'));
-  // Singles take no boost.
-  assert.equal(slipQuote({ bets: legs, mode: 'single', stake: 100, boost: 1.5 }).boost, 0);
-});
-
-test('a free bet on the slip: one single or one parlay, odds long enough, the rest paid from the balance', () => {
-  const free = { id: 'eco:fb:w1', value: 200 };
-  // A parlay at 1.3 × 1.3 = 1.69: on; the stake never below the free bet.
-  const q = slipQuote({ bets: [bet('g1', 1.3), bet('g2', 1.3)], mode: 'parlay', stake: 100, free });
-  assert.equal(q.freeOn, true);
-  assert.equal(q.stake, 200);
-  assert.equal(q.cost, 0);
-  assert.equal(q.free, free);
-  // More than the free bet: the rest from the balance.
-  assert.equal(slipQuote({ bets: [bet('g1', 2)], mode: 'single', stake: 500, free }).cost, 300);
-  // All correct pays the winnings only: 200 × 1.69 − 200.
-  assert.equal(Math.round(quoteAllPays(q)), Math.round(200 * 1.69 - 200));
-  // Too short (1.2 × 1.2 = 1.44): off, and the slip is an ordinary one.
-  const short = slipQuote({ bets: [bet('g1', 1.2), bet('g2', 1.2)], mode: 'parlay', stake: 100, free });
-  assert.deepEqual([short.freeShape, short.freeOn, short.cost, short.free], [true, false, 100, null]);
-  // Two singles are two slips: no free bet on them.
-  const two = slipQuote({ bets: [bet('g1', 2), bet('g2', 2)], mode: 'single', stake: 100, free });
-  assert.deepEqual([two.freeShape, two.freeOn, two.cost], [false, false, 200]);
-  // A free bet's value isn't held to the stake unit or the minimum (the Worker's rule too).
-  const odd = slipQuote({ bets: [bet('g1', 2)], mode: 'single', stake: 0, free: { id: 'x', value: 55 } });
-  assert.deepEqual(odd.errors, []);
 });
 
 test('a slip bought: what it has locked in and can still pay, free bets their winnings only', () => {
@@ -154,28 +129,21 @@ test('dropPicks takes picks off the slip and forgets their picked odds', () => {
   assert.deepEqual(dropPicks(same, []), same);
 });
 
-test("the pay box's totals: a parlay's tax and boost, singles as their own tickets, a free bet's stake not paid back", async () => {
+test("the pay box's totals: a parlay's tax, singles as their own tickets", async () => {
   const { payoutTotals } = await import('../public/lib/slip.mjs');
   const leg = (gameId, odds) => ({ gameId, odds, kind: 'ml' });
   // A treble at 10 × 10 × 2 for NT$1,000: 200,000 before tax.
-  const treble = payoutTotals({ legs: [leg('a', 10), leg('b', 10), leg('c', 2)], sizes: [3], stake: 1000, mode: 'parlay', boost: 1 });
+  const treble = payoutTotals({ legs: [leg('a', 10), leg('b', 10), leg('c', 2)], sizes: [3], stake: 1000, mode: 'parlay' });
   assert.equal(treble.combos, 1);
   assert.equal(treble.cost, 1000);
   // Taxed as the kit taxes it (台灣運彩's: only past NT$5,000 a NT$10 bet, so not this one).
   assert.equal(treble.taxed, kitOdds.afterTax(treble.allGross, 1000) < treble.allGross - 0.5);
-  assert.ok(treble.boostRate > 0 && treble.boostMore > 0);
   assert.equal(treble.allNet < treble.allGross, treble.taxed);
   // Two NT$100,000 singles at 500.00: each its own NT$20M cap, so 40M before tax.
   const singles = payoutTotals({ legs: [leg('a', 500), leg('b', 500)], sizes: [1], stake: 100000, mode: 'single' });
   assert.equal(singles.allGross, 40_000_000);
-  assert.equal(singles.boostRate, 0);
   assert.equal(singles.least, Math.min(...singles.each));
   assert.equal(singles.allTaxed, singles.each[0] + singles.each[1]);
-  // A NT$500 free bet on 3.00: 1,500 back, 1,000 of it paid; costs nothing from the balance.
-  const free = payoutTotals({ legs: [leg('a', 3)], sizes: [1], stake: 500, mode: 'single', free: 500 });
-  assert.equal(free.cost, 0);
-  assert.equal(free.allNet, 1000);
-  assert.equal(free.taxed, false);
 });
 
 // 台灣運彩 (投注規範 第 34 條): a void pick's odds are 1 in a parlay; every pick void, the stake back.

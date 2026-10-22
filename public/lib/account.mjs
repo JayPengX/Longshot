@@ -68,33 +68,6 @@ export function placeSlip(account, slip, now = new Date(), { extra = 0 } = {}) {
   return { account: touched({ ...account, ledger: [...account.ledger, entry], slips: [saved, ...account.slips] }, now) };
 }
 
-// Buys a slip with a free bet (the welcome offer or a weekly bonus bet issued earlier, kit freeBets): the token's
-// value is (part of) the stake; only a top-up beyond it comes off the
-// balance, and the token is marked spent ('fb-<token id>', so the same token
-// is never staked twice). Winning pays all but the free part's stake
-// (applyResults): a top-up's stake comes back as usual.
-// Like a sportsbook's free bet terms: odds of FREE_MIN_ODDS or longer (no
-// near-certain bet) — a single's pick, a parlay's odds all together (a
-// recommended parlay with a 1.43 in it still qualifies) — and never cashed
-// out early.
-export const FREE_MIN_ODDS = 1.5;
-export const freeOddsOk = legs => legs.length > 0 && legs.reduce((x, l) => x * Number(l.odds), 1) >= FREE_MIN_ODDS - 1e-9;
-export function placeFreeSlip(account, slip, token, now = new Date(), { extra = 0 } = {}) {
-  if (!token?.id || !(token.value > 0) || account.ledger.some(e => e.id === `fb-${token.id}`)) return { error: 'token' };
-  if (!freeOddsOk(slip.legs || [])) return { error: 'freeOdds' };
-  // More than the free bet on it: the rest from the balance (the free bet
-  // a cut off the stake).
-  const cash = Math.max(0, Math.round((Number(slip.stake) || 0) - token.value));
-  if (cash > 0 && cash > balance(account) + extra) return { error: 'funds' };
-  const t = now.toISOString();
-  const saved = { ...slip, stake: token.value + cash, cost: cash, free: token.id, freeValue: token.value, t, status: 'open', legs: slip.legs.map(leg => compactLeg({ ...leg, result: null })) };
-  const entries = [
-    { id: `stake-${slip.id}`, t, kind: 'stake', amount: -cash, slipId: slip.id },
-    { id: `fb-${token.id}`, t, kind: 'freebet', amount: 0, slipId: slip.id }
-  ];
-  return { account: touched({ ...account, ledger: [...account.ledger, ...entries], slips: [saved, ...account.slips] }, now) };
-}
-
 // The pick rules and slip settling: the shared kit's (settle.mjs), one copy
 // for Play and the Worker.
 export { topInning, legResult, applyResults } from '#kit/settle.mjs';

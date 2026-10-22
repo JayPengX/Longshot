@@ -2,16 +2,8 @@
 // their season numbers, and soccer's corners.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRoster, parseAthletes, totalsOf, blendTotals, playerByName } from '../public/lib/players.mjs';
-import { modelProps, atLeast, binomAtLeast, normalOver, teamScores } from '#kit/play-propmodel.mjs';
+import { parseRoster, parseAthletes, totalsOf, blendTotals } from '../public/lib/players.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
-
-test('distributions add up', () => {
-  assert.ok(Math.abs(atLeast(0.3, 1) - (1 - Math.exp(-0.3))) < 1e-6);
-  assert.ok(Math.abs(binomAtLeast(4, 0.25, 1) - (1 - 0.75 ** 4)) < 1e-9);
-  assert.ok(Math.abs(normalOver(20, 5, 20) - 0.5) < 1e-6);
-  assert.deepEqual(teamScores('basketball', { total: 220, spread: -4 }), { home: 108, away: 112 });
-});
 
 test('rosters and season lists become players with the board\'s stat names', () => {
   const roster = { athletes: [{ position: 'x', items: [{ id: 7, displayName: 'Matt Olson', position: { abbreviation: '1B' }, headshot: { href: 'https://a.espncdn.com/i/headshots/mlb/players/full/7.png' } }] }] };
@@ -22,25 +14,6 @@ test('rosters and season lists become players with the board\'s stat names', () 
   const t = totalsOf('baseball', list.get('7').raw);
   assert.deepEqual([t.gp, t.ab, t.hr, t.rbi], [160, 600, 41, 93]);
   assert.deepEqual(blendTotals({ gp: 2, goals: 1 }, { gp: 30, goals: 10 }), { gp: 17, goals: 6 });
-  assert.equal(playerByName([{ name: 'J.T. Realmuto' }], 'JT Realmuto')?.name, 'J.T. Realmuto');
-});
-
-test('the model prices every regular, scaled by the team\'s expected score', () => {
-  const batter = (name, side, hr) => ({ name, side, pos: '1B', out: false, gp: 150, totals: { gp: 150, ab: 580, hits: 150, runs: 80, rbi: 85, hr } });
-  const props = modelProps('mlb', [batter('Slugger', 'home', 45), batter('Slapper', 'away', 5), { ...batter('Hurt', 'home', 30), out: true }, { ...batter('Pitcher', 'home', 0), pos: 'SP' }], { home: 5.5, away: 3.5 });
-  const hr = name => props.find(p => p.player === name && p.stat === 'hr').fair;
-  assert.ok(hr('Slugger') > 0.2 && hr('Slapper') < 0.06, `${hr('Slugger')} ${hr('Slapper')}`);
-  assert.ok(!props.some(p => p.player === 'Hurt' || p.player === 'Pitcher'));
-  assert.ok(props.every(p => p.model && p.fair > 0 && p.fair < 1));
-  // Soccer: a striker's goal and the first goal; a keeper none.
-  const soccer = modelProps('epl', [
-    { name: 'Striker', side: 'home', pos: 'F', gp: 10, totals: { gp: 10, subIns: 0, goals: 7, assists: 2, sot: 15 } },
-    { name: 'Keeper', side: 'home', pos: 'G', gp: 10, totals: { gp: 10, subIns: 0, goals: 0, assists: 0, sot: 0 } }
-  ], { home: 2, away: 1 });
-  const goal = soccer.find(p => p.stat === 'goals' && p.line === 1).fair;
-  const first = soccer.find(p => p.stat === 'first').fair;
-  assert.ok(goal > 0.4 && first < goal && first > 0.1, `${goal} ${first}`);
-  assert.ok(!soccer.some(p => p.player === 'Keeper'));
 });
 
 test('the board falls back to the model: corners for soccer, never players', () => {

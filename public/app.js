@@ -1793,10 +1793,6 @@ function syncPicks() {
   }
 }
 
-// Everything that can go on the slip: games, F1 and championships.
-function slipCandidates() {
-  return [...state.bets, ...state.liveBets, ...state.futures];
-}
 // …by id (the first board's, as a search of them finds it), made again only
 // when a board's bets do.
 // (Two indexes: the board's and the championships' made again only when they
@@ -2951,7 +2947,6 @@ function drawSaved() {
   if (!state.accountReady) return;
   const t = state.t;
   const slips = state.account.slips;
-  const open = slips.filter(s => s.status === 'open');
   applyHistoryView();
   // No slips yet: the way to the games, not an empty page.
   if (!slips.length) {

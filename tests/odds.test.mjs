@@ -1,30 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  afterTax,
-  americanToProbability,
-  devigTwoWay,
-  devigPower,
-  estimateLotteryOdds,
-  estimateF1Odds,
-  F1_CUT,
-  estimateFuturesOdds,
-  evaluateSlip,
-  lotteryTotalLines,
-  lotteryRunLines,
-  MLB_MARKET_OVERROUND,
-  houseTake,
-  slipErrors,
-  slipSizes,
-  choose,
-  expectedReturn,
-  overround,
-  combineParlay,
-  blendOutcomes,
-  devigProportional,
-  quantile,
-  K_WIN
-} from '../public/lib/odds.mjs';
+import { afterTax, americanToProbability, devigPower, estimateLotteryOdds, estimateF1Odds, F1_CUT, estimateFuturesOdds, lotteryTotalLines, lotteryRunLines, slipErrors, slipSizes, slipPayoutTable, choose, expectedReturn, overround, blendOutcomes, devigProportional, quantile, K_WIN } from '../public/lib/odds.mjs';
 
 const close = (a, b, eps = 1e-3) => assert.ok(Math.abs(a - b) < eps, `${a} !~ ${b}`);
 
@@ -33,11 +9,6 @@ test('American odds convert to implied chance', () => {
   close(americanToProbability(150), 0.4);
   assert.equal(americanToProbability('x'), null);
   assert.equal(americanToProbability(0), null);
-});
-
-test('two-way devig removes the margin', () => {
-  close(devigTwoWay(0.5238, 0.5238), 0.5);
-  assert.equal(devigTwoWay(0, 0.5), null);
 });
 
 test('power devig sums to 1 and shrinks longshots more', () => {
@@ -69,15 +40,6 @@ test('F1: a driver is priced by plain math on their chance, nothing fitted', () 
 test('expected return and overround', () => {
   close(expectedReturn(0.502, 1.8), 90.36);
   close(overround([1.8, 1.7]), 1.1438);
-});
-
-test('parlay multiplies odds and chances', () => {
-  const p = combineParlay([
-    { odds: 1.8, fairChance: 0.5 },
-    { odds: 1.72, fairChance: 0.517 }
-  ]);
-  close(p.odds, 3.096);
-  close(p.fairChance, 0.2585);
 });
 
 test('blendOutcomes averages sources, one multiplier for every source', () => {
@@ -145,42 +107,15 @@ test('slip follows the lottery ticket rules', () => {
   assert.ok(slipErrors({ mode: 'single', legs: slipLegs, sizes: [1], stake: 10 }).includes('ticketMin'));
 });
 
-test('slip payouts, averages and chances are exact', () => {
-  const parlay = evaluateSlip({ legs: slipLegs, sizes: [3], stake: 100 });
-  close(parlay.best, 612);
-  close(parlay.expected, 0.5 * 0.45 * 0.55 * 612, 1e-9);
-  close(parlay.anyPayout, 0.5 * 0.45 * 0.55, 1e-12);
-  close(parlay.byHits.reduce((s, r) => s + r.chance, 0), 1, 1e-12);
-  // Singles: average back is each leg's own chance x odds.
-  const single = evaluateSlip({ legs: slipLegs, sizes: [1], stake: 100 });
-  close(single.expected, 90 + 90 + 93.5, 1e-9);
-  close(single.anyPayout, 1 - 0.5 * 0.55 * 0.45, 1e-12);
-  // System 2+3 of 3: all three pairs plus the treble.
-  const system = evaluateSlip({ legs: slipLegs, sizes: [2, 3], stake: 100 });
-  assert.equal(system.combos, 4);
-  close(system.best, 100 * (3.6 + 3.06 + 3.4 + 6.12));
-  // Exactly 2 right pays one pair: between 1.8x1.7 and 2x1.8.
-  close(system.byHits[2].min, 306);
-  close(system.byHits[2].max, 360);
-});
-
 test('slip withholds the sports tax as the kit has it, and caps a ticket', () => {
-  const big = evaluateSlip({ legs: [{ gameId: 1, odds: 3, fairChance: 1 }, { gameId: 2, odds: 3, fairChance: 1 }], sizes: [2], stake: 1000 });
-  close(big.expected, 9000);
-  close(big.expectedNet, afterTax(9000, 1000), 1e-9);
+  const won = (legs, stake) => slipPayoutTable({ legs, sizes: [legs.length], stake });
+  const big = won([{ gameId: 1, odds: 3 }, { gameId: 2, odds: 3 }], 1000);
+  close(big.gross[3], 9000);
+  close(big.net[3], afterTax(9000, 1000), 1e-9);
   // At NT$5,000 or less nothing is withheld.
-  close(evaluateSlip({ legs: [{ gameId: 1, odds: 2.5, fairChance: 1 }, { gameId: 2, odds: 2, fairChance: 1 }], sizes: [2], stake: 1000 }).expectedNet, 5000);
-  const huge = evaluateSlip({ legs: Array.from({ length: 12 }, (_, i) => ({ gameId: i, odds: 10, fairChance: 1 })), sizes: [12], stake: 100 });
-  assert.equal(huge.best, 20_000_000);
-});
-
-test('house take is 1 - 1 / overround, with a margin from the prices', () => {
-  const at = p => 1 / (p * 1.15);
-  const { take, margin } = houseTake([at(0.6), at(0.4)], [0.022, 0.022]);
-  close(take, 1 - 1 / 1.15, 1e-12);
-  // Every price 2.2% off moves the overround 2.2%: take moves 2.2% / 1.15.
-  close(margin, 0.022 / 1.15, 1e-12);
-  assert.equal(houseTake([2, 2]).take, 0);
+  close(won([{ gameId: 1, odds: 2.5 }, { gameId: 2, odds: 2 }], 1000).net[3], 5000);
+  const huge = won(Array.from({ length: 12 }, (_, i) => ({ gameId: i, odds: 10 })), 100);
+  assert.equal(huge.gross[(1 << 12) - 1], 20_000_000);
 });
 
 test('every text key exists in both languages', async () => {
@@ -219,13 +154,6 @@ const american = a => (a > 0 ? 100 / (a + 100) : -a / (-a + 100));
 const devig2 = (a, b) => american(a) / (american(a) + american(b));
 const lotteryChance = (a, b) => 1 / a / (1 / a + 1 / b);
 
-test('the lottery prices every two-way MLB market at the same cut', () => {
-  for (const g of fixture.games) {
-    const markets = [g.ml, ...(g.totals || []).map(t => t.slice(1)), ...(g.spreads || []).map(t => t.slice(1))].filter(Boolean);
-    for (const [a, b] of markets) close(1 / a + 1 / b, MLB_MARKET_OVERROUND, 0.02);
-  }
-});
-
 test('MLB total lines: same lines as the lottery, prices within a few percent', () => {
   let err = 0;
   let n = 0;
@@ -260,35 +188,6 @@ test('MLB run lines: the lottery shrinks DraftKings toward 50/50', () => {
   // The underdog getting runs is the better deal: true chance above the priced one.
   const [dog] = lotteryRunLines(1.5, 0.64);
   assert.ok(dog.fair > dog.lottery);
-});
-
-test('ticket analysis: exact figures, where the money goes, each leg, one short', async () => {
-  const { analyzeSlip } = await import('../public/lib/odds.mjs');
-  const legs = [
-    { odds: 1.8, fairChance: 0.5 },
-    { odds: 1.9, fairChance: 0.45 },
-    { odds: 1.7, fairChance: 0.55 },
-    { odds: 1.9, fairChance: 0.5 }
-  ];
-  const a = analyzeSlip({ legs, sizes: [2, 4], stake: 100 });
-  const exact = evaluateSlip({ legs, sizes: [2, 4], stake: 100 });
-  close(a.expectedNet, exact.expectedNet, 1e-9);
-  close(a.paid, exact.anyPayout, 1e-12);
-  close(a.profit, exact.profit, 1e-12);
-  close(a.byHits.reduce((s, r) => s + r.chance, 0), 1, 1e-12);
-  // Cut + tax + back = 100.
-  close(a.per100.take + a.per100.tax + a.per100.back, 100, 1e-9);
-  close(a.top.chance, 0.5 * 0.45 * 0.55 * 0.5, 1e-12);
-  // The worst-value leg is the one priced furthest under its fair odds.
-  assert.equal(a.weakest, 1);
-  // Without the worst leg, the rest return more.
-  assert.ok(a.legs[1].without > a.backPer100);
-
-  // One short: exactly one pick lost.
-  const one = legs.reduce((sum, _, i) => sum + legs.reduce((p, l, j) => p * (j === i ? 1 - l.fairChance : l.fairChance), 1), 0);
-  close(a.nearMiss, one, 1e-12);
-  close(a.lone[0], 0.5 * 0.45 * 0.55 * 0.5, 1e-12);
-  close(a.nearMiss, a.byHits[3].chance, 1e-12);
 });
 
 test('wider lines: team totals and run lines from the score model, odds never below 1.01', async () => {

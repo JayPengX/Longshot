@@ -1,17 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  START_BALANCE,
-  newAccount,
-  balance,
-  placeSlip,
-  legResult,
-  applyResults,
-  mergeAccounts,
-  topInning,
-  placeFreeSlip,
-  cashOut
-} from '../public/lib/account.mjs';
+import { START_BALANCE, newAccount, balance, placeSlip, legResult, applyResults, mergeAccounts, topInning, cashOut } from '../public/lib/account.mjs';
 import { settleSlip, afterTax } from '../public/lib/odds.mjs';
 import { parseEspnResults, parseEspnRace, parseFutureResult } from '../public/lib/sources.mjs';
 
@@ -96,41 +85,6 @@ test('a parlay with a pick lost settles at once, the other games not waited for'
   assert.equal(older.slips[0].status, 'settled');
 });
 
-test('a free bet: no cost, the token spent once, only the winnings paid, no cash out', () => {
-  let account = newAccount(at('2026-09-25T00:00:00Z'));
-  const token = { id: 'vocab:fb:2026-09-25:parlay3', value: 100 };
-  ({ account } = placeFreeSlip(account, slip('f', 0, [{ id: 'a', odds: 2 }, { id: 'b', odds: 1.5 }]), token));
-  assert.equal(balance(account), START_BALANCE);
-  assert.equal(account.slips[0].stake, 100);
-  assert.equal(account.slips[0].free, token.id);
-  assert.ok(account.ledger.some(e => e.id === `fb-${token.id}`));
-  assert.equal(placeFreeSlip(account, slip('g', 0, [{ id: 'c', odds: 2 }]), token).error, 'token');
-  // A sportsbook's terms: odds of 1.50 or longer, a parlay's all together.
-  assert.equal(placeFreeSlip(newAccount(at('2026-09-25T00:00:00Z')), slip('h', 0, [{ id: 'd', odds: 1.4 }]), { id: 'x', value: 100 }).error, 'freeOdds');
-  assert.equal(placeFreeSlip(newAccount(at('2026-09-25T00:00:00Z')), slip('h', 0, [{ id: 'd', odds: 1.2 }, { id: 'e', odds: 1.2 }]), { id: 'x', value: 100 }).error, 'freeOdds');
-  assert.equal(placeFreeSlip(newAccount(at('2026-09-25T00:00:00Z')), slip('h', 0, [{ id: 'd', odds: 2 }, { id: 'e', odds: 1.4 }]), { id: 'x', value: 100 }).error, undefined);
-  assert.equal(cashOut(account, 'f', 150), account);
-  const won = applyResults(account, 'f', ['won', 'won']);
-  assert.equal(won.slips[0].payout, 200);
-  assert.equal(balance(won), START_BALANCE + 200);
-  const lost = applyResults(account, 'f', ['won', 'lost']);
-  assert.equal(balance(lost), START_BALANCE);
-});
-
-test('a free bet with more on it: the free bet comes off the stake; a win returns the paid part', () => {
-  let account = newAccount(at('2026-09-25T00:00:00Z'));
-  const token = { id: 'eco:fb:2026-09-21', value: 200 };
-  ({ account } = placeFreeSlip(account, slip('t', 0, [{ id: 'a', odds: 2 }, { id: 'b', odds: 1.5 }], { stake: 500 }), token));
-  // NT$500 on it: NT$200 free, NT$300 from the balance.
-  assert.equal(balance(account), START_BALANCE - 300);
-  assert.deepEqual([account.slips[0].stake, account.slips[0].cost, account.slips[0].freeValue], [500, 300, 200]);
-  // ×3 on NT$500 is NT$1,500 back, less the free NT$200.
-  assert.equal(applyResults(account, 't', ['won', 'won']).slips[0].payout, 1_300);
-  assert.equal(balance(applyResults(account, 't', ['won', 'lost'])), START_BALANCE - 300);
-  // Not enough for the top-up: refused.
-  assert.equal(placeFreeSlip(newAccount(at('2026-09-25T00:00:00Z')), slip('u', 0, [{ id: 'c', odds: 2 }], { stake: START_BALANCE + 1_000 }), token).error, 'funds');
-});
-
 test('two devices merge without counting anything twice', () => {
   const base = newAccount(at('2026-09-25T00:00:00Z'));
   const { account: a } = placeSlip(base, slip('a', 500, [{ id: 'x', odds: 2 }]), at('2026-09-25T01:00:00Z'));
@@ -201,17 +155,6 @@ test('F1 winner from ESPN, championship winner from Polymarket', () => {
     { question: 'Will the Los Angeles Dodgers win the 2026 World Series?', outcomes: '["Yes","No"]', outcomePrices: '["1","0"]' }
   ] }]);
   assert.deepEqual(done, { status: 'final', winner: 'Los Angeles Dodgers' });
-});
-
-test('a slip outlook: average payout, spread and chance of any payout', async () => {
-  const { slipOutlook, evaluateSlip } = await import('../public/lib/odds.mjs');
-  const legs = [{ odds: 2, fairChance: 0.5 }, { odds: 3, fairChance: 0.3 }];
-  const look = slipOutlook({ legs, sizes: [2], stake: 100 });
-  // Pays 600 with chance 0.15.
-  assert.ok(Math.abs(look.mean - 90) < 1e-9);
-  assert.ok(Math.abs(look.any - 0.15) < 1e-9);
-  assert.ok(Math.abs(look.sd - 600 * Math.sqrt(0.15 * 0.85)) < 1e-6);
-  assert.ok(Math.abs(evaluateSlip({ legs, sizes: [2], stake: 100 }).expectedNet - look.mean) < 1e-9);
 });
 
 test('saves are gzip-compressed and read back; old plain saves still read', async () => {

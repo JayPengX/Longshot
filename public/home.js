@@ -2,9 +2,9 @@
 //  1 headline game hero (its win prices + search) · 2 quick actions · 3 場中焦點 ·
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below, on the kit's components.
-import { rank, affinity, welcomeDue, WELCOME, cachedPayload } from '#kit/quadra.mjs';
+import { rank, affinity, cachedPayload } from '#kit/quadra.mjs';
 import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
-import { icon, gameLogo, cardArt } from './icons.js';
+import { gameLogo, cardArt } from './icons.js';
 import * as kitUI from '#kit/ui.mjs';
 import { normalizeTeamName } from '#kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
@@ -23,14 +23,14 @@ const TXT = {
   zh: {
     headline: '焦點大戰', whyFollowHero: '你追蹤的球隊', whyBackedHero: '你押過的球隊', whyLevel: '勢均力敵', balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
-    overdrawn: '透支 · 月息 1%', cover: '賣出持股補足', welcome: '第一次下注送 {v} 免費投注',
+    overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
     why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
     headline: 'Big game', whyFollowHero: 'Your team', whyBackedHero: 'You backed them', whyLevel: 'Too close to call', balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
-    overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover', welcome: 'First bet: a {v} free bet',
+    overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
     why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
     combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced 3', comboBold: 'Long shot 4', comboTotals: 'Totals 3', comboSpread: 'Handicap 3', comboLeague: '{league} 3', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
@@ -293,7 +293,6 @@ export function renderHome(ctx) {
       ? el('button', { class: 'pl-hero-match', type: 'button', onclick: () => ctx.openGame(top.id) }, [heroSide(teams[0]), el('span', { class: 'pl-hero-vs', text: 'VS' }), heroSide(teams[1])])
       : null,
     top && topBets.length ? el('div', { class: `pl-hero-odds n${sides.length}` }, sides.map(heroPrice).filter(Boolean)) : null,
-    state.wallet && welcomeDue(state.wallet) ? el('p', { class: 'pl-hero-line plain' }, [icon('gift'), el('span', { text: f('welcome', { v: money(WELCOME.bet) }) })]) : null,
     el('button', { class: 'q-hc-pill pl-hero-search', type: 'button', onclick: () => ctx.openSearch() }, [el('span', { text: T.search }), el('i', { 'aria-hidden': 'true' })])
   ]);
   hero.querySelector('.pl-hero-search i').innerHTML = kitUI.icons.search || '';

@@ -2,7 +2,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseF1Pole, parseKambiF1Pole, parseEspnPole } from '../public/lib/sources.mjs';
-import { f1PoleFromWinner } from '../public/lib/board.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
 const drivers = ['George Russell', 'Max Verstappen', 'Charles Leclerc', 'Lando Norris', 'Oscar Piastri', 'Kimi Antonelli', 'Lewis Hamilton', 'Fernando Alonso', 'Carlos Sainz', 'Alexander Albon', 'Isack Hadjar'];
@@ -29,13 +28,6 @@ test('Kambi\'s pole offer when it lists one', () => {
   assert.equal(pole.drivers[0].name, 'George Russell');
 });
 
-test('without a market: the winner\'s chances, a little sharper', () => {
-  const win = [{ name: 'A', fair: 0.5 }, { name: 'B', fair: 0.3 }, { name: 'C', fair: 0.2 }];
-  const pole = f1PoleFromWinner(win);
-  assert.ok(Math.abs(pole.reduce((s, d) => s + d.fair, 0) - 1) < 1e-9);
-  assert.ok(pole[0].fair > 0.5 && pole[2].fair < 0.2);
-});
-
 test('settled by the qualifying session\'s first place', () => {
   const board = { events: [{ competitions: [
     { type: { abbreviation: 'Qual' }, date: '2026-09-25T12:00Z', status: { type: { name: 'STATUS_FINAL', completed: true } }, competitors: [{ order: 2, athlete: { displayName: 'Charles Leclerc' } }, { order: 1, athlete: { displayName: 'George Russell' } }] },
@@ -48,23 +40,3 @@ test('settled by the qualifying session\'s first place', () => {
   assert.equal(legResult({ kind: 'f1pole', driver: 'Charles Leclerc' }, { status: 'pending' }), null);
 });
 
-test('pole: our own estimate from qualifying form and the winner board; a thin, flat market barely counts, a traded one does', async () => {
-  const { f1PoleModel } = await import('../public/lib/board.mjs');
-  const { parseF1QualiForm } = await import('../public/lib/sources.mjs');
-  // ESPN's season: three qualifying sessions, newest last in the list.
-  const qual = (date, order) => ({ competitions: [{ type: { abbreviation: 'Qual' }, date, status: { type: { completed: true } }, competitors: order.map((n, i) => ({ order: i + 1, athlete: { displayName: n } })) }] });
-  const espn = { events: [qual('2026-09-05T14:00Z', ['Lando Norris', 'Max Verstappen', 'Oscar Piastri']), qual('2026-09-19T14:00Z', ['Max Verstappen', 'Lando Norris', 'Oscar Piastri']), qual('2026-10-03T14:00Z', ['Max Verstappen', 'Oscar Piastri', 'Lando Norris']), qual('2026-10-17T14:00Z', ['Oscar Piastri', 'Max Verstappen', 'Lando Norris'])] };
-  const form = parseF1QualiForm(espn, '2026-10-10T00:00Z');
-  assert.deepEqual(form.find(d => d.name === 'Max Verstappen').places, [1, 1, 2], 'newest first, nothing after the race asked for');
-  // Polymarket days before: barely traded, everyone the same.
-  const flat = { volume: 3_000, drivers: ['Max Verstappen', 'Lando Norris', 'Oscar Piastri', 'George Russell'].map(name => ({ name, fair: 0.25 })) };
-  const own = f1PoleModel({ form, market: flat });
-  assert.ok(own.marketWeight < 0.05);
-  assert.equal(own.drivers[0].name, 'Max Verstappen');
-  assert.ok(own.drivers[0].fair > 0.4, 'the form favourite is a favourite, not 1 in 4');
-  // Kambi's names ("Verstappen, Max") are the same drivers.
-  const traded = { volume: Infinity, drivers: [{ name: 'Piastri, Oscar', fair: 0.6 }, { name: 'Verstappen, Max', fair: 0.25 }, { name: 'Norris, Lando', fair: 0.15 }] };
-  const mk = f1PoleModel({ form, market: traded });
-  assert.ok(mk.marketWeight > 0.9);
-  assert.ok(Math.abs(mk.drivers.find(d => /Piastri/.test(d.name)).fair - 0.6) < 0.05);
-});

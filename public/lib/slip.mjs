@@ -1,10 +1,9 @@
 // The slip, in numbers: one set of rules for the slip being made (投注單,
-// its bar and the 下注 button: the same legs, sizes, stake, cost, free bet
+// its bar and the 下注 button: the same legs, sizes, stake, cost
 // and problems in all three) and for a slip already bought (what it has
 // locked in and can still pay, where each pick and the slip stand). Pure:
 // the page (app.js, home.js) and the tests both use it.
-import { slipErrors, slipSizes, comboCount, settleSlip, slipPayoutTable, combosBySize, boostRate, SLIP_RULES } from './odds.mjs';
-import { freeOddsOk } from './account.mjs';
+import { slipErrors, slipSizes, comboCount, settleSlip, slipPayoutTable, combosBySize, SLIP_RULES } from './odds.mjs';
 import { taipeiDayKey } from './sources.mjs';
 import * as rules from './rules.mjs';
 
@@ -36,38 +35,28 @@ export function minLegsWhy(bet, odds = bet?.estOdds) {
 // What stops a ticket, as the Worker will judge it: singles are placed as one
 // slip a pick (app.js placeButton), so each is checked on its own (its own
 // minimum, maximum and cap; NT$50 on two singles is two NT$50 slips, not one
-// of NT$100); a free bet's stake isn't held to the stake unit or the minimum
-// (the token's value is its stake).
-export function ticketErrors({ mode, legs, sizes, stake, free = false }) {
-  const keep = e => !(free && (e === 'stakeUnit' || e === 'ticketMin'));
+// of NT$100).
+export function ticketErrors({ mode, legs, sizes, stake }) {
   const whole = slipErrors({ mode, legs, sizes, stake });
-  if (mode !== 'single' || legs.length <= 1) return whole.filter(keep);
+  if (mode !== 'single' || legs.length <= 1) return whole;
   const out = new Set(whole.filter(e => e === 'empty' || e === 'tooManyLegs'));
   for (const leg of legs) for (const e of slipErrors({ mode: 'single', legs: [leg], sizes: [1], stake })) out.add(e);
-  return [...out].filter(keep);
+  return [...out];
 }
 
 // The slip being made: `bets` (the board's, at their odds now), the mode,
-// the 過關組合 sizes chosen ('all' for 全過), the stake per combination, the
-// free bet chosen (or null) and the parlay boost's multiplier (none since
-// 2026-10-21: a 台灣運彩 ticket has neither; both stay for older slips' sums).
-// A free bet takes one single or one parlay whose odds together are long
-// enough; its stake is the usual one, never below the free bet, and only the
-// rest is paid from the balance.
-export function slipQuote({ bets, mode, chosen = [], stake, free = null, boost = 0 }) {
+// the 過關組合 sizes chosen ('all' for 全過) and the stake per combination.
+// A 台灣運彩 ticket is paid in full and pays its odds (no free bet, no boost).
+export function slipQuote({ bets, mode, chosen = [], stake }) {
   const n = bets.length;
   const legs = bets.map(ruleLeg);
   const sizes = slipSizes(mode, n, [...chosen].map(k => (k === 'all' ? n : k)));
-  const freeShape = Boolean(free) && (mode === 'parlay' || (mode === 'single' && n === 1));
-  const freeOn = freeShape && freeOddsOk(legs);
-  const at = freeOn ? Math.max(free.value, stake) : stake;
-  const cost = freeOn ? at - free.value : comboCount(legs, sizes) * at;
-  const errors = n ? ticketErrors({ mode, legs, sizes, stake: at, free: freeOn }) : ['empty'];
-  return { n, mode, legs, sizes, stake: at, cost, freeShape, freeOn, free: freeOn ? free : null, freePart: freeOn ? free.value : 0, boost: mode === 'single' ? 0 : boost, errors };
+  const cost = comboCount(legs, sizes) * stake;
+  const errors = n ? ticketErrors({ mode, legs, sizes, stake }) : ['empty'];
+  return { n, mode, legs, sizes, stake, cost, errors };
 }
 
-// What the slip being made pays with every pick won: after tax and the cap,
-// the boost in, the free bet's own stake out.
+// What the slip being made pays with every pick won: after tax and the cap.
 // Singles are placed one slip a pick (app.js placeButton), so each is its own
 // ticket: its own NT$20M cap and its own tax. What each pays when it wins.
 export function singlesPays(quote) {
@@ -77,8 +66,7 @@ export function singlesPays(quote) {
 export function quoteAllPays(quote) {
   if (!quote.sizes.length) return 0;
   if (quote.mode === 'single' && quote.n > 1) return singlesPays(quote).reduce((a, b) => a + b, 0);
-  const table = slipPayoutTable({ legs: quote.legs, sizes: quote.sizes, stake: quote.stake, boost: quote.boost });
-  return Math.max(0, table.net[(1 << quote.n) - 1] - quote.freePart);
+  return slipPayoutTable({ legs: quote.legs, sizes: quote.sizes, stake: quote.stake }).net[(1 << quote.n) - 1];
 }
 
 // ---- A slip bought --------------------------------------------------------------
@@ -142,20 +130,17 @@ export function dropPicks({ parlay, pickedOdds }, ids) {
 }
 
 // The pay box's numbers for the slip being made (app.js payoutBox draws them):
-// what it costs, what every pick won pays before and after tax (a free bet's
-// stake not paid back off the after), the least any win pays, and what the
-// boost adds. Singles are one ticket each, each with its own cap and tax.
-export function payoutTotals({ legs, sizes, stake, mode, free = 0, boost = 0 }) {
+// what it costs, what every pick won pays before and after tax, and the
+// least any win pays. Singles are one ticket each, each with its own cap and tax.
+export function payoutTotals({ legs, sizes, stake, mode }) {
   const n = legs.length;
   const combos = comboCount(legs, sizes);
   const bySize = combosBySize(legs);
-  const cost = combos * stake - free;
-  const x = mode === 'single' ? 0 : boost;
-  const table = slipPayoutTable({ legs, sizes, stake, boost: x });
-  const net = free ? table.net.map(v => Math.max(0, v - free)) : table.net;
+  const cost = combos * stake;
+  const table = slipPayoutTable({ legs, sizes, stake });
   const all = (1 << n) - 1;
   let least = Infinity;
-  for (let won = 1; won < table.gross.length; won++) if (table.gross[won] > 0) least = Math.min(least, net[won]);
+  for (let won = 1; won < table.gross.length; won++) if (table.gross[won] > 0) least = Math.min(least, table.net[won]);
   const each = mode === 'single' ? singlesPays({ legs, stake }) : null;
   let allGross = table.gross[all];
   let allTaxed = table.net[all];
@@ -164,8 +149,5 @@ export function payoutTotals({ legs, sizes, stake, mode, free = 0, boost = 0 }) 
     allTaxed = each.reduce((a, b) => a + b, 0);
     least = Math.min(...each);
   }
-  const allNet = free ? Math.max(0, allTaxed - free) : allTaxed;
-  const rate = mode === 'single' ? 0 : boostRate(Math.max(...sizes, 0), boost);
-  const boostMore = rate > 0 ? Math.max(0, Math.round(table.net[all] - slipPayoutTable({ legs, sizes, stake, boost: 0 }).net[all])) : 0;
-  return { n, combos, bySize, cost, each, allGross, allTaxed, allNet, least, boostRate: rate, boostMore, taxed: allGross - allTaxed > 0.5 };
+  return { n, combos, bySize, cost, each, allGross, allTaxed, allNet: allTaxed, least, taxed: allGross - allTaxed > 0.5 };
 }

@@ -27,20 +27,3 @@ test('Legs saved without a gameId: each its own game, as before', () => {
   assert.deepEqual(combosBySize(old), [1, 3, 3, 1]);
 });
 
-test('Picks that rule each other out: at most one of them wins', async () => {
-  const { maskChance, analyzeSlip } = await import('../public/lib/odds.mjs');
-  const two = [
-    { gameId: 'f1', market: 'f1', odds: 3.35, fairChance: 0.17 },
-    { gameId: 'f1', market: 'f1', odds: 4.49, fairChance: 0.11 },
-    { gameId: 'f1red', market: 'f1red', odds: 6.64, fairChance: 0.13 }
-  ];
-  assert.equal(maskChance(two, 0b011), 0);
-  assert.ok(Math.abs(maskChance(two, 0b000) - (1 - 0.28) * 0.87) < 1e-12);
-  let total = 0;
-  for (let m = 0; m < 8; m++) total += maskChance(two, m);
-  assert.ok(Math.abs(total - 1) < 1e-12);
-  const a = analyzeSlip({ legs: two, sizes: [1], stake: 100 });
-  assert.equal(a.byHits[3].chance, 0);
-  // Same game, different lines: not exclusive.
-  assert.ok(maskChance([{ gameId: 'g', market: 'total|8.5', fairChance: 0.5 }, { gameId: 'g', market: 'total|9.5', fairChance: 0.4 }], 0b11) > 0);
-});

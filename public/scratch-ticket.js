@@ -175,7 +175,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     const [ix, iy, iw, ih] = it.r;
     return { it, pts: allPts.filter(p => p.x >= ix && p.x <= ix + iw && p.y >= iy && p.y <= iy + ih), shown: false };
   });
-  let ready = false;
   let silver = null;
   let cmap = null;
   const colorAt = (px, py) => {
@@ -351,7 +350,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   let mode = null;
   let from = null;
   let last = null;
-  let lastMove = 0;
   let tapAt = 0;
   let tapAtXY = [0, 0];
   const local = e => {
@@ -390,7 +388,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     if (onLatex) {
       mode = 'scratch';
       last = q;
-      lastMove = performance.now();
       stroke(q, q);
     } else {
       mode = 'pan';
@@ -411,7 +408,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
         stroke(last, q);
         last = q;
       }
-      lastMove = now;
       if (now - lastLook > 40) (lastLook = now), look();
     } else if (mode === 'pan') {
       x = from.x - (p[0] - from.p[0]) / s;
