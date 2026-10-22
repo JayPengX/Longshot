@@ -1,12 +1,11 @@
 {
-  "name": "quadra-play",
+  "name": "longshot",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test",
-    "pretest": "test -e .kit || ln -s ../Shared-Proxy/kit .kit"
+    "test": "node --test"
   },
   "imports": {
-    "#kit/*": "./.kit/*"
+    "#kit/*": "./public/kit/*"
   }
 }

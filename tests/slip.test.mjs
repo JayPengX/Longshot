@@ -113,7 +113,7 @@ test('singles are paid one ticket each: each its own NT$20M cap, the bar adds th
 test('every problem the ticket rules can name has its words in Chinese and English', async () => {
   const { readFile } = await import('node:fs/promises');
   const { STRINGS } = await import('../public/lib/i18n.mjs');
-  const src = await readFile(new URL('../.kit/play-odds.mjs', import.meta.url), 'utf8');
+  const src = await readFile(new URL('../public/kit/play-odds.mjs', import.meta.url), 'utf8');
   const codes = new Set([...src.matchAll(/errors\.push\('(\w+)'\)/g)].map(m => m[1]));
   codes.add('empty');
   assert.ok(codes.has('ticketMax'));

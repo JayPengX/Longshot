@@ -1,0 +1,5520 @@
+/* ==== Quadra UI: iOS 27, for every app in the family ====
+   The canonical copy lives in Shared-Proxy/kit/ and every app loads it from
+   Shared-Proxy's Pages. What iOS 27 draws, drawn the same: its system
+   colours (the iOS 26 palette), grouped backgrounds and cells, label and
+   fill greys, hairline separators, Liquid Glass on whatever floats (the tab
+   bar, the top buttons, sheets, alerts, menus, banners), the San Francisco
+   type scale, capsule controls, deep concentric corners, and springs for
+   every movement (SwiftUI's smooth, snappy and bouncy, as CSS linear()).
+   Apps build on these tokens and the q- components (kit/ui.mjs makes the
+   ones that move); they don't restyle them. */
+:root {
+  /* San Francisco (and PingFang for Chinese) on Apple's devices; the
+     nearest system face elsewhere. Rounded for big numbers. */
+  --q-font: -apple-system, BlinkMacSystemFont, system-ui, 'SF Pro Text', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+  --q-font-rounded: ui-rounded, 'SF Pro Rounded', var(--q-font);
+  --q-font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* The iOS 26/27 palette, light. */
+  --q-red: #ff383c;
+  --q-orange: #ff8d28;
+  --q-yellow: #ffcc00;
+  --q-green: #34c759;
+  --q-mint: #00c8b3;
+  --q-teal: #00c3d0;
+  --q-cyan: #00c0e8;
+  --q-blue: #0088ff;
+  --q-indigo: #6155f5;
+  --q-purple: #cb30e0;
+  --q-pink: #ff2d55;
+  --q-brown: #ac7f5e;
+  --q-gray: #8e8e93;
+  --q-gray-2: #aeaeb2;
+  --q-gray-3: #c7c7cc;
+  --q-gray-4: #d1d1d6;
+  --q-gray-5: #e5e5ea;
+  --q-gray-6: #f2f2f7;
+
+  /* Labels, fills, backgrounds, separators: iOS's semantic colours. */
+  --q-label: #000000;
+  --q-label-2: rgba(60, 60, 67, 0.6);
+  --q-label-3: rgba(60, 60, 67, 0.3);
+  --q-label-4: rgba(60, 60, 67, 0.18);
+  --q-fill-1: rgba(120, 120, 128, 0.2);
+  --q-fill-2: rgba(120, 120, 128, 0.16);
+  --q-fill-3: rgba(118, 118, 128, 0.12);
+  --q-fill-4: rgba(116, 116, 128, 0.08);
+  --q-bg: #ffffff;
+  --q-bg-2: #f2f2f7;
+  --q-bg-3: #ffffff;
+  --q-grouped: #f2f2f7;
+  --q-grouped-2: #ffffff;
+  --q-grouped-3: #f2f2f7;
+  --q-sep: rgba(60, 60, 67, 0.29);
+  --q-sep-opaque: #c6c6c8;
+  --q-elevated: #ffffff;
+
+  /* Liquid Glass: a clear tinted fill over a strong blur, lit at the rim
+     (a bright top edge, a dimmer bottom one), a soft drop beneath; never an
+     outline ring. `regular` for bars and buttons, `clear` over media,
+     `thick` for alerts and menus that hold text. */
+  --q-glass: rgba(250, 250, 252, 0.72);
+  --q-glass-strong: rgba(250, 250, 252, 0.84);
+  --q-glass-blur: blur(20px) saturate(2.2) brightness(1.05);
+  --q-glass-rim: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.5), inset 1px 0 1px -0.5px rgba(255, 255, 255, 0.7), inset -1px 0 1px -0.5px rgba(255, 255, 255, 0.7), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05), inset 0 0 16px rgba(255, 255, 255, 0.4);
+  --q-glass-drop: 0 0.5px 1px rgba(0, 0, 0, 0.05), 0 6px 22px rgba(0, 0, 0, 0.1);
+  --q-glass-edge: rgba(0, 0, 0, 0.06);
+  --q-glass-pick: rgba(120, 120, 128, 0.16);
+  --q-dim: rgba(0, 0, 0, 0.26);
+
+  /* Shapes: concentric corners, deep where the screen's are. */
+  --q-r-card: 26px;
+  --q-r-cell: 12px;
+  --q-r-sheet: 38px;
+  --q-r-alert: 34px;
+  --q-r-icon: 8px;
+  --q-margin: 16px;
+  --q-row: 52px;
+  --q-hairline: 0.5px;
+
+  /* Type: iOS's sizes (large text at the default setting). */
+  --q-t-large: 700 34px/41px var(--q-font);
+  --q-t-title1: 700 28px/34px var(--q-font);
+  --q-t-title2: 700 22px/28px var(--q-font);
+  --q-t-title3: 600 20px/25px var(--q-font);
+  --q-t-headline: 600 17px/22px var(--q-font);
+  --q-t-body: 400 17px/22px var(--q-font);
+  --q-t-subhead: 400 15px/20px var(--q-font);
+  --q-t-footnote: 400 13px/18px var(--q-font);
+  --q-t-caption: 400 12px/16px var(--q-font);
+  --q-t-caption2: 400 11px/13px var(--q-font);
+
+  /* Movement: SwiftUI's springs (response, bounce), sampled as linear(). */
+  --q-spring-smooth: linear(0, 0.0204, 0.0708, 0.1387, 0.2155, 0.2951, 0.3734, 0.448, 0.5173, 0.5805, 0.6375, 0.6882, 0.7329, 0.772, 0.806, 0.8354, 0.8607, 0.8824, 0.901, 0.9167, 0.9301, 0.9415, 0.951, 0.9591, 0.9659, 0.9716, 0.9763, 0.9803, 0.9837, 0.9864, 0.9888, 0.9907, 0.9923, 0.9936, 0.9947, 0.9956, 0.9964, 0.997, 0.9976, 0.998, 1);
+  --q-spring-snappy: linear(0, 0.019, 0.0674, 0.135, 0.2135, 0.297, 0.3809, 0.4622, 0.5386, 0.609, 0.6725, 0.729, 0.7785, 0.8212, 0.8577, 0.8885, 0.9142, 0.9353, 0.9525, 0.9663, 0.9773, 0.9858, 0.9923, 0.9971, 1.0007, 1.0031, 1.0047, 1.0057, 1.0062, 1.0063, 1.0061, 1.0058, 1.0054, 1.0049, 1.0044, 1.0038, 1.0033, 1.0028, 1.0024, 1.002, 1);
+  --q-spring-bouncy: linear(0, 0.0242, 0.0865, 0.1734, 0.2742, 0.3803, 0.4854, 0.5849, 0.6758, 0.7564, 0.8258, 0.8839, 0.9311, 0.9685, 0.9969, 1.0175, 1.0316, 1.0404, 1.0448, 1.046, 1.0447, 1.0417, 1.0377, 1.033, 1.0281, 1.0233, 1.0188, 1.0146, 1.0109, 1.0078, 1.0052, 1.003, 1.0013, 1.0001, 0.9991, 0.9985, 0.9981, 0.9979, 0.9979, 0.998, 1);
+  /* (Each spring's own shape, run quicker than SwiftUI's own timings: at
+     those, its long settling tail read on a phone as the UI catching up.) */
+  --q-dur-smooth: 0.5s;
+  --q-dur-snappy: 0.34s;
+  --q-dur-bouncy: 0.55s;
+  --q-ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The names the apps were built on, now iOS's own. */
+  --q-page: var(--q-grouped);
+  --q-surface: var(--q-grouped-2);
+  --q-surface-2: var(--q-grouped-3);
+  --q-sunken: var(--q-fill-3);
+  --q-sheet: var(--q-grouped);
+  --q-text: var(--q-label);
+  --q-text-2: rgba(60, 60, 67, 0.85);
+  --q-muted: var(--q-label-2);
+  --q-border: transparent;
+  --q-divider: rgba(60, 60, 67, 0.2);
+  --q-good: #248a3d;
+  --q-bad: #e5272c;
+  --q-warn: #c25e00;
+  --q-shadow-sm: none;
+  --q-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 24px -12px rgba(0, 0, 0, 0.1);
+  --q-radius: var(--q-r-card);
+  --q-radius-sm: 16px;
+  --q-fill: var(--q-fill-3);
+  color-scheme: light dark;
+}
+/* The app's colour: a default at no specificity, so each app's own
+   :root { --q-accent } wins whichever stylesheet loads last. */
+:where(:root) {
+  --q-accent: var(--q-blue);
+  --q-accent-ink: #ffffff;
+  --q-accent-wash: color-mix(in srgb, var(--q-accent) 12%, transparent);
+}
+/* Each app's colour, set by <html data-app> (kit/apps.mjs writes it into
+   each page, quadraSession() too), from kit/brand.mjs. */
+/* app-colours */
+:where(:root[data-app='stock']) {
+  --q-accent: #0d9488;
+}
+:where(:root[data-app='odds']) {
+  --q-accent: #2563eb;
+}
+:where(:root[data-app='orbit']) {
+  --q-accent: #0ea5e9;
+}
+:where(:root[data-app='weather']) {
+  --q-accent: #6366f1;
+}
+:where(:root[data-app='transit']) {
+  --q-accent: #10b981;
+}
+:where(:root[data-app='match']) {
+  --q-accent: #ea580c;
+}
+:where(:root[data-app='slip']) {
+  --q-accent: #d97706;
+}
+:where(:root[data-app='beats']) {
+  --q-accent: #c026d3;
+}
+:where(:root[data-app='law']) {
+  --q-accent: #4f46e5;
+}
+:where(:root[data-app='vocab']) {
+  --q-accent: #db2777;
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root[data-app='stock']:not([data-theme='light'])) {
+    --q-accent: #1db4a4;
+  }
+  :where(:root[data-app='odds']:not([data-theme='light'])) {
+    --q-accent: #4384f3;
+  }
+  :where(:root[data-app='orbit']:not([data-theme='light'])) {
+    --q-accent: #46bcf3;
+  }
+  :where(:root[data-app='weather']:not([data-theme='light'])) {
+    --q-accent: #848df7;
+  }
+  :where(:root[data-app='transit']:not([data-theme='light'])) {
+    --q-accent: #3fd09c;
+  }
+  :where(:root[data-app='match']:not([data-theme='light'])) {
+    --q-accent: #f48940;
+  }
+  :where(:root[data-app='slip']:not([data-theme='light'])) {
+    --q-accent: #eba52a;
+  }
+  :where(:root[data-app='beats']:not([data-theme='light'])) {
+    --q-accent: #d869e8;
+  }
+  :where(:root[data-app='law']:not([data-theme='light'])) {
+    --q-accent: #7a7df1;
+  }
+  :where(:root[data-app='vocab']:not([data-theme='light'])) {
+    --q-accent: #ea68a6;
+  }
+}
+:where(:root[data-app='stock'][data-theme='dark']) {
+  --q-accent: #1db4a4;
+}
+:where(:root[data-app='odds'][data-theme='dark']) {
+  --q-accent: #4384f3;
+}
+:where(:root[data-app='orbit'][data-theme='dark']) {
+  --q-accent: #46bcf3;
+}
+:where(:root[data-app='weather'][data-theme='dark']) {
+  --q-accent: #848df7;
+}
+:where(:root[data-app='transit'][data-theme='dark']) {
+  --q-accent: #3fd09c;
+}
+:where(:root[data-app='match'][data-theme='dark']) {
+  --q-accent: #f48940;
+}
+:where(:root[data-app='slip'][data-theme='dark']) {
+  --q-accent: #eba52a;
+}
+:where(:root[data-app='beats'][data-theme='dark']) {
+  --q-accent: #d869e8;
+}
+:where(:root[data-app='law'][data-theme='dark']) {
+  --q-accent: #7a7df1;
+}
+:where(:root[data-app='vocab'][data-theme='dark']) {
+  --q-accent: #ea68a6;
+}
+/* /app-colours */
+/* What a colour means, the same in every app. Taiwan's market convention:
+   a rise is red, a fall green. A win green, a loss red, a draw grey; live red. */
+:where(:root) {
+  --q-up: var(--q-red);
+  --q-down: var(--q-green);
+  --q-flat: var(--q-gray);
+  --q-win: var(--q-green);
+  --q-loss: var(--q-red);
+  --q-draw: var(--q-gray);
+  --q-live: var(--q-red);
+}
+/* 綠漲紅跌 (the US way), where the reader chose it: <html data-updown="us">. */
+:where(:root[data-updown='us']) {
+  --q-up: var(--q-green);
+  --q-down: var(--q-red);
+}
+/* Dark: iOS's dark palette, black grouped background, lifted cells. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --q-red: #ff4245;
+    --q-orange: #ff9230;
+    --q-yellow: #ffd600;
+    --q-green: #30d158;
+    --q-mint: #00dac3;
+    --q-teal: #00d2e0;
+    --q-cyan: #3cd3fe;
+    --q-blue: #0091ff;
+    --q-indigo: #6d7cff;
+    --q-purple: #db34f2;
+    --q-pink: #ff375f;
+    --q-brown: #b78a66;
+    --q-gray-2: #636366;
+    --q-gray-3: #48484a;
+    --q-gray-4: #3a3a3c;
+    --q-gray-5: #2c2c2e;
+    --q-gray-6: #1c1c1e;
+    --q-label: #ffffff;
+    --q-label-2: rgba(235, 235, 245, 0.6);
+    --q-label-3: rgba(235, 235, 245, 0.3);
+    --q-label-4: rgba(235, 235, 245, 0.16);
+    --q-fill-1: rgba(120, 120, 128, 0.36);
+    --q-fill-2: rgba(120, 120, 128, 0.32);
+    --q-fill-3: rgba(118, 118, 128, 0.24);
+    --q-fill-4: rgba(118, 118, 128, 0.18);
+    --q-bg: #000000;
+    --q-bg-2: #1c1c1e;
+    --q-bg-3: #2c2c2e;
+    --q-grouped: #000000;
+    --q-grouped-2: #1c1c1e;
+    --q-grouped-3: #2c2c2e;
+    --q-sep: rgba(84, 84, 88, 0.65);
+    --q-sep-opaque: #38383a;
+    --q-elevated: #1c1c1e;
+    --q-glass: rgba(34, 34, 37, 0.7);
+    --q-glass-strong: rgba(40, 40, 43, 0.8);
+    --q-glass-rim: inset 0 1px 0.5px rgba(255, 255, 255, 0.28), inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.08), inset 1px 0 1px -0.5px rgba(255, 255, 255, 0.14), inset -1px 0 1px -0.5px rgba(255, 255, 255, 0.14), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 0 16px rgba(255, 255, 255, 0.04);
+    --q-glass-drop: 0 0.5px 1px rgba(0, 0, 0, 0.3), 0 6px 22px rgba(0, 0, 0, 0.42);
+    --q-glass-edge: rgba(255, 255, 255, 0.1);
+    --q-glass-pick: rgba(255, 255, 255, 0.12);
+    --q-dim: rgba(0, 0, 0, 0.48);
+    --q-sheet: var(--q-grouped-2);
+    --q-sheet-cell: var(--q-grouped-3);
+    --q-text-2: rgba(235, 235, 245, 0.86);
+    --q-divider: rgba(84, 84, 88, 0.55);
+    --q-good: #30d158;
+    --q-bad: #ff4245;
+    --q-warn: #ff9230;
+    --q-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -12px rgba(0, 0, 0, 0.6);
+    --q-accent-wash: color-mix(in srgb, var(--q-accent) 20%, transparent);
+  }
+}
+:root[data-theme='dark'] {
+  --q-red: #ff4245;
+  --q-orange: #ff9230;
+  --q-yellow: #ffd600;
+  --q-green: #30d158;
+  --q-mint: #00dac3;
+  --q-teal: #00d2e0;
+  --q-cyan: #3cd3fe;
+  --q-blue: #0091ff;
+  --q-indigo: #6d7cff;
+  --q-purple: #db34f2;
+  --q-pink: #ff375f;
+  --q-brown: #b78a66;
+  --q-gray-2: #636366;
+  --q-gray-3: #48484a;
+  --q-gray-4: #3a3a3c;
+  --q-gray-5: #2c2c2e;
+  --q-gray-6: #1c1c1e;
+  --q-label: #ffffff;
+  --q-label-2: rgba(235, 235, 245, 0.6);
+  --q-label-3: rgba(235, 235, 245, 0.3);
+  --q-label-4: rgba(235, 235, 245, 0.16);
+  --q-fill-1: rgba(120, 120, 128, 0.36);
+  --q-fill-2: rgba(120, 120, 128, 0.32);
+  --q-fill-3: rgba(118, 118, 128, 0.24);
+  --q-fill-4: rgba(118, 118, 128, 0.18);
+  --q-bg: #000000;
+  --q-bg-2: #1c1c1e;
+  --q-bg-3: #2c2c2e;
+  --q-grouped: #000000;
+  --q-grouped-2: #1c1c1e;
+  --q-grouped-3: #2c2c2e;
+  --q-sep: rgba(84, 84, 88, 0.65);
+  --q-sep-opaque: #38383a;
+  --q-elevated: #1c1c1e;
+  --q-glass: rgba(34, 34, 37, 0.7);
+  --q-glass-strong: rgba(40, 40, 43, 0.8);
+  --q-glass-rim: inset 0 1px 0.5px rgba(255, 255, 255, 0.28), inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.08), inset 1px 0 1px -0.5px rgba(255, 255, 255, 0.14), inset -1px 0 1px -0.5px rgba(255, 255, 255, 0.14), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 0 16px rgba(255, 255, 255, 0.04);
+  --q-glass-drop: 0 0.5px 1px rgba(0, 0, 0, 0.3), 0 6px 22px rgba(0, 0, 0, 0.42);
+  --q-glass-edge: rgba(255, 255, 255, 0.1);
+  --q-glass-pick: rgba(255, 255, 255, 0.12);
+  --q-dim: rgba(0, 0, 0, 0.48);
+  --q-sheet: var(--q-grouped-2);
+  --q-sheet-cell: var(--q-grouped-3);
+  --q-text-2: rgba(235, 235, 245, 0.86);
+  --q-divider: rgba(84, 84, 88, 0.55);
+  --q-good: #30d158;
+  --q-bad: #ff4245;
+  --q-warn: #ff9230;
+  --q-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -12px rgba(0, 0, 0, 0.6);
+  --q-accent-wash: color-mix(in srgb, var(--q-accent) 20%, transparent);
+}
+
+/* The page: San Francisco, smoothed as iOS draws it, on the grouped background. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern';
+}
+body {
+  background-color: var(--q-page);
+  color: var(--q-text);
+}
+/* No browser page margin (an app's own body margin still wins). */
+:where(body) {
+  margin: 0;
+}
+::selection {
+  background: color-mix(in srgb, var(--q-accent) 28%, transparent);
+}
+:where(a) {
+  color: var(--q-accent);
+}
+
+/* Text never cut off or wrapped mid-number; inputs 16px so iOS never zooms.
+   No zooming at all: no double-tap zoom (a quick second tap on a button
+   zoomed the page) and no two-finger zoom; the apps size their text to be
+   read as they are (quadra.mjs also stops iOS's pinch gesture). */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
+}
+/* The page itself never moves sideways, whatever pokes past the edge (rows
+   that scroll sideways still do). clip, unlike hidden, doesn't make body a
+   scroller, so sticky bars keep working. */
+html,
+body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+body,
+button,
+a,
+input,
+select,
+label,
+[role='button'] {
+  touch-action: pan-x pan-y;
+}
+/* While the loading screen is up the page behind it doesn't scroll. (#loading
+   only: an app's own .loading, Beats' jam pads warming up, a sheet's list
+   on its way, froze the whole page, Jay 2026-10-21 "can't scroll".) */
+html:has(#loading:not([hidden])),
+html:has(#loading:not([hidden])) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  overflow-wrap: break-word;
+}
+/* The phone's status bar: a solid strip under it (.q-statusbar, added by
+   quadra.mjs). Since iOS 26 an installed web app gets a "Liquid Glass" blur
+   laid over its top edge, whatever the status bar style; iOS skips it only
+   when a real fixed box with a background, over 10px tall and the page's
+   full width, covers that edge (a ::before doesn't count). iOS finds that
+   box by hit-testing the top centre of the screen, so the strip must take
+   touches: with pointer-events:none the test went through it to the page
+   and every app was blurred again. An app can colour it with --q-status-bg. */
+:root {
+  --q-top: env(safe-area-inset-top, 0px);
+}
+/* Installed, with the status bar not over the page, the strip still needs
+   its 12px for iOS to count it; apps pad their tops with var(--q-top). */
+@media (display-mode: standalone) {
+  :root {
+    --q-top: max(env(safe-area-inset-top, 0px), 12px);
+  }
+}
+.q-statusbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2147482000;
+  height: var(--q-top);
+  background: var(--q-status-bg, var(--q-page));
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* ---- Loading ---- */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--q-page);
+  color: var(--q-text);
+  font-family: var(--q-font);
+}
+.loading {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+.loading[hidden] {
+  display: none;
+}
+/* The shared loading screen (boot.js draws it). */
+.q-boot-box {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(300px, 100%);
+  text-align: center;
+}
+.q-boot-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 14px 34px -10px rgba(14, 17, 22, 0.35);
+  animation: quadra-breathe 1.8s ease-in-out infinite;
+}
+.q-boot-brand {
+  margin: 12px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  color: var(--q-muted);
+}
+.q-boot-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 750;
+  color: var(--q-text);
+}
+.q-boot-bar {
+  width: 160px;
+  height: 4px;
+  margin-top: 14px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--q-accent) 16%, transparent);
+}
+.q-boot-bar i {
+  display: block;
+  height: 100%;
+  background: var(--q-accent);
+  transform-origin: left center;
+  transition: transform 0.25s ease-out;
+}
+.q-boot-step {
+  margin: 2px 0 0;
+  min-height: 1.4em;
+  font-size: 12.5px;
+  color: var(--q-muted);
+}
+.q-boot-error {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.q-boot-error[hidden],
+.q-boot-bar[hidden],
+.q-boot-step[hidden] {
+  display: none;
+}
+.q-boot-error p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--q-text);
+}
+.q-boot-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.spinner {
+  width: 24px;
+  height: 24px;
+  margin-top: 6px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--q-accent) 18%, transparent);
+  border-top-color: var(--q-accent);
+  animation: quadra-spin 0.8s linear infinite;
+}
+.spinner[hidden] {
+  display: none;
+}
+@keyframes quadra-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+/* ==== Components: iOS 27's controls, the same in every app ==== */
+
+/* ---- Type: iOS's text styles, for any element ---- */
+.q-large-title { font: var(--q-t-large); letter-spacing: 0.01em; }
+
+/* ---- Liquid Glass, for anything that floats ---- */
+.q-glass {
+  background: var(--q-glass);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+}
+
+/* ---- A control under a finger: iOS's give (kit/quadra.mjs sets
+   [data-q-press] the moment a touch lands, before :active would) ---- */
+button,
+[role='button'],
+[role='tab'],
+[role='switch'],
+.q-chip {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Buttons: capsules. Grey by default (iOS's .bordered), the app's
+   colour filled for the one that matters (.primary, iOS's .borderedProminent),
+   tinted, glass, plain; small (32), regular (44), large (50). ---- */
+.q-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--q-fill-2);
+  color: var(--q-accent);
+  font: 600 17px/1.2 var(--q-font);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy), background-color 0.2s, opacity 0.2s, color 0.2s;
+}
+.q-btn:is(:active, [data-q-press]):not(:disabled) {
+  transform: scale(0.96);
+  transition-duration: 0.12s;
+  opacity: 0.85;
+}
+.q-btn.primary {
+  background: var(--q-accent);
+  color: var(--q-accent-ink);
+}
+/* A button that stays on (a toggle): the app's colour, filled. */
+.q-btn[aria-pressed='true'] {
+  background: var(--q-accent);
+  color: var(--q-accent-ink);
+}
+.q-btn.tinted {
+  background: var(--q-accent-wash);
+  color: var(--q-accent);
+}
+.q-btn.glass {
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label);
+}
+.q-btn.plain,
+.q-btn.ghost {
+  background: none;
+  padding: 0 8px;
+}
+.q-btn.danger {
+  background: var(--q-red);
+  color: #ffffff;
+}
+.q-btn.danger.tinted {
+  background: color-mix(in srgb, var(--q-red) 14%, transparent);
+  color: var(--q-red);
+}
+.q-btn.small {
+  min-height: 32px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+.q-btn.large {
+  min-height: 50px;
+  padding: 0 24px;
+}
+.q-btn.block {
+  width: 100%;
+}
+.q-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.q-btn svg {
+  width: 1.1em;
+  height: 1.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Glass circles: the top buttons, a sheet's close; grouped into one
+   capsule when there are several (iOS 26's toolbar groups) ---- */
+.q-icon-btn,
+.q-close {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label);
+  font: 500 22px/1 var(--q-font);
+  cursor: pointer;
+  transition: transform var(--q-dur-bouncy) var(--q-spring-bouncy), background-color 0.2s;
+}
+.q-icon-btn svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* (Glass swells under a finger, as iOS 26's does.) */
+.q-icon-btn:is(:active, [data-q-press]):not(:disabled),
+.q-close:is(:active, [data-q-press]) {
+  transform: scale(1.12);
+  transition-duration: 0.14s;
+}
+.q-icon-btn:disabled {
+  opacity: 0.4;
+}
+.q-close {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  color: var(--q-label-2);
+  background: var(--q-fill-3);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.q-refresh:disabled {
+  opacity: 1;
+}
+.q-refresh:disabled svg {
+  animation: q-turn 0.9s linear infinite;
+}
+@keyframes q-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.q-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+.q-actions:has(> :nth-child(2)) {
+  gap: 0;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+}
+.q-actions:has(> :nth-child(2)) > .q-icon-btn,
+.q-actions:has(> :nth-child(2)) > .q-account:not(.q-framed) {
+  width: 42px;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.q-actions:has(> :nth-child(2)) > .q-account.q-framed {
+  width: 34px;
+  height: 34px;
+  margin: 0 4px;
+}
+.q-actions:has(> :nth-child(2)) .q-account-dot {
+  right: 5px;
+  bottom: 5px;
+}
+@media (hover: hover) {
+  .q-icon-btn:hover {
+    background: var(--q-fill-2);
+  }
+}
+
+/* ---- The app frame: the top line and its buttons; the tabs ---- */
+:root {
+  --q-page-max: 1120px;
+  --q-nav: 0px;
+}
+.q-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding-top: var(--q-top);
+  background: var(--q-glass);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: inset 0 -0.5px 0 var(--q-sep);
+}
+@media (display-mode: standalone) {
+  .q-appbar {
+    background: var(--q-page);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.q-appbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: var(--q-page-max);
+  margin: 0 auto;
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+}
+.q-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.q-brand-logo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+}
+.q-brand-text {
+  min-width: 0;
+}
+.q-brand h1 {
+  margin: 0;
+  font: var(--q-t-headline);
+  white-space: nowrap;
+}
+.q-status {
+  margin: 0;
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: 500 13px/18px var(--q-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-status:empty {
+  display: none;
+}
+
+/* The tabs on a computer: a segmented control in the bar. */
+.q-tabbar {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--q-fill-3);
+}
+.q-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--q-label);
+  font: 500 14px/1.2 var(--q-font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.25s;
+}
+.q-tab[hidden] {
+  display: none;
+}
+.q-tab-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.q-tab svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.q-tab[aria-selected='true'] {
+  background: var(--q-grouped-2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 3px 8px rgba(0, 0, 0, 0.06);
+  color: var(--q-label);
+  font-weight: 600;
+}
+.q-tab-badge {
+  position: absolute;
+  top: -6px;
+  left: calc(100% - 7px);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--q-red);
+  color: #ffffff;
+  font: 600 11px/18px var(--q-font);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+.q-tab-badge.warn {
+  background: var(--q-orange);
+}
+.q-tab-badge.accent {
+  background: var(--q-accent);
+  color: var(--q-accent-ink);
+}
+.q-tab-badge.dot {
+  top: -2px;
+  left: calc(100% - 3px);
+  min-width: 0;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+}
+
+/* A phone or a tablet (a narrow window, or html.q-touch from the device):
+   the top line is the status and the glass buttons, and the tabs a capsule
+   of glass floating over the page's foot, the chosen tab lit by a softer
+   pill that slides between them (kit/quadra.mjs tabBar sets --q-tab-x and
+   --q-tab-w), shrinking to its icons while the page scrolls down. What
+   scrolls beneath fades towards the edge (iOS's scroll edge effect). */
+@media (max-width: 720px) {
+  :root {
+    --q-bar-gap: max(calc(env(safe-area-inset-bottom) - 14px), calc(var(--q-safe-bottom, 0px) - 14px), 12px);
+    --q-nav: calc(62px + var(--q-bar-gap));
+  }
+}
+:root.q-touch {
+  --q-bar-gap: max(calc(env(safe-area-inset-bottom) - 14px), calc(var(--q-safe-bottom, 0px) - 14px), 12px);
+  --q-nav: calc(62px + var(--q-bar-gap));
+}
+@media (max-width: 720px) {
+  .q-appbar {
+    position: static;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .q-appbar-inner {
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+  }
+  .q-brand-logo,
+  .q-brand h1 {
+    display: none;
+  }
+}
+.q-touch .q-appbar {
+  position: static;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.q-touch .q-appbar-inner {
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+}
+.q-touch .q-brand-logo,
+.q-touch .q-brand h1 {
+  display: none;
+}
+@media (max-width: 720px) {
+  .q-tabbar.q-tabbar {
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    bottom: var(--q-bar-gap);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0;
+    width: min(calc(100vw - 2 * max(16px, env(safe-area-inset-left))), calc(var(--q-tabs, 4) * 92px));
+    margin: 0;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--q-glass);
+    -webkit-backdrop-filter: var(--q-glass-blur);
+    backdrop-filter: var(--q-glass-blur);
+    box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+    transform: translateX(-50%);
+    transition: transform var(--q-dur-smooth) var(--q-spring-smooth), padding var(--q-dur-smooth) var(--q-spring-smooth);
+  }
+  .q-tabbar.q-tabbar::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: var(--q-tab-w, 0px);
+    border-radius: 999px;
+    background: var(--q-glass-pick);
+    transform: translateX(var(--q-tab-x, 0px));
+    transition: transform var(--q-dur-snappy) var(--q-spring-snappy), width var(--q-dur-snappy) var(--q-spring-snappy);
+    pointer-events: none;
+  }
+  .q-tabbar.q-tabbar::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    bottom: calc(-1 * var(--q-bar-gap));
+    width: 100vw;
+    height: calc(100% + var(--q-bar-gap) + 30px);
+    transform: translateX(-50%);
+    background: linear-gradient(to top, color-mix(in srgb, var(--q-page) 82%, transparent), color-mix(in srgb, var(--q-page) 40%, transparent) 55%, transparent);
+    pointer-events: none;
+  }
+  .q-tabbar .q-tab {
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+    min-height: 54px;
+    padding: 5px 2px 6px;
+    background: none;
+    box-shadow: none;
+    color: var(--q-label);
+    font: 500 10px/12px var(--q-font);
+    transition: color 0.2s, min-height var(--q-dur-smooth) var(--q-spring-smooth);
+  }
+  .q-tabbar .q-tab-icon {
+    height: 28px;
+    transition: transform var(--q-dur-bouncy) var(--q-spring-bouncy);
+  }
+  .q-tabbar .q-tab svg {
+    width: 25px;
+    height: 25px;
+    stroke-width: 1.8;
+  }
+  .q-tabbar .q-tab-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s, height var(--q-dur-smooth) var(--q-spring-smooth);
+  }
+  .q-tabbar .q-tab[aria-selected='true'] {
+    background: none;
+    box-shadow: none;
+    color: var(--q-accent);
+    font-weight: 600;
+  }
+  .q-tabbar .q-tab[aria-selected='true'] svg {
+    stroke-width: 2.2;
+  }
+  .q-tabbar .q-tab:is(:active, [data-q-press]) .q-tab-icon {
+    transform: scale(1.14);
+    transition-duration: 0.14s;
+  }
+  .q-tabbar .q-tab-badge {
+    top: -2px;
+    left: calc(50% + 6px);
+  }
+  .q-tabbar .q-tab-badge.dot {
+    top: 1px;
+    left: calc(50% + 10px);
+  }
+  /* Scrolling down: the bar draws in to its icons (quadra.mjs sets .q-tabs-small). */
+  .q-tabs-small .q-tabbar .q-tab {
+    min-height: 44px;
+  }
+  .q-tabs-small .q-tabbar .q-tab-label {
+    height: 0;
+    opacity: 0;
+  }
+}
+.q-touch .q-tabbar.q-tabbar {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: var(--q-bar-gap);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0;
+  width: min(calc(100vw - 2 * max(16px, env(safe-area-inset-left))), calc(var(--q-tabs, 4) * 92px));
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--q-glass);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  transform: translateX(-50%);
+}
+.q-touch .q-tabbar.q-tabbar::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: var(--q-tab-w, 0px);
+  border-radius: 999px;
+  background: var(--q-glass-pick);
+  transform: translateX(var(--q-tab-x, 0px));
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy), width var(--q-dur-snappy) var(--q-spring-snappy);
+  pointer-events: none;
+}
+.q-touch .q-tabbar.q-tabbar::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: calc(-1 * var(--q-bar-gap));
+  width: 100vw;
+  height: calc(100% + var(--q-bar-gap) + 30px);
+  transform: translateX(-50%);
+  background: linear-gradient(to top, color-mix(in srgb, var(--q-page) 82%, transparent), color-mix(in srgb, var(--q-page) 40%, transparent) 55%, transparent);
+  pointer-events: none;
+}
+.q-touch .q-tabbar .q-tab {
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  min-height: 54px;
+  padding: 5px 2px 6px;
+  background: none;
+  box-shadow: none;
+  color: var(--q-label);
+  font: 500 10px/12px var(--q-font);
+  transition: color 0.2s, min-height var(--q-dur-smooth) var(--q-spring-smooth);
+}
+.q-touch .q-tabbar .q-tab-icon {
+  height: 28px;
+  transition: transform var(--q-dur-bouncy) var(--q-spring-bouncy);
+}
+.q-touch .q-tabbar .q-tab svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 1.8;
+}
+.q-touch .q-tabbar .q-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s, height var(--q-dur-smooth) var(--q-spring-smooth);
+}
+.q-touch .q-tabbar .q-tab[aria-selected='true'] {
+  background: none;
+  box-shadow: none;
+  color: var(--q-accent);
+  font-weight: 600;
+}
+.q-touch .q-tabbar .q-tab[aria-selected='true'] svg {
+  stroke-width: 2.2;
+}
+.q-touch .q-tabbar .q-tab:is(:active, [data-q-press]) .q-tab-icon {
+  transform: scale(1.14);
+  transition-duration: 0.14s;
+}
+.q-touch .q-tabbar .q-tab-badge {
+  top: -2px;
+  left: calc(50% + 6px);
+}
+.q-touch .q-tabbar .q-tab-badge.dot {
+  top: 1px;
+  left: calc(50% + 10px);
+}
+.q-touch.q-tabs-small .q-tabbar .q-tab {
+  min-height: 44px;
+}
+.q-touch.q-tabs-small .q-tabbar .q-tab-label {
+  height: 0;
+  opacity: 0;
+}
+
+/* ---- The tab bar's accessory: a glass bar just above it (iOS 26's bottom
+   accessory, as Music's player): what's in progress, a tap away ---- */
+.q-accessory {
+  position: fixed;
+  z-index: 59;
+  left: 50%;
+  bottom: calc(var(--q-nav) + 8px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(calc(100vw - 2 * max(16px, env(safe-area-inset-left))), 560px);
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 8px 8px 10px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--q-glass);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label);
+  font: inherit;
+  text-align: left;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  cursor: pointer;
+  animation: q-accessory-in var(--q-dur-bouncy) var(--q-spring-bouncy);
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-accessory[hidden] {
+  display: none;
+}
+.q-accessory:is(:active, [data-q-press]) {
+  transform: translateX(-50%) scale(0.98);
+}
+@keyframes q-accessory-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 18px) scale(0.96);
+  }
+}
+
+/* ---- The dock (<html class="q-dock">): the tabs as one bar along the
+   screen's foot instead of a capsule floating over the page, and the
+   accessory (Play's slip) a row joined to its top edge, so nothing hovers
+   over content: the page ends where the dock begins. Its surface is the
+   page's own colour, never white in dark ---- */
+:root.q-dock {
+  --q-dock-bg: var(--q-page);
+  --q-dock-safe: max(env(safe-area-inset-bottom), var(--q-safe-bottom, 0px));
+}
+@media (max-width: 720px) {
+  :root.q-dock {
+    --q-bar-gap: 0px;
+    --q-nav: calc(52px + var(--q-dock-safe));
+  }
+  :root.q-dock .q-tabbar.q-tabbar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    padding: 0 max(8px, env(safe-area-inset-right)) var(--q-dock-safe) max(8px, env(safe-area-inset-left));
+    border-radius: 0;
+    background: var(--q-dock-bg);
+    box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep);
+    transform: none;
+  }
+}
+:root.q-touch.q-dock {
+  --q-bar-gap: 0px;
+  --q-nav: calc(52px + var(--q-dock-safe));
+}
+:root.q-touch.q-dock .q-tabbar.q-tabbar {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  padding: 0 max(8px, env(safe-area-inset-right), calc((100vw - var(--q-tabs, 4) * 120px) / 2)) var(--q-dock-safe) max(8px, env(safe-area-inset-left), calc((100vw - var(--q-tabs, 4) * 120px) / 2));
+  border-radius: 0;
+  background: var(--q-dock-bg);
+  box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep);
+  transform: none;
+}
+:root.q-dock .q-tabbar.q-tabbar::before,
+:root.q-dock .q-tabbar.q-tabbar::after {
+  display: none;
+}
+/* (Always its labels: the dock never shrinks while the page scrolls.) */
+:root.q-dock .q-tabbar.q-tabbar .q-tab {
+  min-height: 52px;
+  padding: 6px 2px 5px;
+}
+:root.q-dock .q-tabbar.q-tabbar .q-tab-label {
+  height: auto;
+  opacity: 1;
+}
+:root.q-dock .q-tabbar.q-tabbar .q-tab svg {
+  width: 24px;
+  height: 24px;
+}
+:root.q-dock .q-accessory {
+  left: 0;
+  bottom: var(--q-nav);
+  width: auto;
+  right: 0;
+  min-height: 0;
+  padding: 8px max(16px, env(safe-area-inset-right), calc((100vw - var(--q-tabs, 4) * 120px) / 2)) 8px max(16px, env(safe-area-inset-left), calc((100vw - var(--q-tabs, 4) * 120px) / 2));
+  border-radius: 0;
+  background: var(--q-dock-bg);
+  box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep);
+  transform: none;
+  animation: q-dock-in var(--q-dur-smooth) var(--q-spring-smooth);
+}
+:root.q-dock .q-accessory:is(:active, [data-q-press]) {
+  transform: none;
+  background: color-mix(in srgb, var(--q-fill-3) 60%, var(--q-dock-bg));
+}
+@keyframes q-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+/* (On a wide screen without the bottom tabs, the accessory stays a card.) */
+@media (min-width: 721px) {
+  :root.q-dock:not(.q-touch) .q-accessory,
+  :root.q-dock:not(.q-touch) .q-accessory:is(:active, [data-q-press]) {
+    left: 50%;
+    bottom: 18px;
+    right: auto;
+    width: min(calc(100vw - 32px), 560px);
+    border-radius: 28px;
+    background: var(--q-glass);
+    box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+    transform: translateX(-50%);
+  }
+}
+
+/* ---- Sheets: up from the foot on a spring, floating inside the screen's
+   edges with its deep corners, a grabber, a centred title between glass
+   circles; dragged down to close (quadra.mjs sheetSwipe) ---- */
+/* (Inside a sheet, its cells are a shade lifted from it, as iOS's are.) */
+.q-sheet {
+  --q-surface: var(--q-sheet-cell, var(--q-grouped-2));
+  width: min(520px, calc(100vw - 16px));
+  max-width: none;
+  max-height: min(calc(100dvh - var(--q-top) - 16px), 900px);
+  margin: auto auto 8px;
+  padding: 0 var(--q-margin) calc(16px + max(env(safe-area-inset-bottom) - 8px, 0px));
+  border: 0;
+  border-radius: var(--q-r-sheet);
+  background: var(--q-sheet);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.04), 0 18px 60px rgba(0, 0, 0, 0.22);
+  color: var(--q-text);
+  font-family: var(--q-font);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 720px) {
+  .q-sheet {
+    margin: auto;
+  }
+}
+/* A full-height sheet (iOS's large detent, .q-full): on a phone it meets the
+   screen's sides and foot, as iOS 26's does at full height, not floating 8 px
+   in with the page behind showing down its sides. */
+@media (max-width: 719px) {
+  dialog.q-sheet.q-full {
+    width: 100vw;
+    margin: auto 0 0;
+    border-radius: var(--q-r-sheet) var(--q-r-sheet) 0 0;
+  }
+}
+.q-sheet::backdrop {
+  background: var(--q-dim);
+}
+.q-sheet::before {
+  content: '';
+  position: sticky;
+  top: 6px;
+  z-index: 3;
+  display: block;
+  width: 36px;
+  height: 5px;
+  margin: 6px auto -11px;
+  border-radius: 3px;
+  background: var(--q-label-3);
+}
+/* Rises quick and settles, no long crawl at the end (iOS's sheet: about
+   0.4 s; a spring's tail on a sheet this tall was a slow last 90 px).
+   Once (.q-risen, quadra.mjs): a drag turns the animation off, and turned
+   back on it played again, so a sheet let go of dropped and rose anew. */
+.q-sheet[open]:not(.q-risen) {
+  animation: q-sheet-up 0.42s var(--q-ease);
+}
+/* Its own layer all the while it's open: made at the touch, it cost a
+   dropped frame or two as the finger started the drag. */
+.q-sheet[open] {
+  will-change: transform;
+}
+.q-sheet[open]::backdrop {
+  animation: q-fade-in 0.3s ease-out;
+}
+.q-sheet.q-settle {
+  transition: transform 0.36s var(--q-spring-snappy);
+}
+/* Under a finger (quadra.mjs sheetSwipe): its own layer, nothing between it and the finger. */
+.q-sheet.q-dragging {
+  animation: none;
+  transition: none;
+  will-change: transform;
+}
+/* Closing (quadra.mjs closeSheet): down to the foot from the finger's own speed, easing out, the dimming fading with it. */
+.q-sheet.q-leaving {
+  animation: none;
+  transition: transform var(--q-leave, 0.45s) var(--q-leave-ease, cubic-bezier(0.3, 0.3, 0.2, 1));
+  will-change: transform;
+  pointer-events: none;
+}
+.q-sheet.q-leaving::backdrop {
+  animation: q-fade-out var(--q-leave, 0.45s) ease forwards;
+}
+@keyframes q-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes q-sheet-up {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes q-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (min-width: 720px) {
+  .q-sheet::before {
+    display: none;
+  }
+  /* Once, as the phone's rise (a card let go of after a swipe popped in again). */
+  .q-sheet[open]:not(.q-risen) {
+    animation: q-pop-in var(--q-dur-snappy) var(--q-spring-snappy);
+  }
+}
+@keyframes q-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+.q-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 calc(-1 * var(--q-margin)) 8px;
+  padding: 16px var(--q-margin) 10px;
+  /* Solid, as iOS's sheet bar: a fade at its foot let the cards scrolling under it show through as part of the head. */
+  background: var(--q-sheet);
+}
+.q-sheet-head h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--q-t-headline);
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* A head that is a title and its buttons: the title centred between them, as iOS's. */
+.q-sheet-head:has(> h2) {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 8px;
+  padding-inline: 12px;
+}
+.q-sheet-head:has(> h2) > h2 {
+  grid-column: 2;
+  text-align: center;
+}
+.q-sheet-head:has(> h2) > :not(h2):first-child {
+  grid-column: 1;
+}
+.q-sheet-head:has(> h2) > :not(h2):last-child {
+  grid-column: 3;
+  justify-self: end;
+}
+.q-sheet-h {
+  margin: 24px 16px 7px;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.q-sheet-sub,
+.q-sheet-note {
+  margin: 8px 16px 0;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.q-sheet-note:empty {
+  display: none;
+}
+
+/* ---- Alerts (ask / tell): a glass slab, centred, capsule buttons ---- */
+.q-ask {
+  width: min(320px, calc(100vw - 48px));
+  margin: auto;
+  padding: 22px 18px 16px;
+  border: 0;
+  border-radius: var(--q-r-alert);
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(2);
+  backdrop-filter: blur(30px) saturate(2);
+  box-shadow: var(--q-glass-rim), 0 24px 70px rgba(0, 0, 0, 0.24);
+  color: var(--q-text);
+  font-family: var(--q-font);
+  text-align: center;
+  box-sizing: border-box;
+  animation: q-alert-in var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-ask.out {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.q-ask::backdrop {
+  background: var(--q-dim);
+  animation: q-fade-in 0.25s ease-out;
+}
+@keyframes q-alert-in {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+.q-ask-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--q-fill-3);
+  font-size: 28px;
+}
+.q-ask.danger .q-ask-icon {
+  background: color-mix(in srgb, var(--q-red) 16%, transparent);
+}
+.q-ask-title {
+  margin: 0;
+  font: var(--q-t-headline);
+  letter-spacing: -0.025em;
+}
+.q-ask-body {
+  margin: 6px 0 0;
+  color: var(--q-text-2);
+  font: var(--q-t-subhead);
+}
+.q-ask-points {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.q-ask-points li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--q-fill-3);
+}
+.q-ask-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--q-grouped-2);
+  font-size: 17px;
+  font-weight: 700;
+}
+.q-ask-points strong {
+  display: block;
+  font: 600 15px/20px var(--q-font);
+}
+.q-ask-points small {
+  display: block;
+  margin-top: 2px;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.q-ask-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+.q-ask-actions .q-btn {
+  min-height: 48px;
+  padding: 0 12px;
+}
+.q-ask-actions .q-btn:not(.primary):not(.danger) {
+  color: var(--q-label);
+}
+
+/* ---- Lists: inset grouped, as Settings draws them. .q-rows / .q-list a
+   white cell, .q-row-btn / .q-cell a row (an icon, a title and its line, a
+   value, a chevron), hairlines inset from the text ---- */
+.q-rows,
+.q-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--q-r-card);
+  background: var(--q-surface);
+  list-style: none;
+}
+.q-row-btn,
+.q-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--q-row);
+  padding: 8px 16px;
+  border: 0;
+  background: none;
+  color: var(--q-text);
+  font: var(--q-t-body);
+  letter-spacing: -0.025em;
+  text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background-color 0.25s;
+}
+.q-cell {
+  cursor: default;
+}
+:is(button, a).q-cell {
+  cursor: pointer;
+}
+:is(.q-row-btn, .q-cell) + :is(.q-row-btn, .q-cell)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--q-sep-left, 16px);
+  right: 0;
+  height: var(--q-hairline);
+  background: var(--q-sep);
+}
+.q-cell:has(> .q-cell-icon) + .q-cell::before,
+.q-cell + .q-cell:has(> .q-cell-icon)::before {
+  left: 58px;
+}
+:is(button, a).q-cell:is(:active, [data-q-press]),
+.q-row-btn:is(:active, [data-q-press]):not(:disabled) {
+  background: var(--q-fill-4);
+  transition-duration: 0s;
+}
+.q-row-btn.danger,
+.q-cell.danger {
+  color: var(--q-red);
+}
+.q-row-btn:disabled {
+  opacity: 0.4;
+}
+.q-cell-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--q-r-icon);
+  background: var(--q-cell-tint, var(--q-accent));
+  color: #ffffff;
+  font-size: 17px;
+}
+.q-cell-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.q-cell-text {
+  display: grid;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.q-cell-text small {
+  color: var(--q-label-2);
+  font: var(--q-t-subhead);
+}
+.q-cell-value {
+  flex: none;
+  color: var(--q-label-2);
+  font: var(--q-t-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.q-cell.chevron::after,
+.q-row-btn.chevron::after {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 -2px;
+  border-top: 2px solid var(--q-label-3);
+  border-right: 2px solid var(--q-label-3);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+.q-list-head {
+  margin: 24px 16px 7px;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.q-list-head.big {
+  margin: 28px 0 10px;
+  color: var(--q-label);
+  font: var(--q-t-title3);
+  letter-spacing: -0.015em;
+}
+.q-list-foot {
+  margin: 7px 16px 0;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+
+/* ---- Sections and cards on the page ---- */
+.q-section {
+  margin: 28px 0 0;
+}
+.q-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+.q-section-head h2 {
+  margin: 0;
+  overflow: hidden;
+  font: var(--q-t-title3);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-section-head a,
+.q-section-head button:not(.q-tag) {
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--q-accent);
+  font: 400 17px/1 var(--q-font);
+  text-decoration: none;
+  cursor: pointer;
+}
+.q-card {
+  border: 0;
+  border-radius: var(--q-r-card);
+  background: var(--q-surface);
+  box-shadow: none;
+}
+
+/* ---- Chips: capsules, the chosen one the app's colour on a wash of it (black stays for text) ---- */
+.q-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+/* (Its padding gives way to an app's own: a rail of chips bleeding to the edge.) */
+:where(.q-chips) {
+  padding: 2px 0 4px;
+}
+.q-chips::-webkit-scrollbar {
+  display: none;
+}
+.q-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--q-fill-3);
+  color: var(--q-label);
+  font: 500 15px/1 var(--q-font);
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.25s, color 0.25s, transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-chip:is(:active, [data-q-press]) {
+  transform: scale(0.95);
+  transition-duration: 0.12s;
+}
+.q-chip:is([aria-pressed='true'], [aria-selected='true'], .on) {
+  background: color-mix(in srgb, var(--q-accent) 14%, transparent);
+  color: var(--q-accent);
+}
+/* Dark: the accent lifted toward white on a stronger wash, so a deep accent
+   (Law's indigo, an app's own darker one) still reads on black. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .q-chip:is([aria-pressed='true'], [aria-selected='true'], .on) {
+    background: color-mix(in srgb, var(--q-accent) 24%, transparent);
+    color: color-mix(in srgb, var(--q-accent) 62%, #fff);
+  }
+}
+:root[data-theme='dark'] .q-chip:is([aria-pressed='true'], [aria-selected='true'], .on) {
+  background: color-mix(in srgb, var(--q-accent) 24%, transparent);
+  color: color-mix(in srgb, var(--q-accent) 62%, #fff);
+}
+
+/* ---- Segmented control: a capsule track, a raised thumb that slides on a
+   spring (kit/ui.mjs segmented sets --q-seg-i and --q-seg-n) ---- */
+.q-seg {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--q-fill-3);
+  isolation: isolate;
+}
+.q-seg::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / var(--q-seg-n, 2));
+  border-radius: 999px;
+  background: var(--q-elevated);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transform: translateX(calc(100% * var(--q-seg-i, 0)));
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .q-seg::before {
+    background: #5b5b5f;
+  }
+}
+:root[data-theme='dark'] .q-seg::before {
+  background: #5b5b5f;
+}
+/* (The count and the choice read from the page itself, so a redraw that
+   drops the inline variables, an app's own DOM diff, still places it.) */
+.q-seg:has(> :nth-child(2):last-child) {
+  --q-seg-n: 2;
+}
+.q-seg:has(> :nth-child(3):last-child) {
+  --q-seg-n: 3;
+}
+.q-seg:has(> :nth-child(4):last-child) {
+  --q-seg-n: 4;
+}
+.q-seg:has(> :nth-child(5):last-child) {
+  --q-seg-n: 5;
+}
+.q-seg:has(> :nth-child(6):last-child) {
+  --q-seg-n: 6;
+}
+.q-seg:has(> :nth-child(7):last-child) {
+  --q-seg-n: 7;
+}
+.q-seg:has(> :nth-child(1):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 0;
+}
+.q-seg:has(> :nth-child(2):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 1;
+}
+.q-seg:has(> :nth-child(3):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 2;
+}
+.q-seg:has(> :nth-child(4):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 3;
+}
+.q-seg:has(> :nth-child(5):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 4;
+}
+.q-seg:has(> :nth-child(6):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 5;
+}
+.q-seg:has(> :nth-child(7):is([aria-pressed='true'], [aria-selected='true'])) {
+  --q-seg-i: 6;
+}
+.q-seg > button {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--q-label);
+  font: 500 14px/1.2 var(--q-font);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-seg > button[aria-pressed='true'],
+.q-seg > button[aria-selected='true'] {
+  font-weight: 600;
+}
+.q-seg > button:is(:active, [data-q-press]) {
+  transform: scale(0.94);
+}
+.q-seg.big > button {
+  min-height: 40px;
+  font-size: 15px;
+}
+
+/* ---- Switches: iOS 26's wide capsule; the native one where Safari draws it ---- */
+.q-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--q-fill-1);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.q-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 38px;
+  height: 24px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14), 0 0.5px 1px rgba(0, 0, 0, 0.08);
+  transition: transform var(--q-dur-bouncy) var(--q-spring-bouncy), width var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-switch:is(:active, [data-q-press])::after {
+  width: 44px;
+}
+.q-switch[aria-checked='true'] {
+  background: var(--q-green);
+}
+.q-switch[aria-checked='true']::after {
+  transform: translateX(22px);
+}
+.q-switch[aria-checked='true']:is(:active, [data-q-press])::after {
+  transform: translateX(16px);
+}
+.q-switch:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+input[type='checkbox'][switch] {
+  accent-color: var(--q-green);
+}
+.q-switch.on {
+  background: var(--q-green);
+}
+.q-switch.on::after {
+  transform: translateX(22px);
+}
+.q-switch.on:is(:active, [data-q-press])::after {
+  transform: translateX(16px);
+}
+
+/* ---- Sheet foot: a primary button pinned to a kit sheet's bottom edge ---- */
+.q-sheet-foot {
+  position: sticky;
+  bottom: 0;
+  margin: 16px calc(-1 * var(--q-margin)) 0;
+  padding: 12px var(--q-margin) calc(12px + env(safe-area-inset-bottom));
+  border-top: var(--q-hairline) solid var(--q-sep);
+  background: var(--q-sheet);
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+/* ---- Figures: a compact row of captioned numbers inside a card ---- */
+.q-fig {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  text-align: center;
+}
+.q-fig > * {
+  min-width: 0;
+  padding: 2px 8px;
+}
+.q-fig > * + * {
+  border-left: var(--q-hairline) solid var(--q-sep);
+}
+.q-fig small,
+.q-fig .cap {
+  display: block;
+  color: var(--q-label-2);
+  font-size: 12px;
+  line-height: 16px;
+}
+.q-fig b,
+.q-fig .num {
+  display: block;
+  font: 700 20px/26px var(--q-font-rounded);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Search: a filled capsule, a magnifier, a clear button ---- */
+.q-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px 0 38px;
+  border-radius: 999px;
+  background: var(--q-fill-3);
+}
+.q-search::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  width: 18px;
+  height: 18px;
+  background: var(--q-label-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m15.5 15.5 5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m15.5 15.5 5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.q-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--q-label);
+  font: 400 17px/1 var(--q-font);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.q-search input::placeholder {
+  color: var(--q-label-2);
+}
+.q-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.q-search-clear {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--q-label-3);
+  color: var(--q-grouped-2);
+  font: 700 12px/1 var(--q-font);
+  cursor: pointer;
+}
+.q-search:not(:has(input:placeholder-shown)) .q-search-clear {
+  display: grid;
+}
+.q-search:has(input:placeholder-shown) .q-search-clear {
+  display: none;
+}
+/* A text field in a list or a form: filled, no ring. */
+.q-field {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--q-r-cell);
+  background: var(--q-fill-3);
+  color: var(--q-label);
+  font: 400 17px/1.2 var(--q-font);
+  box-sizing: border-box;
+  outline: 0;
+  transition: box-shadow 0.2s;
+}
+.q-field:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--q-accent) 55%, transparent);
+}
+
+/* ---- Banners (in-app notices): an iOS notification, down from the top ---- */
+.q-banner {
+  position: fixed;
+  z-index: 2147483000;
+  left: 50%;
+  top: calc(var(--q-top) + 8px);
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 16px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(2);
+  backdrop-filter: blur(30px) saturate(2);
+  box-shadow: var(--q-glass-rim), 0 12px 36px -10px rgba(0, 0, 0, 0.3);
+  color: var(--q-text);
+  cursor: pointer;
+  animation: q-banner-in var(--q-dur-bouncy) var(--q-spring-bouncy);
+}
+.q-banner.out {
+  opacity: 0;
+  transform: translate(-50%, -24px) scale(0.96);
+  transition: opacity 0.25s ease, transform var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-banner img {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+.q-banner div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.q-banner strong {
+  font: 600 15px/20px var(--q-font);
+  letter-spacing: -0.015em;
+}
+.q-banner span {
+  color: var(--q-text-2);
+  font: var(--q-t-subhead);
+}
+.q-banner.open {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.q-banner-more {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+  border-top: var(--q-hairline) solid var(--q-sep);
+  list-style: none;
+}
+.q-banner-more li {
+  display: grid;
+  gap: 1px;
+}
+.q-banner-more strong {
+  font-size: 13px;
+}
+@keyframes q-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -110%);
+  }
+}
+.q-banner-ask {
+  cursor: default;
+}
+.q-banner-ask > div {
+  flex: 1 1 auto;
+}
+.q-banner-go {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--q-accent);
+  color: var(--q-accent-ink);
+  font: 600 15px/1 var(--q-font);
+  cursor: pointer;
+}
+.q-banner-x {
+  flex: 0 0 auto;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--q-label-2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---- A toast: a glass capsule over the tab bar, gone in a moment ---- */
+.q-toast {
+  position: fixed;
+  z-index: 2147482900;
+  left: 50%;
+  bottom: calc(var(--q-nav, 0px) + 12px);
+  max-width: calc(100vw - 32px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(2);
+  backdrop-filter: blur(30px) saturate(2);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label);
+  font: 600 15px/20px var(--q-font);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: q-toast-in var(--q-dur-bouncy) var(--q-spring-bouncy);
+}
+.q-net {
+  position: fixed;
+  z-index: 2147482800;
+  left: 50%;
+  bottom: calc(var(--q-nav, 0px) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(2);
+  backdrop-filter: blur(30px) saturate(2);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label);
+  font: 600 15px/20px var(--q-font);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: q-toast-in var(--q-dur-bouncy) var(--q-spring-bouncy);
+  cursor: pointer;
+}
+.q-net svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.q-net[data-state='offline'] svg {
+  color: var(--q-red);
+}
+.q-net[data-state='slow'] svg {
+  color: var(--q-orange);
+}
+.q-net.out {
+  opacity: 0;
+  transform: translate(-50%, 16px) scale(0.94);
+  transition: opacity 0.2s, transform 0.3s var(--q-ease);
+}
+/* An online-only app with no connection (quadra.mjs onlineOnly): covered, the page's own colour, its mark in the middle. */
+.q-offline {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482950;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: max(24px, env(safe-area-inset-top)) 32px max(24px, env(safe-area-inset-bottom));
+  background: var(--q-page);
+  color: var(--q-label);
+  font-family: var(--q-font);
+  text-align: center;
+  animation: q-fade-in 0.25s ease-out;
+}
+.q-offline-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 15px;
+  margin-bottom: 6px;
+}
+.q-offline-app {
+  margin: 0;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.q-offline-title {
+  margin: 8px 0 0;
+  font: var(--q-t-title3, 600 20px/25px var(--q-font));
+}
+.q-offline-why {
+  margin: 0;
+  max-width: 280px;
+  color: var(--q-label-2);
+  font: var(--q-t-subhead, 15px/20px var(--q-font));
+}
+.q-offline-again {
+  margin-top: 18px;
+  min-width: 140px;
+}
+/* A toast while the connection's capsule is up: above it. An app's
+   floating buttons too: marked data-q-fab, they rise by the capsule's
+   height (--q-net-h, 0 while it's down, for an app placing its own). */
+:root {
+  --q-net-h: 0px;
+}
+.q-net-on {
+  --q-net-h: 54px;
+}
+.q-net-on .q-toast {
+  bottom: calc(var(--q-nav, 0px) + 66px);
+}
+[data-q-fab] {
+  transition: translate var(--q-dur, 0.25s) var(--q-ease, ease);
+}
+.q-net-on [data-q-fab] {
+  translate: 0 calc(-1 * var(--q-net-h));
+}
+.q-toast.out {
+  opacity: 0;
+  transform: translate(-50%, 16px) scale(0.94);
+  transition: opacity 0.2s, transform 0.3s var(--q-ease);
+}
+.q-toast.bad {
+  color: var(--q-red);
+}
+@keyframes q-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 24px) scale(0.9);
+  }
+}
+
+/* ---- Nothing here yet: iOS's ContentUnavailableView ---- */
+.q-empty {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.q-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  background: var(--q-gray);
+  color: #ffffff;
+  font-size: 28px;
+}
+.q-empty strong {
+  font: var(--q-t-title3);
+  font-weight: 700;
+}
+.q-empty p {
+  margin: 0;
+  max-width: 300px;
+  color: var(--q-label-2);
+  font: var(--q-t-subhead);
+}
+.q-empty .q-btn {
+  margin-top: 14px;
+}
+
+/* ---- Loading in place: a quiet shimmer where content will be ---- */
+.q-skel {
+  border-radius: 10px;
+  background: linear-gradient(100deg, var(--q-fill-3) 30%, var(--q-fill-4) 50%, var(--q-fill-3) 70%) 0 0 / 300% 100%;
+  animation: q-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes q-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ---- A count or a mark on something ---- */
+.q-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--q-red);
+  color: #ffffff;
+  font: 600 12px/20px var(--q-font);
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+.q-badge.tint {
+  background: var(--q-accent-wash);
+  color: var(--q-accent);
+}
+.q-badge.gray {
+  background: var(--q-fill-2);
+  color: var(--q-label-2);
+}
+
+/* ---- Menus: glass that grows out of the button it came from (ui.mjs menu) ---- */
+.q-menu {
+  position: fixed;
+  z-index: 2147482800;
+  min-width: 230px;
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(2);
+  backdrop-filter: blur(30px) saturate(2);
+  box-shadow: var(--q-glass-rim), 0 16px 48px rgba(0, 0, 0, 0.22);
+  color: var(--q-label);
+  transform-origin: var(--q-menu-origin, top right);
+  animation: q-menu-in var(--q-dur-snappy) var(--q-spring-snappy);
+}
+.q-menu.out {
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.18s, transform 0.22s var(--q-ease);
+}
+@keyframes q-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+.q-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: inherit;
+  font: var(--q-t-body);
+  letter-spacing: -0.025em;
+  text-align: left;
+  cursor: pointer;
+}
+.q-menu button:is(:active, [data-q-press], :hover) {
+  background: var(--q-fill-3);
+}
+.q-menu button.danger {
+  color: var(--q-red);
+}
+.q-menu hr {
+  height: 0;
+  margin: 4px 10px;
+  border: 0;
+  border-top: var(--q-hairline) solid var(--q-sep);
+}
+
+/* ---- Moving between views: the page cross-fades (View Transitions) ---- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.28s;
+  animation-timing-function: var(--q-ease);
+}
+::view-transition-old(q-view) {
+  animation: q-view-out 0.22s var(--q-ease) both;
+}
+::view-transition-new(q-view) {
+  animation: q-view-in var(--q-dur-smooth) var(--q-spring-smooth) both;
+}
+@keyframes q-view-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+@keyframes q-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---- A tab not chosen (kit tabBar): out of sight and taking no room, but
+   kept drawn where the browser can (content-visibility), its pictures still
+   decoded: chosen again, it's there at once. Elsewhere, display: none. ---- */
+@supports (content-visibility: hidden) {
+  .q-tabpanel[hidden] {
+    display: block !important;
+    content-visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+}
+
+/* ---- A tab chosen fades in the first time (kit tabBar; never the first) ---- */
+.q-panel-in {
+  animation: q-panel-in 0.24s var(--q-ease) both;
+}
+@keyframes q-panel-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- A live number that changed pops once (data-q-live, kit/quadra.mjs) ---- */
+:where(span, b, strong, small, em, i)[data-q-live] {
+  display: inline-block;
+}
+.q-bump {
+  animation: q-bump var(--q-dur-bouncy) var(--q-spring-bouncy);
+}
+@keyframes q-bump {
+  30% {
+    transform: scale(1.18);
+  }
+}
+
+/* ---- Less movement when asked: no springs, no slides ---- */
+@media (prefers-reduced-motion: reduce) {
+  .q-btn,
+  .q-icon-btn,
+  .q-close,
+  .q-chip,
+  .q-seg::before,
+  .q-seg > button,
+  .q-switch::after,
+  .q-tabbar.q-tabbar,
+  .q-tabbar.q-tabbar::before,
+  .q-tabbar .q-tab,
+  .q-tabbar .q-tab-icon,
+  .q-tabbar .q-tab-label,
+  .q-sheet.q-settle {
+    transition: none;
+  }
+  .q-sheet[open],
+  .q-sheet[open]:not(.q-risen),
+  .q-ask,
+  .q-banner,
+  .q-toast,
+  .q-net,
+  .q-menu,
+  .q-accessory,
+  .q-panel-in,
+  .q-bump,
+  .q-skel {
+    animation: none;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+/* A plain button of an app's own, pressed: it dims for the moment it's held
+   (the kit's own controls give in their own way above). */
+:where(button, [role='button']):active:not(:disabled):not([class*='q-']) {
+  opacity: 0.6;
+}
+
+/* ---- Sign-in (and install) screen ---- */
+.q-signing-in body > *:not(.q-gate):not(dialog) {
+  display: none !important;
+}
+/* Quadra's screens are top-layer <dialog>s (quadra.mjs keepOnTop): full
+   screen, above anything an app draws. */
+dialog.q-gate,
+dialog.q-moved {
+  /* Its padding inside the 100vw, whatever box-sizing the app uses (Orbit
+     Weather and Transit set none: the screen was 40px wider and scrolled). */
+  box-sizing: border-box;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+}
+/* …and everything in it: the steps box and the sign-in form are 100% wide
+   with padding (the steps scrolled 8px sideways on the install screen). */
+.q-gate *,
+.q-gate *::before,
+.q-gate *::after {
+  box-sizing: border-box;
+}
+dialog.q-gate::backdrop {
+  background: var(--q-page);
+}
+dialog.q-moved::backdrop {
+  background: transparent;
+}
+.q-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482600;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(900px 520px at 50% -10%, color-mix(in srgb, var(--q-accent) 14%, transparent), transparent 70%),
+    var(--q-page);
+  color: var(--q-text);
+  font-family: var(--q-font);
+}
+.q-gate-box {
+  width: min(400px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.q-gate-icon {
+  border-radius: 18px;
+  box-shadow: 0 16px 36px -12px rgba(14, 17, 22, 0.4);
+}
+.q-gate-brand {
+  margin: 12px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  color: var(--q-muted);
+}
+.q-gate-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.q-gate-lede {
+  margin: 0 0 8px;
+  color: var(--q-text-2);
+  line-height: 1.55;
+  font-size: 15px;
+}
+.q-gate-form {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid var(--q-border);
+  border-radius: 20px;
+  background: var(--q-surface);
+  box-shadow: var(--q-shadow);
+  text-align: left;
+}
+.q-gate-label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--q-text-2);
+}
+.q-pass-input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid var(--q-border);
+  border-radius: 14px;
+  background: var(--q-surface-2);
+  color: var(--q-text);
+  font: 700 22px/1 ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-align: center;
+  box-sizing: border-box;
+}
+.q-pass-input:focus {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 1px;
+}
+.q-gate-error {
+  min-height: 1em;
+  margin: 0;
+  color: var(--q-bad);
+  font-size: 13px;
+}
+.q-gate-error:empty {
+  display: none;
+}
+.q-gate-note {
+  margin: 4px 0 0;
+  color: var(--q-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.q-steps {
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 16px 18px 16px 36px;
+  border: 1px solid var(--q-border);
+  border-radius: 18px;
+  background: var(--q-surface);
+  text-align: left;
+  line-height: 1.6;
+}
+.q-steps li + li {
+  margin-top: 6px;
+}
+
+/* ---- A phone-only app on a computer: a QR code to open it on the phone ---- */
+.q-qr {
+  width: 188px;
+  height: 188px;
+  margin: 10px auto 2px;
+  padding: 12px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--q-shadow-sm);
+  border: 1px solid var(--q-border);
+}
+.q-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.q-qr-url {
+  margin: 4px 0 8px;
+  color: var(--q-muted);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Paused: Quadra is open in another app ---- */
+.q-moved {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--q-page) 72%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-family: var(--q-font);
+}
+.q-moved-box {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid var(--q-border);
+  border-radius: 22px;
+  background: var(--q-surface);
+  box-shadow: var(--q-shadow);
+  text-align: center;
+}
+.q-moved-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--q-text);
+}
+.q-moved-text {
+  margin: 0 0 6px;
+  color: var(--q-text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---- The account button: the pass's badge (a person), never the balance ---- */
+.q-account {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--q-border);
+  border-radius: 50%;
+  background: var(--q-surface);
+  color: var(--q-accent);
+  box-shadow: var(--q-shadow-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.q-account svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.q-avatar {
+  font-size: 20px;
+  line-height: 1;
+}
+/* Frames: a ring around the account button (and their previews in Orbit Words). */
+.q-framed {
+  border: 2.5px solid transparent;
+  background: linear-gradient(var(--q-surface), var(--q-surface)) padding-box, var(--q-frame, var(--q-border)) border-box;
+}
+.q-frame-bronze { --q-frame: linear-gradient(135deg, #8c5523, #e3a76f, #b87333); }
+.q-frame-silver { --q-frame: linear-gradient(135deg, #6b7280, #f3f4f6, #9ca3af); }
+.q-frame-jade { --q-frame: linear-gradient(135deg, #065f46, #6ee7b7, #047857); }
+.q-frame-gold { --q-frame: linear-gradient(135deg, #b45309, #fde68a, #d97706); }
+.q-frame-neon { --q-frame: linear-gradient(135deg, #ec4899, #8b5cf6, #22d3ee); box-shadow: 0 0 8px rgba(139, 92, 246, 0.55); }
+.q-frame-aurora { --q-frame: conic-gradient(#22d3ee, #a78bfa, #f472b6, #facc15, #34d399, #22d3ee); box-shadow: 0 0 8px rgba(34, 211, 238, 0.45); }
+.q-frame-legend { --q-frame: conic-gradient(#7c2d12, #f97316, #fde047, #f97316, #7c2d12); box-shadow: 0 0 8px rgba(249, 115, 22, 0.5); }
+.q-frame-mythic { --q-frame: conic-gradient(#facc15, #f472b6, #60a5fa, #a78bfa, #34d399, #facc15); box-shadow: 0 0 10px rgba(250, 204, 21, 0.6); }
+.q-frame-sakura { --q-frame: linear-gradient(135deg, #f9a8d4, #fff1f2, #ec4899); }
+.q-frame-ocean { --q-frame: linear-gradient(135deg, #1e3a8a, #38bdf8, #0e7490); }
+.q-frame-ember { --q-frame: linear-gradient(135deg, #7f1d1d, #f97316, #b91c1c); }
+.q-frame-mint { --q-frame: linear-gradient(135deg, #0f766e, #a7f3d0, #14b8a6); }
+.q-frame-sapphire { --q-frame: linear-gradient(135deg, #1e40af, #93c5fd, #1d4ed8, #dbeafe); box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); }
+.q-frame-ruby { --q-frame: linear-gradient(135deg, #881337, #fda4af, #be123c, #ffe4e6); box-shadow: 0 0 8px rgba(225, 29, 72, 0.5); }
+@property --q-spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes q-spin {
+  to {
+    --q-spin: 360deg;
+  }
+}
+.q-frame-prism { --q-frame: conic-gradient(from var(--q-spin), #f43f5e, #f59e0b, #84cc16, #06b6d4, #8b5cf6, #f43f5e); box-shadow: 0 0 9px rgba(139, 92, 246, 0.5); animation: q-spin 6s linear infinite; }
+.q-frame-celestial { --q-frame: conic-gradient(from var(--q-spin), #fef3c7, #fde047, #c4b5fd, #1e1b4b, #93c5fd, #fef3c7); box-shadow: 0 0 12px rgba(253, 224, 71, 0.6), 0 0 3px rgba(196, 181, 253, 0.9); animation: q-spin 9s linear infinite; }
+.q-frame-legend { --q-frame: conic-gradient(from var(--q-spin), #7c2d12, #f97316, #fde047, #f97316, #7c2d12); animation: q-spin 10s linear infinite; }
+.q-frame-pearl { --q-frame: linear-gradient(135deg, #f8fafc, #e2e8f0, #fdf2f8, #cbd5e1); }
+.q-frame-matcha { --q-frame: linear-gradient(135deg, #365314, #a3e635, #4d7c0f); }
+.q-frame-milktea { --q-frame: linear-gradient(135deg, #78350f, #e7c9a0, #a16207); }
+.q-frame-sunset { --q-frame: linear-gradient(135deg, #f97316, #f43f5e, #7c3aed); }
+.q-frame-midnight { --q-frame: linear-gradient(135deg, #0f172a, #4338ca, #1e293b); box-shadow: 0 0 6px rgba(67, 56, 202, 0.45); }
+.q-frame-forest { --q-frame: linear-gradient(135deg, #14532d, #4ade80, #166534); }
+.q-frame-candy { --q-frame: linear-gradient(135deg, #f472b6, #fde68a, #60a5fa, #f472b6); }
+.q-frame-lava { --q-frame: conic-gradient(from var(--q-spin), #450a0a, #ef4444, #f97316, #fde047, #ef4444, #450a0a); box-shadow: 0 0 9px rgba(239, 68, 68, 0.55); animation: q-spin 7s linear infinite; }
+.q-frame-skylantern { --q-frame: linear-gradient(160deg, #1e1b4b, #fbbf24, #f97316); box-shadow: 0 0 10px rgba(251, 191, 36, 0.55); }
+.q-frame-mythic { --q-frame: conic-gradient(from var(--q-spin), #facc15, #f472b6, #60a5fa, #a78bfa, #34d399, #facc15); animation: q-spin 8s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  [class*='q-frame-'] { animation: none; }
+}
+.q-account-dot {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--q-muted);
+  box-shadow: 0 0 0 2px var(--q-surface);
+}
+.q-account.signed .q-account-dot {
+  background: var(--q-good);
+}
+
+/* ---- Account details in the pass sheet ---- */
+.q-details {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.q-card-hero {
+  display: grid;
+  gap: 2px;
+  padding: 16px 18px 18px;
+  border-radius: var(--q-radius);
+  color: #ffffff;
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--q-accent) 55%, transparent) 0%, transparent 60%), linear-gradient(135deg, #111827, color-mix(in srgb, var(--q-accent) 70%, #111827));
+  box-shadow: var(--q-shadow);
+}
+.q-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+}
+.q-hero-brand {
+  font-weight: 800;
+}
+.q-hero-no {
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.q-hero-label,
+.q-hero-sub {
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+.q-hero-balance {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.q-month {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.q-month > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--q-radius-sm);
+  background: var(--q-sunken);
+}
+.q-month small {
+  font-size: 11.5px;
+  color: var(--q-muted);
+  white-space: nowrap;
+}
+.q-month strong {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-details .up {
+  color: var(--q-good);
+}
+.q-details .down {
+  color: var(--q-bad);
+}
+.q-details .q-payday {
+  margin: 0;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--q-muted);
+}
+.q-recent {
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-radius-sm);
+  background: var(--q-surface);
+}
+.q-recent summary {
+  padding: 11px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.q-recent ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 14px 6px;
+}
+.q-recent li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--q-divider);
+  font-size: 13.5px;
+}
+.q-recent-when {
+  color: var(--q-muted);
+  font-size: 12px;
+}
+.q-recent-what {
+  min-width: 0;
+  /* Two lines before it's cut (English names ran out on one at 320 px). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.q-pass-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--q-border);
+  border-radius: 16px;
+  background: var(--q-surface);
+}
+.q-pass-code strong {
+  font: 700 19px/1 ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Devices, a new pass shown once, and in-app notices ---- */
+.q-device {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--q-radius-sm);
+  background: var(--q-accent-wash);
+  border: 1px solid color-mix(in srgb, var(--q-accent) 25%, transparent);
+  text-align: center;
+}
+.q-device[hidden] { display: none; }
+.q-device-label { font-size: 12px; font-weight: 700; color: var(--q-muted); }
+.q-device-code { font-size: 30px; font-weight: 800; letter-spacing: 0.12em; color: var(--q-text); }
+.q-device-left { font-size: 12px; font-weight: 700; color: var(--q-accent); }
+.q-device-how { font-size: 12px; color: var(--q-text-2); line-height: 1.45; }
+/* The new pass is a modal <dialog> (the top layer): it fills the screen. */
+dialog.q-newpass {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+dialog.q-newpass::backdrop { background: var(--q-page); }
+.q-newpass-label { margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--q-text-2); }
+.q-newpass-check { width: 11ch; text-align: center; font-size: 22px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; }
+.q-newpass-hint { min-height: 1.2em; font-size: 13px; color: var(--q-bad); }
+.q-newpass .q-pass-code { justify-content: center; margin: 8px 0 4px; }
+.q-newpass .q-pass-code strong { font-size: 28px; letter-spacing: 0.08em; }
+
+/* ---- Notification settings (account sheet) ---- */
+.q-notice-note {
+  margin: 8px 4px 0;
+  font: 400 12.5px/1.45 var(--q-font);
+  color: var(--q-muted);
+}
+.q-notice-kinds {
+  margin-top: 8px;
+}
+.q-notice-group + .q-notice-group {
+  border-top: 1px solid var(--q-divider);
+}
+.q-notice-app {
+  margin: 0;
+  padding: 12px 16px 2px;
+  font: 800 11px/1.2 var(--q-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+}
+.q-notice-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+.q-notice-row.master {
+  padding: 12px 16px;
+}
+.q-notice-icon {
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+.q-notice-text {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.q-notice-text strong {
+  font: 650 15px/1.3 var(--q-font);
+  color: var(--q-text);
+}
+.q-notice-sub {
+  font: 400 12.5px/1.4 var(--q-font);
+  color: var(--q-muted);
+}
+
+/* The payday line under the balance in the account sheet. */
+.q-payday {
+  margin: 8px 4px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--q-muted);
+}
+
+/* The focus ring for the keyboard only: a sheet opening or a button focused
+   in code (iOS counts those as :focus-visible) shows no blue square; a Tab
+   or an arrow key brings it back (quadra.mjs sets data-q-keys). */
+html:not([data-q-keys]) :is(:focus-visible, :focus):not(input, textarea, select) {
+  outline: none !important;
+}
+
+/* An overdraft: said plainly where the balance is. */
+.q-details .q-overdraft {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--q-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--q-bad);
+  background: color-mix(in srgb, var(--q-bad) 10%, transparent);
+}
+
+/* 信貸 and 急難紓困 (quadra.mjs loanCard): a bank card under the balance. */
+.q-loan {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.q-loan-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--q-radius);
+  background: var(--q-surface);
+}
+.q-loan-card.bad {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-bad) 60%, transparent);
+}
+.q-loan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+}
+.q-loan-head > :last-child {
+  flex: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--q-muted);
+}
+.q-loan-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.q-loan-facts.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.q-loan-fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.q-loan-fact small {
+  font-size: 12px;
+  color: var(--q-muted);
+}
+.q-loan-fact strong {
+  font-size: 17px;
+}
+.q-loan-fact strong.down {
+  color: var(--q-bad);
+}
+.q-loan-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--q-fill);
+  overflow: hidden;
+}
+.q-loan-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--q-good);
+}
+.q-loan-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--q-muted);
+}
+.q-loan-warn {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--q-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--q-bad);
+  background: color-mix(in srgb, var(--q-bad) 10%, transparent);
+}
+.q-loan-amount {
+  font-size: 28px;
+  text-align: center;
+}
+.q-loan-range {
+  width: 100%;
+  accent-color: var(--q-accent);
+}
+
+/* A sheet or detail view open: the page behind it stays still (no scrolling
+   under it, no scroll chaining out of it). */
+html:has(dialog[open]:modal),
+html:has(dialog[open]:modal) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+dialog {
+  overscroll-behavior: contain;
+}
+
+/* ---- The Quadra Pass sheet (pass.mjs): Pass, 外觀, 真相, App, 說明 ---- */
+.q-pass {
+  --accent: var(--q-accent, #4f46e5);
+  --accent-wash: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-family: var(--q-font);
+}
+.q-pass-title { display: flex; align-items: center; gap: 10px; }
+.q-pass-title img { border-radius: 8px; }
+.q-pass-tabs { position: sticky; top: -1px; z-index: 2; margin: 0 calc(-1 * var(--q-margin)) 12px; padding: 8px var(--q-margin); background: var(--q-sheet); overflow-x: auto; flex-wrap: nowrap; }
+.q-pass-tabs .q-chip[aria-selected='true'] { background: var(--accent-wash); color: var(--accent); }
+.q-pass-body { display: grid; gap: 4px; }
+.q-pass .q-section { margin-top: 14px; }
+.q-pass .q-section-head h2 { font-size: 17px; font-weight: 800; margin: 0 0 8px; }
+.q-pass p, .q-pass h3 { margin: 0; }
+.q-pass-toasts { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 3; display: grid; gap: 8px; width: min(420px, calc(100vw - 32px)); pointer-events: none; }
+.q-pass .toast { background: var(--q-text); color: var(--q-page); border-radius: 12px; padding: 10px 14px; font-size: 14px; box-shadow: var(--q-shadow); }
+.q-pass .meter { height: 8px; border-radius: 99px; background: var(--q-sunken); overflow: hidden; }
+.q-pass .meter > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s ease; }
+.q-pass .muted { color: var(--q-muted); }
+.q-pass .num { font-variant-numeric: tabular-nums; }
+.q-pass .pad { padding: 14px; }
+.q-pass .q-card + .q-card { margin-top: 12px; }
+.q-pass .q-card.list { padding: 0; overflow: hidden; }
+.q-pass .section-sub { color: var(--q-muted); font-size: 13px; margin: -6px 0 10px; }
+.q-pass .two-btn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.q-pass .q-btn.ghost { background: none; border-color: transparent; }
+.q-pass .q-btn.block { width: 100%; }
+.q-pass .stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.q-pass .stat { display: grid; }
+.q-pass .stat strong { font-size: 20px; font-weight: 800; }
+.q-pass .stat small { font-size: 12px; color: var(--q-muted); }
+.q-pass .q-chips.small .q-chip { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.q-pass .side-total > span small { display: block; font-size: 12px; font-weight: 600; }
+.q-pass .app-card.here { border-color: var(--accent); }
+.q-pass .help-list { display: grid; gap: 12px; margin: 10px 0 14px; }
+.q-pass .help-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+.q-pass .help-card p { font-size: 14.5px; line-height: 1.7; color: var(--q-text-2); }
+.q-pass .help-card p + p { margin-top: 8px; }
+.q-pass .help-card.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.q-pass .help-list .q-card + .q-card { margin-top: 0; }
+
+.q-pass .stat-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.q-pass .looks { display: grid; gap: 10px; }
+
+.q-pass .lv-h { color: var(--q-muted); font-size: 12.5px; font-weight: 700; }
+.q-pass .av-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.q-pass .av-tile { display: grid; justify-items: center; gap: 4px; padding: 10px 4px 8px; border: 1.5px solid var(--q-border); border-radius: 14px; background: var(--q-surface); color: inherit; font: inherit; cursor: pointer; min-height: 70px; }
+.q-pass .av-tile.on { border-color: var(--accent); background: var(--accent-wash); }
+
+.q-pass .av-glyph { font-size: 28px; line-height: 1.1; }
+
+.q-pass .av-tile small { font-size: 11.5px; color: var(--q-muted); white-space: nowrap; }
+.q-pass .av-tile.on small { color: var(--accent); font-weight: 700; }
+.q-pass .fr-preview { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; line-height: 1; }
+/* ---- Truth ---- */
+.q-pass .truth-hero { display: grid; gap: 6px; margin-top: 6px; padding: 16px 18px; border-radius: 20px; background: linear-gradient(135deg, var(--accent-wash), var(--q-surface) 75%); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+.q-pass .truth-hero strong { font-size: 19px; font-weight: 800; }
+.q-pass .truth-hero p { font-size: 14px; line-height: 1.65; color: var(--q-text-2); }
+/* (Its own layout, whatever an app's own .facts is: Orbit Sports' is a two-column grid.) */
+.q-pass .facts { display: block; grid-template-columns: none; gap: 0; margin: 0; padding: 0; list-style: none; font-size: inherit; color: inherit; }
+.q-pass .facts .t-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); }
+.q-pass .facts .t-row:first-child { border-top: 0; }
+.q-pass .t-label { display: grid; gap: 2px; min-width: 0; }
+.q-pass .t-label strong { font-size: 14px; }
+.q-pass .t-label small { font-size: 12px; line-height: 1.45; }
+.q-pass .t-value { font-size: 16px; white-space: nowrap; }
+.q-pass .t-row.up .t-value { color: var(--q-good); }
+.q-pass .t-row.down .t-value { color: var(--q-bad); }
+.q-pass .facts-foot { padding: 11px 14px 13px; border-top: 1px solid var(--q-border); background: var(--q-sunken); font-size: 13px; line-height: 1.6; color: var(--q-text-2); }
+.q-pass .tricks .trick { display: grid; gap: 2px; padding: 11px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); }
+.q-pass .tricks .trick:first-child { border-top: 0; }
+.q-pass .trick strong { font-size: 14px; }
+.q-pass .trick small { font-size: 12.5px; line-height: 1.55; }
+.q-pass .sides .side-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); }
+.q-pass .sides .side-row:first-child { border-top: 0; }
+.q-pass .side-icon { font-size: 22px; flex: none; }
+.q-pass .gov { overflow: hidden; }
+.q-pass .gov-tiles { padding: 14px 10px; gap: 8px; }
+.q-pass .gov-tile { padding: 10px 4px; border-radius: 14px; background: var(--q-sunken); }
+.q-pass .gov-tile strong { font-size: 16px; }
+.q-pass .gov-tile.up strong { color: var(--q-good); }
+.q-pass .gov-tile.down strong { color: var(--q-bad); }
+.q-pass .gov-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); }
+.q-pass .gov-row.none { opacity: 0.55; }
+.q-pass .gov-text { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.q-pass .gov-text small { font-size: 12px; line-height: 1.4; }
+.q-pass .gov-text .meter { height: 5px; margin-top: 3px; }
+.q-pass .gov-row > .num { flex: none; font-size: 14.5px; }
+.q-pass .gov-row.paid > .num { color: var(--q-bad); }
+.q-pass .gov-row.got > .num { color: var(--q-good); }
+.q-pass .gov-row.none > .num { color: var(--q-muted); }
+.q-pass .meter.good > i { background: var(--q-good); }
+.q-pass .meter.bad > i { background: var(--q-bad); }
+.q-pass .side-text { display: grid; flex: 1; min-width: 0; }
+.q-pass .side-text small { font-size: 12px; }
+.q-pass .side-row.took > .num { color: var(--q-bad); }
+.q-pass .side-row.up > .num { color: var(--q-good); }
+.q-pass .side-row.down > .num { color: var(--q-bad); }
+.q-pass .side-total { display: flex; justify-content: space-between; padding: 12px 14px; border-top: 1px solid var(--q-border); background: var(--q-sunken); font-weight: 650; }
+.q-pass .rank-progress { display: grid; gap: 6px; padding: 12px 14px; }
+.q-pass .rank-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); font-size: 14px; }
+.q-pass .rank-row.passed { opacity: 0.55; }
+.q-pass .rank-row.current { background: var(--accent-wash); }
+.q-pass .rank-row.current strong { color: var(--accent); }
+.q-pass .rank-icon { font-size: 18px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--q-sunken); flex: none; }
+.q-pass .rank-name { display: grid; flex: 1; min-width: 0; }
+.q-pass .rank-reward { font-weight: 750; font-size: 13px; color: var(--accent); white-space: nowrap; }
+.q-pass .rank-reward.paid { color: var(--q-muted); font-weight: 600; }
+/* ---- Apps ---- */
+.q-pass .app-list { display: grid; gap: 12px; }
+.q-pass .app-card { display: grid; gap: 10px; }
+.q-pass .app-card .two-btn { margin-top: 0; }
+.q-pass .app-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.q-pass .app-logo { width: 48px; height: 48px; border-radius: 13px; display: block; }
+.q-pass .app-name { display: grid; min-width: 0; }
+.q-pass .app-name small, .q-pass .app-last { font-size: 12px; }
+.q-pass .app-last { white-space: nowrap; }
+.q-pass .app-status { font-size: 13px; color: var(--q-text-2); }
+.q-pass .pass-guide { margin-top: 18px; }
+.q-pass .side-total > span small { display: block; font-size: 12px; font-weight: 600; }
+.q-pass-tabs .q-chip { padding: 0 13px; flex: none; }
+/* A narrow phone: the five tabs share the row (說明/Help was off its end at 320 px). */
+@media (max-width: 380px) {
+  .q-pass-tabs { gap: 6px; }
+  .q-pass-tabs .q-chip { flex: 1 0 auto; justify-content: center; padding: 0 8px; }
+}
+
+/* 除錯紀錄: its buttons under the switch, and a small red dot at the top while recording. */
+.q-rec-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 14px 12px;
+}
+html.q-recording body::after {
+  content: '';
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 4px);
+  left: 50%;
+  z-index: 2147483647;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #ff3b30;
+  pointer-events: none;
+}
+
+/* ---- F1 pictures (photos.mjs driverPic, teamPic): a face, or the team's
+   colour with initials; a team's white logo on its colour. The app's own
+   class sets the size. */
+.q-person { width: 34px; height: 34px; flex: none; border-radius: 50%; object-fit: cover; object-position: top; background: var(--q-sunken, rgba(127, 127, 127, 0.15)); }
+.q-driver-badge { display: inline-grid; place-items: center; background: var(--team, #8a8f98); color: #fff; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35); }
+.q-team-disc { width: 34px; height: 34px; flex: none; display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; background: var(--team, #8a8f98); color: #fff; font-size: 0.62rem; font-weight: 800; }
+.q-team-disc .logo-wrap { display: contents; }
+.q-team-disc-img { width: 72%; height: 72%; object-fit: contain; }
+
+/* A disclosure row: iOS's chevron on the right, not the browser's triangle. */
+.q-recent summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  font-weight: 600;
+  font-size: 15px;
+}
+.q-recent summary::-webkit-details-marker {
+  display: none;
+}
+.q-recent summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
+  border-right: 2px solid var(--q-muted);
+  border-bottom: 2px solid var(--q-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.25s var(--q-ease);
+}
+.q-recent[open] summary::after {
+  transform: rotate(45deg);
+}
+
+/* ---- Upright only (2026-10-10): a phone on its side, the page turned back
+   against it (quadra.mjs uprightTurn), so it stays upright on the glass.
+   The page's box is the upright screen's; what floats in the top layer
+   (sheets, alerts) is turned the same way. ---- */
+html[data-q-turn='-90'],
+html[data-q-turn='90'] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--q-turn-w);
+  height: var(--q-turn-h);
+  overflow-x: hidden;
+  overflow-y: auto;
+  transform-origin: 0 0;
+}
+html[data-q-turn='-90'] {
+  transform: translateY(var(--q-turn-w)) rotate(-90deg);
+}
+html[data-q-turn='90'] {
+  transform: translateX(var(--q-turn-h)) rotate(90deg);
+}
+html[data-q-turn] body {
+  min-height: var(--q-turn-h);
+}
+/* The notch is at the phone's top, now a side of the landscape screen: its inset there. */
+html[data-q-turn='-90'] {
+  --q-top: max(env(safe-area-inset-left), 20px);
+}
+html[data-q-turn='90'] {
+  --q-top: max(env(safe-area-inset-right), 20px);
+}
+/* Sheets at the upright screen's foot, alerts in its middle. */
+html[data-q-turn] dialog[open] {
+  position: fixed;
+  inset: auto;
+  top: 0;
+  left: 0;
+  margin: 0;
+  transform-origin: 0 0;
+}
+html[data-q-turn] dialog.q-sheet[open] {
+  width: min(460px, calc(var(--q-turn-w) - 12px));
+  max-height: calc(var(--q-turn-h) * 0.88);
+}
+html[data-q-turn='-90'] dialog.q-sheet[open] {
+  transform: translateY(var(--q-turn-w)) rotate(-90deg) translate(calc((var(--q-turn-w) - 100%) / 2), calc(var(--q-turn-h) - 100% - 6px));
+}
+html[data-q-turn='90'] dialog.q-sheet[open] {
+  transform: translateX(var(--q-turn-h)) rotate(90deg) translate(calc((var(--q-turn-w) - 100%) / 2), calc(var(--q-turn-h) - 100% - 6px));
+}
+html[data-q-turn='-90'] dialog[open]:not(.q-sheet) {
+  transform: translateY(var(--q-turn-w)) rotate(-90deg) translate(calc((var(--q-turn-w) - 100%) / 2), calc((var(--q-turn-h) - 100%) / 2));
+}
+html[data-q-turn='90'] dialog[open]:not(.q-sheet) {
+  transform: translateX(var(--q-turn-h)) rotate(90deg) translate(calc((var(--q-turn-w) - 100%) / 2), calc((var(--q-turn-h) - 100%) / 2));
+}
+html[data-q-turn] dialog[open] {
+  animation: none;
+}
+
+/* Prose that runs onto more lines never leaves a word or a character alone
+   on its last one (Transit's 交通 card ended on "現。" by itself), and a
+   heading that must break, breaks into even halves. Every app, through the
+   kit; :where keeps it the weakest rule, so an app's own still wins. */
+:where(p, li, dd, figcaption, .q-sheet small) {
+  text-wrap: pretty;
+}
+:where(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+/* ==== Premium layer: the look Orbit Law and Orbit Beats set, for every app ====
+   Built on the tokens above, so light and dark come free. Each app tints it
+   with its own colour (--q-accent, or --t on one piece) and keeps its own
+   elements (a pitch, a map, a chart) inside these frames:
+   - .q-page-head: a small grey line over a large title (the page's name);
+   - .q-hero-card: the one thing to do first, on the app's colour as a
+     gradient, white type, an optional field-like pill (.q-hc-pill);
+   - .q-tile: a colour squircle holding a white glyph (sm / lg);
+   - .q-rowcard: a card of rows, each a tile, two lines, a value, a chevron;
+   - .q-tag: a tinted capsule (green, red, orange, indigo, blue, gray);
+   - .q-rail: cards that scroll sideways, bleeding to the screen's edge;
+   - .q-stats / .q-stat: big rounded numbers with their names;
+   - .q-ambient: a card washed in a colour from its top (Beats' radio);
+   - .q-rise: a panel's cards rising in one after another as it opens;
+   - .q-press: anything tappable that gives under a finger. */
+.q-page-head {
+  padding: 8px 0 16px;
+}
+.q-page-head h1 {
+  margin: 0;
+  font: var(--q-t-large);
+  letter-spacing: 0.01em;
+}
+.q-over {
+  margin: 0 0 2px;
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+  letter-spacing: 0.02em;
+}
+.q-page-head .q-over.tint {
+  color: var(--q-accent);
+}
+
+.q-hero-card {
+  --q-hc-a: color-mix(in srgb, var(--q-accent) 62%, #0b1020);
+  --q-hc-b: var(--q-accent);
+  --q-hc-glow: color-mix(in srgb, var(--q-accent) 45%, #ffffff);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 16px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 22px;
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--q-hc-glow) 55%, transparent), transparent 60%), linear-gradient(135deg, var(--q-hc-a), var(--q-hc-b));
+  color: #ffffff;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 36px -20px color-mix(in srgb, var(--q-hc-b) 80%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+/* In dark the accents brighten; the card keeps a deep colour so white type
+   stays readable. :where() keeps this at one-class weight so an app that sets
+   its own --q-hc-a/b on its hero class still wins. */
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme='light'])) .q-hero-card {
+    --q-hc-a: color-mix(in srgb, var(--q-accent) 38%, #05070d);
+    --q-hc-b: color-mix(in srgb, var(--q-accent) 72%, #05070d);
+    --q-hc-glow: color-mix(in srgb, var(--q-accent) 60%, transparent);
+  }
+}
+:where(:root[data-theme='dark']) .q-hero-card {
+  --q-hc-a: color-mix(in srgb, var(--q-accent) 38%, #05070d);
+  --q-hc-b: color-mix(in srgb, var(--q-accent) 72%, #05070d);
+  --q-hc-glow: color-mix(in srgb, var(--q-accent) 60%, transparent);
+}
+.q-hc-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px/1 var(--q-font);
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+.q-hc-eyebrow svg {
+  width: 16px;
+  height: 16px;
+}
+.q-hc-title {
+  margin: 0;
+  font: 700 22px/28px var(--q-font);
+  letter-spacing: -0.01em;
+}
+.q-hc-big {
+  font: 700 40px/44px var(--q-font-rounded);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.q-hc-sub {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font: var(--q-t-subhead);
+}
+.q-hc-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  font: 15px/20px var(--q-font);
+}
+.q-hc-pill > span {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+}
+.q-hc-pill > i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--q-hc-b);
+}
+.q-hc-pill svg {
+  width: 18px;
+  height: 18px;
+}
+.q-hc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.q-hc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--q-hc-b);
+  font: 600 15px/1 var(--q-font);
+  text-decoration: none;
+  cursor: pointer;
+}
+/* Dark: the hero's button is glass, never a white slab (the owner, 2026-10-21). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .q-hc-btn:not(.ghost) {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+}
+:root[data-theme='dark'] .q-hc-btn:not(.ghost) {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.q-hc-btn.ghost {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.q-tile {
+  --t: var(--q-accent);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--t) 82%, #fff), var(--t) 60%);
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+.q-tile svg {
+  width: 22px;
+  height: 22px;
+}
+.q-tile img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+.q-tile.sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 16px;
+}
+.q-tile.sm svg {
+  width: 18px;
+  height: 18px;
+}
+.q-tile.lg {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  font-size: 26px;
+}
+.q-tile.lg svg {
+  width: 28px;
+  height: 28px;
+}
+.q-tile.soft {
+  background: color-mix(in srgb, var(--t) 16%, transparent);
+  color: var(--t);
+  box-shadow: none;
+}
+
+.q-rowcard {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--q-surface);
+  list-style: none;
+}
+.q-ritem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--q-label);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+div.q-ritem {
+  cursor: default;
+}
+.q-ritem + .q-ritem::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--q-ritem-sep, 64px);
+  right: 0;
+  border-top: var(--q-hairline) solid var(--q-sep);
+}
+.q-ritem:not(:has(> .q-tile)) {
+  --q-ritem-sep: 12px;
+}
+:is(a, button).q-ritem:active {
+  background: var(--q-fill-4);
+  transition-duration: 0s;
+}
+.q-ritem-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.q-ritem-title {
+  overflow: hidden;
+  font: 500 16px/21px var(--q-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-ritem-text small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.q-ritem-value {
+  flex: none;
+  color: var(--q-label-2);
+  font: 500 15px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.q-ritem.chevron::after {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 -2px;
+  border-top: 2px solid var(--q-label-3);
+  border-right: 2px solid var(--q-label-3);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.q-tag {
+  --t: var(--q-label-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--q-fill-3);
+  color: var(--q-label-2);
+  font: 600 12px/1 var(--q-font);
+  white-space: nowrap;
+}
+.q-tag:is(.green, .red, .orange, .indigo, .blue, .tint) {
+  background: color-mix(in srgb, var(--t) 16%, transparent);
+  color: var(--t);
+}
+.q-tag.green {
+  --t: var(--q-green);
+}
+.q-tag.red {
+  --t: var(--q-red);
+}
+.q-tag.orange {
+  --t: var(--q-orange);
+}
+.q-tag.indigo {
+  --t: var(--q-indigo);
+}
+.q-tag.blue {
+  --t: var(--q-blue);
+}
+.q-tag.tint {
+  --t: var(--q-accent);
+}
+.q-tag.solid {
+  background: var(--t);
+  color: #ffffff;
+}
+
+.q-rail {
+  display: grid;
+  grid-auto-flow: column;
+  /* (Cards that all fit share the width: one card is never a lone half.) */
+  grid-auto-columns: minmax(var(--q-rail-w, min(78%, 300px)), 1fr);
+  gap: 12px;
+  margin: 0 calc(-1 * var(--q-margin));
+  padding: 2px var(--q-margin) 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--q-margin);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.q-rail::-webkit-scrollbar {
+  display: none;
+}
+.q-rail > * {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+:where(.q-rail.small) {
+  --q-rail-w: 148px;
+}
+
+.q-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--q-stats-n, 2), minmax(0, 1fr));
+  gap: 12px;
+}
+.q-stat {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--q-surface);
+  color: var(--q-label);
+  text-decoration: none;
+}
+.q-stat > .q-tile {
+  margin-bottom: 6px;
+}
+.q-stat small {
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+}
+.q-stat strong {
+  overflow: hidden;
+  font: 700 26px/30px var(--q-font-rounded);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-stat strong.tint {
+  color: var(--q-accent);
+}
+
+.q-ambient {
+  --amb: var(--q-accent);
+  --q-amb-tint: 16%;
+  padding: 20px;
+  border-radius: var(--q-r-card);
+  background: radial-gradient(140% 75% at 50% 0%, color-mix(in srgb, var(--amb) var(--q-amb-tint), var(--q-surface)), var(--q-surface) 78%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .q-ambient {
+    --q-amb-tint: 30%;
+  }
+}
+:root[data-theme='dark'] .q-ambient {
+  --q-amb-tint: 30%;
+}
+
+.q-press {
+  transition: transform var(--q-dur-snappy) var(--q-spring-snappy);
+  -webkit-tap-highlight-color: transparent;
+}
+.q-press:active {
+  transform: scale(0.97);
+  transition-duration: 0.12s;
+}
+@keyframes q-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.q-rise > * {
+  animation: q-rise var(--q-dur-smooth) var(--q-spring-smooth) both;
+}
+.q-rise > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.q-rise > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.q-rise > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.q-rise > :nth-child(n + 5) {
+  animation-delay: 160ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-rise > * {
+    animation: none;
+  }
+  .q-press:active {
+    transform: none;
+  }
+}
+.q-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 2px;
+}
+/* One line of tags: what doesn't fit is cut off at the edge. */
+.q-tags.one-line {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.q-tags.one-line > * {
+  flex: none;
+}
+/* A row's right-hand stack: a value over a tag or a small line (holdings). */
+.q-ritem-end {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  max-width: 45%;
+  font: 600 16px/20px var(--q-font);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.q-ritem-end small {
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+/* A card in a rail: a name, a big number, a tag, the app's own drawing. */
+.q-rail-card {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--q-surface);
+  color: var(--q-label);
+  text-decoration: none;
+}
+.q-rail-card > small {
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: 600 13px/18px var(--q-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-rail-card > strong {
+  font: 700 22px/26px var(--q-font-rounded);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ==== Premium components (round 3) ====
+   Additive: new class names, or a modifier on an old one (.q-shd, .q-sf,
+   .pro, .q-empty-tile); nothing above changes for markup that predates them.
+   - .q-section-head.q-shd / .q-sh-count / .q-sh-more: a head with a count and a 44px link;
+   - .q-logo: a team or company logo, the hero of its card;
+   - .q-match, .q-price, .q-live-strip, .q-actions-grid: home and game cards;
+   - .q-sheet-hero, .q-sheet-foot.q-sf: a sheet's hero and its sticky action bar;
+   - .q-ask.pro, .q-empty-tile: the dialog and the empty state with an icon tile;
+   - .q-stake, .q-balls: an amount to stake, lottery balls;
+   - .q-chips.wrap, .q-place: wrapping chips and place tiles. */
+:root {
+  --q-logo-bg: #ffffff;
+  /* Saved places: their own brand colours. */
+  --q-place-home: #ff9500;
+  --q-place-work: #6155f5;
+  --q-place-school: #0a84ff;
+  --q-place-pin: #ff383c;
+  --q-place-star: #f5b301;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --q-logo-bg: var(--q-grouped-3);
+  }
+}
+:root[data-theme='dark'] {
+  --q-logo-bg: var(--q-grouped-3);
+}
+@keyframes q-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* -- Section head with a count and a link (sectionHead) -- */
+.q-section-head.q-shd {
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0 4px 10px;
+}
+.q-section-head.q-shd h2 {
+  font: 700 20px/1.2 var(--q-font);
+  text-overflow: clip;
+}
+.q-sh-count {
+  color: var(--q-label-2);
+  font: 500 15px/1 var(--q-font);
+}
+.q-section-head.q-shd .q-sh-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  margin: -12px 0 -12px auto;
+  padding: 0 0 0 12px;
+  color: var(--q-blue);
+  font: 500 15px/1 var(--q-font);
+}
+.q-sh-more svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* -- A logo (logoTile): a white rounded square, the image contained -- */
+.q-logo {
+  --t: var(--q-indigo);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--s, 40px);
+  height: var(--s, 40px);
+  border-radius: calc(var(--s, 40px) * 0.28);
+  background: var(--q-logo-bg);
+  box-shadow: inset 0 0 0 0.5px var(--q-sep);
+  overflow: hidden;
+}
+.q-logo img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+}
+.q-logo.text {
+  background: var(--t);
+  color: #ffffff;
+  font: 700 calc(var(--s, 40px) * 0.42) / 1 var(--q-font);
+  box-shadow: none;
+}
+/* (No picture: its kind's own, never a letter: ui.mjs logoMark.) */
+.q-logo.text svg {
+  width: 54%;
+  height: 54%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* -- A match (matchCard) and its price buttons -- */
+.q-match {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: var(--q-surface);
+  box-sizing: border-box;
+  scroll-snap-align: start;
+  color: var(--q-label);
+  font-family: var(--q-font);
+}
+.q-rail > .q-match {
+  width: auto;
+}
+.q-rail > .q-match:only-child,
+.q-match.wide {
+  width: auto;
+}
+.q-match-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  color: var(--q-label-2);
+  font: 500 13px/1.2 var(--q-font);
+}
+.q-match-lg {
+  min-width: 0;
+}
+.q-match-when {
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.q-match.live .q-match-when {
+  color: var(--q-red);
+  font-weight: 600;
+}
+.q-match-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.q-match.wide .q-match-teams {
+  min-height: 64px;
+}
+/* Each side over its own price (Jay 2026-10-20: "not centered and weird"):
+   two prices, the sides on the same two columns with VS on the seam
+   between them; three (home, draw, away), the same three columns, VS over
+   the draw. */
+.q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-teams {
+  position: relative;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-side {
+  padding-inline: 16px;
+}
+.q-match:has(.q-match-prices > :nth-child(2):last-child) .q-match-mid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 0;
+  transform: translate(-50%, -50%);
+}
+.q-match:has(.q-match-prices > :nth-child(3):last-child) .q-match-teams {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.q-match:has(.q-match-prices > :nth-child(3):last-child) .q-match-mid {
+  min-width: 0;
+}
+.q-match-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.q-match-side b {
+  display: -webkit-box;
+  overflow: hidden;
+  font: 600 15px/1.25 var(--q-font);
+  text-align: center;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+/* (A team's name shrinks to one line first; two lines only when it must: fitNames.) */
+.q-match-side b:not(.q-wrapped) {
+  white-space: nowrap;
+}
+.q-match-mid {
+  min-width: 56px;
+  font: 700 26px/1 var(--q-font);
+  text-align: center;
+}
+.q-match-mid > span {
+  display: block;
+}
+.q-match-mid.vs > .q-match-score {
+  color: var(--q-label-2);
+  font: 600 13px/1 var(--q-font);
+}
+/* No head: the time under the score. */
+.q-match-mid > .q-match-when {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--q-label-2);
+  font: 600 13px/1.2 var(--q-font);
+}
+.q-match-prices {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.q-price {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--q-fill);
+  color: var(--q-label);
+  font-family: var(--q-font);
+}
+.q-price small {
+  color: var(--q-label-2);
+  font: 500 11px/1 var(--q-font);
+}
+.q-price b {
+  font: 700 17px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-price[aria-pressed='true'] {
+  background: var(--q-blue);
+  color: #ffffff;
+}
+.q-price[aria-pressed='true'] small {
+  color: rgba(255, 255, 255, 0.8);
+}
+.q-price:disabled {
+  opacity: 0.4;
+}
+
+/* -- Games on now (liveStrip) -- */
+.q-live-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--q-margin));
+  padding: 0 var(--q-margin);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--q-margin);
+  scrollbar-width: none;
+}
+.q-live-strip::-webkit-scrollbar {
+  display: none;
+}
+.q-live-card {
+  flex: none;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 8px;
+  width: 200px;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--q-surface);
+  box-sizing: border-box;
+  color: var(--q-label);
+  font-family: var(--q-font);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.q-live-card .q-live-min {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--q-red);
+  font: 600 12px/1 var(--q-font);
+}
+.q-live-card .q-live-min::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--q-red);
+  animation: q-pulse 1.6s infinite;
+}
+.q-live-card b {
+  overflow: hidden;
+  font: 600 15px/1.2 var(--q-font);
+  white-space: nowrap;
+  text-overflow: clip;
+}
+.q-live-card .num {
+  font: 700 20px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* -- Quick actions as colour tiles (actionGrid) -- */
+.q-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.q-action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--q-surface);
+  color: var(--q-label);
+  font: 500 13px/1.2 var(--q-font);
+}
+.q-action .q-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.q-action .q-tile svg {
+  width: 20px;
+  height: 20px;
+}
+.q-action .q-badge {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font: 600 11px/18px var(--q-font);
+}
+@media (max-width: 340px) {
+  .q-action {
+    min-height: 68px;
+    font-size: 12px;
+  }
+}
+
+/* -- A hero inside a sheet (sheetHero) -- */
+.q-sheet-hero {
+  --t: var(--q-blue);
+  margin: 4px 0 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--t) 92%, #000), color-mix(in srgb, var(--t) 70%, #fff));
+  color: #ffffff;
+}
+.q-sh-logos {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.q-sheet-hero .q-sh-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13px/1.2 var(--q-font);
+  opacity: 0.85;
+}
+.q-sheet-hero .q-sh-big {
+  display: block;
+  margin-top: 6px;
+  font: 800 34px/1.1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.q-sheet-hero .q-sh-sub {
+  display: block;
+  margin-top: 4px;
+  font: 500 14px/1.35 var(--q-font);
+  opacity: 0.9;
+}
+.q-sheet-hero .q-sh-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.q-sheet-hero .q-sh-row .q-tag {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* -- The sheet foot as a summary and one button (sheetFoot): .q-sheet-foot.q-sf -- */
+.q-sheet-foot.q-sf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.q-sf .q-sf-sum {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.q-sf .q-sf-sum small {
+  color: var(--q-label-2);
+  font: 500 12px/1.2 var(--q-font);
+}
+.q-sf .q-sf-sum b {
+  font: 700 20px/1.1 var(--q-font);
+  white-space: nowrap;
+}
+.q-sheet-foot.q-sf .q-btn {
+  flex: 1;
+  min-height: 50px;
+  border-radius: 14px;
+  font: 600 17px/1 var(--q-font);
+}
+.q-sheet-foot.q-sf .q-btn:disabled {
+  background: var(--q-fill);
+  color: var(--q-label-2);
+}
+
+/* -- A dialog headed by an icon tile (ask / confirm with a named icon) -- */
+.q-ask.pro {
+  width: min(340px, calc(100vw - 48px));
+  padding: 24px;
+  border-radius: 24px;
+}
+.q-ask.pro .q-ask-icon.q-tile {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--t) 82%, #fff), var(--t) 60%);
+  font-size: 0;
+}
+.q-ask.pro.danger .q-ask-icon.q-tile {
+  --t: var(--q-red);
+}
+.q-ask.pro .q-ask-icon svg {
+  width: 30px;
+  height: 30px;
+}
+.q-ask.pro .q-ask-title {
+  font: 700 20px/1.25 var(--q-font);
+}
+.q-ask.pro .q-ask-body {
+  margin-top: 8px;
+  color: var(--q-label-2);
+  font: 400 15px/1.4 var(--q-font);
+}
+/* (Its buttons share the row evenly: one alone, as tell's 好, is the full width.) */
+.q-ask.pro .q-ask-actions {
+  gap: 10px;
+}
+.q-ask.pro .q-ask-actions .q-btn {
+  min-height: 50px;
+  border-radius: 14px;
+}
+
+/* -- Nothing here, with an icon tile (empty({ icon: 'ticket' })) -- */
+.q-empty .q-empty-tile {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+}
+.q-empty .q-empty-tile svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* -- An amount to stake (stakeInput) -- */
+.q-stake {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--q-surface);
+}
+.q-stake-amt {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font: 700 28px/1 var(--q-font);
+}
+.q-stake-amt small {
+  color: var(--q-label-2);
+  font: 600 15px/1 var(--q-font);
+}
+.q-stake-amt input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  outline: 0;
+}
+.q-stake-presets {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+.q-stake-presets button {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--q-fill);
+  color: var(--q-label);
+  font: 600 15px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-stake-presets button[aria-pressed='true'] {
+  background: var(--q-label);
+  color: var(--q-bg);
+}
+@media (max-width: 340px) {
+  .q-stake {
+    --n: 3;
+  }
+  .q-stake-presets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* -- Lottery balls (ballRow) -- */
+.q-balls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.q-ball {
+  display: grid;
+  place-items: center;
+  width: var(--b, 28px);
+  height: var(--b, 28px);
+  border-radius: 50%;
+  background: var(--q-fill);
+  color: var(--q-label);
+  font: 700 13px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-ball.sp {
+  background: var(--q-red);
+  color: #ffffff;
+}
+.q-ball.hit {
+  --t: var(--q-orange);
+  background: var(--t);
+  color: #ffffff;
+}
+.q-ball.empty {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--q-sep);
+}
+
+/* -- Chips that wrap -- */
+.q-chips.wrap {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow: visible;
+}
+
+/* ==== Shell (design review): one sheet with detents and a foot, a chosen
+   chip, an accent empty state, the collapsing large title, pull to refresh ====
+   Additive. The chosen chip itself is the Chips rule above (accent on a wash);
+   markup: ui.mjs sheet({ detent, foot }), empty(), navTitle(), pullToRefresh(). */
+
+/* -- A sheet with a foot (sheet({ foot })): the foot is the sheet's bottom edge,
+   above the safe area, and stays there when the content is short -- */
+.q-sheet.q-has-foot[open] {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+.q-sheet.q-has-foot > .q-sheet-foot {
+  margin-top: auto;
+  margin-bottom: 0;
+}
+.q-sheet.q-has-foot > :nth-last-child(2) {
+  margin-bottom: 16px;
+}
+/* (Its ✕ is drawn 36px; the finger's target is 44.) */
+.q-sheet-head .q-close {
+  position: relative;
+}
+.q-sheet-head .q-close::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+/* A title that is a mark and a name (the Pass): centred as a text title is. */
+.q-sheet-head h2 .q-pass-title {
+  justify-content: center;
+}
+
+/* -- Detents (sheet({ detent })): medium is about half the screen, large the
+   screen less its top inset. A medium one is dragged up to large (quadra.mjs
+   sheetSwipe sets data-detent); on a phone, large meets the screen's sides -- */
+.q-sheet[data-detent='medium'] {
+  height: min(52dvh, 900px);
+}
+.q-sheet[data-detent='large'] {
+  height: min(calc(100dvh - var(--q-top) - 10px), 900px);
+  max-height: none;
+}
+/* (Not while closing or under a finger: their own transitions stay.) */
+.q-sheet[data-detent]:not(.q-leaving):not(.q-dragging) {
+  transition: height var(--q-dur-smooth) var(--q-spring-smooth), width 0.3s var(--q-ease), margin-bottom 0.3s var(--q-ease), border-radius 0.3s var(--q-ease), transform 0.36s var(--q-spring-snappy);
+}
+@media (max-width: 719px) {
+  dialog.q-sheet[data-detent='large'] {
+    width: 100vw;
+    margin: auto auto 0;
+    border-radius: var(--q-r-sheet) var(--q-r-sheet) 0 0;
+  }
+}
+
+/* -- Nothing here (empty()): an accent tile, one line, one button -- */
+.q-empty .q-empty-tile {
+  --t: var(--q-accent);
+}
+.q-empty strong {
+  max-width: 100%;
+  text-wrap: balance;
+}
+
+/* -- A large title that collapses into a small centred one in a glass bar
+   (navTitle). The bar is only on a phone's or tablet's screen; on a wide
+   one the title just scrolls away -- */
+.q-nav-title {
+  margin: 0;
+  /* (Level with the page's content: every tab's page already keeps the
+     screen's margin; its own 16 px each side set it 32 px in, in five apps.) */
+  padding: 4px 0 8px;
+  font: var(--q-t-large);
+  letter-spacing: 0.01em;
+  /* One line, shrunk to fit (quadra.mjs fitNames), as iOS's large title. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 49;
+  display: none;
+  place-items: center;
+  box-sizing: border-box;
+  height: calc(var(--q-top) + 44px);
+  padding: var(--q-top) 72px 0;
+  background: var(--q-glass);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: inset 0 -0.5px 0 var(--q-sep);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.q-navbar.on {
+  opacity: 1;
+}
+.q-navbar-title {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--q-t-headline);
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+@media (max-width: 720px) {
+  .q-navbar {
+    display: grid;
+  }
+}
+:root.q-touch .q-navbar {
+  display: grid;
+}
+
+/* -- Pull to refresh (pullToRefresh): a glass spinner that follows the finger -- */
+.q-ptr {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--q-glass-strong);
+  -webkit-backdrop-filter: var(--q-glass-blur);
+  backdrop-filter: var(--q-glass-blur);
+  box-shadow: var(--q-glass-rim), var(--q-glass-drop);
+  color: var(--q-label-2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -36px);
+  will-change: transform, opacity;
+}
+.q-ptr svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: rotate(var(--r, 0deg));
+}
+.q-ptr.armed {
+  color: var(--q-accent);
+}
+.q-ptr.hold,
+.q-ptr.out {
+  transition: transform 0.3s var(--q-spring-snappy), opacity 0.25s;
+}
+.q-ptr.hold svg {
+  animation: q-turn 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-sheet[data-detent]:not(.q-leaving):not(.q-dragging),
+  .q-navbar,
+  .q-ptr.hold,
+  .q-ptr.out {
+    transition: none;
+  }
+  .q-ptr.hold svg {
+    animation: none;
+  }
+}
+
+/* -- Saved places' tiles (placeTile): the kit's tile in the place's colour -- */
+.q-tile.q-place.home {
+  --t: var(--q-place-home);
+}
+.q-tile.q-place.work {
+  --t: var(--q-place-work);
+}
+.q-tile.q-place.school {
+  --t: var(--q-place-school);
+}
+.q-tile.q-place.pin {
+  --t: var(--q-place-pin);
+}
+.q-tile.q-place.star {
+  --t: var(--q-place-star);
+}
+
+/* ---- Securities parts ----
+   - .q-move (.up|.down|.flat, .solid): a move as a pill (movePill), red up / green down (Taiwan);
+   - .q-stock: a stock row (stockRow): logo, name over sub, .q-spark, price over a .q-move;
+   - .q-ask-mark.ico: a confirm point's tinted icon (ask points: { icon, text });
+   - .q-sh-status: a sheet hero's status row (sheetHero status). */
+.q-move {
+  --c: var(--q-flat);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: var(--c);
+  font: 600 13px/22px var(--q-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.q-move.up {
+  --c: var(--q-up);
+}
+.q-move.down {
+  --c: var(--q-down);
+}
+.q-move.solid {
+  background: var(--c);
+  color: #ffffff;
+}
+.q-stock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+  color: inherit;
+  text-align: left;
+}
+.q-stock[role='button'] {
+  cursor: pointer;
+}
+/* Stock rows in a card: inset like .q-ritem, hairlines after the logo, a press. */
+.q-rowcard > .q-stock {
+  position: relative;
+  padding: 8px 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.q-rowcard > .q-stock + .q-stock::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 64px;
+  right: 0;
+  border-top: var(--q-hairline) solid var(--q-sep);
+}
+.q-rowcard > .q-stock[role='button']:active {
+  background: var(--q-fill-4);
+}
+.q-stock-id {
+  display: grid;
+  min-width: 0;
+}
+.q-stock-id b {
+  overflow: hidden;
+  font: 600 16px/22px var(--q-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-stock-id small {
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-stock-spark {
+  display: block;
+  width: 56px;
+  height: 24px;
+}
+.q-spark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: var(--q-flat);
+}
+.q-spark.up {
+  color: var(--q-up);
+}
+.q-spark.down {
+  color: var(--q-down);
+}
+.q-stock-px {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 72px;
+}
+.q-stock-px b {
+  font: 600 16px/20px var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-stock-px .q-move {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+@media (max-width: 340px) {
+  .q-stock-spark {
+    display: none;
+  }
+}
+.q-ask-mark.ico {
+  --t: var(--q-accent);
+  background: color-mix(in srgb, var(--t) 16%, transparent);
+  color: var(--t);
+}
+.q-ask-mark.ico svg {
+  width: 20px;
+  height: 20px;
+}
+.q-sheet-hero .q-sh-status {
+  margin-top: 8px;
+}
+
+/* ---- Home parts (r4) ----
+   - .q-ring: a progress ring with its label centred (ui.mjs progressRing);
+   - .q-cal: a month grid, Sunday first, streak dots and today ringed (monthCalendar);
+   - .q-panels / .q-panel: a two-column grid of small data tiles (panelGrid);
+   - .q-league: a 56px logo over a name, for a rail (leagueTile).
+   Colours come from --t on the part (default the accent); dark mode follows the tokens. */
+.q-ring {
+  --s: 56px;
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--s);
+  height: var(--s);
+  color: var(--q-label);
+}
+.q-ring.tinted {
+  color: var(--t);
+}
+.q-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.q-ring-track {
+  stroke: color-mix(in srgb, var(--t, var(--q-accent)) 20%, transparent);
+}
+.q-ring-arc {
+  stroke: var(--t, var(--q-accent));
+  transition: stroke-dasharray 0.5s var(--q-ease);
+}
+.q-ring-txt {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  max-width: 76%;
+  text-align: center;
+}
+.q-ring-l {
+  font: 700 calc(var(--s) * 0.26) / 1.1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-ring-s {
+  color: var(--q-label-2);
+  font: var(--q-t-caption2);
+}
+.q-ring.tinted .q-ring-s {
+  color: inherit;
+  opacity: 0.75;
+}
+.q-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: 4px;
+  justify-items: center;
+}
+.q-cal-w {
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  font-weight: 500;
+  line-height: 28px;
+}
+.q-cal-d {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--q-label);
+  font: var(--q-t-subhead);
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+button.q-cal-d {
+  cursor: pointer;
+}
+.q-cal-d {
+  position: relative;
+  z-index: 0;
+}
+.q-cal-d::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--q-fill-4);
+}
+.q-cal-d.m-done::after {
+  background: var(--t, var(--q-accent));
+}
+.q-cal-d.m-done {
+  color: #ffffff;
+  font-weight: 600;
+}
+.q-cal-d.m-part::after {
+  background: color-mix(in srgb, var(--t, var(--q-accent)) 28%, transparent);
+}
+.q-cal-d.m-part {
+  color: var(--t, var(--q-accent));
+  font-weight: 600;
+}
+.q-cal-d.today::after {
+  box-shadow: 0 0 0 2px var(--q-surface), 0 0 0 4px var(--t, var(--q-accent));
+}
+.q-cal-d.today {
+  font-weight: 700;
+}
+.q-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.q-panel {
+  --t: var(--q-accent);
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--q-surface);
+  color: var(--q-label);
+}
+.q-panel-l {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  font-weight: 500;
+}
+.q-panel-l > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-panel-l i {
+  display: inline-grid;
+  flex: none;
+  color: var(--t);
+  font-style: normal;
+}
+.q-panel-l svg {
+  width: 16px;
+  height: 16px;
+}
+.q-panel-v {
+  overflow: hidden;
+  font: var(--q-t-title2);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-panel-s {
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+}
+.q-league {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 76px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--q-label);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.q-league:active {
+  opacity: 0.6;
+}
+.q-league strong {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--q-t-footnote);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-league small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: var(--q-t-caption2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-ring-arc {
+    transition: none;
+  }
+}
+
+/* ---- Foundations (design review) ----
+   - .q-toast-text / .q-toast-action: a toast's text and its button (ui.mjs toast's action);
+   - .q-seg-count: the small badge after a segmented label (segmented / segHtml count);
+   - .loading.q-lift: the loading cover fading as the first screen is ready (ui.mjs ready). */
+.q-toast-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-toast-action {
+  flex: none;
+  min-height: 28px;
+  margin: -4px -8px -4px 4px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--q-accent);
+  font: var(--q-t-subhead);
+  font-weight: 600;
+  cursor: pointer;
+}
+.q-toast-action:active {
+  opacity: 0.6;
+}
+.q-seg > button .q-seg-count {
+  display: inline-block;
+  min-width: 16px;
+  margin-inline-start: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--q-fill-2);
+  color: var(--q-label-2);
+  font: var(--q-t-caption2);
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  vertical-align: 1px;
+}
+.q-seg > button[aria-selected='true'] .q-seg-count,
+.q-seg > button[aria-pressed='true'] .q-seg-count {
+  background: var(--q-accent);
+  color: #ffffff;
+}
+.loading.q-lift {
+  opacity: 0;
+  transition: opacity 0.2s var(--q-ease);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading.q-lift {
+    transition: none;
+  }
+}
+
+/* ---- Kit additions (panel parts, ring check, stock flash, sheet subtitle) ---- */
+.q-sheet-head > .q-sheet-sub {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: -8px;
+  overflow: hidden;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-sheet-head:has(> .q-sheet-sub) > :not(.q-sheet-sub) {
+  grid-row: 1;
+}
+.q-panel[role='button'] {
+  cursor: pointer;
+}
+.q-panel-u {
+  margin-inline-start: 2px;
+  color: var(--q-label-2);
+  font: var(--q-t-footnote);
+  font-weight: 500;
+}
+.q-panel-lv {
+  flex: none;
+  margin-inline-start: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--t) 16%, transparent);
+  color: var(--t);
+  font: var(--q-t-caption2);
+  font-weight: 600;
+}
+.q-panel-lv.up {
+  --t: var(--q-up);
+}
+.q-panel-lv.down {
+  --t: var(--q-down);
+}
+.q-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.q-panel-row > .q-panel-v {
+  min-width: 0;
+}
+.q-panel-art {
+  display: inline-grid;
+  flex: none;
+  color: var(--t);
+}
+.q-ring-check {
+  display: inline-grid;
+  color: var(--t, var(--q-accent));
+}
+.q-ring-check svg {
+  width: calc(var(--s) * 0.46);
+  height: calc(var(--s) * 0.46);
+}
+.q-ring.done.tinted .q-ring-check {
+  color: inherit;
+}
+
+/* ---- The on-screen keyboard (quadra.mjs watchKeyboard: --q-kb, --q-vvh,
+   html.q-kb while it's up) ---- */
+/* An open sheet sits on the keys and fits what's left of the screen, its
+   fields never under them. */
+html.q-kb dialog.q-sheet[open] {
+  max-height: calc(var(--q-vvh) - 16px);
+  margin-bottom: calc(var(--q-kb) + 8px);
+}
+@media (max-width: 719px) {
+  html.q-kb dialog.q-sheet.q-full[open] {
+    margin-bottom: var(--q-kb);
+  }
+}
+/* The sign-in screen with the keys up: its form from the top, the rest of
+   it scrolling above the keys (centred, the field sat under them on an iPad). */
+html.q-kb .q-gate {
+  place-items: start center;
+  padding-bottom: calc(var(--q-kb) + 28px);
+}
+/* The tab bar waits behind the keys, not floating on them. */
+html.q-kb .q-tabbar {
+  visibility: hidden;
+}
+/* A bar that belongs on top of the keys (a composer, a search's results bar). */
+html.q-kb .q-kb-dock {
+  bottom: var(--q-kb) !important;
+}
+/* A bar fixed at the foot whose field is being typed in (a composer): on the keys. */
+html.q-kb .q-kb-docked {
+  bottom: calc(var(--q-kb) + 8px) !important;
+}
+
+/* ---- A market that can't be bet now (ui.mjs lockedRow): one bar across
+   the row, never half its prices locked ---- */
+.q-locked-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--q-fill-3);
+  color: var(--q-label-2);
+  font: 600 14px/1 var(--q-font);
+}
+.q-locked-row svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- Grids that never leave a hole: the kit's panels, and any app grid
+   marked .q-even (2 columns) or .q-even3 (3): a lone last card spans the
+   row, two left in a row of three share it ---- */
+.q-panels > :last-child:nth-child(odd),
+.q-even > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.q-even {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.q-even3 {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.q-even3 > * {
+  grid-column: span 2;
+}
+.q-even3 > :last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+.q-even3 > :nth-last-child(2):nth-child(3n + 1),
+.q-even3 > :last-child:nth-child(3n + 2) {
+  grid-column: span 3;
+}
+/* Cards in a row are as tall as the tallest, so what each holds is spread
+   down it, not left in its top half. */
+.q-panels > .q-panel,
+.q-even > *,
+.q-even3 > * {
+  align-content: space-between;
+}
+
+/* ---- A name on one line (quadra.mjs fitNames): .q-fit shrinks its text,
+   down to 72%, rather than wrap or cut (the size set inline) ---- */
+.q-fit {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* .q-fit-wrap: a line that shrinks the same way and wraps only when 72% can't fit it,
+   into lines of even length. */
+.q-wrapped {
+  text-wrap: balance;
+}
+.q-fit-wrap:not(.q-wrapped) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A logo's tone on a dark screen (quadra.mjs toneLogos): a dark mark in one
+   colour drawn white; a dark one in colours, or one mostly lost on the tile,
+   drawn brighter in its own colours (never a light plate: Jay), so no logo
+   vanishes into the dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) img[data-q-tone='mono'] {
+    filter: brightness(0) invert(1);
+  }
+  :root:not([data-theme='light']) img:is([data-q-tone='color'], [data-q-tone='lift']) {
+    filter: brightness(1.8);
+  }
+}
+:root[data-theme='dark'] img[data-q-tone='mono'] {
+  filter: brightness(0) invert(1);
+}
+:root[data-theme='dark'] img:is([data-q-tone='color'], [data-q-tone='lift']) {
+  filter: brightness(1.8);
+}
+
+/* ---- A strip of days (ui.mjs dayStrip, daySwipe): pinned under the status
+   bar in a .q-day-bar, the chosen day in the accent, 📅 for any day ---- */
+.q-day-bar {
+  position: sticky;
+  top: var(--q-top);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 calc(-1 * max(var(--q-margin, 16px), env(safe-area-inset-left))) 6px;
+  padding: 6px max(var(--q-margin, 16px), env(safe-area-inset-left)) 8px;
+}
+.q-day-bar[hidden] {
+  display: none;
+}
+.q-day-bar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--q-top)) 0 0;
+  background: var(--q-page);
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: inset 0 -0.5px 0 var(--q-sep);
+  pointer-events: none;
+}
+.q-day-bar.stuck::before {
+  opacity: 1;
+}
+/* In a sheet or a card (dayBar's flat): where it stands, edge to edge of a sheet. */
+.q-day-bar.flat {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.q-sheet .q-day-bar.flat {
+  margin: 0 calc(-1 * var(--q-margin)) 8px;
+  padding: 0 var(--q-margin);
+}
+.q-day-bar.flat::before {
+  display: none;
+}
+.q-day-strip-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.q-day-bar .q-day-strip {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+  padding-inline: 6px;
+  scroll-padding-inline: 6px;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black var(--q-fade-before, 0px), black calc(100% - var(--q-fade-after, 0px)), transparent);
+  mask-image: linear-gradient(90deg, transparent, black var(--q-fade-before, 0px), black calc(100% - var(--q-fade-after, 0px)), transparent);
+}
+/* (A fade only on a side with more days to scroll to: none at the start, the first chip whole.) */
+.q-day-bar .q-day-strip.q-more-before {
+  --q-fade-before: 6px;
+}
+.q-day-bar .q-day-strip.q-more-after {
+  --q-fade-after: 6px;
+}
+/* Whole chips: dayStrip's fit() sets --q-day-w so a whole number of days fills the row. */
+.q-day-bar .q-day-strip .q-chip.day {
+  flex: 0 0 var(--q-day-w, auto);
+  scroll-snap-align: start;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 50px;
+  min-height: 54px;
+  padding: 6px 4px;
+  border-radius: 16px;
+  background: none;
+  color: var(--q-label);
+}
+.q-day-bar .q-day-strip .q-chip.day > span {
+  color: var(--q-label-2);
+  font: 600 12px/1.1 var(--q-font);
+}
+.q-day-bar .q-day-strip .q-chip.day small {
+  color: var(--q-label);
+  font: 700 16px/1.1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  opacity: 1;
+}
+.q-day-bar .q-day-strip .q-chip.day.is-today > span,
+.q-day-bar .q-day-strip .q-chip.day.is-today small {
+  color: var(--accent, var(--q-accent));
+}
+.q-day-bar .q-day-strip .q-chip.day[aria-pressed='true'] {
+  background: var(--accent, var(--q-accent));
+}
+.q-day-bar .q-day-strip .q-chip.day[aria-pressed='true'] > span,
+.q-day-bar .q-day-strip .q-chip.day[aria-pressed='true'] small {
+  color: #ffffff;
+}
+.q-day-bar .q-day-strip .q-chip.day.month-start:not([aria-pressed='true']) {
+  border-radius: 0 16px 16px 0;
+  box-shadow: inset 1.5px 0 0 var(--q-sep);
+}
+.q-day-bar .q-day-pick {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.q-day-pick-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.q-day-swipe.swiping > :not(.q-day-bar, .q-sheet-head, .q-day-still) {
+  transform: translateX(var(--swipe, 0));
+  opacity: 0.85;
+}
+.q-day-swipe.day-in-next > :not(.q-day-bar, .q-sheet-head, .q-day-still) {
+  animation: q-day-in-next 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.q-day-swipe.day-in-prev > :not(.q-day-bar, .q-sheet-head, .q-day-still) {
+  animation: q-day-in-prev 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes q-day-in-next {
+  from {
+    transform: translateX(36px);
+    opacity: 0;
+  }
+}
+@keyframes q-day-in-prev {
+  from {
+    transform: translateX(-36px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-day-swipe.day-in-next > *,
+  .q-day-swipe.day-in-prev > * {
+    animation: none;
+  }
+}
+
+/* ---- Every screen, phone to iPad (Jay 2026-10-21: "iPad just so many
+   blank"): one content column that grows with the screen, rails that run
+   to the column's edge showing whole cards, and side-by-side sections
+   where there's room. An app's page wraps its content in .q-col (or sets
+   max-width: var(--q-col) and padding-inline: var(--q-gutter) itself).
+   - phone (to 699 px): the screen's width, 16 px in from each side;
+   - iPad portrait and split view (700+): 32 px in, rails of 3 (small 5);
+   - iPad landscape (1100+): up to 1240 px, 40 px in, rails of 4 (small 7).
+   Inside .q-col, --q-margin is the gutter, so whatever bleeds to the edge
+   (a rail) still meets it; sheets keep the phone's 16 px. ---- */
+:root {
+  --q-col: 640px;
+  --q-gutter: 16px;
+}
+@media (min-width: 700px) {
+  :root {
+    --q-col: 1240px;
+    --q-gutter: 32px;
+    --q-rail-n: 3;
+    --q-rail-small-n: 5;
+  }
+}
+@media (min-width: 1100px) {
+  :root {
+    --q-gutter: 40px;
+    --q-rail-n: 4;
+    --q-rail-small-n: 7;
+  }
+}
+.q-col {
+  --q-margin: var(--q-gutter);
+  width: 100%;
+  max-width: var(--q-col);
+  margin-inline: auto;
+  padding-inline: max(var(--q-gutter), env(safe-area-inset-left)) max(var(--q-gutter), env(safe-area-inset-right));
+  box-sizing: border-box;
+}
+.q-sheet {
+  --q-margin: 16px;
+}
+@media (min-width: 700px) {
+  /* Whole cards across the column; the next one peeks into the gutter. */
+  .q-rail {
+    grid-auto-columns: minmax(calc((100% - (var(--q-rail-n) - 1) * 12px) / var(--q-rail-n)), 1fr);
+  }
+  :where(.q-rail.small) {
+    --q-rail-n: var(--q-rail-small-n);
+  }
+  .q-sheet .q-rail {
+    --q-rail-n: 2;
+  }
+  /* The day bar's 📅 leads, so the days run on to the screen's right edge. */
+  .q-day-bar {
+    padding-right: 0;
+  }
+  .q-day-strip-wrap > .q-day-pick {
+    order: -1;
+  }
+  /* Games on now as whole cards across the column (fewer stretch to fill it). */
+  .q-live-strip > .q-live-card {
+    flex: 1 0 calc((100% - (var(--q-rail-n) - 1) * 8px) / var(--q-rail-n));
+    width: auto;
+    min-width: 0;
+  }
+  /* Two sections side by side (.q-split > two children); one under the other on a phone. */
+  .q-split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 28px;
+    align-items: start;
+  }
+}
