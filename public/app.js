@@ -2786,7 +2786,7 @@ function savedSlipCard(slip) {
   const head = settled ? (kids => el('button', { class: 'pl-slip-head', type: 'button', 'aria-expanded': 'true', onclick: () => (state.openPasses.delete(slip.id), renderSaved()) }, kids)) : (kids => el('div', { class: 'pl-slip-head' }, kids));
   // The tax withheld on a big win (台灣運彩 §29), shown where it was taken.
   const tax = settled && slip.gross > 0 ? Math.max(0, slip.gross - slip.payout - (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0)) : 0;
-  return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}`, style: `--sport:${slipTint(slip)}` }, [
+  return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}` }, [
     head([
       el('span', { class: 'pl-slip-title' }, [
         el('strong', { text: `${mode} · ${t('slipLegs', { n })}` }),
@@ -2815,13 +2815,7 @@ function savedSlipCard(slip) {
         ])
   ]);
 }
-// A slip's colour: its sport's (a parlay over several sports, Play's purple).
-const FAMILY_TINT = { baseball: 'var(--q-indigo)', basketball: 'var(--q-orange)', soccer: 'var(--q-green)', football: 'var(--q-brown)', hockey: 'var(--q-cyan)', racing: 'var(--q-red)' };
-function slipTint(slip) {
-  const families = new Set(slip.legs.map(leg => familyOf(leg.sport) ?? 'other'));
-  return families.size === 1 ? FAMILY_TINT[[...families][0]] ?? 'var(--q-teal)' : 'var(--q-purple)';
-}
-// A settled slip as a pass: its sport's colour down the side, each pick's
+// A settled slip as a pass: each pick's
 // logo with a mark for right or wrong, the picks and when, and what it made
 // (green up, red down) at the side. A tap opens the whole ticket.
 function slipPass(slip) {
@@ -2841,7 +2835,7 @@ function slipPass(slip) {
   ]);
   const picks = order.map(k => shortPick(slip.legs[k]));
   const mode = slip.mode === 'system' ? slip.sizes.map(k => sizeName(k, n)).join('、') : t(`slipMode_${slip.mode}`);
-  return el('button', { class: `pl-pass ${result}`, type: 'button', style: `--sport:${slipTint(slip)}`, 'aria-expanded': 'false', onclick: () => (state.openPasses.add(slip.id), renderSaved()) }, [
+  return el('button', { class: `pl-pass ${result}`, type: 'button', 'aria-expanded': 'false', onclick: () => (state.openPasses.add(slip.id), renderSaved()) }, [
     logos,
     el('span', { class: 'pl-pass-text' }, [
       el('strong', { class: 'q-fit', text: n > 2 ? t('passPicks', { first: picks[0], n, m: n - 1 }) : picks.join('、') }),
@@ -2880,11 +2874,10 @@ function groupTitle(key) {
 function groupSummary(key, slips) {
   const t = state.t;
   const cost = slips.reduce((s, x) => s + x.cost, 0);
-  // Settled days: what they paid, never a net.
-  // Settled days: the day's net, a coloured figure.
+  // Settled days: the day's net, a plain figure (the rows under it carry the colour).
   if (key.startsWith('day|') || key === 'recovered') {
     const net = slips.reduce((s, x) => s + (x.payout || 0) - (x.cost || 0), 0);
-    return el('span', { class: `q-tag num pl-day-net ${net > 0 ? 'green' : net < 0 ? 'red' : ''}`.trim(), text: fmtMoney(net, { sign: true }) });
+    return el('span', { class: 'num pl-day-net', text: fmtMoney(net, { sign: true }) });
   }
   if (key === 'dead') return el('span', { class: 'group-sum' }, [document.createTextNode(t('groupSlips', { n: slips.length }))]);
   const most = slipsMost(slips);

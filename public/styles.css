@@ -337,10 +337,14 @@ button.pl-rec-fig { cursor: pointer; }
 .pl-mo-figs .pl-fig strong { font-size: 16px; text-overflow: clip; }
 .pl-month-chip { gap: 4px; }
 .pl-month-chip .q-gl svg { width: 14px; height: 14px; }
-.pl-day-net { flex: none; }
-/* A settled slip as a pass: sport colour down the side, the picks' logos with right/wrong marks, the result at the side. */
-.pl-pass { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 10px 14px 10px 18px; border: 0; border-radius: 18px; background: var(--q-surface); color: var(--q-label); text-align: left; overflow: hidden; cursor: pointer; }
-.pl-pass::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--sport, var(--accent)); }
+/* A day's net: a plain figure beside the day, no capsule; the rows carry the colour. */
+.pl-day-net { flex: none; color: var(--q-label-2); font: 600 15px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* A settled slip as a pass: the picks' logos with right/wrong marks, the result at the side.
+   A day's passes sit in one card, a hairline between them. */
+.pl-pass { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 10px 16px 10px 14px; border: 0; border-radius: 18px; background: var(--q-surface); color: var(--q-label); text-align: left; overflow: hidden; cursor: pointer; }
+.pl-pass:has(+ .pl-pass) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.pl-pass + .pl-pass { margin-top: -12px; border-top-left-radius: 0; border-top-right-radius: 0; }
+.pl-pass + .pl-pass::before { content: ''; position: absolute; left: 14px; right: 0; top: 0; height: 0.5px; background: var(--q-sep); }
 .pl-pass-logos { display: flex; align-items: center; gap: 4px; }
 .pl-pass-logo { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--q-fill-3); }
 .pl-pass-logo.lost > :first-child, .pl-pass-logo.moot > :first-child { opacity: 0.55; }
@@ -385,7 +389,6 @@ button.pl-rec-fig { cursor: pointer; }
 .pl-slip.dead { opacity: 0.75; }
 .pl-slip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
-.pl-slip { border-top: 4px solid var(--sport, transparent); }
 .pl-slip-title { display: grid; gap: 2px; min-width: 0; }
 .pl-slip-title strong { overflow: hidden; font: 600 16px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-slip-title small { overflow: hidden; color: var(--q-label-2); font: var(--q-t-caption); white-space: nowrap; text-overflow: ellipsis; }
