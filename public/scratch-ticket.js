@@ -66,7 +66,10 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const [W, H] = real.size;
   const view = real.view || [0, 0, W, H];
   const img = node.querySelector('.tk-art');
-  const frame = el('div', { class: 'tk-frame', 'data-no-sheet-swipe': '' }, [node]);
+  // While it's played (a card not scratched yet) it fills the sheet (`fill`);
+  // once it's all off, the whole ticket at its own height.
+  let fill = !!open;
+  const frame = el('div', { class: `tk-frame${fill ? ' fill' : ''}`, 'data-no-sheet-swipe': '' }, [node]);
   const party = el('canvas', { class: 'tk-party', 'aria-hidden': 'true' });
   frame.append(party);
 
@@ -83,7 +86,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const whole = () => fitOf([0, 0, W, H]);
   const play = () => Math.max(whole(), Math.min(fitOf(view), (fw / W) * 4));
   const clamp = () => {
-    s = Math.min(Math.max(play() * 2.5, whole() * 3), Math.max(whole(), s));
+    s = Math.min(Math.max(play() * 2.5, whole() * 3, sT * 1.6), Math.max(whole(), s));
     const bound = (v, size, room) => (size * s <= room ? -(room / s - size) / 2 : Math.min(size - room / s, Math.max(0, v)));
     x = bound(x, W, fw);
     y = bound(y, H, fh);
@@ -97,6 +100,8 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     // (More of the ticket off a side: that side shaded, so it's known to move.)
     frame.classList.toggle('more-l', x > 2);
     frame.classList.toggle('more-r', x + fw / s < W - 2);
+    // (The overview's box: what the frame shows.)
+    if (ovBox) Object.assign(ovBox.style, { left: `${(Math.max(0, x) / W) * 100}%`, top: `${(Math.max(0, y) / H) * 100}%`, width: `${(Math.min(W, x + fw / s) - Math.max(0, x)) / W * 100}%`, height: `${(Math.min(H, y + fh / s) - Math.max(0, y)) / H * 100}%` });
   };
   const commit = () => ((base = 0), draw());
   // The camera on a rect (picture px), centred.
@@ -135,15 +140,117 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const resize = () => {
     const w = frame.clientWidth;
     const room = parseFloat(getComputedStyle(frame).maxHeight) || Infinity;
-    const tall = `${Math.floor(Math.min(room, (H * w) / W))}px`;
+    const tall = fill ? '' : `${Math.floor(Math.min(room, (H * w) / W))}px`;
     if (w && frame.style.height !== tall) frame.style.height = tall;
     const h = frame.clientHeight;
     if (!w || !h || (w === fw && h === fh)) return;
     [fw, fh] = [w, h];
     party.width = Math.round(w * Math.min(2, devicePixelRatio || 1));
     party.height = Math.round(h * Math.min(2, devicePixelRatio || 1));
-    [s, x, y] = [whole(), 0, 0];
+    plan();
+    const i = fill ? stepAt() : -1;
+    [s, x, y] = i >= 0 ? stepView(i) : [whole(), 0, 0];
     commit();
+    if (i >= 0) (shownStep = i), onStep(i, steps.length);
+  };
+
+  // ---- Where it's played, a part at a time. A ticket whose scratch-offs are
+  // small on the screen (大麻將's tiles: a centimetre on a phone) is played in
+  // steps: the camera on a few of them at a fingertip's size, on to the next
+  // few once they're off. A wide one also has the whole ticket over it (the
+  // overview, the frame's box on it; a tap there goes to that part).
+  let steps = [];
+  let sT = 0;
+  let shownStep = -1;
+  let pending = -2;
+  let onStep = () => {};
+  const median = a => [...a].sort((p, q) => p - q)[Math.floor(a.length / 2)];
+  const plan = () => {
+    steps = [];
+    sT = 0;
+    if (!fill) return;
+    const small = median(zones.map(z => Math.min(z.r[2], z.r[3])));
+    if (small * whole() >= 28) return;
+    sT = 40 / small;
+    // Reading order: a row at a time (centres within half a scratch-off's height), left to right.
+    const cy = i => zones[i].r[1] + zones[i].r[3] / 2;
+    const byY = zones.map((_, i) => i).sort((a, b) => cy(a) - cy(b));
+    const row = [];
+    let top = -Infinity;
+    let n = -1;
+    for (const i of byY) {
+      if (cy(i) - top > small * 0.5) (top = cy(i)), n++;
+      row[i] = n;
+    }
+    const order = byY.sort((a, b) => row[a] - row[b] || zones[a].r[0] - zones[b].r[0]);
+    const union = (a, b) => {
+      const [x0, y0] = [Math.min(a[0], b[0]), Math.min(a[1], b[1])];
+      return [x0, y0, Math.max(a[0] + a[2], b[0] + b[2]) - x0, Math.max(a[1] + a[3], b[1] + b[3]) - y0];
+    };
+    let cur = null;
+    for (const i of order) {
+      const r = zones[i].r;
+      const u = cur && union(cur.box, r);
+      if (u && u[2] * sT <= fw * 0.9 && u[3] * sT <= fh * 0.9) (cur.ids.push(i), (cur.box = u));
+      else steps.push((cur = { ids: [i], box: [...r] }));
+    }
+    if (W / H >= 1.8) overview();
+  };
+  // The first part with latex still on (-1: none).
+  const stepAt = () => steps.findIndex(st => st.ids.some(i => !spots[i].gone));
+  const stepView = i => {
+    const [bx, by, bw, bh] = steps[i].box;
+    const m = Math.min(bw, bh) * 0.25 + 8;
+    const k = Math.min(sT, fitOf([bx - m, by - m, bw + 2 * m, bh + 2 * m]));
+    return [k, bx + bw / 2 - fw / (2 * k), by + bh / 2 - fh / (2 * k)];
+  };
+  const toStep = (i, ms) => {
+    shownStep = i;
+    onStep(i, steps.length);
+    if (i >= 0) go(stepView(i), ms);
+  };
+  let ov = null;
+  let ovBox = null;
+  let ovCover = null;
+  let ovItems = [];
+  const overview = () => {
+    if (ov) return;
+    const copy = node.cloneNode(true);
+    copy.style.cssText = node.style.cssText.replace(/(^|;)\s*(width|transform)[^;]*/g, '');
+    copy.classList.add('tk-copy');
+    copy.querySelector('.tk-cover')?.remove();
+    ovCover = el('canvas', { class: 'tk-cover' });
+    ovBox = el('span', { class: 'tk-ov-box' });
+    copy.append(ovCover, ovBox);
+    ovItems = [...copy.querySelectorAll('.tk-i')];
+    ov = el('div', { class: 'tk-ov', 'aria-hidden': 'true' }, [copy]);
+    ov.addEventListener('pointerdown', e => {
+      const r = copy.getBoundingClientRect();
+      const q = [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
+      const [, z] = nearest(q, spots.filter(z => !z.gone).length ? spots.filter(z => !z.gone) : spots);
+      const i = steps.findIndex(st => st.ids.includes(spots.indexOf(z)));
+      if (i >= 0) toStep(i);
+      else go(aim([q[0] - 150, q[1] - 150, 300, 300]));
+    });
+    frame.before(ov);
+    mirror();
+  };
+  // The overview's latex: the frame's, drawn small (a few times a second while scratched).
+  let mirrored = 0;
+  const mirror = () => {
+    if (!ov || mirrored) return;
+    mirrored = setTimeout(() => {
+      mirrored = 0;
+      if (!ovCover || !ov.isConnected) return;
+      const w = Math.round(ov.clientWidth * Math.min(2, devicePixelRatio || 1));
+      if (!w) return;
+      if (ovCover.width !== w) (ovCover.width = w), (ovCover.height = Math.round((w * H) / W));
+      const c = ovCover.getContext('2d');
+      c.clearRect(0, 0, ovCover.width, ovCover.height);
+      if (g) c.drawImage(cover, 0, 0, ovCover.width, ovCover.height);
+      items.forEach((it, i) => ovItems[i] && (ovItems[i].className = it.el.className));
+      ov.firstElementChild.classList.toggle('ready', node.classList.contains('ready'));
+    }, 120);
   };
   new ResizeObserver(resize).observe(frame);
 
@@ -164,7 +271,8 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     for (let j = zy + sp / 2; j < zy + rh; j += sp) for (let i = zx + sp / 2; i < zx + rw; i += sp) if (inZones([z], i, j)) list.push({ x: i, y: j, zi, off: false });
     // (A sliver of a zone still gets a point.)
     if (!list.length) list.push({ x: zx + rw / 2, y: zy + rh / 2, zi, off: false });
-    return { z, list, off: 0, gone: false };
+    // (A big one, a whole panel, comes off only when it's mostly scraped: never its result early.)
+    return { z, list, off: 0, gone: false, big: Math.min(rw, rh) > W * 0.15 };
   });
   const grid = new Map();
   for (const z of spots) for (const p of z.list) {
@@ -202,7 +310,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     if (finished || g || !node.isConnected || !img.complete || !img.naturalWidth || !fw) return;
     // Its resolution once, for the play area's zoom (capped: a phone's canvas has a limit).
     const ratio = Math.min(3, devicePixelRatio || 1);
-    let cw = Math.round(W * play() * ratio);
+    let cw = Math.round(W * Math.max(play(), sT) * ratio);
     cw = Math.min(cw, Math.floor(Math.sqrt((9e6 * W) / H)), W * 2);
     cover.width = cw;
     cover.height = Math.round((cw * H) / W);
@@ -234,6 +342,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     mg.drawImage(img, 0, 0, m.width, m.height);
     cmap = { d: mg.getImageData(0, 0, m.width, m.height).data, w: m.width, h: m.height };
     node.classList.add('ready');
+    mirror();
   };
   if (open) {
     img.decode?.().then(paint, paint);
@@ -252,7 +361,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       scraped.add(key);
       if (Math.random() < (few ? 0.2 : 0.8)) flake(px, py, dir);
     }
-    mark(px, py, r * 0.95);
+    mark(px, py, r);
     g.save();
     g.globalCompositeOperation = 'source-atop';
     g.fillStyle = silver;
@@ -336,8 +445,17 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
         if (w.it.win) pop(w.it);
       }
     }
-    for (const z of spots) if (!z.gone && z.off / z.list.length >= 0.5) lift(z);
-    if (spots.every(z => z.gone)) setTimeout(doneOnce, 260);
+    for (const z of spots) if (!z.gone && z.off / z.list.length >= (z.big ? 0.85 : 0.4)) lift(z);
+    mirror();
+    if (spots.every(z => z.gone)) return void setTimeout(doneOnce, 260);
+    // (A part all off: on to the next, after a moment to see it.)
+    if (steps.length) {
+      const i = stepAt();
+      if (i !== shownStep && i !== pending) {
+        pending = i;
+        setTimeout(() => ((pending = -2), !finished && stepAt() === i && toStep(i)), 380);
+      }
+    }
   };
   let lastLook = 0;
   const pop = it => {
@@ -387,7 +505,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     const q = pic(p);
     // (Till it's all off, one finger scratches when it starts on or near the
     // latex, as a coin would; well away from it, it moves the ticket.)
-    const onLatex = !finished && g && nearest(q, spots.filter(z => !z.gone))[0] <= R() * 2.5;
+    const onLatex = !finished && g && nearest(q, spots)[0] <= R() * 2.5;
     if (!onLatex && now - tapAt < 320 && Math.hypot(p[0] - tapAtXY[0], p[1] - tapAtXY[1]) < 30) {
       tapAt = 0;
       mode = null;
@@ -616,10 +734,22 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     frame,
     // Called once the latex is mostly off (or 一次刮開).
     onDone: f => (onDone = f),
+    // Called with the part on now (i of n; -1 once there are none).
+    onStep: f => (onStep = f),
     // The rest of the latex lifts off; every win still hidden pops.
     clear() {
       if (finished) return;
       finished = true;
+      // (Laid out again: the whole ticket at its own height, no overview.)
+      fill = false;
+      steps = [];
+      sT = 0;
+      onStep(-1, 0);
+      ov?.remove();
+      ov = ovBox = null;
+      frame.classList.remove('fill');
+      fw = 0;
+      resize();
       cover.style.transition = 'opacity .45s';
       cover.style.opacity = '0';
       cover.style.pointerEvents = 'none';
