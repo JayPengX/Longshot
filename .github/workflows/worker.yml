@@ -23,7 +23,18 @@ permissions:
   contents: read
 
 jobs:
+  # Until the repo has CLOUDFLARE_API_TOKEN (Shared-Proxy's longshot-bridge.yml
+  # deploys meanwhile) the run skips, rather than failing on every push.
+  token:
+    runs-on: ubuntu-latest
+    outputs:
+      has: ${{ steps.t.outputs.has }}
+    steps:
+      - id: t
+        run: echo "has=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
   deploy:
+    needs: token
+    if: ${{ needs.token.outputs.has == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
