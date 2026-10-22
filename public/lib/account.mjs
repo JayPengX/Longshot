@@ -1,5 +1,5 @@
-// Play's account: play money only, on the Quadra Pass (its money is the
-// pass's one pool; Quadra pays the opening money and the monthly pay). It
+// Play's account: play money only, on the Orbit Pass (its money is the
+// pass's one pool; Orbit pays the opening money and the monthly pay). It
 // buys slips and lottery tickets through the Worker (settled.mjs), which
 // settles them and pays into the pool; this keeps them and their ledger.
 //
@@ -11,20 +11,20 @@
 import { mergeTickets, ticketPrize } from './lottery.mjs';
 import { settleSlip, prizeAfterTax } from './odds.mjs';
 
-// What Play itself gave before Quadra paid into the pool (a pass made since
-// gets its opening money from Quadra; Play's own weekly grants, 'grant-<week>'
+// What Play itself gave before Orbit paid into the pool (a pass made since
+// gets its opening money from Orbit; Play's own weekly grants, 'grant-<week>'
 // entries on older accounts, ended with the week of 2026-09-28).
 export const START_BALANCE = 10_000;
 
-// start: false for an account funded by the Quadra pool alone.
+// start: false for an account funded by the Orbit pool alone.
 export function newAccount(now = new Date(), { start = true } = {}) {
   const t = now.toISOString();
   return { v: 1, created: t, updated: t, ledger: start ? [{ id: 'start', t, kind: 'start', amount: START_BALANCE }] : [], slips: [] };
 }
 
 // A new account for a pass: Play's own opening money only for a pass whose
-// wallet is known and has none of Quadra's ('eco:start'). Every pass made
-// since the Quadra pool opens with Quadra's; a wallet not read yet (offline,
+// wallet is known and has none of Orbit's ('eco:start'). Every pass made
+// since the Orbit pool opens with Orbit's; a wallet not read yet (offline,
 // signing in) is never taken for one without it (Play's NT$10,000 'start'
 // went into the ledger then, money the pool never had).
 export function accountFor(wallet, now = new Date()) {
@@ -57,7 +57,7 @@ export function compactAccount(account) {
 }
 
 // Buys a slip: { id, mode, sizes, stake, cost, legs }. The cost comes off the
-// balance at once. `extra`: money in the shared Quadra pool beyond this
+// balance at once. `extra`: money in the shared Orbit pool beyond this
 // account's own ledger (Securities' cash, the pay), spendable here too.
 // Returns { account } or { error: 'funds' }.
 export function placeSlip(account, slip, now = new Date(), { extra = 0 } = {}) {
@@ -120,7 +120,7 @@ export function mergeAccounts(a, b) {
   return out;
 }
 
-// Another, separate account folded into this one (the Quadra merge tool):
+// Another, separate account folded into this one (the Orbit merge tool):
 // both accounts' money and slips, kept apart where their fixed ids ('start',
 // 'grant-<Monday>') would collide.
 export function mergeDistinct(a, b) {
@@ -138,7 +138,7 @@ export function poolEntries(account) {
 }
 
 // What the government withheld from this account's winnings, whole NT$ (sent
-// in the wallet's `snap.odds.gov` for the Quadra Pass's 真相 › 政府): 運彩's
+// in the wallet's `snap.odds.gov` for the Orbit Pass's 真相 › 政府): 運彩's
 // 20% income tax on a big combination (a settled slip's prize before tax
 // less after; a free bet's stake, never paid back, isn't tax), and the
 // lottery's and scratch cards' 20% tax and 0.4% stamp duty on a prize over

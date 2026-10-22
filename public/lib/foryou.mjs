@@ -1,6 +1,6 @@
 // 為你推薦: picks for this person, not just the board's best prices.
 //
-// What they care about, from everything Quadra knows on this device:
+// What they care about, from everything Orbit knows on this device:
 // - the teams and leagues they follow in Orbit Sports (its pass data, cached on
 //   this device, and its affinity map), the strongest signal;
 // - the teams they've bet on here (their slips: the more often, the more);

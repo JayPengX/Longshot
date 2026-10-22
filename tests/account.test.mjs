@@ -191,7 +191,7 @@ test('slip history keeps itself: final scores with each pick, compact picks, bac
   assert.deepEqual(compactAccount(backup).slips[0].legs[0].final, { away: 4, home: 6 });
 });
 
-test('Quadra pool: extra money to bet with, entries for the pool', async () => {
+test('Orbit pool: extra money to bet with, entries for the pool', async () => {
   const { newAccount, placeSlip, poolEntries, mergeDistinct, balance } = await import('../public/lib/account.mjs');
   const now = new Date('2026-09-23T04:00:00Z');
   const base = newAccount(new Date('2026-09-01T00:00:00Z'));
@@ -274,7 +274,7 @@ test("a wallet entry that can't be dated or counted is left out, never a sync th
   assert.equal(recoverFromWallet(empty, null), empty);
 });
 
-test("a new account takes Play's own opening money only for a known wallet without Quadra's", async () => {
+test("a new account takes Play's own opening money only for a known wallet without Orbit's", async () => {
   const { accountFor, balance } = await import('../public/lib/account.mjs');
   // Not read yet (offline, signing in): no NT$10,000 the pool never had.
   assert.equal(balance(accountFor(null)), 0);

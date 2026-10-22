@@ -1,6 +1,6 @@
 # Quadra Play
 
-A plain sportsbook and Taiwan Lottery's games, on the one Quadra balance
+A plain sportsbook and Taiwan Lottery's games, on the one Orbit balance
 (play money). It prices and settles like a real sportsbook: the house
 never loses on its own prices.
 

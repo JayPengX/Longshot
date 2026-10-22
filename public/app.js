@@ -2,7 +2,7 @@ import { slipPayoutTable, settleSlip, boostRate, SLIP_RULES, combosBySize } from
 import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
 import * as kitPhotos from '#kit/photos.mjs';
-import * as kit from '#kit/quadra.mjs';
+import * as kit from '#kit/orbit.mjs';
 import * as kitBoard from '#kit/play-board.mjs';
 import * as kitUI from '#kit/ui.mjs';
 import * as kitTeams from '#kit/play-teams.mjs';
@@ -15,7 +15,7 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon, kitGlyph } from './icons.js';
 
-import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
+import { othersBalance, installGate, watchUpdates, orbitSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from '#kit/orbit.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord, monthsOf, slipMonth } from './lib/history.mjs';
 import { makeT, STRINGS } from './lib/i18n.mjs';
@@ -84,7 +84,7 @@ const state = {
   // Resolves once the account is read and merged with the pass (boot).
   accountIn: null,
   sync: { busy: false, error: '', at: null },
-  // The Quadra Pass's wallet (the shared money pool), when the code is a pass.
+  // The Orbit Pass's wallet (the shared money pool), when the code is a pass.
   wallet: null,
   // Slips saved or settled since the page opened, highlighted.
   freshSlips: new Set(),
@@ -2236,15 +2236,15 @@ function payLine(label, value, cls = '') {
   return el('div', { class: `pay-line ${cls}` }, [el('span', { text: label }), el('strong', { text: value })]);
 }
 
-// ---- The account: kept with the Quadra Pass ------------------------------------
+// ---- The account: kept with the Orbit Pass ------------------------------------
 //
-// Signing in is required (quadra.mjs's sign-in screen). The account is this
+// Signing in is required (orbit.mjs's sign-in screen). The account is this
 // app's data on the pass (a copy on the device under the pass, so it opens
-// at once); its ledger's entries go to the pass's wallet, the one Quadra
-// money pool, and the rest of the pool (Securities' cash, Quadra's pay) is
+// at once); its ledger's entries go to the pass's wallet, the one Orbit
+// money pool, and the rest of the pool (Securities' cash, Orbit's pay) is
 // money to bet with here too.
 
-const q = quadraSession('odds', { lang: state.locale });
+const q = orbitSession('odds', { lang: state.locale });
 let lotteryUi = null;
 let statsUi = null;
 useSourcesSession(q);
@@ -2259,7 +2259,7 @@ async function loadAccount() {
   } catch {}
   return null;
 }
-// A pass that got its opening money from Quadra itself opens an empty ledger
+// A pass that got its opening money from Orbit itself opens an empty ledger
 // (lib/account.mjs accountFor: a wallet not known yet is never taken for one without it).
 const freshAccount = (wallet = state.wallet) => accountFor(wallet);
 
@@ -2425,7 +2425,7 @@ async function mergeRemote(remote, applied = () => {}) {
 }
 
 // What the person bets on and opens, for recommendations here and in every
-// Quadra app.
+// Orbit app.
 function track(keys = [], weight = 1) {
   if (keys.length) recordAffinity('odds', keys, weight);
 }
@@ -3191,7 +3191,7 @@ function fmtCount(n) {
   return fmtInt(Math.round(n));
 }
 
-// The loading screen: the Quadra one, the same in every app (icon, name,
+// The loading screen: the Orbit one, the same in every app (icon, name,
 // spinner, nothing more). Callers still pass what's loading and how far
 // along; it isn't shown.
 function showLoading() {
@@ -3204,7 +3204,7 @@ function hideLoading() {
 
 // ---- Number fields ---------------------------------------------------------------------
 
-// Numbers are typed on the phone's own number keyboard, as in Quadra
+// Numbers are typed on the phone's own number keyboard, as in Orbit
 // Securities (inputmode numeric, no autocomplete), not a pad of the page's
 // own: digits only, at most `digits` of them; Enter (the keyboard's Go/Done)
 // runs `onEnter`, and leaving the field commits it (its change event).
@@ -3765,7 +3765,7 @@ async function load() {
 
 // ---- Tabs ---------------------------------------------------------------------
 
-// Four tabs like every Quadra app; the slip (投注單) is a sheet over any of
+// Four tabs like every Orbit app; the slip (投注單) is a sheet over any of
 // them, opened from the bar above the tab bar (openSlip).
 const TABS = ['home', 'games', 'lottery', 'history'];
 
@@ -4009,7 +4009,7 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 
-// The same top-right in every Quadra app: help, refresh, then the account.
+// The same top-right in every Orbit app: help, refresh, then the account.
 actions = topActions(q, { refresh: load });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
@@ -4025,7 +4025,7 @@ kit.watchFit(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home'
 window.__fxStarted = true;
 // Phones and tablets: from the home screen only. Always the newest deploy.
 const gated = installGate('odds', state.locale);
-watchUpdates({ current: document.querySelector('meta[name="build-version"]')?.content, key: 'oddsStudy', cachePrefix: 'quadra-odds-' });
+watchUpdates({ current: document.querySelector('meta[name="build-version"]')?.content, key: 'oddsStudy', cachePrefix: 'orbit-odds-' });
 renderStatic();
 renderTabs();
 let tasteWas = '';

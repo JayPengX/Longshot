@@ -1,5 +1,5 @@
 // The 彩券 tab: Taiwan Lottery's computer-drawn games (lib/lottery.mjs) and
-// scratch cards (lib/scratch.mjs), bought with the Quadra balance. Tickets
+// scratch cards (lib/scratch.mjs), bought with the Orbit balance. Tickets
 // live on the account next to the slips, settle against the real draws as
 // they come out, and pay into the same pool.
 import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, ticketPrize, upcoming, nextDraws, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
@@ -10,7 +10,7 @@ import { compactMoney } from './home.js';
 import { faceDrawer, ticketLook } from './scratch-face.js';
 import { TICKETS } from './tickets.js';
 import { scratchTicket } from './scratch-ticket.js';
-import { ask, tell } from '#kit/quadra.mjs';
+import { ask, tell } from '#kit/orbit.mjs';
 import * as kitUI from '#kit/ui.mjs';
 import { kitGlyph, kitDialog, gameLogo, cardArt } from './icons.js';
 import { termLabel, termOf, nextTerm, cutoffAt, tierName, tierRule, digitRule, gameLimits, periodsFor, MAX_LINES, zoneMax, comboMax, isSystem, pendingPrize, winsText, jackpotOf, bySeries } from './lottery-labels.mjs';
@@ -1016,7 +1016,7 @@ export function mountLottery(ctx) {
       g.fillStyle = '#374151';
       g.font = '800 12px system-ui, sans-serif';
       g.rotate(-0.35);
-      for (let y = -h; y < h * 2; y += 26) for (let x = -w; x < w * 2; x += 70) g.fillText('QUADRA', x + ((y / 26) % 2) * 35, y);
+      for (let y = -h; y < h * 2; y += 26) for (let x = -w; x < w * 2; x += 70) g.fillText('ORBIT', x + ((y / 26) % 2) * 35, y);
       g.restore();
       for (let i = 0; i < 90; i++) {
         g.fillStyle = `rgba(255,255,255,${0.25 + Math.random() * 0.5})`;
