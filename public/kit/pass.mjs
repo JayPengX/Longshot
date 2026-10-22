@@ -114,6 +114,7 @@ export function openPass(s, { tab = 'pass' } = {}) {
   const note = el('p', { class: 'q-sheet-note', role: 'status' });
   let current = tab;
   const tabs = segmented(['pass', 'truth'].map(id => ({ id, label: t(`tab_${id}`) })), { value: current, onChange: id => ((current = id), paint()) });
+  tabs.classList.add('q-pass-seg');
 
   const act = (label, fn, cls = 'q-row-btn') =>
     el('button', {

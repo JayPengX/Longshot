@@ -127,11 +127,6 @@ span.pick.locked:not(.sl-app *) { pointer-events: none; }
 .pl-hero { gap: 6px; padding-bottom: 14px; }
 .pl-hero .q-hc-eyebrow { gap: 6px; }
 .pl-balance { margin: 2px 0 2px; overflow: hidden; white-space: nowrap; }
-.pl-hero-line { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.16); color: #fff; font: 500 14px/1.2 var(--q-font); text-align: left; }
-.pl-hero-line span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pl-hero-line strong { flex: none; }
-.pl-hero-line.plain { background: none; padding: 0; }
-.pl-hero-line .pi { width: 16px; height: 16px; }
 .pl-hero-search { margin-top: 8px; width: 100%; border: 0; text-align: left; cursor: pointer; }
 .pl-hero-search > i svg { width: 18px; height: 18px; }
 /* A match card in a rail. */
@@ -300,10 +295,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pay-line span { min-width: 0; }
 .pay-line strong { flex: none; color: var(--q-label); font: 600 15px/1.3 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
 /* The one button, the balance under it. */
-.place-row { display: grid; gap: 8px; justify-items: center; }
 .place-button { width: 100%; min-height: 52px; font-size: 17px; box-shadow: 0 14px 26px -16px var(--accent); }
 .place-button:disabled { box-shadow: none; opacity: 0.5; }
-.place-row > small { color: var(--q-label-2); font: var(--q-t-footnote); font-variant-numeric: tabular-nums; }
 .sl-rules { justify-self: center; font-size: 14px; }
 /* The slip bar: above the tab bar on every tab, at a game sheet's foot. */
 .slip-bar-count { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 17px/1 var(--q-font-rounded); }
@@ -509,7 +502,6 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
   :root:not([data-theme='light']) .lt-mark img.dk { display: block; }
 }
 .sc-art { display: block; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; background: color-mix(in srgb, var(--lotto, #888) 25%, var(--q-fill-3)); }
-.sc-card-art { width: 100%; margin-bottom: 4px; border-radius: 12px; }
 .sc-thumb { flex: none; width: 53px; height: 40px; border-radius: 8px; }
 .sc-ask { width: 160px; border-radius: 14px; }
 .q-ask-icon:has(> .sc-ask, > .lt-mark-ask) { width: auto; height: auto; background: none; }
@@ -1073,7 +1065,6 @@ html .q-logo img { width: 88%; height: 88%; }
 .sc-result { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 52px; margin: 10px 0 0; padding: 8px 14px; border-radius: 16px; background: var(--q-fill-3); color: var(--q-label-2); font-weight: 700; text-align: center; white-space: nowrap; }
 .sc-result .sc-result-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sc-result.hint { justify-content: space-between; font: 600 14px/1.2 var(--q-font); }
-.sc-how-btn { flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--lotto) 18%, transparent); color: var(--q-label); font: 700 13px/1 var(--q-font); }
 .sc-result.won { background: var(--wash-good); color: var(--good); animation: lt-pop 0.4s ease-out; }
 .sc-result.lost { color: var(--q-label-2); }
 .sc-result-icon { flex: none; width: 24px; height: 24px; }

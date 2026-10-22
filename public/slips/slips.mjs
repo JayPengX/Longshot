@@ -907,10 +907,10 @@ async function shareSlip(slip) {
   }
 }
 
-// 注單 and 戰績: a segmented control at the top of the tab.
+// 總覽 and 戰績: a segmented control under the tab's 注單 title.
 const views2 = segmented(
   [
-    { id: 'open', label: W('注單', 'Tickets') },
+    { id: 'open', label: W('總覽', 'Overview') },
     { id: 'stats', label: W('戰績', 'Record') }
   ],
   { value: tab, label: W('檢視', 'View'), onChange: id => showTab(id) }
