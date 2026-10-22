@@ -92,3 +92,18 @@ test('the owner’s 1.08 test slip goes off the record; the wallet (the balance)
   // Not rebuilt from the wallet as a recovered slip; nothing changes again.
   assert.equal(recoverFromWallet(after, wallet), after);
 });
+
+test('a back charge the Worker took back (eco:untax-<slip>) leaves the tax, even from an older copy of the account', async () => {
+  const { recoverFromWallet, taxPaid } = await import('../public/lib/account.mjs');
+  const t = '2026-10-19T02:00:00.000Z';
+  const slip = { id: 'c', t, mode: 'single', sizes: [1], stake: 10_000, cost: 10_000, legs: [{ odds: 1.14, result: 'won' }], status: 'settled', gross: 11_395, payout: 9_116, backTax: 2_279 };
+  const account = { v: 1, created: t, slips: [slip], tickets: [], ledger: [{ id: 'stake-c', t, kind: 'stake', amount: -10_000, slipId: 'c' }, { id: 'payout-c', t, kind: 'payout', amount: 11_395, slipId: 'c' }, { id: 'tax-c', t, kind: 'tax', amount: -2_279, slipId: 'c' }] };
+  const at = Date.parse(t);
+  const wallet = { entries: [{ id: 'odds:stake-c', t: at, app: 'odds', kind: 'stake', amount: -10_000 }, { id: 'odds:payout-c', t: at, app: 'odds', kind: 'payout', amount: 11_395 }, { id: 'eco:untax-c', t: at, app: 'eco', kind: 'untax', amount: 0 }] };
+  assert.equal(taxPaid(account).sports, 2_279);
+  const after = recoverFromWallet(account, wallet);
+  assert.deepEqual(after.ledger.map(e => e.id), ['stake-c', 'payout-c']);
+  assert.equal(after.slips[0].payout, 11_395);
+  assert.equal(taxPaid(after).sports, 0);
+  assert.equal(recoverFromWallet(after, { ...wallet, entries: [...wallet.entries, { id: 'odds:tax-c', t: at, app: 'odds', kind: 'tax', amount: -2_279 }] }), after);
+});

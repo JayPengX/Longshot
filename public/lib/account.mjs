@@ -268,9 +268,24 @@ export function recoverFromWallet(account, wallet) {
   if (off.size && (account.slips.some(s => off.has(s.id)) || account.ledger.some(e => off.has(slipOfEntry(e))))) {
     account = { ...account, slips: account.slips.filter(s => !off.has(s.id)), ledger: account.ledger.filter(e => !off.has(slipOfEntry(e))) };
   }
+  // A back charge taken back (the Worker's `eco:untax-<slip>`) is off the
+  // record, the slip paying what it did: an older copy of the account (another
+  // device's, a saved one) brought the charge back into its tax.
+  const untaxed = new Set((wallet?.entries || []).filter(e => typeof e?.id === 'string' && e.id.startsWith('eco:untax-')).map(e => e.id.slice(10)));
+  if (untaxed.size && (account.ledger.some(e => e.kind === 'tax' && untaxed.has(slipOfEntry(e))) || account.slips.some(s => s.backTax && untaxed.has(s.id)))) {
+    account = {
+      ...account,
+      ledger: account.ledger.filter(e => !(e.kind === 'tax' && untaxed.has(slipOfEntry(e)))),
+      slips: account.slips.map(s => {
+        if (!s.backTax || !untaxed.has(s.id)) return s;
+        const { backTax, ...rest } = s;
+        return { ...rest, payout: s.payout + backTax };
+      })
+    };
+  }
   // (An entry that can't be dated or counted is no money to bring back: one
   // malformed entry stopped every sync with a RangeError.)
-  const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()) && !off.has(slipOfEntry({ id: e.id.slice(5) })));
+  const mine = (wallet?.entries || []).filter(e => e?.app === 'odds' && typeof e.id === 'string' && e.id.startsWith('odds:') && Number.isFinite(e.amount) && Number.isFinite(new Date(e.t).getTime()) && !off.has(slipOfEntry({ id: e.id.slice(5) })) && !(e.kind === 'tax' && untaxed.has(slipOfEntry({ id: e.id.slice(5) }))));
   const have = new Set(account.ledger.map(e => e.id));
   const ledger = [];
   for (const e of mine) {
