@@ -3237,8 +3237,6 @@ function loadGameTeams() {
 const BOOT_LIMIT_MS = 45_000;
 // The whole board (every league) before the loading screen goes, at most.
 const BOOT_FULL_MS = 9_000;
-// The first screen's logos (only those in view), at most.
-const BOOT_IMAGES_MS = 2_500;
 // A saved board: the loading screen stays until today's board has replaced
 // it (so nothing reshuffles right after it lifts), this long at most; past
 // it the saved board opens and today's swaps in when it's ready.
@@ -3249,9 +3247,10 @@ const SNAPSHOT_WAIT_MS = 2_000;
 // the loading screen waits for them, this long at most.
 const SNAPSHOT_LIVE_MS = 6_000;
 const within = (promise, ms, fallback) => Promise.race([Promise.resolve(promise).catch(() => fallback), new Promise(resolve => setTimeout(() => resolve(fallback), ms))]);
-// Every picture on screen in `root` loaded (or failed): no logo pops in as
-// the page opens. Pictures further down wait for their turn (lazy), then
-// warmImages fetches them in the background.
+// Every picture on screen in `root` asked for now (eager); the kit holds the
+// loading screen for them (1.5 s at most, every app the same): Play's own
+// wait here came first, up to 2.5 s more on a phone's link. Pictures further
+// down wait for their turn (lazy), then warmImages fetches them in the background.
 function imagesReady(root) {
   const bottom = window.innerHeight;
   const images = [...(root?.querySelectorAll('img') || [])].filter(img => {
@@ -3401,7 +3400,7 @@ async function openOnBoard() {
   await within(Promise.all([state.accountIn, liveBusy || refreshLive()]), wait);
   if (state.tab === 'home') drawHome();
   if (state.booting) {
-    await within(imagesReady($('panel-' + state.tab)), 800);
+    imagesReady($('panel-' + state.tab));
     state.booting = false;
     hideLoading();
     warmImages();
@@ -3521,7 +3520,7 @@ async function load() {
       // A game sheet opened on the board's game: its markets are read now.
       renderGameSheet();
       if (state.booting) {
-        await within(imagesReady($('panel-' + state.tab)), 800);
+        imagesReady($('panel-' + state.tab));
         clearTimeout(limit);
         open();
       }
@@ -3562,7 +3561,7 @@ async function load() {
       await within(Promise.all([liveIn, firstScreen()]), Math.max(1_000, BOOT_FULL_MS - (Date.now() - startedAt)));
       clearTimeout(drawTimer);
       renderAllSliced();
-      await within(imagesReady($('panel-' + state.tab)), BOOT_IMAGES_MS);
+      imagesReady($('panel-' + state.tab));
       clearTimeout(limit);
       open();
     }
