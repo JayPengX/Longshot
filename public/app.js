@@ -118,18 +118,7 @@ if (typeof document !== 'undefined') {
   new MutationObserver(() => queued || ((queued = true), requestAnimationFrame(() => ((queued = false), marked())))).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener('resize', marked);
 }
-function el(tag, props = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (v == null) continue;
-    if (k === 'class') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v);
-  }
-  for (const child of [].concat(children)) if (child != null) node.append(child);
-  return node;
-}
+const el = kitUI.h;
 
 // ---- Formatting -------------------------------------------------------------
 
