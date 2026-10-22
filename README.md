@@ -52,22 +52,19 @@ Live: https://jaypengx.github.io/Quadra-Play/
   半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
   總進球數); soccer no 和局退款, its 讓分 three ways on whole goals (主-1 /
   讓分和 / 客+1, `hcap3`), no Asian half-goal line; baseball [第1局]大小, [第1局]不讓分 and
-  [1-5局]讓分 in place of 首局得分. The rest of 運彩's 玩法 list from Kambi: tennis (the ATP and WTA tours
-  and the Slams), volleyball, badminton, table tennis (WTT, ITTF) and esports
-  (League of Legends, Counter-Strike's top events) with 單盤不讓分, 讓盤,
-  讓局, 大小 and 正確比數 where Kambi prices them, settled on the sets; snooker
-  (撞球), darts, rugby (winner, a draw void) and handball and futsal (three
-  ways, futsal's 大小 too), settled on Kambi's last score. Players by
-  surname in Chinese (the kit's names.mjs, Google's reading kept on the
-  phone), a doubles pair a partner a line; a headshot (ESPN, TheSportsDB) or
-  their country's flag, else no picture. 綜合格鬥: UFC's cards, Kambi's
-  勝負 (a draw void), each bout settled on ESPN's card. 板球: one-day and
-  T20 internationals and the big T20 leagues, 勝負 settled on ESPN's
-  scorepanel (a tie or no result void). 高爾夫 冠軍: each tour's next
-  tournament (PGA and majors, DP World, LPGA) as a 冠軍 board from Kambi's
-  winner prices (never longer than Kambi's), settled on ESPN's leaderboard.
-  Not yet: MotoGP and boxing (no result to settle on). A long club name with a sport word in it
-  ("Skanderborg Aarhus Håndbold") reads shorter (app.js clubShort).
+  [1-5局]讓分 in place of 首局得分. Beyond the leagues, only what shows
+  cleanly (Jay 2026-10-22: no blank pictures, wraps or unexplained names):
+  tennis singles (ATP, WTA, the Slams; 單盤不讓分, 讓盤, 讓局, 大小 where Kambi
+  prices them) and UFC (勝負, a draw void, settled on ESPN's card) only when
+  ESPN's draw or card has both sides' countries (kit withFlags): a round flag
+  under every face, a headshot over it when found; no doubles. Tennis
+  events read by tour and city (WTA 大阪). 板球: one-day and T20
+  internationals (countries' flags), 勝負 settled on ESPN's scorepanel.
+  高爾夫 冠軍: each tour's next tournament from Kambi's winner prices (never
+  longer than Kambi's), only golfers ESPN's field flags, settled on ESPN's
+  leaderboard. Off Play's board (the catalogue's `noPlay`, still settled for
+  slips already bought): volleyball, badminton, table tennis, esports,
+  snooker, darts, handball, rugby, futsal. Not sold: MotoGP, boxing.
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.

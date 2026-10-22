@@ -271,6 +271,8 @@ function gameSeries(game) {
   // (Against its English name too: Kambi's "K-League 1" is the league, not a stage, in Chinese as well.)
   const same = name => [league, STRINGS.en?.[`sport_${game.sport}`]].some(x => x && normalizeTeamName(x).replace(/[\s-]/g, '') === normalizeTeamName(name).replace(/[\s-]/g, ''));
   const event = game.group && !plain && !same(game.group) ? (isSideSport(game.sport) ? sideEvent(game.group) : game.group) : null;
+  // A tennis tournament by its tour and city ("WTA 大阪", not "大阪" alone).
+  if (event && familyOf(game.sport) === 'tennis' && !/^(ATP|WTA)\b/.test(event)) return `${league} · ${game.women ? 'WTA' : 'ATP'} ${event}`;
   return event ? `${league} · ${event}` : league;
 }
 
@@ -463,6 +465,7 @@ function priceF1(data, locale, day) {
   return bets;
 }
 function buildBets(data) {
+  noteFlags(data.games);
   const hit = pricedFor(data);
   if (hit) return hit;
   takeExtras(data);
@@ -556,6 +559,7 @@ function futureName(market, team) {
 
 // One bet per team of every championship market (play-bets.mjs), named here.
 function buildFutures(data) {
+  noteFutureFlags(data.futures);
   const t = state.t;
   // A championship as good as decided (its favourite too short to sell, under
   // 1.12) is off the board whole: never one side locked beside the rest open
@@ -598,7 +602,7 @@ const SPORT_GROUPS_ALL = {
 // Only leagues on sale (Taiwan can watch them); a kind with none left goes.
 const SPORT_GROUPS = Object.fromEntries(
   Object.entries(SPORT_GROUPS_ALL)
-    .map(([g, x]) => [g, { ...x, leagues: x.leagues.filter(k => k === 'f1' || k === 'golf' || LEAGUES[k]) }])
+    .map(([g, x]) => [g, { ...x, leagues: x.leagues.filter(k => k === 'f1' || k === 'golf' || (LEAGUES[k] && !LEAGUES[k].noPlay)) }])
     .filter(([, x]) => x.leagues.length)
 );
 const groupOfSport = sport => Object.keys(SPORT_GROUPS).find(g => SPORT_GROUPS[g].leagues.includes(sport));
@@ -800,7 +804,7 @@ function redraw(root, draw) {
 // A stand-in (an initial: the logo wasn't known yet when it was first drawn,
 // e.g. the home page from the saved live copy before the leagues' logos
 // arrived) is never kept once the real picture can be drawn.
-const isStandIn = node => node.matches('.logo-fallback, .league-missing, .league-icon') || Boolean(node.querySelector?.('.logo-fallback, .league-missing, .league-icon'));
+const isStandIn = node => node.matches('.logo-fallback, .league-missing, .league-icon, .logo-none') || Boolean(node.querySelector?.('.logo-fallback, .league-missing, .league-icon, .logo-none'));
 function keptPic(key, make) {
   const old = recycled?.get(key)?.shift();
   if (old && !isStandIn(old)) return old;
@@ -838,13 +842,28 @@ function sidePicUrl(sport, en) {
   }
   return null;
 }
+// A player's or fighter's country flag (ESPN's draw or card, play-sources
+// withFlags): the picture under their headshot, so no row is ever blank.
+const sideFlags = new Map();
+const noteFlags = (games = []) => {
+  for (const g of games) {
+    if (g.homeFlag) sideFlags.set(typeof g.home === 'string' ? g.home : g.home?.en, g.homeFlag);
+    if (g.awayFlag) sideFlags.set(typeof g.away === 'string' ? g.away : g.away?.en, g.awayFlag);
+  }
+};
+const noteFutureFlags = (futures = []) => {
+  for (const f of futures) for (const t of f.teams || []) if (t.flag) sideFlags.set(t.name.en, t.flag);
+};
 function drawSide(sport, enName, size) {
   const names = String(enName || '').split('/').map(x => x.trim()).filter(Boolean);
   if (names.length > 1) return el('span', { class: `logo logo-pair ${size}`, 'aria-hidden': 'true' }, names.slice(0, 2).map(n => drawSide(sport, n, '')));
   const code = countryCode(enName);
   const club = teamLogo(sport, enName);
   if (club || code) return logoPicture(club ?? flagUrl(code), null, `logo ${club ? '' : 'player-flag '}${size}`, () => noPic(size));
-  return kitPhotos.personPhoto(enName, sport, { cls: `logo ${size}`, fallback: () => noPic(size) });
+  // (ESPN's flag by its country's name: drawn round, as every flag here.)
+  const country = sideFlags.get(enName);
+  const flag = country && (countryCode(country) ? flagUrl(countryCode(country)) : null);
+  return kitPhotos.personPhoto(enName, sport, { cls: `logo ${size}`, fallback: () => (flag ? logoPicture(flag, null, `logo player-flag ${size}`, () => noPic(size)) : noPic(size)) });
 }
 function drawLogo(sport, enName, label, size) {
   if (isSideSport(sport)) return drawSide(sport, enName, size);
@@ -1610,6 +1629,7 @@ function liveStateText(live) {
 // (play-bets.mjs liveBets), named here.
 function buildLiveBets(data) {
   const t = state.t;
+  noteFlags(data?.games);
   const { games, bets } = liveBets(data, { offersOf: game => gameOffers.get(game.id)?.offers ?? null });
   const matchups = new Map(games.map(g => [g.id, matchupText(g)]));
   return {
@@ -1777,7 +1797,7 @@ function entryRow(bet, i, picture, sub, name = bet.shortLabel) {
 // and when it settles, its market tabs, then every entry.
 function boardBody({ emblem, title, sub, tabs = null, lead = null, entries }) {
   return el('div', { class: 'gs' }, [
-    el('div', { class: 'gs-boardhead' }, [leagueImg(emblem, 'logo-lg'), el('div', {}, [el('p', { class: 'gs-btitle', text: title }), el('p', { class: 'gs-bsub', text: sub })])]),
+    el('div', { class: 'gs-boardhead' }, [leagueImg(emblem, 'logo-lg'), el('div', {}, [el('p', { class: 'gs-btitle q-fit', text: title }), el('p', { class: 'gs-bsub', text: sub })])]),
     tabs,
     lead ? el('p', { class: 'gs-lead', text: lead }) : null,
     el('div', { class: 'q-rowcard pl-entries' }, entries)
@@ -1794,7 +1814,7 @@ function renderFutures() {
       const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 1);
       return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
         el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
-        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: `q-ritem-title ${bets[0].sport === 'golf' ? 'q-fit' : 'q-fit-wrap'}`, text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
         el('span', { class: 'q-ritem-value', text: String(bets.length) })
       ]);
     })
@@ -3296,6 +3316,8 @@ function renderAll() {
   if (!state.data) return;
   warmSides(state.data.games);
   warmGolf(state.data.futures);
+  noteFlags(state.data.games);
+  noteFutureFlags(state.data.futures);
   if (state.fromBoard) {
     // The proxy's board: its picks are already priced and tagged (nothing to
     // price here, no futures); the full read replaces them whole.
