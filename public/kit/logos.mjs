@@ -281,8 +281,6 @@ export const countryCode = name => COUNTRY_CODES[normalizeTeamName(name).replace
 
 // A round flag picture for a nation code (circle-flags, hot-linkable SVGs).
 export const flagUrl = code => (code ? `https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@2.7.0/flags/${code.toLowerCase()}.svg` : null);
-// The flag emoji of a nation code (GB-ENG and the like: the UK's).
-export const flagEmoji = code => (code ? String.fromCodePoint(...[...code.slice(0, 2).toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65)) : null);
 
 // ---- On screen ------------------------------------------------------------------
 

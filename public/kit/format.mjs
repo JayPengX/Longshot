@@ -22,11 +22,6 @@ export const DASH = '—';
 
 let locale = 'zh';
 const cache = new Map();
-// The page's language ('zh' or 'en'): decides the grouping and the short forms.
-export function setFormatLocale(l) {
-  locale = l;
-  cache.clear();
-}
 const tag = () => (locale === 'zh' ? 'zh-TW' : 'en-US');
 function nf(min, max) {
   const key = `${min}/${max}`;
@@ -99,10 +94,6 @@ export function twDay(t) {
   const ms = t instanceof Date ? t.getTime() : typeof t === 'string' ? Date.parse(t) : Number(t);
   return Number.isFinite(ms) ? new Date(ms + 8 * 3_600_000).toISOString().slice(0, 10) : '';
 }
-// Its month, 'YYYY-MM'.
-export const twMonth = t => twDay(t).slice(0, 7);
 // The calendar day `n` days from a day ('YYYY-MM-DD'; n may be negative).
 export const addDays = (day, n) => new Date(Date.parse(`${day}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
-// A finite number as it is, anything else 0.
-export const finiteOr0 = v => (typeof v === 'number' && Number.isFinite(v) ? v : 0);

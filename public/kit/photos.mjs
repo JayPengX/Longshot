@@ -14,8 +14,6 @@ import * as kit from './core.mjs';
 import { CDN, smallPhoto, espnHeadshot, espnCollegeHeadshot } from './photo-urls.mjs';
 export { smallPhoto, espnHeadshot, espnCollegeHeadshot };
 
-// A picture that is a flag, not a face (ESPN's country flags, the kit's).
-export const isFlag = url => typeof url === 'string' && /\/flags?\/|flagcdn|countries\/500|\/i\/teamlogos\/countries\//i.test(url);
 // A studio cutout (transparent background): shown on a tinted disc.
 export const isCutout = url => typeof url === 'string' && /thesportsdb\.com\/images\/media\/player\/cutout\/|images\.fotmob\.com\/image_resources\/playerimages\/|resources\.premierleague\.com\/premierleague\d*\/photos\/players\/|assets\.laliga\.com\/squad\/|assets\.bundesliga\.com\/player\/|media-sdp\.legaseriea\.it|ligue1\.image\/players\/|images\.mlssoccer\.com\/image\/private\/[^/]+\/mls\//.test(url);
 

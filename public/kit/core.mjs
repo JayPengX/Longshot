@@ -106,11 +106,6 @@ export const readJson = (key, fallback) => {
     return fallback;
   }
 };
-export const writeJson = (key, value, replacer) => {
-  try {
-    writeStore(key, value == null ? null : JSON.stringify(value, replacer));
-  } catch {}
-};
 
 // The signed-in account's id on this device (the first 16 characters of
 // the pass's hash, from the refresh token), '' when signed out.
@@ -137,10 +132,6 @@ function cacheWallet(account, wallet) {
 // account), so a cold start paints at once, before the Worker answers.
 // Only small ones (Securities keeps its own compressed copy).
 const payloadKey = app => `longshot.payload.${app}`;
-export function cachedPayload(app, account = storedAccount()) {
-  const saved = readJson(payloadKey(app), null);
-  return saved && account && saved.account === account ? saved.payload : null;
-}
 function cachePayload(app, account, payload) {
   if (!account || typeof payload !== 'string') return;
   writeStore(payloadKey(app), payload.length < 200_000 ? JSON.stringify({ account, payload }) : null);
@@ -192,12 +183,6 @@ async function call(method, query = '', body) {
   return data;
 }
 const qs = params => `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()}`;
-
-export function randomId() {
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-}
 
 // ---- Data through the proxy: batched, remembered, shared ------------------------------
 //
@@ -306,8 +291,6 @@ export function wipeDevice() {
   }
   clearData();
 }
-// The last copy kept on this device, of any age: { at, data } or null.
-export const peekJson = (url, { trim = '' } = {}) => persisted(dataKey(url, trim));
 
 // (`read`: a data proxy read, which takes a session run out up to 6 hours
 // (worker/token.js READ_GRACE_MS): the token kept on the device goes at once,
@@ -325,18 +308,6 @@ async function signedFetch(address, init) {
   const withToken = t => fetch(`${address}${t ? `&qt=${encodeURIComponent(t)}` : ''}`, init);
   const res = await withToken(await dataToken(false, address.startsWith(PROXY_URL)));
   return res.status === 401 && dataSession ? withToken(await dataToken(true)) : res;
-}
-// One of the Worker's own routes, signed with the
-// app's session; null when it can't be had.
-// `body`: sent as a POST (text/plain: no preflight).
-export async function workerJson(path, query, { timeout = 8000, body = null } = {}) {
-  try {
-    const init = body == null ? {} : { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body };
-    const res = await signedFetch(`${WORKER}${path}?${query || 'v=1'}`, { ...init, signal: AbortSignal.timeout(timeout) });
-    return res.ok ? await res.json() : null;
-  } catch {
-    return null;
-  }
 }
 const proxyAddress = (url, trim) => `${PROXY_URL}?url=${encodeURIComponent(url)}${trim ? `&trim=${trim}` : ''}`;
 async function fetchOne(url, trim, timeout, extra = '') {
@@ -1470,14 +1441,6 @@ export function affinity(wallet, now = Date.now(), apps = [APP.id]) {
   return out;
 }
 
-export function dismiss(id) {
-  const d = readJson(KEY.dismiss, {});
-  d[id] = Date.now();
-  const kept = Object.entries(d)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 200);
-  writeStore(KEY.dismiss, JSON.stringify(Object.fromEntries(kept)));
-}
 const dismissed = () => readJson(KEY.dismiss, {});
 
 // items: [{ id, keys: [...], quality (0..1), group }]; returns the best
@@ -1846,23 +1809,6 @@ function banner(s, { title, body, hash, more = [] }) {
 
 // ---- Shell: installed-only on phones, and always the newest version ------------------------
 
-// Whether to ask the phone where it is now: iOS is asked unprompted once
-// per app (`key`, the app's own note that it asked), never at every open,
-// return or tick; a phone that would ask again (iOS's 允許一次, 下次詢問, a
-// grant that lapsed) is left alone and the app uses the last place it
-// kept, until the person taps to locate (`force`). 'yes' | 'no' | 'denied'.
-// (Transit asked at every open and every minute; Weather once.)
-export async function mayLocate(key, { force = false } = {}) {
-  let state = 'unknown';
-  try {
-    state = (await navigator.permissions?.query({ name: 'geolocation' }))?.state || 'unknown';
-  } catch {}
-  if (state === 'denied') return 'denied';
-  if (state === 'granted') return 'yes';
-  if (!force && readStore(key) === '1') return 'no';
-  writeStore(key, '1');
-  return 'yes';
-}
 export function isStandalone() {
   return Boolean(globalThis.matchMedia?.('(display-mode: standalone)').matches || globalThis.matchMedia?.('(display-mode: fullscreen)').matches || globalThis.navigator?.standalone);
 }
@@ -1922,19 +1868,6 @@ export function installGate(lang = detectLang()) {
 // downloads again). A reload that came back on the old page (GitHub's CDN a
 // moment behind the deploy) is tried again a few seconds later, not left for
 // the next launch.
-
-// Whether the app may lift its loading screen: once boot.js's first update
-// check has answered, true; false when that check is reloading the page onto
-// a newer deploy (the app then shows nothing, so a person never sees the old
-// screen swapped out). Waited for 0.8 s at most: version.json is a round
-// trip on every opening (1-2 s on a phone's link, up to 7 s on a bad one,
-// with the kept app ready long before); one later than that is the watch's.
-export async function updateChecked(max = 800) {
-  const boot = globalThis.__bootCheck;
-  if (!boot?.then) return true;
-  const r = await Promise.race([boot.catch(() => 'watch'), new Promise(done => setTimeout(() => done('late'), max))]);
-  return r !== 'boot';
-}
 
 // Sound playing (an app's <audio> or <video>, on the page or not): an update waits for it to stop,
 // never cutting the music off (Beats in the background, back on the screen). Each element is noted as it
@@ -2669,7 +2602,6 @@ export const slowByNature = url => {
   }
 };
 const net = { state: 'online', waiting: new Map(), lastOk: Date.now(), probing: 0, fails: 0, refresh: null, timer: 0, id: 0, only: null, reached: false, hadReached: false };
-export const netState = () => net.state;
 function setNet(next) {
   if (next === net.state) return;
   const was = net.state;

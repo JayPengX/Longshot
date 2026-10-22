@@ -15,7 +15,7 @@
 
 // { tab: 'ipo' } as data-tab="ipo" attributes (a builder's `data`, for taps wired by delegation).
 // (By path, not #kit/: a page whose import map predates format.mjs still loads ui.mjs.)
-import { DASH, pct, price as fmtPrice, twDay, addDays as dayAdd } from './format.mjs';
+import { twDay, addDays as dayAdd } from './format.mjs';
 
 const dataProps = (data = null) => Object.fromEntries(Object.entries(data || {}).filter(([, v]) => v != null && v !== false).map(([k, v]) => [`data-${String(k).replace(/[^a-z0-9-]/gi, '')}`, v === true ? '' : String(v)]));
 const reduced = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -68,12 +68,6 @@ export function tick() {
 const dayLang = lang => lang || (/^en/i.test(globalThis.document?.documentElement?.lang || '') ? 'en' : 'zh');
 // Taiwan's today, 'YYYY-MM-DD'.
 export const dayToday = () => twDay(Date.now());
-// The days from `from` to `to` ('YYYY-MM-DD', both kept), in order.
-export function dayList(from, to) {
-  const out = [];
-  for (let d = from; d && to && d <= to && out.length < 800; d = dayAdd(d, 1)) out.push(d);
-  return out;
-}
 // A chip's top line: 今天 / 明天 / 昨天, else the weekday (週三, Wed).
 export function dayTop(d, { today = dayToday(), lang } = {}) {
   const zh = dayLang(lang) === 'zh';
@@ -180,8 +174,6 @@ export function dayStrip(s, { days = [], current = null, onPick = () => {}, labe
   s.edges();
   return s.wrap;
 }
-// dayStrip's record: the next draw brings the chosen day to the middle.
-export const dayRecenter = s => void (s.reveal = 'center');
 function daySync(s) {
   const v = s.clamp(s.current || new Date().toISOString().slice(0, 10)) || '';
   if (s.input.value !== v) s.input.value = v;
@@ -409,41 +401,6 @@ export function sheet({ title = '', body = [], onClose = () => {}, cls = '', lea
   document.body.append(d);
   d.showModal();
   return { el: d, close: shut, head, setDetent: x => setSheetDetent(d, x) };
-}
-
-// ---- Menu ----
-// items: [{ label, icon?, danger?, onClick } | 'divider'] from `anchor`:
-// glass that grows out of it, closed by a choice, a tap elsewhere or Escape.
-export function menu(anchor, items) {
-  document.querySelector('.q-menu')?.remove();
-  const m = h('div', { class: 'q-menu', role: 'menu' });
-  for (const it of items) {
-    if (it === 'divider') m.append(h('hr'));
-    else
-      m.append(
-        h('button', { type: 'button', role: 'menuitem', class: it.danger ? 'danger' : '', onclick: () => (shut(), it.onClick?.()) }, [h('span', { text: it.label }), it.icon ? h('span', { 'aria-hidden': 'true', text: it.icon }) : null])
-      );
-  }
-  document.body.append(m);
-  const r = anchor.getBoundingClientRect();
-  const w = m.offsetWidth;
-  const left = Math.min(Math.max(16, r.right - w), innerWidth - w - 16);
-  const below = r.bottom + 8 + m.offsetHeight < innerHeight - 16;
-  Object.assign(m.style, { left: `${left}px`, top: below ? `${r.bottom + 8}px` : `${Math.max(16, r.top - 8 - m.offsetHeight)}px` });
-  m.style.setProperty('--q-menu-origin', `${r.left + r.width / 2 - left}px ${below ? '0' : '100%'}`);
-  const off = e => {
-    if (!m.contains(e.target)) shut();
-  };
-  const key = e => e.key === 'Escape' && shut();
-  setTimeout(() => (document.addEventListener('pointerdown', off, true), document.addEventListener('keydown', key)));
-  function shut() {
-    document.removeEventListener('pointerdown', off, true);
-    document.removeEventListener('keydown', key);
-    if (reduced()) return m.remove();
-    m.classList.add('out');
-    setTimeout(() => m.remove(), 220);
-  }
-  return { el: m, close: shut };
 }
 
 // ---- Toast ----
@@ -865,17 +822,6 @@ export function view(change) {
   document.startViewTransition(change);
 }
 
-// A segmented control drawn as HTML (an app that redraws a card whole):
-// its thumb starts where it was (`from`) and slides to the choice the next
-// frame. segHtml([[id, label, count?]…], on, { from, attr: id => attrs, cls, pressed }) and,
-// after the HTML is in the page, settleSegs(). A third entry is the count
-// badge, as segmented's `count`.
-export function segHtml(list, on, { from = on, attr = () => '', cls = '', pressed = false, esc = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`) } = {}) {
-  const i = Math.max(0, list.findIndex(([k]) => k === on));
-  const j = Math.max(0, list.findIndex(([k]) => k === from));
-  const pick = k => (pressed ? `aria-pressed="${k === on}"` : `role="tab" aria-selected="${k === on}"`);
-  return `<div class="${cls ? `q-seg ${cls}` : 'q-seg'}" role="${pressed ? 'group' : 'tablist'}" style="--q-seg-n:${list.length};--q-seg-i:${j}" data-to="${i}">${list.map(([k, name, count]) => `<button type="button" ${pick(k)} ${attr(k)}>${esc(name)}${segCount(count) ? `<span class="q-seg-count">${segCount(count)}</span>` : ''}</button>`).join('')}</div>`;
-}
 export function settleSegs(root = document) {
   // Each one's target read now: two calls in one redraw (an app settling
   // each of its controls) both hold a control, and the second, reading it
@@ -903,7 +849,6 @@ export function settleSegs(root = document) {
 // these or by the app; anything else is text and escaped here.
 export const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const E = escHtml;
-const joinHtml = x => [].concat(x ?? []).filter(Boolean).join('');
 // A CSS value in a style="" (a colour, a length, var(…)): nothing that could end the declaration.
 const cssv = v => String(v).replace(/[;{}<>"'\\]/g, '');
 const styleOf = (...pairs) => {
@@ -914,65 +859,14 @@ const dataOf = (data = {}) => Object.entries(data || {}).filter(([, v]) => v != 
 const clsOf = (...c) => c.filter(Boolean).join(' ');
 // An svg string (the kit's icons) as it is, anything else as text.
 const glyphHtml = x => (typeof x === 'string' && x.trim().startsWith('<svg') ? x : E(x));
-const elOf = (href, tap, base) => (href ? ['a', ` href="${E(href)}"`] : tap != null ? ['button', ` type="button"${dataOf(base)}`] : ['div', '']);
 
 export function tileHtml(icon, color = '', size = '') {
   return `<span class="${clsOf('q-tile', size && E(size))}" aria-hidden="true"${styleOf(['--t', color])}>${glyphHtml(icon)}</span>`;
-}
-const tagObjHtml = t => {
-  const o = typeof t === 'string' ? { text: t } : t;
-  return `<span class="${clsOf('q-tag', o.tone && E(o.tone))}"${styleOf(['--t', o.color])}>${E(o.text)}</span>`;
-};
-// tagHtml('直播', 'red') or tagHtml('3 天', '', '#hex').
-export function tagHtml(text, tone = '', color = '') {
-  return tagObjHtml({ text, tone: color ? `${tone} tint` : tone, color });
 }
 export function emptyHtml({ icon = 'list', tint = '', title = '', body = '', action = null, cls = '' } = {}) {
   const mark = !icon ? '' : isIcon(icon) ? `<span class="q-tile q-empty-tile" aria-hidden="true"${styleOf(['--t', tint || 'var(--q-accent)'])}>${icons[icon]}</span>` : `<span class="q-empty-icon" aria-hidden="true">${E(icon)}</span>`;
   const button = !action ? '' : typeof action === 'string' ? action : action.href ? `<a class="q-btn primary" href="${E(action.href)}"${dataOf(action.data)}>${E(action.label)}</a>` : `<button class="q-btn primary" type="button"${dataOf({ tap: action.tap, ...action.data })}>${E(action.label)}</button>`;
   return `<div class="${clsOf('q-empty', cls)}">${mark}${title ? `<strong>${E(title)}</strong>` : ''}${body ? `<p>${E(body)}</p>` : ''}${button}</div>`;
-}
-// navTitleHtml(title), then wireNavTitles(root, { scroller }) once it's in the page.
-export function navTitleHtml(title = '') {
-  return `<h1 class="q-nav-title" data-q-nav>${E(title)}</h1>`;
-}
-export function wireNavTitles(root = document, { scroller = null } = {}) {
-  for (const el of root.querySelectorAll('[data-q-nav]:not([data-q-bound])')) {
-    el.setAttribute('data-q-bound', '');
-    bindNavTitle(el, { scroller });
-  }
-}
-// heroCardHtml({ eyebrow, icon (svg), title, big, sub, pill, actions: [{ label, tap, href, ghost }], tap, href, color, color2 }, childrenHtml)
-export function heroCardHtml({ eyebrow = '', icon = '', title = '', big = '', sub = '', pill = '', actions = [], href = '', tap = null, color = '', color2 = '' } = {}, childrenHtml = '') {
-  const [tag, at] = elOf(href, tap, { tap });
-  return `<${tag} class="${clsOf('q-hero-card', tag !== 'div' && 'q-press')}"${at}${styleOf(['--q-hc-b', color], ['--q-hc-a', color2])}>${eyebrow || icon ? `<span class="q-hc-eyebrow">${icon || ''}<span>${E(eyebrow)}</span></span>` : ''}${big !== '' && big != null ? `<strong class="q-hc-big">${E(big)}</strong>` : ''}${title ? `<strong class="q-hc-title">${E(title)}</strong>` : ''}${sub ? `<p class="q-hc-sub">${E(sub)}</p>` : ''}${pill ? `<span class="q-hc-pill"><span>${E(pill)}</span><i>${icons.send}</i></span>` : ''}${
-    actions.length
-      ? `<div class="q-hc-row">${actions
-          .map(a => {
-            const [t2, at2] = a.href ? ['a', ` href="${E(a.href)}"`] : ['button', ` type="button"${dataOf({ tap: a.tap })}`];
-            return `<${t2} class="${clsOf('q-hc-btn', a.ghost && 'ghost')}"${at2}>${E(a.label)}</${t2}>`;
-          })
-          .join('')}</div>`
-      : ''
-  }${joinHtml(childrenHtml)}</${tag}>`;
-}
-export function statsHtml(items) {
-  return `<div class="q-stats"${styleOf(['--q-stats-n', Math.min(items.length, 3)])}>${items
-    .map(it => {
-      const tag = it.href ? 'a' : 'div';
-      return `<${tag} class="q-stat"${it.href ? ` href="${E(it.href)}"` : ''}>${it.icon ? tileHtml(it.icon, it.color, 'sm') : ''}<small>${E(it.label)}</small><strong${it.tint ? ' class="tint"' : ''}>${E(it.value)}</strong></${tag}>`;
-    })
-    .join('')}</div>`;
-}
-// sectionHtml(title, bodyHtml, { more, moreHref, moreTap, cls })
-export function sectionHtml(title, bodyHtml, { more = '', moreHref = '', moreTap = null, cls = '' } = {}) {
-  const link = !more ? '' : moreHref ? `<a href="${E(moreHref)}">${E(more)}</a>` : `<button type="button"${dataOf({ more: moreTap })}>${E(more)}</button>`;
-  return `<section class="${clsOf('q-section', cls)}"><div class="q-section-head"><h2>${E(title)}</h2>${link}</div>${joinHtml(bodyHtml)}</section>`;
-}
-export function sectionHeadHtml(title, { more = '', moreTap = null, moreHref = '', count = null, data = null } = {}) {
-  const chev = `<span style="display:contents">${icons.chevron}</span>`;
-  const link = !more ? '' : moreHref ? `<a class="q-sh-more" href="${E(moreHref)}"${dataOf(data)}>${E(more)}${chev}</a>` : `<button class="q-sh-more" type="button"${dataOf({ more: moreTap, ...data })}>${E(more)}${chev}</button>`;
-  return `<div class="q-section-head q-shd"><h2>${E(title)}</h2>${count != null && count !== '' ? `<span class="q-sh-count num">${E(count)}</span>` : ''}${link}</div>`;
 }
 // A logo tile with no picture (none known, or every URL broken) shows a
 // picture of its kind on its tint, never a letter: a shield for a team (the
@@ -1012,25 +906,6 @@ export function wireLogos(root = document) {
   if (root.__longshotLogos) return;
   root.__longshotLogos = true;
   root.addEventListener('error', e => e.target?.tagName === 'IMG' && fall(e.target), true);
-}
-// (logoHtml / statusHtml: trusted markup for the `logo` and `status` slots; status may also be a list of tags.)
-export function sheetHeroHtml({ eyebrow = '', big = '', sub = '', tint = '', logos = [], tags = [], logoHtml = '', status = null, statusHtml = '' } = {}) {
-  const st = statusHtml || (Array.isArray(status) ? status.map(tagObjHtml).join('') : '');
-  return `<div class="q-sheet-hero"${styleOf(['--t', tint])}>${logoHtml ? `<div class="q-sh-logos">${logoHtml}</div>` : logos.length ? `<div class="q-sh-logos">${logos.map(l => logoTileHtml(l, { size: 48 })).join('')}</div>` : ''}${eyebrow ? `<span class="q-sh-eyebrow">${E(eyebrow)}</span>` : ''}${big !== '' && big != null ? `<span class="q-sh-big">${E(big)}</span>` : ''}${sub ? `<span class="q-sh-sub">${E(sub)}</span>` : ''}${tags.length ? `<div class="q-sh-row">${tags.map(tagObjHtml).join('')}</div>` : ''}${st ? `<div class="q-sh-row q-sh-status">${st}</div>` : ''}</div>`;
-}
-// movePillHtml(changePct, { solid, digits }); stockRowHtml({ logo, name, sub, spark, price, change, changePct, currency, open (a value → data-open), data })
-export function movePillHtml(changePct, { solid = true, digits = 2 } = {}) {
-  return `<span class="q-move ${moveTone(changePct, digits)}${solid ? ' solid' : ''}">${E(moveText(changePct, digits))}</span>`;
-}
-export function stockRowHtml({ logo = '', name = '', sub = '', spark = [], price = null, change = null, changePct = null, currency = '', open = null, data = null } = {}) {
-  const { tone } = stockMove({ spark, changePct, change });
-  const own = stockPill({ changePct, change, currency });
-  const chart = sparkSvg(spark, tone);
-  return `<div class="q-stock"${open != null ? ` role="button" tabindex="0"${dataOf({ open })}` : ''}${dataOf(data)}>${logoTileHtml(logo, { size: 40, alt: name, fallbackText: name, kind: 'company' })}<div class="q-stock-id"><b class="q-fit">${E(name)}</b>${sub ? `<small>${E(sub)}</small>` : ''}</div>${chart ? `<span class="q-stock-spark">${chart}</span>` : ''}<div class="q-stock-px"><b class="num" data-q-live>${E(stockPrice(price, currency))}</b>${own == null ? movePillHtml(changePct) : `<span class="q-move ${tone} solid">${E(own)}</span>`}</div></div>`;
-}
-export function placeTileHtml(kind = 'pin', size = '') {
-  const k = ['home', 'work', 'school', 'pin', 'star'].includes(kind) ? kind : 'pin';
-  return `<span class="${clsOf('q-tile', size && E(size), 'q-place', k)}" aria-hidden="true">${icons[k]}</span>`;
 }
 
 // ---- The premium layer (core.css "Premium layer"): Law's and Beats' look ----
@@ -1105,27 +980,6 @@ export function tile(icon, color = '', size = '') {
   const t = tinted(h('span', { class: `q-tile${size ? ` ${size}` : ''}`, 'aria-hidden': 'true', ...(icon instanceof Node ? {} : glyph(icon)) }), color);
   if (icon instanceof Node) t.append(icon);
   return t;
-}
-// The page's own head: a small grey line over its large title.
-export function pageHead(title, { over = '', tint = false, trailing = null } = {}) {
-  return h('header', { class: 'q-page-head' }, [over ? h('p', { class: `q-over${tint ? ' tint' : ''}`, text: over }) : null, h('h1', { text: title }), trailing]);
-}
-// A card of rows: [{ icon, color, title, sub, value, tags, href, onClick,
-// chevron, trailing }]; a row with neither href nor onClick stays still.
-export function rowCard(rows) {
-  return h(
-    'div',
-    { class: 'q-rowcard' },
-    rows.filter(Boolean).map(r => {
-      const tag = r.href ? 'a' : r.onClick ? 'button' : 'div';
-      const row = h(tag, { class: `q-ritem${r.chevron ?? tag !== 'div' ? ' chevron' : ''}`, ...(r.href ? { href: r.href } : {}), ...(tag === 'button' ? { type: 'button', onclick: r.onClick } : {}) });
-      if (r.icon != null && r.icon !== '') row.append(tile(r.icon, r.color, r.size || ''));
-      row.append(h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.title }), r.sub ? h('small', { text: r.sub }) : null, r.tags?.length ? h('span', { class: 'q-tags' }, r.tags.map(t => tag_(t))) : null]));
-      if (r.value !== undefined && r.value !== '') row.append(h('span', { class: 'q-ritem-value', text: String(r.value) }));
-      if (r.trailing) row.append(r.trailing);
-      return row;
-    })
-  );
 }
 const tag_ = t => (typeof t === 'string' ? h('span', { class: 'q-tag', text: t }) : tinted(h('span', { class: `q-tag ${t.tone || ''}`.trim(), text: t.text }), t.color));
 // A tinted capsule: tag('直播', 'red') or tag('3 天', '', '#hex').
@@ -1235,9 +1089,6 @@ const lockText = () => (globalThis.document?.documentElement.lang || 'zh').start
 export function lockedRow({ text = lockText() } = {}) {
   return h('div', { class: 'q-locked-row', role: 'status', html: `${icons.lock}<span>${E(text)}</span>` });
 }
-export function lockedRowHtml({ text = lockText() } = {}) {
-  return `<div class="q-locked-row" role="status">${icons.lock}<span>${E(text)}</span></div>`;
-}
 
 // A compact rail of games on now: liveStrip([{ min, rows: [{ logo, name,
 // score }], onOpen }]); each card has the minute in red, then a row per side.
@@ -1336,52 +1187,6 @@ export function stakeInput({ value = 0, presets = [], onChange = () => {}, curre
   return Object.defineProperties(root, { value: { get: () => cur }, set: { value: n => set(n, true) } });
 }
 
-// A move as a solid pill: movePill(changePct, { solid, digits }) with the
-// percent as a number (1.23 is +1.23%). Red up, green down, grey flat (the
-// Taiwan way: --q-up/--q-down/--q-flat); white text. A flat figure has no
-// sign (0.00%), a missing one is a dash. solid: false is the colour as text.
-const moveTone = (p, digits) => (Number.isFinite(p) ? (Math.abs(p) >= 0.5 * 10 ** -digits ? (p > 0 ? 'up' : 'down') : 'flat') : 'flat');
-const moveText = (p, digits) => (Number.isFinite(p) ? pct(p / 100, { digits }) : DASH);
-export function movePill(changePct, { solid = true, digits = 2 } = {}) {
-  return h('span', { class: `q-move ${moveTone(changePct, digits)}${solid ? ' solid' : ''}`, text: moveText(changePct, digits) });
-}
-
-// A stock in a list: stockRow({ logo, name, sub, spark: [numbers], price,
-// change, changePct, currency, onOpen | data }), 56px high. logo is a src (or
-// a list of them) for logoTile; price a number (format.mjs price, in
-// `currency`, default TWD) or text; a sparkline drawn from `spark` (2+
-// numbers) is coloured by the move; the pill under the price is movePill
-// (changePct in percent). `change` (the amount) only stands in when there's
-// no changePct: the pill shows it, coloured by its sign.
-const sparkSvg = (nums, tone) => {
-  const v = (nums || []).filter(Number.isFinite);
-  if (v.length < 2) return '';
-  const lo = Math.min(...v);
-  const span = Math.max(...v) - lo || 1;
-  const pts = v.map((n, i) => `${((i / (v.length - 1)) * 56).toFixed(1)},${(22 - ((n - lo) / span) * 20).toFixed(1)}`).join(' ');
-  return `<svg class="q-spark ${tone}" viewBox="0 0 56 24" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-};
-const stockMove = ({ spark, changePct, change }) => {
-  const x = Number.isFinite(changePct) ? changePct : Number.isFinite(change) ? change : null;
-  if (x != null) return { tone: moveTone(x, 2) };
-  const v = (spark || []).filter(Number.isFinite);
-  return { tone: v.length > 1 ? (v.at(-1) > v[0] ? 'up' : v.at(-1) < v[0] ? 'down' : 'flat') : 'flat' };
-};
-const stockPrice = (p, currency) => (typeof p === 'number' ? fmtPrice(p, currency || 'TWD') : p == null || p === '' ? DASH : String(p));
-const stockPill = ({ changePct, change, currency }) => (Number.isFinite(changePct) || change == null || change === '' ? null : typeof change === 'number' ? (change < 0 ? '−' : change > 0 ? '+' : '') + fmtPrice(Math.abs(change), currency || 'TWD') : String(change));
-export function stockRow({ logo = '', name = '', sub = '', spark = [], price = null, change = null, changePct = null, currency = '', onOpen = null, data = null } = {}) {
-  const { tone } = stockMove({ spark, changePct, change });
-  const own = stockPill({ changePct, change, currency });
-  const pill = own == null ? movePill(changePct) : h('span', { class: `q-move ${tone} solid`, text: own });
-  const chart = sparkSvg(spark, tone);
-  return h('div', { class: 'q-stock', ...(onOpen ? { role: 'button', tabindex: '0', onclick: onOpen, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { if (e.key === ' ') e.preventDefault?.(); onOpen(e); } } } : {}), ...dataProps(data) }, [
-    logoTile(logo, { size: 40, alt: name, fallbackText: name, kind: 'company' }),
-    h('div', { class: 'q-stock-id' }, [h('b', { class: 'q-fit', text: name }), sub ? h('small', { text: sub }) : null]),
-    chart ? h('span', { class: 'q-stock-spark', html: chart }) : null,
-    h('div', { class: 'q-stock-px' }, [h('b', { class: 'num', 'data-q-live': '', text: stockPrice(price, currency) }), pill])
-  ]);
-}
-
 // Lottery balls: ballRow([5, 12, …], { special, hit: [numbers drawn], size }).
 // A null among the numbers is an empty ball, still to pick. `special` (one
 // number or a list) is drawn red after the rest.
@@ -1393,119 +1198,3 @@ export function ballRow(nums, { special = [], hit = [], size = 28 } = {}) {
   return row;
 }
 
-// A saved place's tile: placeTile('home' | 'work' | 'school' | 'pin' | 'star'),
-// in its own colour (--q-place-*).
-export function placeTile(kind = 'pin', size = '') {
-  const k = ['home', 'work', 'school', 'pin', 'star'].includes(kind) ? kind : 'pin';
-  const t = tile(icons[k], '', size);
-  t.className += ` q-place ${k}`;
-  return t;
-}
-
-// ---- Home parts: ring, month calendar, panels, league tile (core.css "Home parts (r4)") ----
-const clamp01 = v => (Number.isFinite(Number(v)) ? Math.min(1, Math.max(0, Number(v))) : 0);
-const pad2 = n => String(n).padStart(2, '0');
-// An icon slot: an icons key or an svg string is a glyph, anything else text.
-const iconHtml = x => (isIcon(x) ? icons[x] : glyphHtml(x ?? ''));
-
-// -- Progress ring --
-const ringSvg = (v, size, stroke) => {
-  const r = (size - stroke) / 2;
-  const c = size / 2;
-  const arc = v > 0 ? `<circle class="q-ring-arc" cx="${c}" cy="${c}" r="${r}" fill="none" stroke-width="${stroke}" stroke-linecap="round" pathLength="100" stroke-dasharray="${+(v * 100).toFixed(2)} 100" transform="rotate(-90 ${c} ${c})"/>` : '';
-  return `<svg class="q-ring-svg" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle class="q-ring-track" cx="${c}" cy="${c}" r="${r}" fill="none" stroke-width="${stroke}"/>${arc}</svg>`;
-};
-const ringParts = (value, { size = 56, stroke = 6, label, sub = '', done = false, doneCheck = false } = {}) => {
-  const v = done === true ? 1 : clamp01(value);
-  const check = done === true || (doneCheck === true && v >= 1);
-  return { v, check, size: Math.max(16, Number(size) || 56), stroke: Math.max(1, Number(stroke) || 6), label: label ?? `${Math.round(v * 100)}%`, sub };
-};
-// progressRing(0.7, { size: 56, stroke: 6, label: '70%', sub: '', tint }): value 0..1 (clamped);
-// label centred (default the percent), sub a small line under it. `done: true` (or value >= 1 with
-// `doneCheck: true`): the ring full and a check glyph centred in place of the label.
-export function progressRing(value, opts = {}) {
-  const p = ringParts(value, opts);
-  const root = h('div', { class: clsOf('q-ring', opts.tint && 'tinted', p.check && 'done'), role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(p.v * 100)), html: ringSvg(p.v, p.size, p.stroke) }, [h('span', { class: 'q-ring-txt' }, [p.check ? h('i', { class: 'q-ring-check', 'aria-hidden': 'true', html: icons.check }) : h('b', { class: 'q-ring-l', text: String(p.label) }), p.sub ? h('small', { class: 'q-ring-s', text: String(p.sub) }) : null])]);
-  root.style.setProperty('--s', `${p.size}px`);
-  if (opts.tint) root.style.setProperty('--t', opts.tint);
-  return root;
-}
-
-// -- Month calendar --
-const WEEK = { zh: ['日', '一', '二', '三', '四', '五', '六'], en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'] };
-// month is 1..12. offset: blank cells before the 1st (Sunday-first week).
-export function monthGrid(year, month) {
-  const first = new Date(Date.UTC(year, month - 1, 1));
-  return { offset: first.getUTCDay(), days: new Date(Date.UTC(year, month, 0)).getUTCDate() };
-}
-const isoDay = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
-const todayKey = t => (t instanceof Date ? isoDay(t.getFullYear(), t.getMonth() + 1, t.getDate()) : typeof t === 'string' && t ? t : todayKey(new Date()));
-const calLang = lang => lang || (/^en/i.test(globalThis.document?.documentElement?.lang || '') ? 'en' : 'zh');
-const calParts = ({ year, month, marks = {}, today, lang, last } = {}) => {
-  const tk = todayKey(today);
-  const cell = (key, d) => { const mark = marks?.[key]; return { d, key, mark: mark ? String(mark).replace(/[^\w-]/g, '') : '', today: key === tk }; };
-  const week = WEEK[calLang(lang)] || WEEK.zh;
-  const n = Math.floor(Number(last));
-  if (n >= 1) {
-    const [ty, tm, td] = tk.split('-').map(Number);
-    const end = Date.UTC(ty, tm - 1, td);
-    const days_ = Array.from({ length: n }, (_, i) => { const t = new Date(end - (n - 1 - i) * 864e5); return cell(isoDay(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()), t.getUTCDate()); });
-    return { offset: new Date(end - (n - 1) * 864e5).getUTCDay(), days: n, tk, week, days_, label: `last ${n}` };
-  }
-  const g = monthGrid(year, month);
-  return { ...g, tk, week, label: `${year}-${pad2(month)}`, days_: Array.from({ length: g.days }, (_, i) => cell(isoDay(year, month, i + 1), i + 1)) };
-};
-// monthCalendar({ year, month (1..12), marks: { 'YYYY-MM-DD': 'done' | 'part' | any word }, today, onPick(key) | data }).
-// `last: N` instead of year/month: the trailing N days ending today, in Sunday-first week rows (leading blanks).
-// today: a Date or 'YYYY-MM-DD' (default now). Marks are `.m-<word>`; done is a filled dot, part a soft one.
-export function monthCalendar({ year, month, marks = {}, today, lang, onPick = null, data = null, last = null } = {}) {
-  const p = calParts({ year, month, marks, today, lang, last });
-  const root = h('div', { class: 'q-cal', role: 'group', 'aria-label': p.label });
-  root.style.setProperty('--off', String(p.offset));
-  root.append(...p.week.map(w => h('span', { class: 'q-cal-w', 'aria-hidden': 'true', text: w })));
-  for (const [i, d] of p.days_.entries()) {
-    const cls = clsOf('q-cal-d', d.mark && `m-${d.mark}`, d.today && 'today');
-    const props = { class: cls, 'aria-label': d.key + (d.mark ? ` ${d.mark}` : ''), ...(d.today ? { 'aria-current': 'date' } : {}), text: String(d.d) };
-    const el = onPick || data ? h('button', { type: 'button', ...props, ...dataProps(data), 'data-day': d.key, onclick: () => onPick?.(d.key) }) : h('span', props);
-    if (i === 0) el.style.setProperty('grid-column-start', String(p.offset + 1));
-    root.append(el);
-  }
-  return root;
-}
-
-// -- Panel grid --
-// panelGrid([{ label, big, sub, icon (an icons key / svg / text), tint, unit, level, art, data, onOpen }]): two columns of tiles.
-// unit: a <small> right after the big number ('°', 'mm'); level: a small tag (a string or { text, tone }); art: a node
-// (or trusted HTML) drawn beside the big value, e.g. a sparkline; data: data-* attributes; onOpen makes the tile a
-// role=button (Enter/Space too). The twin: `open` (a value) makes it role=button tabindex=0 data-open.
-const panelTone = t => (typeof t === 'object' && t && t.tone ? String(t.tone).replace(/[^\w-]/g, '') : '');
-const panelLevel = t => (typeof t === 'object' && t ? t.text : t);
-const hasLevel = t => { const x = panelLevel(t); return x != null && x !== ''; };
-export function panelGrid(items) {
-  return h('div', { class: 'q-panels' }, (items || []).map(it => {
-    const lv = hasLevel(it.level) ? h('span', { class: clsOf('q-panel-lv', panelTone(it.level)), text: String(panelLevel(it.level)) }) : null;
-    const big = h('b', { class: 'q-panel-v' }, [String(it.big ?? ''), it.unit != null && it.unit !== '' ? h('small', { class: 'q-panel-u', text: String(it.unit) }) : null]);
-    const art = it.art == null || it.art === '' ? null : typeof it.art === 'string' ? h('span', { class: 'q-panel-art', 'aria-hidden': 'true', html: it.art }) : h('span', { class: 'q-panel-art', 'aria-hidden': 'true' }, [it.art]);
-    const el = h('div', { class: 'q-panel', ...(it.onOpen ? { role: 'button', tabindex: '0', onclick: it.onOpen, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { if (e.key === ' ') e.preventDefault?.(); it.onOpen(e); } } } : {}), ...dataProps(it.data) }, [
-      h('span', { class: 'q-panel-l' }, [it.icon ? h('i', { 'aria-hidden': 'true', html: iconHtml(it.icon) }) : null, h('span', { text: it.label ?? '' }), lv]),
-      art ? h('div', { class: 'q-panel-row' }, [big, art]) : big,
-      it.sub ? h('small', { class: 'q-panel-s', text: it.sub }) : null
-    ]);
-    if (it.tint) el.style.setProperty('--t', it.tint);
-    return el;
-  }));
-}
-export function panelGridHtml(items) {
-  return `<div class="q-panels">${(items || []).map(it => {
-    const lv = hasLevel(it.level) ? `<span class="${clsOf('q-panel-lv', E(panelTone(it.level)))}">${E(panelLevel(it.level))}</span>` : '';
-    const big = `<b class="q-panel-v">${E(it.big ?? '')}${it.unit != null && it.unit !== '' ? `<small class="q-panel-u">${E(it.unit)}</small>` : ''}</b>`;
-    const art = typeof it.art === 'string' && it.art ? `<span class="q-panel-art" aria-hidden="true">${it.art}</span>` : '';
-    return `<div class="q-panel"${it.open != null ? ` role="button" tabindex="0"${dataOf({ open: it.open })}` : ''}${dataOf(it.data)}${styleOf(['--t', it.tint])}><span class="q-panel-l">${it.icon ? `<i aria-hidden="true">${iconHtml(it.icon)}</i>` : ''}<span>${E(it.label ?? '')}</span>${lv}</span>${art ? `<div class="q-panel-row">${big}${art}</div>` : big}${it.sub ? `<small class="q-panel-s">${E(it.sub)}</small>` : ''}</div>`;
-  }).join('')}</div>`;
-}
-
-// -- League tile --
-// leagueTile({ logo (src or list), name, sub, onOpen | data }): a 56px logo over the name; for a rail.
-export function leagueTile({ logo = '', name = '', sub = '', onOpen = null, data = null } = {}) {
-  return h('button', { class: 'q-league', type: 'button', ...dataProps(data), ...(onOpen ? { onclick: onOpen } : {}) }, [logoTile(logo, { size: 56, alt: name, fallbackText: name }), h('strong', { text: name }), sub ? h('small', { text: sub }) : null]);
-}

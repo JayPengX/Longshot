@@ -907,11 +907,11 @@ async function shareSlip(slip) {
   }
 }
 
-// 總覽 and 戰績: a segmented control under the tab's 注單 title.
+// 總覽 and 收支 (紀錄 has Play's own 戰績): a segmented control under the 注單 title.
 const views2 = segmented(
   [
     { id: 'open', label: W('總覽', 'Overview') },
-    { id: 'stats', label: W('戰績', 'Record') }
+    { id: 'stats', label: W('收支', 'Returns') }
   ],
   { value: tab, label: W('檢視', 'View'), onChange: id => showTab(id) }
 );
