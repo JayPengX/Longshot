@@ -291,19 +291,9 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .sl-label { padding: 0 4px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 .sl-chips { margin-top: -6px; flex-wrap: wrap; overflow: visible; }
 /* The stake: NT$ and a big number, the usual amounts a tap away. */
-.sl-stake { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--q-surface); }
-.sl-stake-field { display: grid; gap: 4px; }
-.sl-stake-field .sl-label { padding: 0; }
-.sl-stake-box { display: flex; align-items: baseline; gap: 6px; }
-.sl-stake-box b { color: var(--q-label-2); font: 600 20px/1 var(--q-font-rounded); }
-.sl-stake-box input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label); font: 700 34px/1.15 var(--q-font-rounded); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; outline: none; }
-.sl-quick { flex-wrap: nowrap; }
-.sl-quick .q-chip { flex: 1 1 0; justify-content: center; min-width: 0; padding: 0 6px; font-variant-numeric: tabular-nums; }
 .sl-errors { display: grid; gap: 6px; margin: 0; padding: 12px 14px; list-style: none; border-radius: 16px; background: var(--wash-bad); color: var(--bad); font: 500 14px/1.35 var(--q-font); }
 /* What it pays: all correct, big, then the lines that make it. */
-.sl-pay { display: grid; gap: 12px; padding: 16px; border-radius: 20px; background: var(--q-surface); }
 .pay-big { max-width: 100%; overflow: hidden; color: var(--accent); font: 700 36px/1.1 var(--q-font-rounded); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sl-pay-rows { display: grid; gap: 6px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pay-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--q-label-2); font: 400 14px/1.3 var(--q-font); }
 .pay-line span { min-width: 0; }
 .pay-line strong { flex: none; color: var(--q-label); font: 600 15px/1.3 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
@@ -855,20 +845,13 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* (.q-fit-wrap titles shrink to one line first and wrap only when 72% can't fit.) */
 .q-ritem .q-ritem-title:not(.q-fit-wrap), .q-ritem-text .q-ritem-title:not(.q-fit-wrap), .q-ritem-title.q-wrapped, .sc-card-name.q-wrapped { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .sl { min-width: 0; }
-.sl .q-sheet-foot .place-button { flex: 1; width: auto; min-width: 0; }
 .sl-leg { min-width: 0; }
 .sl > * { min-width: 0; max-width: 100%; }
-.sl-quick { flex-wrap: wrap; overflow: visible; }
-.sl-quick .q-chip { flex: 1 1 56px; justify-content: center; }
 #parlay-body { min-width: 0; }
-.sl-stake-field, .sl-stake-box, .sl-stake-box input { min-width: 0; max-width: 100%; }
-.sl-stake-box input { width: 100%; }
 .sl-leg > :first-child { flex: none; min-width: 32px; }
 .sl-leg > .logo, .sl-leg > picture, .sl-leg > .league-badge { width: 32px; height: 32px; }
 .sl-leg picture img, .sl-leg > .logo { width: 32px; height: 32px; }
 .slip-leg-game { white-space: normal; overflow: visible; text-overflow: clip; }
-.sl-pay:has(.q-sheet-hero) { padding: 0; background: none; }
-.sl-pay .q-sheet-hero { margin: 0; }
 /* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
 .q-section { margin-top: 28px; }
 .pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); }
@@ -881,28 +864,6 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* A slip group's head keeps its title whole; the summary wraps under it. */
 .q-section-head h2 { white-space: nowrap; }
 .group-sum { min-width: 0; text-align: right; }
-/* The stake reads as a field to type in: a box with a caret, blue while typing. */
-.sl-stake-box { align-items: center; padding: 8px 14px; border-radius: 14px; background: var(--q-page, var(--q-fill-3)); box-shadow: inset 0 0 0 1.5px var(--q-sep); cursor: text; }
-.sl-stake-box:focus-within { box-shadow: inset 0 0 0 2px var(--q-blue); }
-.sl-stake-box input { caret-color: var(--q-blue); }
-.sl-stake-box::after { content: ''; flex: none; width: 18px; height: 18px; background: var(--q-label-3, var(--q-label-2)); -webkit-mask: var(--sl-pen) center / contain no-repeat; mask: var(--sl-pen) center / contain no-repeat; }
-.sl-stake-box:focus-within::after { background: var(--q-blue); }
-.sl-stake { --sl-pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E"); }
-/* 確認下注 docked at the sheet's foot, a solid bar with the balance on its
-   left (Jay 2026-10-22: the floating button and 餘額 pill let the payout
-   card slide under them while typing the stake). Nothing shows through it. */
-.sl .q-sheet-foot.q-sf { gap: 14px; max-width: none; }
-.sl > .sl-rules + .q-sheet-foot { margin-top: 8px; }
-.sl .q-sheet-foot .place-button { min-height: 50px; padding-inline: 12px; box-shadow: none; }
-.place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
-.sl .q-sf .q-sf-sum b.q-fit { display: block; overflow: hidden; }
-/* The foot is the sheet's last thing and keeps the home bar's room itself:
-   no sheet padding under it for the content to scroll through. */
-#slip-sheet[open] { padding-bottom: 0; }
-.sl .q-sf .q-sf-sum { flex: 0 1 auto; min-width: 0; max-width: 42%; }
-.sl .q-sf .q-sf-sum b { font-size: 17px; font-variant-numeric: tabular-nums; }
-/* Typing the stake: the keys cover the home bar, so the foot sits right on them. */
-html.q-kb .sl .q-sheet-foot.q-sf { padding-block: 8px; }
 /* Team logos fill their tile on white, no dark frame around the crest (as Securities' stock logos; html: over the kit's .q-logo, loaded later). */
 html .q-logo:not(.text) { background: #ffffff; }
 html .q-logo img { width: 88%; height: 88%; }
@@ -1039,3 +1000,52 @@ html .q-logo img { width: 88%; height: 88%; }
   #home-body > * { grid-column: 1 / -1; min-width: 0; }
   #home-body > .pl-half { grid-column: auto; }
 }
+
+/* ---- The 投注單 sheet (Jay 2026-10-22, "redesign") ----
+   The ways to buy in the sheet's head under its title; the picks and the
+   payout lines scroll; the bet panel is docked at the foot: the stake and
+   what it pays side by side, the quick amounts, one button. Typing the
+   stake (.sl-typing) the sheet is that panel alone at the top of the
+   screen, so the iPhone's keys and their ^ ˅ ✓ bar never cover it. */
+#slip-sheet[open] { display: flex; flex-direction: column; padding-bottom: 0; }
+#slip-sheet #parlay-body { flex: 1 0 auto; display: flex; flex-direction: column; padding-bottom: 0; }
+#slip-sheet .sl { flex: 1 0 auto; display: flex; flex-direction: column; }
+#slip-sheet .sl > .sl-rules { align-self: center; }
+#slip-sheet .sl > .sl-panel { margin-top: auto; }
+#slip-sheet .q-sheet-head:has(> .sl-modes) { grid-template-rows: auto auto; row-gap: 12px; padding-bottom: 12px; box-shadow: 0 var(--q-hairline) 0 var(--q-sep); }
+#slip-sheet .q-sheet-head > .sl-modes { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; width: auto; margin: 0 4px; }
+#slip-sheet .q-sheet-head > h2 { grid-row: 1; }
+#slip-sheet .q-sheet-head > .q-close { grid-column: 3; grid-row: 1; justify-self: end; }
+.sl-pay { padding: 12px 16px; border-radius: 18px; background: var(--q-surface); }
+.sl-pay-rows { display: grid; gap: 8px; }
+.pay-line.good strong { color: var(--good); }
+.pay-line.bad strong { color: var(--bad); }
+.sl-panel.q-sheet-foot { position: sticky; bottom: 0; display: grid; gap: 10px; max-width: none; margin-top: 4px; padding-top: 12px; border-top: 0; border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--q-sep), 0 -12px 24px -18px rgba(0, 0, 0, 0.45); }
+.sl-sum { display: none; }
+.sl-panel-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
+.sl-panel-top > span { min-width: 0; white-space: nowrap; }
+.sl-bal { font-weight: 500; font-variant-numeric: tabular-nums; }
+.sl-bal.short { color: var(--bad); }
+.sl-stake-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 10px; }
+.sl-stake-box { display: flex; align-items: center; gap: 6px; min-width: 0; height: 54px; padding: 0 14px; border-radius: 14px; background: var(--q-fill-3); box-shadow: inset 0 0 0 1.5px transparent; cursor: text; transition: box-shadow 0.15s; }
+.sl-stake-box:focus-within { background: var(--q-surface); box-shadow: inset 0 0 0 2px var(--q-blue); }
+.sl-stake-box b { flex: none; color: var(--q-label-2); font: 600 17px/1 var(--q-font-rounded); }
+.sl-stake-box input { flex: 1; width: 100%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label); caret-color: var(--q-blue); font: 700 26px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; outline: none; }
+.sl-win { display: grid; align-content: center; justify-items: end; gap: 2px; min-width: 0; max-width: 46vw; padding: 0 4px; text-align: right; }
+.sl-win small { color: var(--q-label-2); font: 500 12px/1.2 var(--q-font); white-space: nowrap; }
+.sl-win b { display: block; max-width: 100%; overflow: hidden; color: var(--q-green); font: 700 22px/1.15 var(--q-font-rounded); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sl-quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.sl-quick button { min-width: 0; height: 34px; padding: 0; border: 0; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label); font: 600 14px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sl-quick button[aria-pressed='true'] { background: color-mix(in srgb, var(--q-blue) 18%, transparent); color: var(--q-blue); }
+.sl-panel .sl-errors { padding: 8px 12px; border-radius: 12px; font-size: 13px; }
+.sl-panel .place-button { width: 100%; min-width: 0; min-height: 52px; padding-inline: 14px; border-radius: 16px; box-shadow: none; font-size: 17px; }
+.place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
+.sl-win b.q-fit { display: block; }
+/* Typing the stake: the panel alone, at the top of what's seen. */
+#slip-sheet.sl-typing[open], html.q-kb #slip-sheet.sl-typing[open] { width: min(520px, calc(100vw - 16px)); height: fit-content; max-height: none; margin: calc(var(--sl-top, 0px) + max(env(safe-area-inset-top), 12px) + 6px) auto auto; padding-top: 4px; border-radius: 26px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); }
+#slip-sheet.sl-typing #parlay-body, #slip-sheet.sl-typing .sl { flex: none; }
+#slip-sheet.sl-typing::before, #slip-sheet.sl-typing .q-sheet-head { display: none; }
+#slip-sheet.sl-typing .sl > :not(.sl-panel):not(.sl-note) { display: none; }
+#slip-sheet.sl-typing .sl-panel { position: static; margin: 0 calc(-1 * var(--q-margin)); padding: 14px var(--q-margin) 16px; border-radius: 0; box-shadow: none; background: none; }
+#slip-sheet.sl-typing .sl-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 2px; color: var(--q-label); font: 600 15px/1.2 var(--q-font); }
+#slip-sheet.sl-typing .sl-sum b { color: var(--q-label); font: 700 15px/1.2 var(--q-font-rounded); }

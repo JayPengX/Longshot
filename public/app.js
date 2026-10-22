@@ -1910,6 +1910,7 @@ function renderParlay() {
   const droppedTag = note ? el('p', { class: 'sl-note' }, [el('span', { class: 'q-tag orange', text: note })]) : null;
 
   if (n === 0) {
+    placeModes(body, null);
     const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
     body.replaceChildren(
       el('div', { class: 'sl' }, [
@@ -1936,7 +1937,6 @@ function renderParlay() {
     )
   );
   const parts = [
-    modes,
     droppedTag,
     el('div', { class: 'sl-legs-head' }, [
       el('span', { text: t('slipLegs', { n }) }),
@@ -1977,7 +1977,13 @@ function renderParlay() {
       )
     );
   }
-  // The stake in NT$, kept to the lottery's NT$10 unit (each combination's).
+  // The bet panel, docked at the sheet's foot (Jay 2026-10-22, "redesign"):
+  // what's staked and what it pays side by side, the quick amounts, the one
+  // button; the balance on the panel's top line. Typing the stake, the slip
+  // becomes this panel alone at the top of the screen (slipTyping), clear of
+  // the iPhone's keys and their ^ ˅ ✓ bar however tall they are.
+  const totals = sizes.length && cost > 0 ? payoutTotals({ legs: slip, sizes, stake, mode }) : null;
+  const money = funds();
   const stakeInput = el('input', {
     type: 'text',
     value: String(stake),
@@ -1987,47 +1993,112 @@ function renderParlay() {
     oninput: event => {
       setStake(Number(event.target.value.replace(/\D/g, '')) || 0);
       clearTimeout(stakeTimer);
-      stakeTimer = setTimeout(rerender, 250);
+      stakeTimer = setTimeout(rerender, 200);
     },
     onchange: event => {
       clearTimeout(stakeTimer);
-      const value = Math.max(0, Math.round((Number(event.target.value) || 0) / SLIP_RULES.unit)) * SLIP_RULES.unit;
-      if (value === state.slipStake) return void (event.target.value = String(value));
+      const value = roundStake(Number(event.target.value) || 0);
+      event.target.value = String(value);
+      if (value === state.slipStake) return;
       setStake(value);
       // Redraw after the event: redrawing removes this input, and removing a
       // focused input fires another change while the first is still running.
       setTimeout(rerender);
-    }
+    },
+    onfocus: () => slipTyping(true),
+    onblur: () => setTimeout(() => document.activeElement?.closest?.('.sl-stake-box') || slipTyping(false))
   });
   numberField(stakeInput, { digits: 6 });
-  parts.push(
-    el('div', { class: 'sl-stake' }, [
-      el('label', { class: 'sl-stake-field' }, [el('span', { class: 'sl-label', text: mode === 'single' && n > 1 ? t('slipStakeEach') : mode === 'system' ? t('slipStakeCombo') : t('slipStake') }), el('span', { class: 'sl-stake-box' }, [el('b', { text: 'NT$' }), stakeInput])]),
-      el('div', { class: 'q-chips sl-quick', role: 'group', 'aria-label': t('slipStake') }, QUICK_STAKES.map(v => el('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(stake === v), text: fmtInt(v), onclick: () => (setStake(v), rerender()) })))
-    ])
-  );
-  if (errors.length) {
-    parts.push(el('ul', { class: 'sl-errors' }, errors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
-  }
-  if (sizes.length && !errors.includes('stakeUnit') && cost > 0) parts.push(payoutBox(slip, sizes, stake, mode));
-  // The place button docked at the sheet's foot, the balance on its left.
+  // (A tap on the panel's buttons keeps the keys up: the field stays focused.)
+  const keep = { onmousedown: event => event.preventDefault() };
+  const stakeLabel = mode === 'single' && n > 1 ? t('slipStakeEach') : mode === 'system' ? t('slipStakeCombo') : t('slipStakeOne');
+  const shownErrors = errors.filter(e => !(e === 'stakeUnit' && typingStake()));
+  const product = slip.reduce((p, l) => p * l.odds, 1);
+  const panel = el('div', { class: 'q-sheet-foot sl-panel' }, [
+    // (Typing only: what's on the slip, in one line.)
+    el('div', { class: 'sl-sum' }, [el('span', { text: `${t('slipLegs', { n })} · ${t(`slipMode_${mode}`)}` }), mode === 'parlay' ? el('b', { class: 'num', text: `×${fmtOdds(product)}` }) : null]),
+    el('div', { class: 'sl-panel-top' }, [el('span', { text: stakeLabel }), el('span', { class: `sl-bal${cost > money ? ' short' : ''}`, text: t('placeNote', { v: fmtMoney(money, { sign: money < 0 }) }) })]),
+    el('div', { class: 'sl-stake-row' }, [
+      el('label', { class: 'sl-stake-box' }, [el('b', { text: 'NT$' }), stakeInput]),
+      el('div', { class: 'sl-win' }, [el('small', { text: t('payAll') }), el('b', { class: 'num q-fit', text: totals ? fmtMoney(totals.allNet, { sign: false }) : '—' })])
+    ]),
+    el('div', { class: 'sl-quick', role: 'group', 'aria-label': t('slipStake') },
+      QUICK_STAKES.map(v => el('button', { type: 'button', ...keep, 'aria-pressed': String(stake === v), text: fmtInt(v), onclick: () => {
+        setStake(v);
+        const field = document.querySelector('.sl-stake-box input');
+        if (field) field.value = String(v);
+        kit.haptic();
+        rerender();
+      } }))
+    ),
+    shownErrors.length ? el('ul', { class: 'sl-errors' }, shownErrors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))) : null,
+    placeButton(legs, sizes, cost, shownErrors, keep)
+  ]);
+  // What the slip pays, line by line (the odds multiplied, the cost, the tax).
+  if (totals) parts.push(payoutBox(slip, sizes, stake, mode));
   parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tell({ lang: state.locale, icon: 'book', title: t('slipRulesTitle'), body: t('slipRulesNote') }) }));
-  parts.push(el('div', { class: 'q-sheet-foot q-sf' }, placeButton(legs, sizes, cost, errors)));
+  parts.push(panel);
   const next = el('div', { class: 'sl' }, parts);
-  // Typing a stake: its box stays as it is (a new field would drop the
-  // keyboard and what's typed so far) and everything around it is redrawn,
-  // whether the redraw is the typing's own or the board's.
+  placeModes(body, modes);
+  // Typing a stake: its field stays as it is (a new one would drop the keys
+  // and what's typed so far) and everything around it is redrawn, whether
+  // the redraw is the typing's own or the board's.
   const old = body.firstElementChild;
-  const typing = document.activeElement?.closest?.('.sl-stake-box') && old?.contains(document.activeElement) ? old.querySelector(':scope > .sl-stake') : null;
-  const fresh = next.querySelector(':scope > .sl-stake');
-  if (!typing || !fresh) return void body.replaceChildren(next);
-  for (const child of [...old.children]) if (child !== typing) child.remove();
-  const kids = [...next.children];
-  const at = kids.indexOf(fresh);
-  typing.before(...kids.slice(0, at));
-  typing.after(...kids.slice(at + 1));
-  typing.querySelector('.sl-label')?.replaceWith(fresh.querySelector('.sl-label'));
-  typing.querySelector('.sl-quick')?.replaceWith(fresh.querySelector('.sl-quick'));
+  if (!typingStake() || !old?.contains(document.activeElement)) return void body.replaceChildren(next);
+  let o = old;
+  let f = next;
+  for (const sel of ['.sl-panel', '.sl-stake-row', '.sl-stake-box']) {
+    const oc = o.querySelector(`:scope > ${sel}`);
+    const fc = f.querySelector(`:scope > ${sel}`);
+    if (!oc || !fc) return void body.replaceChildren(next);
+    for (const child of [...o.children]) if (child !== oc) child.remove();
+    const kids = [...f.children];
+    const at = kids.indexOf(fc);
+    oc.before(...kids.slice(0, at));
+    oc.after(...kids.slice(at + 1));
+    o = oc;
+    f = fc;
+  }
+}
+const typingStake = () => Boolean(document.activeElement?.closest?.('#slip-sheet .sl-stake-box'));
+const roundStake = v => Math.max(0, Math.round(v / SLIP_RULES.unit)) * SLIP_RULES.unit;
+// 單場 / 全部過關 / 過關組合 in the sheet's own head, under its title: never
+// half under the head as the slip scrolls.
+function placeModes(body, modes) {
+  const head = body.closest('dialog')?.querySelector('.q-sheet-head');
+  if (!head) return;
+  const had = head.querySelector(':scope > .sl-modes');
+  if (!modes) return void had?.remove();
+  had ? had.replaceWith(modes) : head.append(modes);
+}
+// Typing the stake: the slip is its bet panel alone, at the top of what's
+// seen (visualViewport: where iOS slid the screen to), its other parts back
+// when the keys go and the slip from its top again.
+let typingWatch = null;
+function slipTyping(on) {
+  const dialog = $('slip-sheet');
+  if (!dialog) return;
+  const vv = globalThis.visualViewport;
+  if (on) {
+    const place = () => dialog.style.setProperty('--sl-top', `${Math.max(0, Math.round(vv?.offsetTop || 0))}px`);
+    place();
+    if (vv && !typingWatch) {
+      typingWatch = place;
+      vv.addEventListener('resize', place);
+      vv.addEventListener('scroll', place);
+    }
+    dialog.classList.add('sl-typing');
+    return;
+  }
+  if (typingWatch && vv) {
+    vv.removeEventListener('resize', typingWatch);
+    vv.removeEventListener('scroll', typingWatch);
+  }
+  typingWatch = null;
+  if (!dialog.classList.contains('sl-typing')) return;
+  dialog.classList.remove('sl-typing');
+  dialog.style.removeProperty('--sl-top');
+  dialog.scrollTop = 0;
 }
 let stakeTimer = 0;
 let flashTimer = 0;
@@ -2150,11 +2221,9 @@ function payoutBox(legs, sizes, stake, mode) {
   rows.push(payLine(t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false })));
   if (taxed) rows.push(payLine(t('payTax', { rate: taxRateText() }), `−${fmtMoney(allGross - allTaxed, { sign: false })}`));
   if (mode !== 'parlay' && least < allNet) rows.push(payLine(t('payLeastShort'), fmtMoney(least, { sign: false })));
-  return el('div', { class: 'sl-pay' }, [
-    // sheetHero in green: the payout big, the profit under it.
-    kitUI.sheetHero({ eyebrow: t('payAll'), big: fmtMoney(allNet, { sign: false }), sub: t('payProfit', { v: fmtMoney(allNet - cost) }), tint: allNet > cost ? 'var(--q-green)' : 'var(--q-red)' }),
-    el('div', { class: 'sl-pay-rows' }, rows)
-  ]);
+  // (What it pays all correct is the bet panel's; here the profit closes the lines.)
+  rows.push(payLine(t('payProfitLabel'), fmtMoney(allNet - cost), allNet > cost ? 'good' : 'bad'));
+  return el('div', { class: 'sl-pay' }, [el('div', { class: 'sl-pay-rows' }, rows)]);
 }
 function payCell(label, value, cls = '', sub = '') {
   return el('div', { class: 'pay-cell' }, [el('small', { text: label }), el('strong', { class: cls, text: value }), sub ? el('small', { class: 'pay-sub', text: sub }) : null]);
@@ -2404,25 +2473,29 @@ function legRecord(bet) {
 }
 
 // The 模擬下注 button: buys the slip on the practice account.
-function placeButton(legs, sizes, cost, errors) {
+function placeButton(legs, sizes, cost, errors, keep = {}) {
   const t = state.t;
   const money = funds();
   const short = cost > money;
   // Opened on the last board saved: bets wait for today's odds.
   const updating = Boolean(state.fromSnapshot);
-  const drawnStake = state.slipStake;
   const blocked = errors.length > 0 || sizes.length === 0 || short || !state.accountReady || updating || state.placing;
   const button = el('button', {
       class: 'q-btn primary place-button',
       type: 'button',
       disabled: blocked ? '' : null,
-      // One line: what's bought for how much.
+      ...keep,
       onclick: () => place()
     }, [el('span', { class: 'q-fit', text: state.placing ? t('placing') : updating ? t('placeUpdating') : short ? t('placeLow') : t('placeSlip', { v: fmtMoney(cost, { sign: false }) }) })]);
   async function place() {
-        // A stake typed since this button was drawn (the tap that left the
-        // field): drawn again with it, never bought at the old amount.
-        if (state.slipStake !== drawnStake) return void (clearTimeout(stakeTimer), renderParlay());
+        // The keys down first; the stake as typed, to the NT$10 unit, and
+        // what it costs now (a digit typed a moment ago counts).
+        clearTimeout(stakeTimer);
+        if (state.slipStake % SLIP_RULES.unit) setStake(roundStake(state.slipStake));
+        document.activeElement?.blur?.();
+        const quote = currentQuote(legs);
+        const { cost, sizes } = quote;
+        if (quote.errors.length || !sizes.length || !(cost > 0)) return void renderParlay();
         state.slipNote = null;
         // Bought at the odds shown now: the slip redraws with every refresh
         // and takes each change at once (flashing), so what it shows is what's
@@ -2448,7 +2521,7 @@ function placeButton(legs, sizes, cost, errors) {
         if (!picks) return stop();
         if (takeOddsChanges(picks)) renderParlay();
         let { records, slips } = build(picks);
-        if (cost > funds()) return;
+        if (cost > funds()) return void renderParlay();
         // Every purchase asks first: what it costs, and the most it can pay.
         const most = slips.reduce((sum, one) => sum + Math.max(0, slipRange(one).most), 0);
         const asked = await ask({
@@ -2545,8 +2618,7 @@ function placeButton(legs, sizes, cost, errors) {
         slipChanged();
         showTab('history');
   }
-  // Docked at the sheet's foot (the kit's sheetFoot): the balance on the left, the button.
-  return [el('div', { class: 'q-sf-sum' }, [el('small', { text: t('balance') }), el('b', { class: 'num q-fit', text: fmtMoney(money, { sign: money < 0 }) })]), button];
+  return button;
 }
 
 
