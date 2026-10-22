@@ -35,7 +35,7 @@ h1, h2, h3, p { margin: 0; }
 .back-low { color: var(--bad); }
 /* The kit's column (quadra.css .q-col): the phone's 16 px in, the iPad's whole width. */
 .page { --q-margin: var(--q-gutter, 16px); max-width: var(--q-col, 640px); margin: 0 auto; padding: 8px var(--q-margin) calc(48px + var(--q-nav)); }
-body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(120px + var(--q-nav)); }
+body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-nav)); }
 .q-gl { display: inline-grid; place-items: center; width: 16px; height: 16px; }
 .q-gl svg { width: 100%; height: 100%; }
 .pl-count { flex: none; color: var(--q-label-2); font: 600 15px/1 var(--q-font); font-variant-numeric: tabular-nums; }
@@ -325,8 +325,13 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .slip-bar-main strong { overflow: hidden; font: 600 15px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .slip-bar-main small { overflow: hidden; color: var(--q-label-2); font: 400 13px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .slip-bar-go { flex: none; padding: 10px 16px; border-radius: 999px; background: var(--accent); color: #fff; font: 600 15px/1 var(--q-font); }
-.slip-bar.in-sheet { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 calc(12px + env(safe-area-inset-bottom)); padding: 8px 8px 8px 10px; border: 0; border-radius: 28px; background: var(--q-glass-strong); -webkit-backdrop-filter: var(--q-glass-blur); backdrop-filter: var(--q-glass-blur); box-shadow: var(--q-glass-rim), var(--q-glass-drop); color: var(--q-label); text-align: left; }
-@media (min-width: 721px) { #slip-bar { bottom: calc(var(--q-nav) + 18px); } }
+.slip-bar.in-sheet { position: sticky; bottom: calc(-16px - max(env(safe-area-inset-bottom) - 8px, 0px)); z-index: 2; display: flex; align-items: center; gap: 12px; width: calc(100% + 2 * var(--q-margin)); margin: auto calc(-1 * var(--q-margin)) calc(-16px - max(env(safe-area-inset-bottom) - 8px, 0px)); padding: 10px var(--q-margin) calc(10px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; background: var(--q-sheet); box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep); color: var(--q-label); text-align: left; }
+/* (A game's sheet ends on the slip's row, as a kit sheet's foot does.) */
+.game-sheet[open]:has(> #game-sheet-bar:not([hidden])) { display: flex; flex-direction: column; }
+.game-sheet > #game-sheet-body { flex: none; padding-bottom: 16px; }
+/* (Docked, the slip's row is slimmer than the old floating pill.) */
+:is(.q-dock #slip-bar, .slip-bar.in-sheet) .slip-bar-count { width: 32px; height: 32px; font-size: 15px; }
+:is(.q-dock #slip-bar, .slip-bar.in-sheet) .slip-bar-go { padding: 9px 14px; }
 
 /* ==== 8 紀錄 ==== */
 .pl-hist-seg { margin-bottom: 16px; }
