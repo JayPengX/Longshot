@@ -79,6 +79,11 @@ Live: https://jaypengx.github.io/Quadra-Play/
   words: 幸運號碼, 大力士分數); a `retired` card is never sold but one bought
   before still scratches. A kit export added from now on is used with a
   `?.` fallback until phones have it (the rulebook's §4).
+  The counter (`lottery-ui.js`): a shelf a price, each card its whole ticket
+  (`art/ticket/s/`, 360 px) with 頭獎 and 中獎率; a card's page has 玩法 as
+  steps, every prize with its odds (1/N of 發行張數) and buys 1 to 10. The
+  scratch sheet shows the whole ticket (never cut at a side), a
+  fingertip-wide coin, and a tap on a small scratch-off opens it whole.
 - **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress, cash out), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
 - **Opens fast:** on the saved board (3 days, `SNAPSHOT_V`); the loading
   screen lifts once today's board, the balance and the live games are in

@@ -156,7 +156,8 @@ export function faceDrawer({ el, t, lang, money }) {
       for (let x = 0; x < C; x++) if (x === 0 || y === R - 1 || (y === 0 ? x % 2 === 0 : x === C - 1 ? y % 2 === 1 : bit())) d += `M${x} ${y}h1v1h-1z`;
     return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${C} ${R}' shape-rendering='crispEdges'><path d='${d}'/></svg>`)}`;
   };
-  function ticketFace(id, f, serial = '') {
+  // (`src`: another picture of it, e.g. the small one at the counter.)
+  function ticketFace(id, f, serial = '', src = `art/ticket/${id}.webp`) {
     const pool = new Set(f?.pool || []);
     const tk = ticketParts(id, f, x => pool.has(x));
     if (!tk) return null;
@@ -170,7 +171,7 @@ export function faceDrawer({ el, t, lang, money }) {
     const items = tk.parts.filter(p => !p.zone).map(p => ({ ...p, el: el('span', { class: `tk-i${p.under ? ' under' : ''}${p.win ? ' win' : ''}${p.v.t === 'serial' ? ' tk-serial' : ''}${p.cls ? ` ${p.cls}` : ''}`, style: `${box(p.r)};font-size:${((p.r[3] * (p.fs || 0.5)) / W) * 100}cqw${p.ink ? `;color:${p.ink}` : ''}` }, draw(p.v, p.r[3], p.r[2]).filter(Boolean)) }));
     const zones = tk.parts.filter(p => p.zone);
     const node = el('div', { class: 'tk', style: `aspect-ratio:${W}/${H};--tint:${ticketLook(id)['--panel']}` }, [
-      el('img', { class: 'tk-art', src: `art/ticket/${id}.webp`, alt: CARDS[id][lang], decoding: 'async' }),
+      el('img', { class: 'tk-art', src, alt: CARDS[id][lang], decoding: 'async' }),
       ...zones.map(p => el('span', { class: `tk-paper${p.shape === 'round' ? ' round' : ''}`, style: `${box(p.r)}${p.rad ? `;border-radius:${(p.rad / W) * 100}cqw` : ''}${p.poly ? `;border-radius:0;clip-path:polygon(${p.poly.map(([x, y]) => `${((x - p.r[0]) / p.r[2]) * 100}% ${((y - p.r[1]) / p.r[3]) * 100}%`).join(',')})` : ''}` })),
       ...items.map(p => p.el)
     ]);
