@@ -52,19 +52,9 @@ Live: https://jaypengx.github.io/Quadra-Play/
   半場讓分 and 達陣數大小, no 勝分差; hockey 正確進球數 (no 兩隊都進球 or
   總進球數); soccer no 和局退款, its 讓分 three ways on whole goals (主-1 /
   讓分和 / 客+1, `hcap3`), no Asian half-goal line; baseball [第1局]大小, [第1局]不讓分 and
-  [1-5局]讓分 in place of 首局得分. Beyond the leagues, only what shows
-  cleanly (Jay 2026-10-22: no blank pictures, wraps or unexplained names):
-  tennis singles (ATP, WTA, the Slams; 單盤不讓分, 讓盤, 讓局, 大小 where Kambi
-  prices them) and UFC (勝負, a draw void, settled on ESPN's card) only when
-  ESPN's draw or card has both sides' countries (kit withFlags): a round flag
-  under every face, a headshot over it when found; no doubles. Tennis
-  events read by tour and city (WTA 大阪). 板球: one-day and T20
-  internationals (countries' flags), 勝負 settled on ESPN's scorepanel.
-  高爾夫 冠軍: each tour's next tournament from Kambi's winner prices (never
-  longer than Kambi's), only golfers ESPN's field flags, settled on ESPN's
-  leaderboard. Off Play's board (the catalogue's `noPlay`, still settled for
-  slips already bought): volleyball, badminton, table tennis, esports,
-  snooker, darts, handball, rugby, futsal. Not sold: MotoGP, boxing.
+  [1-5局]讓分 in place of 首局得分. Tennis, volleyball, badminton, table
+  tennis and esports (單盤不讓分, 讓盤, 讓局, 大小, 正確比數) are named and
+  settle but have no league on the board yet.
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.

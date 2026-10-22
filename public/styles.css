@@ -65,18 +65,6 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(120px + var(--q-n
 .logo.player-flag, .logo.photo { border-radius: 50%; object-fit: cover; }
 .logo-fallback { display: inline-grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
 .logo-fallback.logo-lg { font-size: 20px; }
-/* The other sports' sides (app.js drawSide): no picture keeps its place; a doubles pair as two small faces or flags. */
-.logo-none { visibility: hidden; }
-.logo-pair { position: relative; display: inline-block; }
-.logo-pair > * { position: absolute; width: 66% !important; height: 66% !important; border-radius: 50%; }
-.logo-pair > :first-child { left: 0; top: 0; }
-.logo-pair > :last-child { right: 0; bottom: 0; box-shadow: 0 0 0 1.5px var(--q-surface); }
-.gs-faces { display: flex; gap: 12px; }
-.pl-pair { display: flex; flex-direction: column; line-height: 1.15; }
-.pl-pair > span { display: block; overflow: hidden; }
-.gs-faces .logo-lg.photo { background: rgba(255, 255, 255, 0.16); }
-.league-badge.glyph { background: var(--q-fill-3); color: var(--q-label); }
-.league-badge .league-glyph { width: 70%; height: 70%; }
 .logo-flag { display: grid; place-items: center; font-size: 20px; line-height: 1; }
 .logo-flag.logo-sm, .logo-flag.logo-xs { font-size: 16px; }
 .logo-flag.logo-lg { font-size: 40px; }

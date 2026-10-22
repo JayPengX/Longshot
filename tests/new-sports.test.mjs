@@ -11,10 +11,7 @@ import { legResult } from '../public/lib/account.mjs';
 test('Play leagues come from the shared catalogue; the purged sports are gone, not hidden', () => {
   assert.equal(LEAGUES.facup.path, 'soccer/eng.fa');
   assert.equal(familyOf('euroleague'), 'basketball');
-  for (const key of ['atp', 'wta', 'boxing', 'acb', 'cba', 'kbl', 'bleague', 'acl', 'asiancup', 'wcqeurope', 'nrl', 'afl']) assert.equal(LEAGUES[key], undefined, key);
-  // 台灣運彩's other sports (its 玩法 list): from Kambi, each its own kind.
-  for (const key of ['tennis', 'volleyball', 'badminton', 'tabletennis', 'esports', 'snooker', 'darts', 'handball', 'rugbyunion', 'rugbyleague', 'futsal', 'ufc', 'cricket']) assert.ok(LEAGUES[key]?.kambi, key);
-  assert.equal(familyOf('rugbyleague'), 'rugby');
+  for (const key of ['atp', 'wta', 'ufc', 'badminton', 'boxing', 'tennis', 'tabletennis', 'volleyball', 'snooker', 'cricket', 'rugbyunion', 'acb', 'cba', 'kbl', 'bleague', 'acl', 'asiancup', 'wcqeurope', 'nrl', 'afl']) assert.equal(LEAGUES[key], undefined, key);
   for (const l of Object.values(LEAGUES)) assert.equal(l.off, undefined);
   for (const key of ['nbl', 'championship', 'eredivisie', 'ligamx', 'brasileirao']) assert.ok(LEAGUES[key].path && LEAGUES[key].book, key);
   // 運彩's 美式足球 is the NFL alone: college football isn't sold.
@@ -44,7 +41,5 @@ test('K League from Kambi: three-way prices, full-time markets only, a draw sett
 test('every league Play sells sits in one of the sport filter groups', async () => {
   const src = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
   const fixed = [...src.matchAll(/leagues: \[([^\]]*)\]/g)].flatMap(m => [...m[1].matchAll(/'([a-z0-9]+)'/g)].map(x => x[1]));
-  // (The other sports' groups are their kinds, each listed by name.)
-  const kinds = [.../\[('tennis'[^\]]*)\]\.map\(g =>/.exec(src)[1].matchAll(/'([a-z]+)'/g)].map(x => x[1]);
-  for (const [key, l] of Object.entries(LEAGUES)) assert.ok(['soccer', 'basketball', ...kinds].includes(l.family) || fixed.includes(key), key);
+  for (const [key, l] of Object.entries(LEAGUES)) assert.ok(['soccer', 'basketball'].includes(l.family) || fixed.includes(key), key);
 });

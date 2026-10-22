@@ -1,5 +1,4 @@
 import { makeT as kitMakeT } from '#kit/lang.mjs';
-import { CATALOG, SPORTS } from '#kit/catalog.mjs';
 export const STRINGS = {
   zh: {
     marketsN: '{n} 玩法', marketsOne: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payLeastShort: '有中最少',
@@ -54,19 +53,6 @@ export const STRINGS = {
     sport_cpbl: "中職",
     sport_euroleague: "歐洲籃球聯賽",
     sport_kleague: "韓國職業足球聯賽",
-    sport_tennis: "網球",
-    sport_volleyball: "排球",
-    sport_badminton: "羽球",
-    sport_tabletennis: "桌球",
-    sport_esports: "電子競技",
-    sport_snooker: "撞球",
-    sport_darts: "飛鏢",
-    sport_handball: "手球",
-    sport_rugbyunion: "聯合式橄欖球",
-    sport_rugbyleague: "聯盟式橄欖球",
-    sport_futsal: "五人制足球",
-    sport_ufc: "UFC",
-    sport_cricket: "板球",
     sport_worldcup: "世界盃",
     sport_facup: "英足總盃",
     future_nfl: "{season} NFL 超級盃冠軍",
@@ -104,22 +90,6 @@ export const STRINGS = {
     group_football: "美式足球",
     group_hockey: "冰球",
     group_f1: "F1",
-    group_tennis: "網球",
-    group_volleyball: "排球",
-    group_badminton: "羽球",
-    group_tabletennis: "桌球",
-    group_esports: "電競",
-    group_snooker: "撞球",
-    group_darts: "飛鏢",
-    group_handball: "手球",
-    group_rugby: "橄欖球",
-    group_futsal: "五人制足球",
-    group_mma: "綜合格鬥",
-    group_cricket: "板球",
-    group_golf: "高爾夫",
-    sport_golf: "高爾夫",
-    future_golf: "{season} 冠軍",
-    futureSettle_golf: "比賽結束（多在週日）",
     leagueAll: "全部聯賽",
     secHalfTotal: "半場大小",
     secDoubleChance: "雙勝",
@@ -469,19 +439,6 @@ export const STRINGS = {
     sport_cpbl: "CPBL",
     sport_euroleague: "EuroLeague",
     sport_kleague: "K League 1",
-    sport_tennis: "Tennis",
-    sport_volleyball: "Volleyball",
-    sport_badminton: "Badminton",
-    sport_tabletennis: "Table tennis",
-    sport_esports: "Esports",
-    sport_snooker: "Snooker",
-    sport_darts: "Darts",
-    sport_handball: "Handball",
-    sport_rugbyunion: "Rugby union",
-    sport_rugbyleague: "Rugby league",
-    sport_futsal: "Futsal",
-    sport_ufc: "UFC",
-    sport_cricket: "Cricket",
     sport_worldcup: "FIFA World Cup",
     sport_facup: "FA Cup",
     future_nfl: "{season} Super Bowl champion",
@@ -519,22 +476,6 @@ export const STRINGS = {
     group_football: "Football",
     group_hockey: "Hockey",
     group_f1: "F1",
-    group_tennis: "Tennis",
-    group_volleyball: "Volleyball",
-    group_badminton: "Badminton",
-    group_tabletennis: "Table tennis",
-    group_esports: "Esports",
-    group_snooker: "Snooker",
-    group_darts: "Darts",
-    group_handball: "Handball",
-    group_rugby: "Rugby",
-    group_futsal: "Futsal",
-    group_mma: "MMA",
-    group_cricket: "Cricket",
-    group_golf: "Golf",
-    sport_golf: "Golf",
-    future_golf: "{season} winner",
-    futureSettle_golf: "the last round, usually Sunday",
     leagueAll: "All leagues",
     secHalfTotal: "First-half total",
     secDoubleChance: "Double chance",
@@ -832,16 +773,5 @@ export const STRINGS = {
   }
 };
 
-// t(key, vars) in a language: the kit's makeT over Play's words. A league or
-// sport with no word here yet reads as the catalogue names it, never as its
-// key ("sport_snooker" showed on the home page).
-export const makeT = locale => {
-  const t = kitMakeT(STRINGS, locale);
-  return (key, vars) => {
-    const out = t(key, vars);
-    const m = out === key && /^(sport|group)_(.+)$/.exec(key);
-    if (!m) return out;
-    const named = CATALOG[m[2]] ?? Object.values(CATALOG).find(x => x.bet === m[2] || x.sport === m[2]) ?? SPORTS[m[2]];
-    return named ? (locale === 'en' ? named.en : named.zh) : '';
-  };
-};
+// t(key, vars) in a language: the kit's makeT over Play's words.
+export const makeT = locale => kitMakeT(STRINGS, locale);

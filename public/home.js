@@ -145,9 +145,7 @@ export function renderHome(ctx) {
   mineKept = mine;
   const shownIds = new Set(mine.map(x => x.game.id));
   const shownTeams = new Set(mine.flatMap(x => ['home', 'away'].map(side => teamKey(x.game, side))));
-  // (A doubles match, two pairs of names, isn't a showcase card: its own sport's list has it.)
-  const pairs = g => [g.home, g.away].some(x => /\//.test(typeof x === 'string' ? x : x?.en || ''));
-  const later = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > now && !pairs(g) && !taste.held.has(g.id) && !shownIds.has(g.id) && !shownTeams.has(teamKey(g, 'home')) && !shownTeams.has(teamKey(g, 'away')) && (betsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
+  const later = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > now && !taste.held.has(g.id) && !shownIds.has(g.id) && !shownTeams.has(teamKey(g, 'home')) && !shownTeams.has(teamKey(g, 'away')) && (betsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
   const items = later.map(g => {
     const hours = (Date.parse(g.startUtc) - now) / 3_600_000;
     const quality = TIER_WEIGHT[ctx.leagueTier(g.sport)] + (hours < 18 ? 0.3 : hours < 42 ? 0.15 : 0) + gameInterest(g, taste).score * 0.5;
@@ -189,7 +187,7 @@ export function renderHome(ctx) {
   // ---- 場中焦點: games on now with a live win price, ranked the same way.
   // (Every game on now: the strip is scores, and a held game's sheet says so.)
   const onNow = state.liveGames || [];
-  const liveItems = onNow.filter(g => !pairs(g) || taste.held.has(g.id)).map(g => ({ id: `live:${g.id}`, game: g, keys: gameKeys(g), quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
+  const liveItems = onNow.map(g => ({ id: `live:${g.id}`, game: g, keys: gameKeys(g), quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
   const liveTop = spreadLeagues(rank(liveItems, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 4 });
 
   // A match card: its league and time (or live state) on top, each side with its
@@ -206,7 +204,7 @@ export function renderHome(ctx) {
       league: state.t(`sport_${g.sport}`), leagueLogo: ctx.leagueUrl(g.sport), live: o.live, wide: o.wide,
       when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
       tag: o.why && T[`why_${o.why}`] ? { text: T[`why_${o.why}`], tone: ['follow', 'backed', 'like', 'league', 'sport'].includes(o.why) ? 'tint' : 'orange' } : null,
-      sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), kind: ctx.logoKind?.(g.sport), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
+      sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
       prices, onOpen: open
     });
   };
@@ -312,7 +310,7 @@ export function renderHome(ctx) {
 
   // ---- 3 場中焦點: a compact strip, 28px logos, the minute in red.
   const liveStrip = list =>
-    kitUI.liveStrip(list.map(x => ({ min: ctx.liveStateText(x.game.live), onOpen: () => ctx.openLive(x.game.id), rows: ['away', 'home'].map(side => ({ logo: ctx.logoUrl(x.game.sport, x.game[side].en), kind: ctx.logoKind?.(x.game.sport), name: ctx.shortTeam(x.game.sport, x.game[side]), score: x.game.live?.[`${side}Score`] ?? '' })) })));
+    kitUI.liveStrip(list.map(x => ({ min: ctx.liveStateText(x.game.live), onOpen: () => ctx.openLive(x.game.id), rows: ['away', 'home'].map(side => ({ logo: ctx.logoUrl(x.game.sport, x.game[side].en), name: ctx.shortTeam(x.game.sport, x.game[side]), score: x.game.live?.[`${side}Score`] ?? '' })) })));
 
   // ---- 8 最近的投注: the newest slips and tickets as rows.
   const recentRows = () => {
