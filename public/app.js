@@ -1047,7 +1047,7 @@ function gameDetail(game, bets) {
     !held && floor > 1 ? el('p', { class: 'gs-legs' }, [el('span', { class: 'pl-legs', text: t('minLegsGameTag', { n: floor }) }), el('span', { text: t('minLegsNoteEvent', { n: floor }) })]) : null,
     // A game on now with no win price: its two sides held.
     // (The kit's one bar for a market that can't be bet: an older kit, a lock a side.)
-    (held || (!win.length && game.live)) ? (kitUI.lockedRow?.() ?? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s])))))) : null,
+    (held || (!win.length && game.live)) ? (kitUI.lockedRow() ?? el('div', { class: 'gs-win', style: '--n:2' }, [left, right].map(s => heldCell(shortTeamName(game.sport, game[s].en, teamName(game[s])))))) : null,
     win.length && !held && !(kitUI.lockedRow && win.every(b => b.lock)) ? el('div', { class: 'gs-win', style: `--n:${win.length}` }, win.map(b => pickButton(b, b.side === 'draw' ? t('draw') : shortTeamName(game.sport, game[b.side].en, teamName(game[b.side])), floor))) : null,
     !held && win.length && win.every(b => b.lock) && kitUI.lockedRow ? kitUI.lockedRow() : null,
     held ? (wantOffers(game), null) : !game.live && state.fromBoard ? boardMore() : more ? gameMore(game, others) : null
@@ -2557,7 +2557,7 @@ function renderAccount() {
     el('strong', { class: 'q-hc-big num', text: r.net != null ? fmtMoney(r.net, { sign: true }) : '—' }),
     el('div', { class: 'pl-rec-sub' }, [
       el('span', { class: 'pl-rec-fig' }, [el('small', { text: t('accountBack') }), el('strong', { class: 'num', text: r.back == null ? '—' : r.back >= 1000 ? '999%+' : `${Math.round(r.back)}%` })]),
-      el('button', { class: 'pl-rec-fig', type: 'button', onclick: () => kit.accountSheet?.(q, { tab: 'truth' }) }, [el('small', { text: `${t('accountTax')} ›` }), el('strong', { class: 'num', text: fmtMoney(taxed, { sign: false }) })])
+      el('button', { class: 'pl-rec-fig', type: 'button', onclick: () => kit.accountSheet(q, { tab: 'truth' }) }, [el('small', { text: `${t('accountTax')} ›` }), el('strong', { class: 'num', text: fmtMoney(taxed, { sign: false }) })])
     ]),
     el('div', { class: 'pl-hc-stats pl-record' }, [
       cell(t('accountSettled'), t('sumSlips', { n: r.decided })),
@@ -3857,7 +3857,7 @@ actions = topActions(q, { refresh: load });
 // name a little smaller, not cut).
 const FIT_SELECTOR = '.slip-bar-main small, .pl-rec-fig strong, .pl-mo-figs strong, .pl-pass-end strong, .pl-hc-cell strong, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
 // (watchFit is new: a phone may still run a kit from before it, and then the numbers are fitted as they're drawn only.)
-kit.watchFit?.(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery'].map($) });
+kit.watchFit(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery'].map($) });
 
 // Tells the page's failsafe (in index.html) that the scripts loaded and started.
 window.__fxStarted = true;
