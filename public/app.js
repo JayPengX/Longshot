@@ -1,4 +1,4 @@
-import { slipPayoutTable, settleSlip, boostRate, SLIP_RULES, combosBySize } from './lib/odds.mjs';
+import { slipPayoutTable, settleSlip, SLIP_RULES, combosBySize } from './lib/odds.mjs';
 import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
 import * as kitPhotos from './kit/photos.mjs';
@@ -2229,9 +2229,6 @@ function payoutBox(legs, sizes, stake, mode) {
 function payCell(label, value, cls = '', sub = '') {
   return el('div', { class: 'pay-cell' }, [el('small', { text: label }), el('strong', { class: cls, text: value }), sub ? el('small', { class: 'pay-sub', text: sub }) : null]);
 }
-// How a free bet's stake was paid, under its cost ("免費 NT$200 ＋ 自付 NT$800").
-const freeLine = slip =>
-  slip.cost > 0 ? state.t('placeFreePlus', { f: fmtMoney(slip.freeValue ?? slip.stake - slip.cost, { sign: false }), v: fmtMoney(slip.cost, { sign: false }) }) : state.t('placeFree', { v: fmtMoney(slip.freeValue ?? slip.stake, { sign: false }) });
 
 function payLine(label, value, cls = '') {
   return el('div', { class: `pay-line ${cls}` }, [el('span', { text: label }), el('strong', { text: value })]);
@@ -2788,7 +2785,7 @@ function slipVerdict(slip, states) {
   const waiting = states.filter(x => x === 'waiting').length;
   const live = states.filter(x => x === 'live').length;
   if (!live && !slip.legs.some(l => l.result)) return null;
-  const pays = () => settleSlip({ legs: slip.legs.map((leg, k) => ({ gameId: leg.gameId, odds: leg.odds, result: now[k] === 'level' ? 'lost' : now[k] })), sizes: slip.sizes, stake: slip.stake, boost: slip.boost ?? 0 }).net;
+  const pays = () => settleSlip({ legs: slip.legs.map((leg, k) => ({ gameId: leg.gameId, odds: leg.odds, result: now[k] === 'level' ? 'lost' : now[k] })), sizes: slip.sizes, stake: slip.stake }).net;
   let tone = '';
   let text = '';
   if (slip.mode === 'parlay') {
@@ -2930,18 +2927,17 @@ function savedSlipCard(slip) {
       ? el('span', { class: 'q-tag red', text: t('slipDead') })
       : el('span', { class: `q-tag ${states.includes('live') ? 'red solid' : 'tint'}`, text: states.includes('live') ? t('slipLiveNow') : t('slipOpen') });
   const nextStart = slip.legs.filter((leg, k) => states[k] === 'waiting' && leg.start).map(leg => leg.start).sort()[0];
-  const boost = slip.boost && boostRate(Math.max(...slip.sizes), slip.boost) > 0 ? `+${Math.round(boostRate(Math.max(...slip.sizes), slip.boost) * 100)}%` : '';
   // Fresh: glows once as it's first shown, then plain (never on every redraw).
   const fresh = state.freshSlips.has(slip.id);
   if (fresh) setTimeout(() => state.freshSlips.delete(slip.id), 2600);
   const head = settled ? (kids => el('button', { class: 'pl-slip-head', type: 'button', 'aria-expanded': 'true', onclick: () => (state.openPasses.delete(slip.id), renderSaved()) }, kids)) : (kids => el('div', { class: 'pl-slip-head' }, kids));
   // The tax withheld on a big win (台灣運彩 §29), shown where it was taken.
-  const tax = settled && slip.gross > 0 ? Math.max(0, slip.gross - slip.payout - (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0)) : 0;
+  const tax = settled && slip.gross > 0 ? Math.max(0, slip.gross - slip.payout) : 0;
   return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}` }, [
     head([
       el('span', { class: 'pl-slip-title' }, [
         el('strong', { text: `${mode} · ${t('slipLegs', { n })}` }),
-        el('small', { text: [fmtTime(slip.t), slip.free ? t('freeBetTag') : '', boost ? t('slipBoosted', { v: boost }) : ''].filter(Boolean).join(' · ') })
+        el('small', { text: fmtTime(slip.t) })
       ]),
       pill
     ]),
@@ -2953,16 +2949,16 @@ function savedSlipCard(slip) {
     el('ul', { class: 'saved-legs' }, byStart(slip.legs).map(k => savedLegRow(slip.legs[k], states[k]))),
     el('div', { class: 'pl-slip-money' }, settled
       ? [
-          payCell(t('slipCost'), fmtMoney(slip.free ? slip.stake : slip.cost, { sign: false }), '', slip.free ? freeLine(slip) : ''),
+          payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
           payCell(t('slipPaidLabel'), fmtMoney(slip.payout, { sign: false })),
           tax > 0 ? payCell(t('slipTax'), `−${fmtMoney(tax, { sign: false })}`, 'back-low') : null,
           profit > 0 ? payCell(t('slipResult'), fmtMoney(profit), 'back-high') : null
         ]
       : [
-          payCell(t('slipCost'), fmtMoney(slip.free ? slip.stake : slip.cost, { sign: false }), '', slip.free ? freeLine(slip) : ''),
+          payCell(t('slipCost'), fmtMoney(slip.cost, { sign: false })),
           slip.mode === 'parlay' ? payCell(t('payOdds'), `×${fmtOdds(parlayOdds(slip))}`) : null,
           decided && range.locked > 0 ? payCell(t('slipLocked'), fmtMoney(range.locked, { sign: false }), 'back-high') : null,
-          payCell(decided ? t('slipMost') : slip.free ? t('payAllFree') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : 'tint')
+          payCell(decided ? t('slipMost') : t('payAll'), fmtMoney(range.most, { sign: false }), dead ? 'back-low' : 'tint')
         ])
   ]);
 }
@@ -3116,7 +3112,7 @@ function drawSaved() {
     ...[placed
       ? el('button', { class: 'q-ritem chevron pl-placed', type: 'button', onclick: () => ((state.justPlaced = null), showTab('games')) }, [
           el('span', { class: 'q-tile', style: '--t:var(--q-green)', 'aria-hidden': 'true' }, [kitGlyph(kitUI, 'check')]),
-          el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: t('placedTitle') }), el('small', { text: placed.free ? t('placedSubFree', { v: fmtMoney(placed.free, { sign: false }) }) : t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
+          el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: t('placedTitle') }), el('small', { text: t('placedSub', { n: placed.n, v: fmtMoney(placed.cost, { sign: false }) }) })]),
           el('span', { class: 'q-ritem-value', text: t('placedMore') })
         ])
       : null,
@@ -4068,7 +4064,7 @@ function homeCtx() {
     leagueUrl: sport => leagueLogo(sport),
     lotteryHome, lotteryOpen, showTickets,
     openSlip: () => openSlip(),
-    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), shortPick, shortMatchup, legIcon, teamName, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, leagueTier: shownTier, winnerSides, parlayPays, boostPct: () => 0 };
+    slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), shortPick, shortMatchup, legIcon, teamName, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, leagueTier: shownTier, winnerSides, parlayPays };
 }
 statsUi = mountStats({ state, q, el, fmtMoney, showTab, legIcon, leagueIcon: (sport, size = 'logo-md') => leagueImg(sport, size), sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
 lotteryUi = mountLottery({ redraw, state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome(), boardLottery: () => (state.board ? boardLottery(state.board) : null) });

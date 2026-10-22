@@ -308,10 +308,3 @@ test('two copies merge: a settled copy wins, picks decided on either side are ke
   assert.deepEqual([m.created, m.updated], ['2026-01-01T00:00:00.000Z', '2027-01-01T00:00:00.000Z']);
 });
 
-test("the account card counts a free bet's stake as riding (its cost is nothing)", async () => {
-  const { accountRecord, slipAtStake } = await import('../public/lib/history.mjs');
-  const free = { id: 'f', status: 'open', cost: 0, stake: 200, free: 'fb', freeValue: 200, legs: [] };
-  const topped = { id: 'g', status: 'open', cost: 300, stake: 500, free: 'fb2', freeValue: 200, legs: [] };
-  assert.deepEqual([slipAtStake(free), slipAtStake(topped), slipAtStake({ cost: 100 })], [200, 500, 100]);
-  assert.equal(accountRecord({ slips: [free, topped], tickets: [], ledger: [] }).open, 700);
-});

@@ -2,9 +2,8 @@
 // Pure: the page and the tests both use it.
 import { slipEndedAt } from './slip.mjs';
 
-// The money riding on an open slip: what it cost, and a free bet's whole
-// stake (its cost is nothing: "NT$0 · 1 張" said nothing was in play).
-export const slipAtStake = slip => (slip.free ? Number(slip.stake ?? slip.freeValue) || 0 : Number(slip.cost) || 0);
+// The money riding on an open slip: what it cost.
+export const slipAtStake = slip => Number(slip.cost) || 0;
 
 // The account card's four numbers, over everything played with the money:
 // bets and lottery tickets alike. `open`: riding now (slips and tickets not

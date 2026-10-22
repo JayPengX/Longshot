@@ -1,14 +1,12 @@
 // 戰績's numbers, apart from its screen: the wins, the longest winning run and
 // the achievements, read from a practice account.
-import { slipAtStake } from './history.mjs';
 import { allVoid } from './slip.mjs';
 
-// A slip that paid. A cash-out for no more than the stake won nothing, so it
-// isn't one; nor is a slip with every pick void (台灣運彩 refunds its stake).
-const paid = s => s.payout > 0 && !(s.cashedOut && s.payout <= slipAtStake(s)) && !allVoid(s);
-const refund = s => s.status === 'settled' && !s.cashedOut && allVoid(s);
+// A slip that paid; a slip with every pick void isn't one (台灣運彩 refunds its stake).
+const paid = s => s.payout > 0 && !allVoid(s);
+const refund = s => s.status === 'settled' && allVoid(s);
 
-// Every win from `since` (ms): settled slips that paid (cashed out too),
+// Every win from `since` (ms): settled slips that paid,
 // lottery tickets and scratch cards that won. Newest first.
 export function winsOf(account, since = 0) {
   const out = [];
@@ -23,13 +21,10 @@ export function winsOf(account, since = 0) {
     out.push({
       at,
       amount: s.payout,
-      // What was on it: a free bet's whole stake (its cost is the top-up only: 7× read for 1.17×).
-      cost: slipAtStake(s),
+      cost: s.cost,
       kind: 'slip',
       legs: counted.length,
-      full: !s.cashedOut && counted.length > 1 && counted.every(l => l.result === 'won'),
-      cashed: Boolean(s.cashedOut),
-      free: Boolean(s.freeBet || s.free),
+      full: counted.length > 1 && counted.every(l => l.result === 'won'),
       sport: sports.length === 1 ? sports[0] : 'mixed',
       labels: legs.map(l => l.shortLabel || l.label),
       // Its first pick (by when it was played), for the row's logo.

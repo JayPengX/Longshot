@@ -93,9 +93,3 @@ test('saved picks drop their empty fields', () => {
   assert.deepEqual(compactLeg({ a: null, b: 0, result: null }), { b: 0, result: null });
 });
 
-test("戰績's 'times its stake' reads a free bet by its whole stake", () => {
-  // NT$500 free + NT$100 own at 2.00: pays 700 (1,200 less the free 500): 1.17× the 600 on it, not 7× the 100 paid.
-  const free = { status: 'settled', free: 'fb', freeValue: 500, stake: 600, cost: 100, payout: 700 };
-  assert.equal(slipAtStake(free), 600);
-  assert.equal(slipAtStake({ status: 'settled', stake: 100, cost: 300, payout: 900 }), 300);
-});

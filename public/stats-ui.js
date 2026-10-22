@@ -1,4 +1,4 @@
-// 紀錄 › 戰績: the wins. What's been won (bets paid, cashed out, lottery
+// 紀錄 › 戰績: the wins. What's been won (bets paid, lottery
 // prizes) with its rhythm over time, the numbers worth bragging about,
 // achievements to chase (each with its progress), the biggest moments, the
 // sports that pay. A period filter on top.
@@ -12,7 +12,7 @@ const T = {
   zh: {
     all: '全部', d30: '30 天', d7: '7 天',
     total: '累計中獎', biggestV: '最大一筆 {v}', none: '還沒有中獎', byWeek: '每週中獎', byDay: '每日中獎',
-    month: '本月中獎', streak: '最長連中', streakN: '{n} 張', top: '最高倍數', cashed: '提前兌現', bigLotto: '彩券最大獎', winsNV: '中獎 {n} 次',
+    month: '本月中獎', streak: '最長連中', streakN: '{n} 張', top: '最高倍數', bigLotto: '彩券最大獎', winsNV: '中獎 {n} 次',
     badges: '成就', moments: '中獎時刻', sports: '拿手運動',
     slipWin: '{n} 場', lottery: '彩券', scratch: '刮刮樂',
     mixed: '混合串關',
@@ -30,7 +30,7 @@ const T = {
   en: {
     all: 'All', d30: '30 days', d7: '7 days',
     total: 'Total won', biggestV: 'Biggest {v}', none: 'No wins yet', byWeek: 'Won by week', byDay: 'Won by day',
-    month: 'Won this month', streak: 'Longest run', streakN: '{n} slips', top: 'Top multiple', cashed: 'Cashed out', bigLotto: 'Biggest lottery prize', winsNV: '{n} wins',
+    month: 'Won this month', streak: 'Longest run', streakN: '{n} slips', top: 'Top multiple', bigLotto: 'Biggest lottery prize', winsNV: '{n} wins',
     badges: 'Achievements', moments: 'Big moments', sports: 'Your best sports',
     slipWin: '{n} picks', lottery: 'Lottery', scratch: 'Scratch card',
     mixed: 'Mixed parlays',
@@ -115,14 +115,12 @@ export function mountStats(ctx) {
 
     const thisMonth = wins(0).filter(w => month(w.at) === month(Date.now())).reduce((s, w) => s + w.amount, 0);
     const top = list.filter(w => w.kind === 'slip' && w.cost > 0).reduce((m, w) => Math.max(m, w.amount / w.cost), 0);
-    const cashed = list.filter(w => w.cashed).reduce((s, w) => s + w.amount, 0);
     const lotto = list.filter(w => w.kind === 'lotto').sort((a, b) => b.amount - a.amount)[0];
     const stat = (label, value) => el('div', { class: 'q-stat' }, [el('small', { text: label }), el('strong', { class: 'num stat-value', text: value })]);
     const stats = el('div', { class: 'q-stats st-stats', style: '--q-stats-n:2' }, [
       stat(t('month'), money(thisMonth)),
       stat(t('streak'), t('streakN', { n: longestRunNow() })),
       top > 1 ? stat(t('top'), mult(top)) : null,
-      cashed > 0 ? stat(t('cashed'), money(cashed)) : null,
       lotto ? stat(t('bigLotto'), money(lotto.amount)) : null
     ].filter(Boolean));
 
