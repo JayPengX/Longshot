@@ -6,9 +6,16 @@ import assert from 'node:assert/strict';
 import { accountRecord, slipAtStake } from '../public/lib/history.mjs';
 import { recommend, RECOMMEND, backOf } from '../public/lib/recommend.mjs';
 import { pack, unpack } from '../public/lib/codec.mjs';
-import { interleave, spreadLeagues, leagueTaste, fixturesTaste, tasteOf } from '../public/lib/foryou.mjs';
+import { interleave, spreadLeagues, leagueTaste, tasteOf } from '../public/lib/foryou.mjs';
 import { revealPending, slipSpec } from '../public/lib/settled.mjs';
-import { isAccount, cashOut, newAccount, placeSlip, compactLeg } from '../public/lib/account.mjs';
+import { isAccount, newAccount as emptyAccount, placeSlip, compactLeg } from '../public/lib/account.mjs';
+
+const START_BALANCE = 10_000;
+// An account with NT$10,000 of its own to bet with (the wallet's money, in the app).
+const newAccount = (now, { start = true } = {}) => {
+  const a = emptyAccount(now);
+  return start ? { ...a, ledger: [{ id: 'start', t: a.created, kind: 'start', amount: START_BALANCE }] } : a;
+};
 
 const recovered = { id: 'r', t: '2026-10-01T00:00:00.000Z', status: 'settled', mode: 'single', sizes: [1], stake: 300, cost: 300, payout: 0, legs: [], recovered: true };
 
@@ -46,7 +53,7 @@ test('saves round-trip through gzip, Chinese and all; anything unreadable is nul
   assert.equal(isAccount({ v: 2, created: 'x', ledger: [], slips: [] }), false);
 });
 
-test("為你推薦's helpers: sports take turns, a league the person likes gets two, follows read from either copy", () => {
+test("為你推薦's helpers: sports take turns, a league the person likes gets two", () => {
   const kind = x => x.k;
   assert.deepEqual(interleave([{ k: 'a', n: 1 }, { k: 'a', n: 2 }, { k: 'b', n: 3 }, { k: 'a', n: 4 }], kind).map(x => x.n), [1, 3, 2, 4]);
   assert.deepEqual(interleave([], kind), []);
@@ -56,11 +63,6 @@ test("為你推薦's helpers: sports take turns, a league the person likes gets 
   assert.equal(leagueTaste('mlb', taste), 0);
   const items = ['nba', 'nba', 'nba', 'mlb', 'mlb', 'epl'].map((sport, i) => ({ i, game: { sport } }));
   assert.deepEqual(spreadLeagues(items, taste, { n: 5 }).map(x => x.i).sort(), [0, 1, 3, 5]);
-  // Orbit Sports' follows: the device's copy and the pass's, a broken copy ignored.
-  assert.equal(fixturesTaste(() => '{broken'), null);
-  const both = fixturesTaste(() => JSON.stringify({ leagues: ['epl'], follows: [{ league: 'nba', name: 'Boston Celtics' }] }), { settings: { 'follows:match': { value: { leagues: ['epl', 'mlb'], teams: [['mlb', 'Los Angeles Dodgers'], 'junk', ['nba']] } } } });
-  assert.deepEqual(both.leagues, ['epl', 'mlb']);
-  assert.deepEqual(both.follows.map(f => f.name), ['Boston Celtics', 'Los Angeles Dodgers']);
 });
 
 test("a scratched card's prize the pass doesn't have yet is asked for again, five at most, a failure never thrown", async () => {
@@ -84,27 +86,11 @@ test("a scratched card's prize the pass doesn't have yet is asked for again, fiv
   }
 });
 
-test('a cash out is paid once, never on a free bet or a settled slip; saved picks drop their empty fields', () => {
+test('saved picks drop their empty fields', () => {
   const t0 = new Date('2026-10-10T00:00:00Z');
   const placed = placeSlip(newAccount(t0), { id: 'c', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [{ id: 'x', odds: 2, line: null, inning: undefined }] }, t0).account;
   assert.deepEqual(Object.keys(placed.slips[0].legs[0]), ['id', 'odds', 'result']);
   assert.deepEqual(compactLeg({ a: null, b: 0, result: null }), { b: 0, result: null });
-  assert.equal(cashOut(placed, 'c', 0), placed);
-  assert.equal(cashOut(placed, 'nope', 50), placed);
-  const cashed = cashOut(placed, 'c', 150.9, t0);
-  assert.equal(cashed.slips[0].payout, 150);
-  assert.equal(cashOut(cashed, 'c', 150, t0), cashed);
-  assert.equal(slipSpec(cashed.slips[0]).status, 'open');
-});
-
-test('a cash out the wallet already paid shows what was paid, never the value asked', () => {
-  const t0 = new Date('2026-10-10T00:00:00Z');
-  const placed = placeSlip(newAccount(t0), { id: 'c', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [{ id: 'x', odds: 2 }] }, t0).account;
-  // The Worker paid NT$140 (its value at the time); this device asks with 150.
-  const paid = { ...placed, ledger: [...placed.ledger, { id: 'payout-c', t: t0.toISOString(), kind: 'cashout', amount: 140, slipId: 'c' }] };
-  const cashed = cashOut(paid, 'c', 150, t0);
-  assert.equal(cashed.slips[0].payout, 140);
-  assert.equal(cashed.ledger.filter(e => e.id === 'payout-c').length, 1);
 });
 
 test("戰績's 'times its stake' reads a free bet by its whole stake", () => {

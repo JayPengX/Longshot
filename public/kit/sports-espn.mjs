@@ -18,10 +18,10 @@
 // `localEvent(event, lang)` on the raw one. The proxy also sends it
 // `slimEvent`ed (what is empty or follows from another field left out;
 // `unslimEvent` puts it back exactly).
-import { CATALOG, ESPN_SITE, yyyymmdd } from '#kit/catalog.mjs';
-import { BROADCAST } from '#kit/sports-broadcast.mjs';
-import { teamLogo, raceName, countryName, countryCode, NBA_ID } from '#kit/logos.mjs';
-import { teamNameZh } from '#kit/names.mjs';
+import { CATALOG, ESPN_SITE, yyyymmdd } from './catalog.mjs';
+import { BROADCAST } from './sports-broadcast.mjs';
+import { teamLogo, raceName, countryName, countryCode, NBA_ID } from './logos.mjs';
+import { teamNameZh } from './names.mjs';
 
 // ---- The leagues (Orbit Sports' lib/leagues.mjs) -----------------------------------
 // Every league of the catalogue that's on ELTA.tv or Apple TV in Taiwan, soccer
@@ -248,7 +248,7 @@ const who = a => {
 // comp: ESPN's competition; status: its status; sport: Orbit Sports' sport key.
 export function liveOf(comp, status, sport) {
   const s = comp?.situation || {};
-  // The last play's kind and id too: a timeout on now (quadra.mjs breakOf) and its own clock.
+  // The last play's kind and id too: a timeout on now (core.mjs breakOf) and its own clock.
   const live = { lastPlay: s.lastPlay?.text || '', ...(s.lastPlay?.type?.text ? { lastType: s.lastPlay.type.text, lastId: String(s.lastPlay.id ?? '') } : {}) };
   if (sport === 'baseball' && (s.balls != null || s.outs != null)) {
     Object.assign(live, {

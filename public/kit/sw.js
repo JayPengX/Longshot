@@ -1,19 +1,12 @@
-// The Quadra apps' one service worker: keeps the page's own files so the
-// app opens without a connection and can be installed. Anything on other
-// sites (scores, prices, news) is never touched here (pictures: the kit's
-// sw-images.js, imported before this by the apps that show them).
+// Longshot's service worker: keeps the page's own files so the app opens
+// without a connection and can be installed. Anything on other sites
+// (scores, prices) is never touched here (pictures: sw-images.js, imported
+// before this by ../sw.js).
 //
-// An app's sw.js is its settings, then this file:
-//   self.QUADRA_SW = { cache: 'orbit-law-v1', title: 'Orbit Law' };
-//   importScripts('../Shared-Proxy/kit/sw.js');
-// cache: this app's cache (a new name drops the old one); prefix: what every
-// version of its name starts with (the cache without its vN, by default), so
-// only this app's old ones are deleted (the apps share one site); spare:
-// other caches under that prefix that stay (Transit's data); title: a
-// notice's title when it has none; route(request, url): 'pageFirst',
-// 'cacheFirst', 'networkFirst', or an answer of the app's own (a Response
-// promise), for what isn't the usual (Law's data, Beats' samples); prune(url):
-// false keeps older copies of that file (Words' audio).
+// ../sw.js sets self.LONGSHOT_SW = { cache } and imports this file.
+// cache: the app's cache (a new name drops the old one); only caches that
+// start the same way (the name without its vN) are deleted, since other
+// apps live on the same github.io site.
 //
 // A file with a ?v= (every deploy stamps one) is served from the cache
 // first, since that exact version never changes; the page itself from the
@@ -22,7 +15,7 @@
 // new version replaces the old one. Saving a copy never holds up the answer
 // (it runs on after it, under waitUntil).
 //
-// A ?v= that is a file's own hash (12 hex digits, kit/hash.mjs) is checked
+// A ?v= that is a file's own hash (12 hex digits, scripts/hash.mjs) is checked
 // against what came: GitHub Pages' CDN ignores the ?v=, so for a while after
 // a deploy it can answer a new address with the old file. That copy was kept
 // here for good, and the next openings mixed old and new files: the app
@@ -30,9 +23,8 @@
 // is never kept: it's asked again past the browser's cache, and while the
 // CDN still has the old one the page gets a 503 (boot.js then waits for the
 // update to finish, and loads it).
-const SW = { spare: [], route: () => null, prune: () => true, ...(self.QUADRA_SW || {}) };
-const CACHE = SW.cache || 'quadra-app';
-const PREFIX = SW.prefix || CACHE.replace(/v\d+$/, '');
+const CACHE = self.LONGSHOT_SW?.cache || 'longshot-v1';
+const PREFIX = CACHE.replace(/v\d+$/, '');
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(['./'])).then(() => self.skipWaiting()));
@@ -42,8 +34,8 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches
       .keys()
-      // Only this app's own old copies: the other apps share this site (and its caches), and the pictures are kept for all of them.
-      .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE && !SW.spare.includes(k)).map(k => caches.delete(k))))
+      // Only this app's own old copies: other apps share this github.io site (and its caches).
+      .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -81,7 +73,7 @@ async function fetchTrue(request) {
     const res = await fetch(request.url, { cache: 'reload', credentials: 'same-origin' }).catch(() => null);
     if (res && (await isTrue(request.url, res))) return res;
   }
-  return new Response('', { status: 503, statusText: 'Update not ready', headers: { 'X-Quadra-Stale': '1' } });
+  return new Response('', { status: 503, statusText: 'Update not ready', headers: { 'X-Longshot-Stale': '1' } });
 }
 
 async function keep(request, response) {
@@ -89,7 +81,7 @@ async function keep(request, response) {
   const cache = await caches.open(CACHE);
   const url = new URL(request.url);
   // Drop older versions of the same file (only that file's copies are listed).
-  if (SW.prune(url)) for (const old of await cache.keys(url.origin + url.pathname, { ignoreSearch: true })) if (old.url !== url.href) await cache.delete(old);
+  for (const old of await cache.keys(url.origin + url.pathname, { ignoreSearch: true })) if (old.url !== url.href) await cache.delete(old);
   await cache.put(request, response);
 }
 
@@ -155,7 +147,6 @@ async function cacheFirst(request, later) {
   }
 }
 
-const ROUTES = { pageFirst, cacheFirst, networkFirst };
 self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
@@ -164,9 +155,8 @@ self.addEventListener('fetch', event => {
   // (a save started while another was awaited is waited for too).
   const tail = [];
   const later = work => tail.push(Promise.resolve(work).catch(() => {}));
-  const own = SW.route(request, url);
-  const route = ROUTES[own] || (request.mode === 'navigate' ? (url.searchParams.has('v') ? networkFirst : pageFirst) : url.searchParams.has('v') ? cacheFirst : networkFirst);
-  const answer = own && typeof own !== 'string' ? Promise.resolve(own) : route(request, later);
+  const route = request.mode === 'navigate' ? (url.searchParams.has('v') ? networkFirst : pageFirst) : url.searchParams.has('v') ? cacheFirst : networkFirst;
+  const answer = route(request, later);
   event.respondWith(answer);
   event.waitUntil(
     (async () => {
@@ -197,30 +187,4 @@ self.addEventListener('message', event => {
       )
     )
   );
-});
-
-// A tap on a Quadra notice (quadra.mjs notify): opens (or focuses) the app where it points.
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  const url = new URL(event.notification.data?.url || './', self.registration.scope).href;
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      const open = list.find(c => c.url.startsWith(self.registration.scope));
-      if (!open) return self.clients.openWindow(url);
-      return open.focus().then(c => (url !== c.url && 'navigate' in c ? c.navigate(url) : c));
-    })
-  );
-});
-
-// A notice the Worker sent while the app was closed (Shared-Proxy/push.js):
-// shown as it came; a tap opens the app where it points.
-self.addEventListener('push', event => {
-  let data;
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { title: event.data?.text() || '' };
-  }
-  const icon = new URL('./icons/icon-192.png', self.registration.scope).href;
-  event.waitUntil(self.registration.showNotification(data.title || SW.title || 'Quadra', { body: data.body || '', tag: data.tag || undefined, icon, badge: icon, data: { url: data.url || self.registration.scope } }));
 });

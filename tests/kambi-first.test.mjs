@@ -56,7 +56,7 @@ test('tennis and UFC are no longer sold: an open pick on one is void', async () 
 
 test('live: Kambi\'s in-play prices on ESPN\'s live games, turned to ESPN\'s sides; soccer with its draw', async () => {
   const { attachKambiLive } = await import('../public/lib/sources.mjs');
-  const { parseKambiInPlay } = await import('#kit/play-kambi.mjs');
+  const { parseKambiInPlay } = await import('../public/kit/play-kambi.mjs');
   const offer = (type, label, outcomes) => ({ betOfferType: { englishName: type }, criterion: { englishLabel: label }, outcomes });
   const data = { events: [{ event: { id: 5, state: 'STARTED', homeName: 'Arsenal', awayName: 'Leeds United', start: '2026-10-10T11:30:00Z' },
     betOffers: [

@@ -7,7 +7,7 @@
 // game: the apps take each playoff game's time, 待定 and 如需 from it, and
 // a game MLB no longer lists (its series over) is gone.
 //
-// Loaded by the apps with import('#kit/postseason.mjs').catch(() => null):
+// Loaded by the apps with import('./postseason.mjs').catch(() => null):
 // an older kit without this file leaves them as before.
 //
 //   mlbPostseasonUrl(year)      the read (through the proxy, minutes fresh)
@@ -17,7 +17,7 @@
 //   mlbGameFor(list, game)      the MLB game of an app's game ({ note, home, away })
 //   mlbGone(list, game, day, from)  whether an app's game to come won't be played (its series over)
 
-import { fold } from '#kit/names.mjs';
+import { fold } from './names.mjs';
 
 // The whole postseason (every series from its first game, so one that's
 // over is known as over), about 60 KB.

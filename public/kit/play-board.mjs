@@ -25,12 +25,12 @@ import {
   MLB_TOTAL_DISPERSION,
   GOALS_DISPERSION,
   TOP_INNING_ODDS
-} from '#kit/play-odds.mjs';
-import { pointsModel, pointsMarkets, goalMarkets, fitHockey, hockeyWinner, baseballMarkets, marketOdds } from '#kit/play-markets.mjs';
-import { fitGoals } from '#kit/play-live.mjs';
-import { houseCut, houseRule, withRules } from '#kit/play-rules.mjs';
-import { withModelLines } from '#kit/play-lines.mjs';
-import { LEAGUES, familyOf, isSoccer } from '#kit/play-teams.mjs';
+} from './play-odds.mjs';
+import { pointsModel, pointsMarkets, goalMarkets, fitHockey, hockeyWinner, baseballMarkets, marketOdds } from './play-markets.mjs';
+import { fitGoals } from './play-live.mjs';
+import { houseCut, houseRule, withRules } from './play-rules.mjs';
+import { withModelLines } from './play-lines.mjs';
+import { LEAGUES, familyOf, isSoccer } from './play-teams.mjs';
 
 // Lines besides the lottery's own: totals this many either side of the main
 // line, team totals this many, run lines up to 4.5 runs either way.

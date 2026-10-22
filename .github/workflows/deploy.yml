@@ -9,6 +9,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
+      - 'worker/**'
   workflow_dispatch:
 
 permissions:
@@ -58,18 +59,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: The shared kit (Shared-Proxy/kit), for the tests
-        uses: actions/checkout@v4
-        with:
-          repository: JayPengX/Shared-Proxy
-          path: .shared
-          sparse-checkout: kit
-      - run: ln -sfn .shared/kit .kit
       - name: Run tests
         run: npm test
       - name: Minify, and address every file by its content
         # Each script and stylesheet minified and stamped with its own content
-        # hash (the kit's kit/stamp-app.mjs): browsers fetch a changed file at
+        # hash (scripts/stamp-version.mjs): browsers fetch a changed file at
         # once, never mix it with cached older ones, and keep every file the
         # deploy didn't change.
         run: node scripts/stamp-version.mjs "$(git rev-parse HEAD)"

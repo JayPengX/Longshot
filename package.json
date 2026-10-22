@@ -1,11 +1,1 @@
-{
-  "name": "longshot",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test"
-  },
-  "imports": {
-    "#kit/*": "./public/kit/*"
-  }
-}
+{"name":"longshot","private":true,"type":"module","scripts":{"test":"node --test"},"imports":{"#kit/*":"./public/kit/*"}}

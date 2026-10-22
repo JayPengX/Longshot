@@ -21,8 +21,8 @@
 // A card is sold from `since` to `until` (its 下市日期, 17:00 Taiwan time),
 // then no more (onSale). Cards no longer sold (`retired`: made-up ones,
 // 2026-10) keep their table and face, so one bought before still scratches.
-import { randomInt } from '#kit/play-lottery.mjs';
-import { seededRandom, prizeAfterTax } from '#kit/play-odds.mjs';
+import { randomInt } from './play-lottery.mjs';
+import { seededRandom, prizeAfterTax } from './play-odds.mjs';
 
 // Prize tiers by price for the retired cards (multiples of the price and
 // their odds, 1 in N tickets); a card on sale has its own `prizes`.

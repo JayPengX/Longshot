@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { shadeLong, withRules, houseRule, minLegsProblem, houseCut, BASE_CUT, leagueTier } from '../public/lib/rules.mjs';
 import { recommend } from '../public/lib/recommend.mjs';
 import { slipErrors, estimateF1Odds, f1Phase } from '../public/lib/odds.mjs';
-import { parseKambiEvents, parseKambiLive } from '#kit/play-kambi.mjs';
-import { goalMarkets } from '#kit/play-markets.mjs';
+import { parseKambiEvents, parseKambiLive } from '../public/kit/play-kambi.mjs';
+import { goalMarkets } from '../public/kit/play-markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 import { parseF1Schedule, parseFutures, EXTRA_FUTURES, futureTeamName } from '../public/lib/sources.mjs';
 

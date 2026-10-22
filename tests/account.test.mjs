@@ -1,8 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { START_BALANCE, newAccount, balance, placeSlip, legResult, applyResults, mergeAccounts, topInning, cashOut } from '../public/lib/account.mjs';
+import { newAccount as emptyAccount, balance, placeSlip, legResult, applyResults, mergeAccounts, topInning } from '../public/lib/account.mjs';
 import { settleSlip, afterTax } from '../public/lib/odds.mjs';
 import { parseEspnResults, parseEspnRace, parseFutureResult } from '../public/lib/sources.mjs';
+
+const START_BALANCE = 10_000;
+// An account with NT$10,000 of its own to bet with (the wallet's money, in the app).
+const newAccount = (now, { start = true } = {}) => {
+  const a = emptyAccount(now);
+  return start ? { ...a, ledger: [{ id: 'start', t: a.created, kind: 'start', amount: START_BALANCE }] } : a;
+};
 
 const at = iso => new Date(iso);
 
@@ -174,7 +181,7 @@ test('saves are gzip-compressed and read back; old plain saves still read', asyn
 });
 
 test('slip history keeps itself: final scores with each pick, compact picks, backups merge', async () => {
-  const { newAccount, placeSlip, applyResults, compactLeg, compactAccount, mergeAccounts, balance } = await import('../public/lib/account.mjs');
+  const { placeSlip, applyResults, compactLeg, mergeAccounts, balance } = await import('../public/lib/account.mjs');
   const now = new Date('2026-09-26T04:00:00Z');
   const leg = { id: 'g1|ml|home', kind: 'ml', sport: 'mlb', odds: 1.9, side: 'home', line: null, inning: null, driver: null, away: 'Houston Astros', home: 'Athletics' };
   let account = placeSlip(newAccount(now), { id: 's1', mode: 'single', sizes: [1], stake: 100, cost: 100, legs: [leg] }, now).account;
@@ -188,36 +195,29 @@ test('slip history keeps itself: final scores with each pick, compact picks, bac
   const backup = JSON.parse(JSON.stringify(account));
   assert.equal(balance(mergeAccounts(account, backup)), balance(account));
   assert.equal(mergeAccounts(newAccount(now), backup).slips.length, 1);
-  assert.deepEqual(compactAccount(backup).slips[0].legs[0].final, { away: 4, home: 6 });
 });
 
-test('Quadra pool: extra money to bet with, entries for the pool', async () => {
-  const { newAccount, placeSlip, poolEntries, mergeDistinct, balance } = await import('../public/lib/account.mjs');
+test('the wallet: extra money to bet with, entries for the wallet', async () => {
+  const { placeSlip, poolEntries, balance } = await import('../public/lib/account.mjs');
   const now = new Date('2026-09-23T04:00:00Z');
   const base = newAccount(new Date('2026-09-01T00:00:00Z'));
   const slip = (id, cost) => ({ id, mode: 'single', sizes: [1], stake: cost, cost, legs: [{ id: 'x', odds: 2 }] });
-  // Beyond the ledger's own NT$10,000, with the pool's extra.
+  // Beyond the ledger's own NT$10,000, with the wallet's extra.
   assert.deepEqual(placeSlip(base, slip('a', 15_000), now), { error: 'funds' });
   const { account } = placeSlip(base, slip('a', 15_000), now, { extra: 90_000 });
   assert.equal(balance(account), -5_000);
-  // No weekly limit: anything the pool covers.
+  // No weekly limit: anything the wallet covers.
   assert.ok(placeSlip(account, slip('b', 60_000), now, { extra: 90_000 }).account);
   const entries = poolEntries(account);
   assert.deepEqual(entries.map(e => [e.id, e.amount, e.app]), [['odds:start', 10_000, 'odds'], ['odds:stake-a', -15_000, 'odds']]);
-  // Two separate accounts folded together keep both starts and old grants.
-  const grant = a => ({ ...a, ledger: [...a.ledger, { id: 'grant-2026-09-21', t: '2026-09-22T01:00:00.000Z', kind: 'grant', amount: 500 }] });
-  const other = grant(newAccount(new Date('2026-08-01T00:00:00Z')));
-  const both = mergeDistinct(grant(base), other);
-  assert.equal(balance(both), 2 * (10_000 + 500));
-  assert.equal(mergeDistinct(both, other).ledger.length, both.ledger.length);
 });
 
 test('the wallet brings back a lost ledger and slips, and a real slip wins over a recovered one', async () => {
-  const { recoverFromWallet, mergeAccounts, newAccount, balance } = await import('../public/lib/account.mjs');
+  const { recoverFromWallet, mergeAccounts, balance } = await import('../public/lib/account.mjs');
   const empty = newAccount(new Date('2026-09-28T00:00:00Z'), { start: false });
   const wallet = {
     entries: [
-      { id: 'eco:start', t: 1, app: 'eco', kind: 'start', amount: 110000 },
+      { id: 'pass:start', t: 1, app: 'pass', kind: 'start', amount: 200000 },
       { id: 'odds:start', t: 2, app: 'odds', kind: 'start', amount: 10000 },
       { id: 'odds:stake-a', t: 3, app: 'odds', kind: 'stake', amount: -1000 },
       { id: 'odds:payout-a', t: 4, app: 'odds', kind: 'payout', amount: 2500 },
@@ -234,7 +234,7 @@ test('the wallet brings back a lost ledger and slips, and a real slip wins over 
 });
 
 test('a rebuilt slip shows a refund as refunded, and what the Worker paid once it has', async () => {
-  const { recoverFromWallet, newAccount, balance } = await import('../public/lib/account.mjs');
+  const { recoverFromWallet, balance } = await import('../public/lib/account.mjs');
   const t0 = Date.parse('2026-10-14T00:00:00Z');
   const stakes = [
     { id: 'odds:stake-b', t: t0, app: 'odds', kind: 'stake', amount: -2000 },
@@ -256,7 +256,7 @@ test('a rebuilt slip shows a refund as refunded, and what the Worker paid once i
 });
 
 test("a wallet entry that can't be dated or counted is left out, never a sync that throws", async () => {
-  const { recoverFromWallet, newAccount, balance } = await import('../public/lib/account.mjs');
+  const { recoverFromWallet, balance } = await import('../public/lib/account.mjs');
   const empty = newAccount(new Date('2026-10-01T00:00:00Z'), { start: false });
   const wallet = {
     entries: [
@@ -274,17 +274,8 @@ test("a wallet entry that can't be dated or counted is left out, never a sync th
   assert.equal(recoverFromWallet(empty, null), empty);
 });
 
-test("a new account takes Play's own opening money only for a known wallet without Quadra's", async () => {
-  const { accountFor, balance } = await import('../public/lib/account.mjs');
-  // Not read yet (offline, signing in): no NT$10,000 the pool never had.
-  assert.equal(balance(accountFor(null)), 0);
-  assert.equal(balance(accountFor({})), 0);
-  assert.equal(balance(accountFor({ entries: [{ id: 'eco:start', amount: 30000 }] })), 0);
-  assert.equal(balance(accountFor({ entries: [] })), 10000);
-});
-
 test('two copies merge: a settled copy wins, picks decided on either side are kept, tickets and the ledger by union', async () => {
-  const { mergeAccounts, newAccount, placeSlip, applyResults, balance } = await import('../public/lib/account.mjs');
+  const { mergeAccounts, placeSlip, applyResults, balance } = await import('../public/lib/account.mjs');
   const t0 = new Date('2026-10-10T00:00:00Z');
   const legs = [
     { id: 'a', gameId: 'ga', odds: 2, start: '2026-10-10T10:00:00Z' },

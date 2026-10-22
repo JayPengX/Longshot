@@ -38,7 +38,14 @@ test('獎別 and the prize-table rules', () => {
 // ---- What the slip offers ----
 import * as L from '../public/lib/lottery.mjs';
 import { gameLimits, periodsFor, MAX_SOLD, zoneMax, comboMax, isSystem, jackpotOf, bySeries, winsText, pendingPrize, nextTerm } from '../public/lottery-labels.mjs';
-import { newAccount } from '../public/lib/account.mjs';
+import { newAccount as emptyAccount } from '../public/lib/account.mjs';
+
+const START_BALANCE = 10_000;
+// An account with NT$10,000 of its own to bet with (the wallet's money, in the app).
+const newAccount = (now, { start = true } = {}) => {
+  const a = emptyAccount(now);
+  return start ? { ...a, ledger: [{ id: 'start', t: a.created, kind: 'start', amount: START_BALANCE }] } : a;
+};
 
 const at = new Date('2026-10-19T10:00:00+08:00');
 

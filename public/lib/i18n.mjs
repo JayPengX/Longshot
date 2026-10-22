@@ -1,4 +1,4 @@
-import { makeT as kitMakeT } from '#kit/lang.mjs';
+import { makeT as kitMakeT } from '../kit/lang.mjs';
 export const STRINGS = {
   zh: {
     marketsN: '{n} 玩法', marketsOne: '{n} 玩法', slipStakeEach: '每張金額', slipStakeCombo: '每組金額', payTax: '預扣 {rate} 稅', payLeastShort: '有中最少',
@@ -13,7 +13,7 @@ export const STRINGS = {
     moreMarkets: '更多玩法',
     gameGone: '這場比賽已不在投注板上。',
     legendOdds: '估計賠率',
-    title: 'Quadra Play',
+    title: '冷門',
     tab_home: '首頁',
     tab_lottery: '彩券',
     notice: '',
@@ -351,7 +351,7 @@ export const STRINGS = {
     slipRecoveredTitle: '投注單（明細遺失）',
     slipRecoveredNoPay: '沒有派彩紀錄',
     slipRefunded: '已退款',
-    groupRecovered: '從 Quadra Pass 找回',
+    groupRecovered: '從 Longshot Pass 找回',
     slipPaid: '中獎 {v}',
     slipVoided: '全部無效 · 退回 {v}',
     slipResult: '輸贏',
@@ -398,7 +398,7 @@ export const STRINGS = {
     moreMarkets: 'More markets',
     gameGone: 'This game is no longer on the board.',
     legendOdds: 'estimated odds',
-    title: 'Quadra Play',
+    title: 'Longshot',
     tab_home: 'Home',
     tab_lottery: 'Lottery',
     notice: '',
@@ -735,7 +735,7 @@ export const STRINGS = {
     slipRecoveredTitle: 'Slip (picks lost)',
     slipRecoveredNoPay: 'No payout on record',
     slipRefunded: 'Refunded',
-    groupRecovered: 'Recovered from your Quadra Pass',
+    groupRecovered: 'Recovered from your Longshot Pass',
     slipPaid: 'Paid {v}',
     slipVoided: 'All void · {v} back',
     slipResult: 'Result',

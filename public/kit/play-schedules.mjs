@@ -12,8 +12,8 @@
 // Games come out shaped like parseEspnScoreboard's (names as strings,
 // `outcomes: null`, the house's chances as `house`), so mergeGames makes them
 // board games like any other.
-import { housePrices, strengths } from '#kit/play-house.mjs';
-import { normalizeTeamName } from '#kit/play-teams.mjs';
+import { housePrices, strengths } from './play-house.mjs';
+import { normalizeTeamName } from './play-teams.mjs';
 
 const game = (sport, startUtc, away, home, house, extra = {}) => ({ sport, startUtc: new Date(startUtc).toISOString(), away, home, neutral: false, preseason: false, outcomes: null, total: null, spread: null, house, ...extra });
 

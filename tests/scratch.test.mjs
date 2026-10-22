@@ -1,7 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CARDS, CARD_ORDER, tiersOf, expectedReturn, face, facePays, drawPrize, buyScratch, revealScratch, topPrize } from '../public/lib/scratch.mjs';
-import { newAccount, balance } from '../public/lib/account.mjs';
+import { newAccount as emptyAccount, balance } from '../public/lib/account.mjs';
+
+const START_BALANCE = 10_000;
+// An account with NT$10,000 of its own to bet with (the wallet's money, in the app).
+const newAccount = (now, { start = true } = {}) => {
+  const a = emptyAccount(now);
+  return start ? { ...a, ledger: [{ id: 'start', t: a.created, kind: 'start', amount: START_BALANCE }] } : a;
+};
 
 // The cards are Taiwan Lottery's own (all 24 on sale since 2026-10); the earlier
 // twelve are `retired`.

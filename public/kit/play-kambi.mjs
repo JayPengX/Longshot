@@ -4,12 +4,12 @@
 // caches each list for every viewer (2 minutes) and trims it to the fields
 // read here, so the feed sees one request per league per few minutes. Odds come as thousandths (1950 = 1.95) and lines as
 // thousandths too (1500 = 1.5); a match lists its home player first.
-import { devigProportional } from '#kit/play-odds.mjs';
-import { LEAGUES, normalizeTeamName, teamZh } from '#kit/play-teams.mjs';
-import { housePrices } from '#kit/play-house.mjs';
+import { devigProportional } from './play-odds.mjs';
+import { LEAGUES, normalizeTeamName, teamZh } from './play-teams.mjs';
+import { housePrices } from './play-house.mjs';
 
 // Reading a match's live data and deciding it: the shared kit's (settle.mjs), as the Worker settles.
-import { KAMBI, kambiUrl, kambiLiveDataUrl, kambiPeriods, parseKambiLiveData, KAMBI_QUIET_MS, decidedTeamGame } from '#kit/settle.mjs';
+import { KAMBI, kambiUrl, kambiLiveDataUrl, kambiPeriods, parseKambiLiveData, KAMBI_QUIET_MS, decidedTeamGame } from './settle.mjs';
 export { KAMBI, kambiUrl, kambiLiveDataUrl, kambiPeriods, parseKambiLiveData, KAMBI_QUIET_MS, decidedTeamGame };
 
 const outcome = (offer, type) => offer.outcomes.find(o => o.type === type);
@@ -193,7 +193,7 @@ export function parseKambiLive(data) {
 // Shared-Proxy's /kambi: it keeps the last live data of the matches bets are
 // on after Kambi drops them (a few hours after the end). Sportsbook tells it
 // which matches to watch, and reads its copy when Kambi's is gone.
-export const KAMBI_WATCH_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/kambi';
+export const KAMBI_WATCH_URL = 'https://longshot.pengzjay.workers.dev/kambi';
 // The Quadra session token, when signed in (counted per session, not per IP).
 let tokenOf = () => '';
 export const useKambiToken = fn => (tokenOf = fn);

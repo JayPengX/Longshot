@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant" data-app="odds" class="q-dock">
+<html lang="zh-Hant" class="q-dock">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
@@ -7,66 +7,46 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="build-version" content="dev" />
-<!-- A newer deploy is loaded by the kit's boot.js (and kept current by its watchUpdates): a check of the page's own here as well sent an old page to the new one twice. -->
-<!-- brand: Shared-Proxy/brand/generate.mjs writes this block -->
-<title>Quadra Play</title>
-<meta name="description" content="運彩與彩券：所有運動、所有玩法，還有台灣彩券的電腦彩券與刮刮樂。" />
-<meta name="application-name" content="Quadra Play" />
-<meta name="apple-mobile-web-app-title" content="Play" />
+<!-- A newer deploy is loaded by kit/boot.js (and kept current by core.mjs watchUpdates). -->
+<title>Longshot · 冷門</title>
+<meta name="description" content="運彩與彩券的模擬下注，加上你真的買的運彩注單：每一注的數學都看得見。" />
+<meta name="application-name" content="Longshot" />
+<meta name="apple-mobile-web-app-title" content="冷門" />
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Quadra" />
-<meta property="og:title" content="Quadra Play" />
-<meta property="og:description" content="運彩與彩券：所有運動、所有玩法，還有台灣彩券的電腦彩券與刮刮樂。" />
-<meta property="og:url" content="https://jaypengx.github.io/Quadra-Play/" />
+<meta property="og:site_name" content="Longshot" />
+<meta property="og:title" content="Longshot · 冷門" />
+<meta property="og:description" content="運彩與彩券的模擬下注，加上你真的買的運彩注單：每一注的數學都看得見。" />
+<meta property="og:url" content="https://jaypengx.github.io/Longshot/" />
 <meta property="og:locale" content="zh_TW" />
 <meta property="og:locale:alternate" content="en_US" />
-<meta property="og:image" content="https://jaypengx.github.io/Quadra-Play/share/og.jpg" />
+<meta property="og:image" content="https://jaypengx.github.io/Longshot/share/og.jpg" />
 <meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Quadra Play — 運彩與彩券：每一注的數學都看得見" />
-<meta property="og:image" content="https://jaypengx.github.io/Quadra-Play/share/square.jpg" />
-<meta property="og:image:type" content="image/jpeg" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="1200" />
-<meta property="og:image:alt" content="Quadra Play — 運彩與彩券：每一注的數學都看得見" />
+<meta property="og:image:alt" content="Longshot · 冷門" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Quadra Play" />
-<meta name="twitter:description" content="運彩與彩券：所有運動、所有玩法，還有台灣彩券的電腦彩券與刮刮樂。" />
-<meta name="twitter:image" content="https://jaypengx.github.io/Quadra-Play/share/x.jpg" />
-<meta name="twitter:image:alt" content="Quadra Play — 運彩與彩券：每一注的數學都看得見" />
-<!-- /brand -->
+<meta name="twitter:title" content="Longshot · 冷門" />
+<meta name="twitter:description" content="運彩與彩券的模擬下注，加上你真的買的運彩注單：每一注的數學都看得見。" />
+<meta name="twitter:image" content="https://jaypengx.github.io/Longshot/share/og.jpg" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="manifest" href="./manifest.webmanifest" />
-<link rel="preconnect" href="https://orbit-workers-proxy.pengzjay.workers.dev" crossorigin />
+<link rel="preconnect" href="https://longshot.pengzjay.workers.dev" crossorigin />
 <link rel="preconnect" href="https://a.espncdn.com" />
+<link rel="stylesheet" href="./kit/core.css" />
 <link rel="stylesheet" href="./styles.css" />
-<!-- kit:head: where the app's stylesheets end, before any module. The kit
-     comes from one place for every app (Shared-Proxy's GitHub Pages, same
-     site as the apps), each file at the hash this device last saw (quadra.kit
-     and quadra.kitFiles, noted from the kit's version.json by boot.js and
-     quadra.mjs kitLatest; on a first visit the hashes the app's deploy
-     baked in, the `null` at the end), so a change to the kit is one push
-     to Shared-Proxy and a phone downloads only the files it changed. A kit
-     file newer than the app's deploy (not in its list) is mapped from those
-     hashes too, never left at a bare address the browser keeps 10 minutes. -->
-<script>!function(b,d,v,h,n,m,f,i,u){try{v=localStorage.getItem('quadra.kit')||'';h=JSON.parse(localStorage.getItem('quadra.kitFiles')||'null')}catch(e){v=''}n=!!v;if(!n&&d){v=d.version;h=d}h=h&&h.version===v?h.files:null;u=function(x){var k=h&&h[x];return b+x+(k?'?v='+k:v?'?v='+encodeURIComponent(v):'')};m={'#kit/':b};f=['brand.mjs','catalog.mjs','devconfig.mjs','f1live.mjs','format.mjs','gov.mjs','help.mjs','holidays.mjs','lang.mjs','loan.mjs','logos.mjs','mirror.mjs','names.mjs','pass-sync.mjs','pass.mjs','photo-urls.mjs','photos.mjs','play-alive.mjs','play-bets.mjs','play-board.mjs','play-boardfile.mjs','play-cashout.mjs','play-house.mjs','play-kambi.mjs','play-lines.mjs','play-live.mjs','play-lottery.mjs','play-markets.mjs','play-odds.mjs','play-offers.mjs','play-players.mjs','play-propmodel.mjs','play-props.mjs','play-recommend.mjs','play-rules.mjs','play-schedules.mjs','play-scratch.mjs','play-sources.mjs','play-teams.mjs','plus.mjs','postseason.mjs','quadra.mjs','settle.mjs','sports-broadcast.mjs','sports-espn.mjs','sports-highlights.mjs','sports-winprob.mjs','stock-account.mjs','stock-bonds.mjs','stock-codec.mjs','stock-credit.mjs','stock-hk-lots.mjs','stock-holidays.mjs','stock-ipo.mjs','stock-jp-lists.mjs','stock-markets.mjs','stock-quotes.mjs','stock-savings.mjs','truth.mjs','ui.mjs'];for(i=0;i<f.length;i++)m['#kit/'+f[i]]=u(f[i]);if(h)for(i in h)/\.mjs$/.test(i)&&(m['#kit/'+i]=u(i));window.QUADRA_KIT={base:b,version:v,noted:n,url:u};document.write('<script type="import'+'map">'+JSON.stringify({imports:m})+'<\/script><link rel="stylesheet" href="'+u('quadra.css')+'"><link rel="modulepreload" href="'+u('quadra.mjs')+'"><link rel="modulepreload" href="'+u('brand.mjs')+'">')}('../Shared-Proxy/kit/',null)</script>
-<!-- /kit:head -->
 </head>
 <body>
-<div id="loading" data-title="Quadra Play"></div>
-<!-- kit:boot: right after <div id="loading">. -->
-<script>document.write('<script src="'+QUADRA_KIT.url('boot.js')+'"><\/script>')</script>
-<!-- /kit:boot -->
+<div id="loading" data-title="冷門"></div>
+<script src="./kit/boot.js"></script>
 <header class="q-appbar">
   <div class="q-appbar-inner">
     <div class="q-brand">
       <img class="q-brand-logo" src="./favicon.svg" alt="" width="34" height="34" />
-      <div class="q-brand-text"><h1 id="title">Quadra Play</h1></div>
+      <div class="q-brand-text"><h1 id="title">冷門</h1></div>
     </div>
     <nav id="tabs" class="q-tabbar" role="tablist"></nav>
     <div id="top-actions" class="q-actions"></div>
@@ -110,6 +90,6 @@
 
 
 </main>
-<script type="module" src="./app.js" onerror="window.__oddsFail()"></script>
+<script type="module" src="./app.js" onerror="window.__longshotFail()"></script>
 </body>
 </html>

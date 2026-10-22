@@ -3,7 +3,7 @@
 // box score.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseOffers, LINES_SHOWN } from '#kit/play-offers.mjs';
+import { parseOffers, LINES_SHOWN } from '../public/kit/play-offers.mjs';
 import { propOf, boxPlayers, propOutcome, propResult, firstScorer } from '../public/lib/props.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 import { legResult } from '../public/lib/account.mjs';

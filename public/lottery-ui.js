@@ -10,8 +10,8 @@ import { compactMoney } from './home.js';
 import { faceDrawer, ticketLook } from './scratch-face.js';
 import { TICKETS } from './tickets.js';
 import { scratchTicket } from './scratch-ticket.js';
-import { ask, tell } from '#kit/quadra.mjs';
-import * as kitUI from '#kit/ui.mjs';
+import { ask, tell } from './kit/core.mjs';
+import * as kitUI from './kit/ui.mjs';
 import { kitGlyph, kitDialog, gameLogo, cardArt } from './icons.js';
 import { termLabel, termOf, nextTerm, cutoffAt, tierName, tierRule, digitRule, gameLimits, periodsFor, MAX_LINES, zoneMax, comboMax, isSystem, pendingPrize, winsText, jackpotOf, bySeries } from './lottery-labels.mjs';
 

@@ -113,7 +113,7 @@ test("a game that began before the page opened has its pregame line from the liv
 
 test('hockey, football and basketball in progress', async () => {
   const { shareLeft, livePoints, liveGoals } = await import('../public/lib/live.mjs');
-  const { fitHockey } = await import('#kit/play-markets.mjs');
+  const { fitHockey } = await import('../public/kit/play-markets.mjs');
   assert.equal(shareLeft('nba', 1, 720), 1);
   assert.equal(shareLeft('nba', 3, 360), 0.375);
   assert.equal(shareLeft('nba', 4, 0), 0);
@@ -149,7 +149,7 @@ test('hockey, football and basketball in progress', async () => {
 });
 
 test('Kambi\'s matches in play: its live prices, open ones only', async () => {
-  const { parseKambiInPlay } = await import('#kit/play-kambi.mjs');
+  const { parseKambiInPlay } = await import('../public/kit/play-kambi.mjs');
   const offer = (type, label, outcomes) => ({ betOfferType: { englishName: type }, criterion: { englishLabel: label }, outcomes });
   const baseball = parseKambiInPlay({ events: [
     { event: { id: 4, homeName: 'Rakuten Monkeys', awayName: 'Uni Lions', start: '2026-09-29T10:35:00Z', state: 'STARTED' },

@@ -2,11 +2,11 @@
 //  1 headline game hero (its win prices + search) · 2 quick actions · 3 場中焦點 ·
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below, on the kit's components.
-import { rank, affinity, cachedPayload } from '#kit/quadra.mjs';
-import { tasteOf, gameInterest, forYouPicks, fixturesTaste, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
+import { rank, affinity } from './kit/core.mjs';
+import { tasteOf, gameInterest, forYouPicks, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
 import { gameLogo, cardArt } from './icons.js';
-import * as kitUI from '#kit/ui.mjs';
-import { normalizeTeamName } from '#kit/logos.mjs';
+import * as kitUI from './kit/ui.mjs';
+import { normalizeTeamName } from './kit/logos.mjs';
 import { familyOf } from './lib/teams.mjs';
 import { CARDS } from './lib/scratch.mjs';
 import { GAMES } from './lib/lottery.mjs';
@@ -21,17 +21,17 @@ const glyph = name => {
 
 const TXT = {
   zh: {
-    headline: '焦點大戰', whyFollowHero: '你追蹤的球隊', whyBackedHero: '你押過的球隊', whyLevel: '勢均力敵', balance: 'Quadra 餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
+    headline: '焦點大戰', whyBackedHero: '你押過的球隊', whyLevel: '勢均力敵', balance: '餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
-    why_follow: '追蹤', why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
+    why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboBoost: '+{b}%', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', cashed: '已兌現', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
-    headline: 'Big game', whyFollowHero: 'Your team', whyBackedHero: 'You backed them', whyLevel: 'Too close to call', balance: 'Quadra balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
+    headline: 'Big game', whyBackedHero: 'You backed them', whyLevel: 'Too close to call', balance: 'Balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
-    why_follow: 'Following', why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
+    why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
     combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced 3', comboBold: 'Long shot 4', comboTotals: 'Totals 3', comboSpread: 'Handicap 3', comboLeague: '{league} 3', comboBoost: '+{b}%', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', cashed: 'Cashed out', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
@@ -50,7 +50,7 @@ export function compactMoney(x, lang) {
   return plain;
 }
 
-// A team's key as every Quadra app records it (app.js betKeys, foryou.mjs).
+// A team's key as the affinity records it (app.js betKeys, foryou.mjs).
 const norm = name => normalizeTeamName(String(name || ''));
 
 const TIER_WEIGHT = { major: 0.6, minor: 0.3, thin: 0.05 };
@@ -91,12 +91,12 @@ function rivalryOf(game, lang) {
   return null;
 }
 
-// What 為你推薦 is drawn from on the pass (Orbit Sports' follows, every
-// app's affinity): when it changes, home is drawn again (app.js).
-export const tasteKey = wallet => JSON.stringify([fixturesTaste(cachedPayload, wallet), Object.keys(affinity(wallet, Date.now(), ['odds', 'stock', 'match'])).sort().slice(0, 40)]);
+// What 為你推薦 is drawn from on the pass (the synced affinity): when it
+// changes, home is drawn again (app.js).
+export const tasteKey = wallet => JSON.stringify(Object.keys(affinity(wallet)).sort().slice(0, 40));
 
 // 為你推薦 as first drawn, kept while its picks are still on sale: home is
-// drawn again on every live read and when the pass's follows come in, and the
+// drawn again on every live read and when the pass's affinity comes in, and the
 // row reshuffled (or filled in) seconds after the page opened.
 let mineKept = [];
 let grouped = { of: null, map: new Map() };
@@ -123,9 +123,9 @@ export function renderHome(ctx) {
   const now = Date.now();
   const money = v => fmtMoney(v, { sign: false });
 
-  // ---- What the person likes: every app's affinity, Orbit Sports' follows.
-  const aff = affinity(state.wallet, now, ['odds', 'stock', 'match']);
-  const taste = tasteOf({ aff, fixtures: fixturesTaste(cachedPayload, state.wallet), slips: state.account?.slips || [], now });
+  // ---- What the person likes: the affinity, and the teams they back.
+  const aff = affinity(state.wallet, now);
+  const taste = tasteOf({ aff, slips: state.account?.slips || [], now });
   const teamKey = (g, side) => `team:${g.sport}:${norm(g[side]?.en ?? g[side])}`;
   // A game's affinity keys, as a pick on it records them (app.js betKeys:
   // the sport by its family, 'sport:baseball', never the league again).
@@ -155,7 +155,7 @@ export function renderHome(ctx) {
   const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 5 });
 
   // 首頁's headline game, by a rule it says on its card (Jay 2026-10-21: why
-  // is this the big game?): a team the person follows or has backed, a
+  // is this the big game?): a team the person has backed, a
   // derby or a famous rivalry, two sides priced level; a top league and an
   // early start break ties. Within three days.
   const headlineOf = () => {
@@ -168,7 +168,6 @@ export function renderHome(ctx) {
         const p = winPrices(g);
         const level = p.length === 2 && Math.max(...p) / Math.min(...p) < 1.3;
         const reasons = [
-          like.why === 'follow' && [4, T.whyFollowHero],
           like.why === 'backed' && [3, T.whyBackedHero],
           derby && [3, derby],
           level && [1.5, T.whyLevel]
@@ -203,7 +202,7 @@ export function renderHome(ctx) {
     return kitUI.matchCard({
       league: state.t(`sport_${g.sport}`), leagueLogo: ctx.leagueUrl(g.sport), live: o.live, wide: o.wide,
       when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
-      tag: o.why && T[`why_${o.why}`] ? { text: T[`why_${o.why}`], tone: ['follow', 'backed', 'like', 'league', 'sport'].includes(o.why) ? 'tint' : 'orange' } : null,
+      tag: o.why && T[`why_${o.why}`] ? { text: T[`why_${o.why}`], tone: ['backed', 'like', 'league', 'sport'].includes(o.why) ? 'tint' : 'orange' } : null,
       sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
       prices, onOpen: open
     });

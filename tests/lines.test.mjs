@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { modelMean, modelTotal, withModelLines, LEAGUE_TOTALS } from '#kit/play-lines.mjs';
+import { modelMean, modelTotal, withModelLines, LEAGUE_TOTALS } from '../public/kit/play-lines.mjs';
 import { gameOptions } from '../public/lib/board.mjs';
 
 const game = (sport, extra = {}) => ({ id: `t-${sport}`, sport, startUtc: '2026-09-28T10:00:00Z', away: { en: 'Away' }, home: { en: 'Home' }, ...extra });

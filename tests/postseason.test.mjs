@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseEspnScoreboard } from '../public/lib/sources.mjs';
-import * as k from '#kit/postseason.mjs';
+import * as k from '../public/kit/postseason.mjs';
 
 const list = k.mlbPostseason(JSON.parse(await readFile(new URL('./fixtures/mlb-postseason-2026-10-10.json', import.meta.url))));
 const team = (name, id) => ({ id, displayName: name, abbreviation: name.slice(0, 3).toUpperCase() });

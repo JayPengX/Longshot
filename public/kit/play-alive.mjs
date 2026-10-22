@@ -11,7 +11,7 @@
 // Every reader here is pure; play-sources.mjs fetches and calls them. Each
 // returns a Map of every name it knows to whether that name is out, so a
 // board's name is judged against all of them (isOut).
-import { sideScore } from '#kit/settle.mjs';
+import { sideScore } from './settle.mjs';
 
 const clincherOf = e => {
   const s = (e?.stats || []).find(x => x?.name === 'clincher');

@@ -24,8 +24,8 @@
 // 大樂透 and 今彩539 take no 倍數; 樂合彩 up to 10; 3星彩, 4星彩 and BINGO up to
 // 50. 多期 2-10 on 威力彩, 大樂透 and 49樂合彩, 2-12 on BINGO, 2-24 on the rest.
 
-import { choose, prizeAfterTax } from '#kit/play-odds.mjs';
-import { twDay } from '#kit/format.mjs';
+import { choose, prizeAfterTax } from './play-odds.mjs';
+import { twDay } from './format.mjs';
 
 export const API = 'https://api.taiwanlottery.com/TLCAPIWeB/Lottery';
 const DAY = 86_400_000;

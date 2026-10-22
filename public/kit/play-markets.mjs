@@ -13,7 +13,7 @@
 // bigger cuts the lottery takes on its many-outcome markets (the top-scoring
 // inning, 1.92; 第N分, 1.31), scaled by the number of outcomes. Every one of
 // these is marked unchecked.
-import { fitted, estimateLineOdds, round2, scoreGrid, fitTeamRuns, fitTotalRuns, GOALS_DISPERSION, TEAM_RUNS_DISPERSION } from '#kit/play-odds.mjs';
+import { fitted, estimateLineOdds, round2, scoreGrid, fitTeamRuns, fitTotalRuns, GOALS_DISPERSION, TEAM_RUNS_DISPERSION } from './play-odds.mjs';
 
 export const CUT = {
   twoWay: 1.158,

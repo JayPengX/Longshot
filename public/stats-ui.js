@@ -6,7 +6,7 @@ import { gameName, GAMES } from './lib/lottery.mjs';
 import { gameLogo, cardArt, kitGlyph } from './icons.js';
 import { CARDS } from './lib/scratch.mjs';
 import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
-import * as kitUI from '#kit/ui.mjs';
+import * as kitUI from './kit/ui.mjs';
 
 const T = {
   zh: {

@@ -9,7 +9,7 @@
 // the per-league reads.
 // `packJson` hands back the device's copy of any age when the read fails, so
 // the age is the file's own (`built`), never trust in the read.
-export async function readBoard({ packJson, loadKit = () => import('#kit/play-boardfile.mjs'), timeout = 4_000, now = Date.now() } = {}) {
+export async function readBoard({ packJson, loadKit = () => import('../kit/play-boardfile.mjs'), timeout = 4_000, now = Date.now() } = {}) {
   try {
     const [file, mod] = await Promise.all([Promise.resolve().then(() => packJson('play/board.json', { ttl: 60_000, timeout })).catch(() => null), Promise.resolve().then(loadKit).catch(() => null)]);
     // (A board with no game is not one to open on: the phone's own read tells.)

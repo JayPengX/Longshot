@@ -1,13 +1,13 @@
 import { slipPayoutTable, settleSlip, boostRate, SLIP_RULES, combosBySize } from './lib/odds.mjs';
 import { useSourcesSession, loadLeague, LATE_MS, loadOdds, loadExtraLeagues, loadExtraFutures, taipeiDayKey, fetchOutcomes, loadLive, parseInning, loadFutureTeams, futureTeamLeagues, loadGameOffers, loadLeagueTeams } from './lib/sources.mjs';
 import { propName } from './lib/props.mjs';
-import * as kitPhotos from '#kit/photos.mjs';
-import * as kit from '#kit/quadra.mjs';
-import * as kitBoard from '#kit/play-board.mjs';
-import * as kitUI from '#kit/ui.mjs';
-import * as kitTeams from '#kit/play-teams.mjs';
+import * as kitPhotos from './kit/photos.mjs';
+import * as kit from './kit/core.mjs';
+import * as kitBoard from './kit/play-board.mjs';
+import * as kitUI from './kit/ui.mjs';
+import * as kitTeams from './kit/play-teams.mjs';
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
-import { accountFor, balance, newSlipId, placeSlip, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
+import { newAccount, balance, newSlipId, placeSlip, legResult, applyResults, mergeAccounts, recoverFromWallet, poolEntries, taxPaid, isAccount } from './lib/account.mjs';
 import { futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
 import { useSettleToken, readSettled, ackSettled, placeSlips, revealPending, settleNow } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
@@ -15,13 +15,13 @@ import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
 import { icon, kitGlyph } from './icons.js';
 
-import { othersBalance, installGate, watchUpdates, quadraSession, tabBar, topActions, recordAffinity, affinityPatch, notify, schedulePush, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from '#kit/quadra.mjs';
+import { othersBalance, installGate, watchUpdates, passSession, tabBar, topActions, recordAffinity, affinityPatch, notify, storedAccount, ask, tell, money as kitMoney, dev, everyDev, keepOffline, onlineOnly } from './kit/core.mjs';
 import { pack, unpack } from './lib/codec.mjs';
 import { accountRecord, monthsOf, slipMonth } from './lib/history.mjs';
 import { makeT, STRINGS } from './lib/i18n.mjs';
 import { f1Driver, f1Constructor, F1_NAMES_ZH, F1_PAGE, findTeamLogo, countryFlag, countryCode, leagueLogo, teamLogo, teamZh, teamNameZh, LEAGUES, familyOf, isSoccer, normalizeTeamName } from './lib/teams.mjs';
-import { flagUrl } from '#kit/logos.mjs';
-import { logoPicture, raceName } from '#kit/logos.mjs';
+import { flagUrl } from './kit/logos.mjs';
+import { logoPicture, raceName } from './kit/logos.mjs';
 import { minLegsProblem, leagueTier, withRules } from './lib/rules.mjs';
 import { gameOptions } from './lib/board.mjs';
 import { recommend } from './lib/recommend.mjs';
@@ -84,7 +84,7 @@ const state = {
   // Resolves once the account is read and merged with the pass (boot).
   accountIn: null,
   sync: { busy: false, error: '', at: null },
-  // The Quadra Pass's wallet (the shared money pool), when the code is a pass.
+  // The Longshot Pass's wallet (the money: opening, Mondays', every bet).
   wallet: null,
   // Slips saved or settled since the page opened, highlighted.
   freshSlips: new Set(),
@@ -2236,15 +2236,14 @@ function payLine(label, value, cls = '') {
   return el('div', { class: `pay-line ${cls}` }, [el('span', { text: label }), el('strong', { text: value })]);
 }
 
-// ---- The account: kept with the Quadra Pass ------------------------------------
+// ---- The account: kept with the Longshot Pass ----------------------------------
 //
-// Signing in is required (quadra.mjs's sign-in screen). The account is this
+// Signing in is required (core.mjs's sign-in screen). The account is the
 // app's data on the pass (a copy on the device under the pass, so it opens
-// at once); its ledger's entries go to the pass's wallet, the one Quadra
-// money pool, and the rest of the pool (Securities' cash, Quadra's pay) is
-// money to bet with here too.
+// at once); its ledger's entries go to the pass's wallet, and the rest of the
+// wallet (the opening money, the Mondays') is money to bet with too.
 
-const q = quadraSession('odds', { lang: state.locale });
+const q = passSession('odds', { lang: state.locale });
 let lotteryUi = null;
 let statsUi = null;
 useSourcesSession(q);
@@ -2255,13 +2254,10 @@ const accountKey = () => `${ACCOUNT_KEY}:${q.pass}`;
 async function loadAccount() {
   try {
     const stored = await unpack(localStorage.getItem(accountKey()));
-    if (isAccount(stored)) return compactAccount(stored);
+    if (isAccount(stored)) return stored;
   } catch {}
   return null;
 }
-// A pass that got its opening money from Quadra itself opens an empty ledger
-// (lib/account.mjs accountFor: a wallet not known yet is never taken for one without it).
-const freshAccount = (wallet = state.wallet) => accountFor(wallet);
 
 function poolExtra() {
   return othersBalance(state.wallet, 'odds');
@@ -2301,31 +2297,24 @@ const slipLegsLine = slip => {
   const more = names.length > 3 ? (state.locale === 'en' ? ` +${names.length - 3}` : ` 等 ${names.length} 場`) : '';
   return `${names.slice(0, 3).join('、')}${more} · ${fmtMoney(slip.stake, { sign: false })}`;
 };
-// While Play is closed the Worker tells how a slip went once it's settled
-// (settle.js); the guessed "games are over" notices handed over before are
-// cleared from its list.
-const clearGuessedNotices = () => schedulePush(q, []);
-
-// A slip or lottery ticket just settled: a notice (a banner on screen, a
-// system notice when Play is in the background and they're allowed).
+// A slip or lottery ticket just settled: a banner on screen.
 function noticeSettled(prev, next) {
   if (!prev) return;
   const was = new Map(prev.slips.map(x => [x.id, x.status]));
   for (const slip of next.slips) {
-    if (slip.status !== 'settled' || was.get(slip.id) !== 'open' || slip.cashedOut) continue;
+    if (slip.status !== 'settled' || was.get(slip.id) !== 'open') continue;
     const won = slip.payout > 0;
     notify(q, {
       title: won ? state.t('noticeSlipWon', { v: fmtMoney(slip.payout, { sign: false }) }) : state.t('noticeSlipLost'),
       body: slipLegsLine(slip),
       tag: `slip:${slip.id}`,
-      hash: 'history',
-      kind: 'slip'
+      hash: 'history'
     });
   }
   const had = new Map((prev.tickets || []).map(x => [x.id, x.status]));
   for (const ticket of next.tickets || []) {
     if (ticket.status !== 'settled' || had.get(ticket.id) !== 'open' || !(ticket.prize > 0) || ticket.card) continue;
-    notify(q, { title: state.t('noticeTicketWon', { v: fmtMoney(ticket.prize, { sign: false }) }), body: '', tag: `ticket:${ticket.id}`, hash: 'tickets', kind: 'ticket' });
+    notify(q, { title: state.t('noticeTicketWon', { v: fmtMoney(ticket.prize, { sign: false }) }), body: '', tag: `ticket:${ticket.id}`, hash: 'tickets' });
   }
 }
 
@@ -2358,14 +2347,14 @@ function syncNow() {
     if (!q.active) return;
     state.sync = { ...state.sync, busy: true, error: '' };
     try {
-      await mergeRemote(await q.read({ data: true, inbox: true }));
+      await mergeRemote(await q.read({ data: true }));
       state.sync = { ...state.sync, busy: false, at: new Date().toISOString() };
       // What the Worker settled applied; a scratched card's prize asked for
       // again if its reveal didn't get through.
       revealPending(state.account, state.wallet).catch(() => {});
       applySettled();
     } catch (error) {
-      state.sync = { ...state.sync, busy: false, error: error.code === 'ECO_SESSION_MOVED' ? '' : state.t(error.code === 'TOO_BIG' ? 'syncTooBig' : 'syncFailed') };
+      state.sync = { ...state.sync, busy: false, error: error.code === 'SESSION_MOVED' ? '' : state.t(error.code === 'TOO_BIG' ? 'syncTooBig' : 'syncFailed') };
     }
     renderAccount();
     renderParlay();
@@ -2388,26 +2377,9 @@ async function mergeRemote(remote, applied = () => {}) {
   // A copy there that can't be read is never saved over.
   if ((remote.payload && !theirs) || (theirs && !isAccount(theirs))) throw new Error('bad account');
   const wallet = remote.wallet || state.wallet;
-  let merged = mergeAccounts(state.account || (theirs ? null : freshAccount(wallet)), theirs);
-  if (!merged) merged = theirs || freshAccount(wallet);
-  for (const item of remote.inbox || []) {
-    const other = await unpack(item.payload).catch(() => null);
-    if (isAccount(other)) merged = mergeDistinct(merged, compactAccount(other));
-  }
-  merged = recoverFromWallet(merged, wallet);
+  const merged = recoverFromWallet(mergeAccounts(state.account, theirs) || newAccount(), wallet);
   const have = new Set((wallet?.entries || []).map(e => e.id));
   const entries = poolEntries(merged).filter(e => !have.has(e.id));
-  const open = merged.slips.filter(x => x.status === 'open').reduce((sum, x) => sum + x.cost, 0);
-  // The money on open slips (counted in the account's worth) and how many.
-  const n = merged.slips.filter(x => x.status === 'open').length;
-  const had = wallet?.snap?.odds;
-  const pl = resultByMarket(merged);
-  const gov = taxPaid(merged);
-  // (The Worker keeps an app's figures only under 4,000 characters: past
-  // that, the Pass goes by the total alone.)
-  if (gov.slips && JSON.stringify({ open, n, pl, gov, t: Date.now() }).length > 3_800) delete gov.slips;
-  const same = had?.open === open && had?.n === n && !had?.slips && JSON.stringify(had?.pl || {}) === JSON.stringify(pl) && JSON.stringify(had?.gov || {}) === JSON.stringify(gov);
-  const snap = same ? undefined : { odds: { open, n, pl, gov, t: Date.now() } };
   const changed = !theirs || JSON.stringify(merged) !== JSON.stringify(theirs);
   if (JSON.stringify(merged) !== JSON.stringify(state.account)) {
     state.account = merged;
@@ -2415,17 +2387,15 @@ async function mergeRemote(remote, applied = () => {}) {
     renderSaved();
   }
   applied();
-  if (changed || entries.length || snap) {
+  if (changed || entries.length) {
     const payload = changed ? await pack(merged) : undefined;
     if (payload && payload.length > 1_000_000) throw Object.assign(new Error('too big'), { code: 'TOO_BIG' });
-    const res = await q.write({ payload, wallet: { entries, snap, settings: affinityPatch('odds').settings } });
+    const res = await q.write({ payload, wallet: { entries, settings: affinityPatch('odds').settings } });
     state.wallet = res.wallet || state.wallet;
   } else state.wallet = wallet;
-  for (const item of remote.inbox || []) await q.dropInbox(item.id).catch(() => {});
 }
 
-// What the person bets on and opens, for recommendations here and in every
-// Quadra app.
+// What the person bets on and opens, for recommendations.
 function track(keys = [], weight = 1) {
   if (keys.length) recordAffinity('odds', keys, weight);
 }
@@ -2642,8 +2612,7 @@ function applyRecords(records) {
   let account = state.account;
   for (const [id, r] of Object.entries(records)) {
     if (!Array.isArray(r?.results)) continue;
-    // Cashed out (on another device): as it was, at its value.
-    const next = r.cashedOut ? cashOut(account, id, r.payout, now) : applyResults(account, id, r.results, now, r.finals || []);
+    const next = applyResults(account, id, r.results, now, r.finals || []);
     if (next !== account && next.slips.find(s => s.id === id)?.status === 'settled') state.freshSlips.add(id);
     account = next;
   }
@@ -2811,7 +2780,7 @@ function liveDetail(live, sport) {
 // now ended now. Null with nothing in play or decided.
 function slipVerdict(slip, states) {
   const t = state.t;
-  if (slip.status === 'settled' || slip.cashedOut) return null;
+  if (slip.status === 'settled') return null;
   // A called-off game's pick counts at odds 1 (void), as it will settle.
   const now = slip.legs.map((leg, k) => leg.result ?? (states[k] === 'off' ? 'void' : states[k] === 'live' ? legStanding(leg) : null));
   const count = x => now.filter(v => v === x).length;
@@ -2906,7 +2875,7 @@ function legChip(leg, st) {
     return el('span', { class: `leg-chip ${cls}`, text: t(key) });
   }
   if (st === 'won' || st === 'lost') return el('span', { class: `leg-mark ${st}`, role: 'img', 'aria-label': t(`legChip_${st}`) }, [kitGlyph(kitUI, st === 'won' ? 'check' : 'x')]);
-  if (['void', 'cashed', 'moot', 'off', 'late'].includes(st)) return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
+  if (['void', 'moot', 'off', 'late'].includes(st)) return el('span', { class: `leg-chip ${st}`, text: t(`legChip_${st}`) });
   return null;
 }
 // A saved pick: its picture, the pick and its market on one row, the second
@@ -2947,7 +2916,7 @@ function savedSlipCard(slip) {
   const settled = slip.status === 'settled';
   // A lost slip's games not played yet: 不計入 (the slip's over), as if they
   // weren't played (no live score).
-  const states = slip.legs.map(leg => (slip.cashedOut && !leg.result ? 'cashed' : settled && !leg.result ? 'moot' : legState(leg, now, state.legOutcome.get(leg.id))));
+  const states = slip.legs.map(leg => (settled && !leg.result ? 'moot' : legState(leg, now, state.legOutcome.get(leg.id))));
   const decided = states.filter(st => ['won', 'lost', 'void'].includes(st)).length;
   const profit = settled ? slip.payout - slip.cost : null;
   const range = settled ? null : slipRange(slip);
@@ -2955,7 +2924,7 @@ function savedSlipCard(slip) {
   const dead = !settled && range.most <= 0;
   const mode = slip.mode === 'system' ? slip.sizes.map(k => sizeName(k, n)).join('、') : t(`slipMode_${slip.mode}`);
   const pill = settled
-    ? el('span', { class: `q-tag ${slip.cashedOut ? 'blue' : profit > 0 ? 'green' : profit < 0 ? 'red' : ''}`, text: slip.cashedOut ? t(state.account.slips.some(x => x.editedFrom === slip.id) ? 'slipEdited' : 'slipCashed', { v: fmtMoney(slip.payout, { sign: false }) }) : allVoid(slip) ? t('slipVoided', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
+    ? el('span', { class: `q-tag ${profit > 0 ? 'green' : profit < 0 ? 'red' : ''}`, text: allVoid(slip) ? t('slipVoided', { v: fmtMoney(slip.payout, { sign: false }) }) : slip.payout > 0 ? t('slipPaid', { v: fmtMoney(slip.payout, { sign: false }) }) : t('slipLost') })
     : dead
       ? el('span', { class: 'q-tag red', text: t('slipDead') })
       : el('span', { class: `q-tag ${states.includes('live') ? 'red solid' : 'tint'}`, text: states.includes('live') ? t('slipLiveNow') : t('slipOpen') });
@@ -3003,7 +2972,7 @@ function slipPass(slip) {
   const t = state.t;
   const n = slip.legs.length;
   const order = byStart(slip.legs);
-  const result = slip.cashedOut ? 'cashed' : allVoid(slip) ? 'void' : slip.payout > 0 ? 'won' : 'lost';
+  const result = allVoid(slip) ? 'void' : slip.payout > 0 ? 'won' : 'lost';
   const profit = (slip.payout || 0) - (slip.cost || 0);
   // Two logos at most (the count is in the line beside them).
   const shown = order.slice(0, 2);
@@ -3021,10 +2990,10 @@ function slipPass(slip) {
     el('span', { class: 'pl-pass-text' }, [
       el('strong', { class: 'q-fit', text: n > 2 ? t('passPicks', { first: picks[0], n, m: n - 1 }) : picks.join('、') }),
       // Right or wrong is the colour; a cash out or a refund says so first.
-      el('small', { text: [result === 'cashed' || result === 'void' ? t(`pass_${result}`) : '', slip.mode === 'parlay' && n > 1 ? t('passParlay', { n }) : n > 1 ? mode : shortMatchup(slip.legs[0]) || mode].filter(Boolean).join(' · ') })
+      el('small', { text: [result === 'void' ? t(`pass_${result}`) : '', slip.mode === 'parlay' && n > 1 ? t('passParlay', { n }) : n > 1 ? mode : shortMatchup(slip.legs[0]) || mode].filter(Boolean).join(' · ') })
     ]),
     el('span', { class: 'pl-pass-end' }, [
-      el('strong', { class: 'num', text: result === 'cashed' || result === 'void' ? fmtMoney(slip.payout, { sign: false }) : fmtMoney(profit, { sign: true }) })
+      el('strong', { class: 'num', text: result === 'void' ? fmtMoney(slip.payout, { sign: false }) : fmtMoney(profit, { sign: true }) })
     ])
   ]);
 }
@@ -3191,8 +3160,7 @@ function fmtCount(n) {
   return fmtInt(Math.round(n));
 }
 
-// The loading screen: the Quadra one, the same in every app (icon, name,
-// spinner, nothing more). Callers still pass what's loading and how far
+// The loading screen (kit/boot.js: icon, name, a progress line). Callers still pass what's loading and how far
 // along; it isn't shown.
 function showLoading() {
   $('loading').hidden = false;
@@ -3204,9 +3172,8 @@ function hideLoading() {
 
 // ---- Number fields ---------------------------------------------------------------------
 
-// Numbers are typed on the phone's own number keyboard, as in Quadra
-// Securities (inputmode numeric, no autocomplete), not a pad of the page's
-// own: digits only, at most `digits` of them; Enter (the keyboard's Go/Done)
+// Numbers are typed on the phone's own number keyboard (inputmode numeric,
+// no autocomplete), not a pad of the page's own: digits only, at most `digits` of them; Enter (the keyboard's Go/Done)
 // runs `onEnter`, and leaving the field commits it (its change event).
 function numberField(input, { digits = 7, onEnter = null } = {}) {
   input.setAttribute('inputmode', 'numeric');
@@ -3765,7 +3732,7 @@ async function load() {
 
 // ---- Tabs ---------------------------------------------------------------------
 
-// Four tabs like every Quadra app; the slip (投注單) is a sheet over any of
+// Four tabs; the slip (投注單) is a sheet over any of
 // them, opened from the bar above the tab bar (openSlip).
 const TABS = ['home', 'games', 'lottery', 'history'];
 
@@ -4009,7 +3976,7 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 
-// The same top-right in every Quadra app: help, refresh, then the account.
+// Top right: refresh, then the account.
 actions = topActions(q, { refresh: load });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
@@ -4018,14 +3985,13 @@ actions = topActions(q, { refresh: load });
 // names, a ticket's picks and their second lines, and 你的投注's rows: a long
 // name a little smaller, not cut).
 const FIT_SELECTOR = '.slip-bar-main small, .pl-rec-fig strong, .pl-mo-figs strong, .pl-pass-end strong, .pl-hc-cell strong, .stat-value, .pay-cell strong, .pay-big, .pl-balance, .pl-combo-pay strong, .lt-big, .lt-hero-big, .saved-legs .leg-pick strong, .saved-legs .leg-sub:not(.leg-score-line), .player-line strong, .buy strong';
-// (watchFit is new: a phone may still run a kit from before it, and then the numbers are fitted as they're drawn only.)
 kit.watchFit(FIT_SELECTOR, { roots: ['slip-sheet', 'panel-history', 'panel-home', 'panel-lottery'].map($) });
 
-// Tells the page's failsafe (in index.html) that the scripts loaded and started.
+// Tells the loading screen (kit/boot.js) that the scripts loaded and started.
 window.__fxStarted = true;
 // Phones and tablets: from the home screen only. Always the newest deploy.
-const gated = installGate('odds', state.locale);
-watchUpdates({ current: document.querySelector('meta[name="build-version"]')?.content, key: 'oddsStudy', cachePrefix: 'quadra-odds-' });
+const gated = installGate(state.locale);
+watchUpdates({ current: document.querySelector('meta[name="build-version"]')?.content });
 renderStatic();
 renderTabs();
 let tasteWas = '';
@@ -4033,7 +3999,7 @@ q.on('wallet', wallet => {
   state.wallet = wallet;
   renderAccount();
   renderParlay();
-  // What 為你推薦 comes from changed (the pass's follows came in): home again.
+  // What 為你推薦 comes from changed (the pass's affinity came in): home again.
   const taste = tasteKey(wallet);
   if (taste !== tasteWas && state.data && state.tab === 'home' && !state.booting) drawHome();
   tasteWas = taste;
@@ -4241,11 +4207,10 @@ async function boot() {
   loading ??= load();
   state.account = await loadAccount();
   state.accountReady = true;
-  clearGuessedNotices();
   // (Until the Pass's copy is merged in; its save goes on behind.)
   if (first && !first.offline) await mergeFirst(first);
   if (!state.account) {
-    state.account = freshAccount();
+    state.account = newAccount();
     saveAccountLocal();
   }
   renderAccount();

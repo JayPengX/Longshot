@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { goalMarkets, fitHockey, baseballMarkets } from '#kit/play-markets.mjs';
+import { goalMarkets, fitHockey, baseballMarkets } from '../public/kit/play-markets.mjs';
 import { legResult } from '../public/lib/account.mjs';
 
 const sum = picks => picks.reduce((s, p) => s + p.fair, 0);

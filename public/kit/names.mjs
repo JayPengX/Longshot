@@ -3,7 +3,7 @@
 // "匹茲堡海盜"; a row has room for the nickname, "海盜"); clubs elsewhere one
 // name, whatever competition they play in. Also how ELTA's schedule is
 // matched to games (its titles use these names).
-import { normalizeTeamName } from '#kit/logos.mjs';
+import { normalizeTeamName } from './logos.mjs';
 
 // A name as it's compared: accents off, lower case, trimmed ("Pérez",
 // "PEREZ " and "Pérez" are one man; Rønnow is Ronnow, Müller Muller).

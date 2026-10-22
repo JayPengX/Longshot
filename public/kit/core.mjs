@@ -1,75 +1,31 @@
-// The kit: what every app shares, Quadra's and Orbit's. It lives in
-// Shared-Proxy/kit/ and is served from Shared-Proxy's GitHub Pages; every
-// app loads it from there (kit/loader.html), so one push changes it for all.
+// Longshot's core: the account (the Longshot Pass), data through the
+// Worker, and the app's frame (sign-in, install, updates, the tab bar, the
+// top-right, dialogs, the connection). Longshot is one app with one Worker
+// (worker/ in this repo), so nothing here knows of any other app.
 //
-//   Quadra Securities   stock   where money lives and grows
-//   Quadra Play         odds    sports betting and the lottery
-//   Orbit Class         orbit   the class schedule
-//   Orbit Weather       weather one forecast, pinned places
-//   Orbit Transit       transit the map, buses, trains and metros
-//   Orbit Sports        match   scores, schedules and stats
-//   Orbit Words         vocab   English words
-//   Orbit Slips         slip    台灣運彩 tickets followed live
-//   Orbit Beats         beats   beat pieces arranged into songs
+// The Longshot Pass is a 10-character code for the Worker's /pass. It is
+// required: the app opens on a sign-in screen until the device is signed
+// in, and the data proxy only answers signed-in devices. A device keeps a
+// revocable sign-in, never the pass. Behind the pass is the NT$ balance
+// (play money only) and everything the app saves.
 //
-// The names, colours and marks are brand.mjs's. The Quadra Pass (the
-// account, its looks, the truth about the money, every app and its guide) is the
-// sheet behind every app's account button (pass.mjs).
-//
-// One account works everywhere: the Quadra Pass, a 10-character code for
-// Shared-Proxy's /eco. It is required: every app opens on a sign-in screen
-// until the device is signed in, and the data proxy only answers signed-in
-// apps. A device keeps a revocable sign-in, never the pass; another device
-// signs in with the pass or a 10-minute device code. Behind the pass is one
-// NT$ money pool (play money only), and the pass is the only place anything
-// is saved.
-//
-// One app at a time: the app in use is the account's live one. Opening
-// another app (or the same app on another device) makes that one live; the
-// one left behind stops refreshing and shows where Quadra is open, with a
-// button to continue there. Links between the apps carry the sign-in along.
+// One device at a time: the device in use is the account's live one; the
+// one left behind stops refreshing and offers to continue there.
 
-import { BRANDS, FAMILIES, pathOf, appIcon, familyMark } from './brand.mjs';
-import { DEV, cleanDev } from './brand.mjs';
 import { icons, tile, pullToRefresh, setSheetDetent, segmented, h as node } from './ui.mjs';
+import { twDay } from './format.mjs';
 
-export const ECO_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/eco';
-export const PROXY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/sports-proxy';
+export const WORKER = 'https://longshot.pengzjay.workers.dev';
+export const PASS_URL = `${WORKER}/pass`;
+export const PROXY_URL = `${WORKER}/sports-proxy`;
 
-// The developer settings (devconfig.mjs, the admin panel's 設定): how often
-// live data is read again, the switches. The device's copy at once, the
-// Worker's read every five minutes behind it (a change reaches an open app
-// within minutes, a reopened one at once).
-const DEV_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/config';
-const DEV_KEY = 'quadra.dev';
-let devNow = (() => {
-  try {
-    return cleanDev(JSON.parse(localStorage.getItem(DEV_KEY) || '{}'));
-  } catch {
-    return cleanDev();
-  }
-})();
-let devReadAt = 0;
-export const dev = key => devNow[key] ?? DEV[key]?.def;
-export function readDev() {
-  if (typeof window === 'undefined' || Date.now() - devReadAt < 5 * 60_000) return;
-  devReadAt = Date.now();
-  fetch(DEV_URL, { signal: AbortSignal.timeout(8_000) })
-    .then(r => (r.ok ? r.json() : null))
-    .then(x => {
-      if (!x) return;
-      devNow = cleanDev(x);
-      try {
-        localStorage.setItem(DEV_KEY, JSON.stringify(devNow));
-      } catch {}
-    })
-    .catch(() => {});
-}
-readDev();
-// fn again every dev(key) seconds, the setting read at each beat (a change
-// applies at the next one). Answers a stop.
+// How often live data is read again, in seconds: a live game's score and
+// the in-play prices (ESPN changes a live game about every 10 seconds).
+const DEV = { playLive: 5 };
+export const dev = key => DEV[key];
+// fn again every dev(key) seconds. Answers a stop.
 // A sheet under a finger or on its way out: a live redraw then stutters
-// the drag (each app's beats wait for the next one).
+// the drag (each beat waits for the next one).
 export const sheetHeld = () => typeof document !== 'undefined' && Boolean(document.querySelector('dialog.q-sheet.q-dragging, dialog.q-sheet.q-leaving'));
 export function everyDev(key, fn) {
   let timer = 0;
@@ -77,7 +33,6 @@ export function everyDev(key, fn) {
   const beat = () => {
     timer = setTimeout(() => {
       if (stopped) return;
-      readDev();
       try {
         if (!sheetHeld()) fn();
       } finally {
@@ -88,161 +43,14 @@ export function everyDev(key, fn) {
   beat();
   return () => ((stopped = true), clearTimeout(timer));
 }
-export const SITE = 'https://jaypengx.github.io';
-export const BRAND = { name: 'Quadra', pass: 'Quadra Pass' };
-export { BRANDS, FAMILIES, appIcon, familyMark };
-
-// Every app, by the id it stores under. `related`: an Orbit app, outside the
-// money pool.
-export const APPS = Object.fromEntries(
-  Object.entries(BRANDS).map(([id, b]) => [id, { name: b.name, short: b.short, family: b.family, path: pathOf(id), color: b.color, related: b.family === 'orbit', role: b.role }])
-);
-export const appName = app => APPS[app]?.name || app;
-
-// ---- The economy -------------------------------------------------------------------
-//
-// Balanced so money matters (Shared-Proxy/tools/economy.mjs has the model):
-// a new pass opens with NT$200,000; every Monday (Taiwan time) pays a fixed
-// NT$10,000, the same for every account, like a salary (eco.js pays it,
-// back pay for weeks nobody came). With the wealth level rewards and 急難紓困
-// for someone with nothing, those are the only money Quadra gives; more is
-// borrowed (信貸, loan.mjs) and repaid from the pay. Securities is where it
-// grows (the market, real costs); Play and the lottery are where it goes (the
-// house keeps about 14% of a single, a third of a treble, half of a draw ticket).
-export const ECONOMY = {
-  start: 200_000,
-  weekly: PAY_WEEK
-};
-
-// What the account is worth: the pool and Securities' holdings, less what a
-// loan still owes (borrowed money is nobody's worth).
-export const worthOf = (wallet, now = Date.now()) => poolBalance(wallet) + finiteOr0(wallet?.snap?.stock?.holdings) - debtOf(wallet, now);
-// 財富等級: what the account is worth (worthOf) puts it on a level; the
-// first time it reaches one, Quadra's economy pays the level's reward once
-// (eco.js RANKS, the same table: `eco:rank:<id>`; scaled 2026-10-20 to the
-// NT$200,000 start, old levels' rewards counting towards the new).
-export const WEALTH_RANKS = [
-  { id: 'start', min: 0, reward: 0, icon: '🌱', zh: '起步', en: 'Starter' },
-  { id: 'thrifty', min: 300_000, reward: 3_000, icon: '🪙', zh: '小資族', en: 'Saver' },
-  { id: 'solid', min: 500_000, reward: 5_000, icon: '💼', zh: '穩健', en: 'Steady' },
-  { id: 'welloff', min: 1_000_000, reward: 10_000, icon: '🏡', zh: '百萬身價', en: 'Millionaire' },
-  { id: 'affluent', min: 3_000_000, reward: 20_000, icon: '💎', zh: '富裕', en: 'Wealthy' },
-  { id: 'tenmil', min: 10_000_000, reward: 50_000, icon: '👑', zh: '千萬富翁', en: 'Ten-millionaire' },
-  { id: 'hundredmil', min: 100_000_000, reward: 100_000, icon: '🚀', zh: '億萬大亨', en: 'Tycoon' }
-];
-// The levels before 2026-10-20 (their rewards stay in the statement).
-const OLD_RANK_NAMES = { saver: ['小資族（舊）', 'Saver (old)'], steady: ['穩健（舊）', 'Steady (old)'], comfort: ['小康（舊）', 'Comfortable (old)'], wealthy: ['富裕（舊）', 'Wealthy (old)'], rich: ['有錢人（舊）', 'Rich (old)'], multi: ['千萬富翁（舊）', 'Multi-millionaire (old)'], tycoon: ['億萬大亨（舊）', 'Tycoon (old)'] };
-const rankName = (id, i) => {
-  const r = WEALTH_RANKS.find(x => x.id === id);
-  return r ? (i ? r.en : r.zh) : OLD_RANK_NAMES[id]?.[i] || id;
-};
-// Where the money came from and went (all time, NT$): what the system gave
-// (opening money, pay, level rewards, resets, old VIP cashback), the government
-// (govOf: relief less taxes), the account
-// against Quadra (Play's settled bets less fees, loan costs and overdraft interest:
-// a surplus when it has won more than it lost and paid), and its own result
-// (markets, savings: worth less the other two). A bet still open is in the
-// worth, as money at stake, and in neither side until it's settled.
-// An account older than the shared wallet opened in the apps' own books:
-// Securities' deposit (NT$100,000, or what it was opened with: it reports
-// it as `snap.stock.opened`) and Play's NT$10,000 (its `odds:start` entry,
-// with its weekly grants). The reset (`eco:rebase:v3`, −80,000) and its fix
-// (`eco:rebase:v3fix`, for an account that had less than 110,000) brought
-// that to the NT$30,000 everyone opens with: all of it is opening money.
-const RESET_ID = 'eco:rebase:v3';
-// 政府 (kit/gov.mjs): the same figures the admin page adds up.
-import { govOf } from './gov.mjs';
-import { twDay, finiteOr0 } from './format.mjs';
-export { govOf };
-export function moneySides(wallet) {
-  const gave = { start: 0, pay: 0, rank: 0, other: 0 };
-  // Play's settled bets (payouts less stakes) and what Quadra charges (overdraft
-  // interest, old fees); a bet still open is neither yet: it's money
-  // at stake, still the account's.
-  let play = 0;
-  let fees = 0;
-  let atStake = 0;
-  // A loan: what came in less what went back; with what's still owed, the
-  // difference is its cost (interest and fees), charged by Quadra's bank.
-  let loanFlow = 0;
-  const entries = wallet?.entries || [];
-  const ids = new Set(entries.map(e => e.id));
-  const open = e => e.kind === 'stake' && typeof e.id === 'string' && e.id.startsWith('odds:stake-') && !ids.has(`odds:payout-${e.id.slice(11)}`) && !ids.has(`odds:refund-${e.id.slice(11)}`);
-  if (entries.some(e => e.id === RESET_ID) && !entries.some(e => e.id === 'eco:start')) gave.start += finiteOr0(wallet?.snap?.stock?.opened ?? 100_000);
-  for (const e of entries) {
-    const a = Number(e.amount) || 0;
-    if (e.app === 'eco') {
-      if (e.kind === 'start' || e.kind === 'grant' || e.id.startsWith(RESET_ID)) gave.start += a;
-      else if (e.kind === 'pay') gave.pay += a;
-      else if (e.kind === 'rank') gave.rank += a;
-      // (A correction or prize from the admin page: money Quadra gave, either way.)
-      else if (e.kind === 'rebase' || e.kind === 'vip' || e.kind === 'admin') gave.other += a;
-      else if (e.kind === 'plus' || e.kind === 'plusrefund' || e.kind === 'od') fees -= a;
-      else if (LOAN_KINDS.has(e.kind)) loanFlow += a;
-    } else if (e.app === 'odds') {
-      if (e.kind === 'start') gave.start += a;
-      else if (e.kind === 'grant') gave.other += a;
-      else if (open(e)) atStake -= a;
-      else play += a;
-    }
-  }
-  fees += debtOf(wallet) - loanFlow;
-  const given = gave.start + gave.pay + gave.rank + gave.other;
-  // The government's side: relief in, taxes out (govOf). Play's winnings came
-  // in after tax, so Play's side counts them before it.
-  const gov = govOf(wallet);
-  // Against Quadra, signed: above 0 when Play has paid out more than the
-  // account lost there and paid in fees (a surplus), below when Quadra kept more.
-  const quadra = play + gov.paid.sports + gov.paid.lottery - fees;
-  // The worth counts money at stake: it's still the account's until settled.
-  const worth = worthOf(wallet) + atStake;
-  return { gave, given, quadra, fees, playNet: play, atStake, took: Math.max(0, -quadra), worth, gov, own: worth - given - quadra - gov.net };
-}
-// The weekly pay: fixed, whatever the account holds (eco.js PAY.week).
-export const paydayFor = () => ECONOMY.weekly;
-// Below zero: an overdraft (1% a month, eco.js), fixed by selling something
-// in Securities or borrowing on margin there.
-export const OVERDRAFT_RATE = 0.01;
-export const overdraft = wallet => Math.max(0, -poolBalance(wallet));
-
-// 信貸 and 急難紓困: loan.mjs, shared with the Worker.
-import { PAY_WEEK, LOAN, RELIEF, loans, activeLoan, loanOwed, payoffAmount, debtOf, credit, canBorrow, loanOffer, maxFor, dueCount, reliefCheck, openStakes, nextPayday as nextWeekPayday } from './loan.mjs';
-export { LOAN, RELIEF, loans, activeLoan, loanOwed, payoffAmount, debtOf, credit, canBorrow, loanOffer, reliefCheck };
-const LOAN_KINDS = new Set(['loan', 'loanfee', 'loanpay', 'loanlate', 'loanbad', 'loangar', 'loanoff']);
-// Free bets (history only): plus.mjs, shared with the Worker.
-import { FREEBET } from './plus.mjs';
-export { FREEBET };
-
-// ---- Looks: an avatar and a frame, free for everyone ------------------------------------
-//
-// The account button in every app can wear an avatar (the wallet setting
-// `avatar`: { id }) and a frame around it (`frame`: { id }), chosen in the
-// Quadra Pass sheet (外觀). Every one is open to every account.
-export const AVATARS = [
-  ...[
-    ['sprout', '🌱'], ['fox', '🦊'], ['panda', '🐼'], ['lion', '🦁'], ['dragon', '🐉'], ['unicorn', '🦄'], ['crown', '👑'], ['cat', '🐱'], ['dog', '🐶'], ['frog', '🐸'],
-    ['penguin', '🐧'], ['rocket', '🚀'], ['rainbow', '🌈'], ['fire', '🔥'], ['gem', '💎'], ['star', '✦'], ['tiger', '🐯'], ['eagle', '🦅'], ['trophy', '🏆'], ['owl', '🦉'],
-    ['octopus', '🐙'], ['whale', '🐳'], ['butterfly', '🦋'], ['cactus', '🌵'], ['sun', '🌞'], ['ball', '⚽'], ['chart', '📈'], ['wolf', '🐺'], ['shark', '🦈'], ['bolt', '⚡'],
-    ['peacock', '🦚'], ['planet', '🪐'], ['drake', '🐲'], ['comet', '☄️'], ['galaxy', '🌌'], ['trident', '🔱'],
-    // Taiwan's own, and more everyday faces.
-    ['boba', '🧋'], ['dumpling', '🥟'], ['mango', '🥭'], ['lantern', '🏮'], ['mountain', '🏔️'], ['train', '🚄'], ['bike', '🚲'], ['baseball', '⚾'], ['basketball', '🏀'], ['koala', '🐨'],
-    ['rabbit', '🐰'], ['bear', '🐻'], ['monkey', '🐵'], ['chick', '🐤'], ['turtle', '🐢'], ['dolphin', '🐬'], ['dino', '🦖'], ['guitar', '🎸'], ['headphones', '🎧'], ['game', '🎮'],
-    ['camera', '📷'], ['moon', '🌙'], ['clover', '🍀'], ['cherry', '🌸'], ['coffee', '☕'], ['bull', '🐂']
-  ].map(([id, glyph]) => ({ id, glyph }))
-];
-export const FRAMES = [
-  'bronze', 'silver', 'jade', 'gold', 'neon', 'aurora', 'sakura', 'ocean', 'ember', 'mint', 'sapphire', 'ruby', 'legend', 'prism', 'mythic', 'celestial',
-  'pearl', 'matcha', 'milktea', 'sunset', 'midnight', 'forest', 'candy', 'lava', 'skylantern'
-].map(id => ({ id }));
-const worn = (wallet, key, list) => list.find(x => x.id === setting(wallet, key, null)?.id) || null;
-export const avatarOf = wallet => worn(wallet, 'avatar', AVATARS);
-export const frameOf = wallet => worn(wallet, 'frame', FRAMES);
+// The app, as the screens name it.
+export const APP = { id: 'odds', name: 'Longshot', short: '冷門', color: '#047857' };
 
 // ---- Language ------------------------------------------------------------------------
 
 export function detectLang() {
   try {
-    const saved = localStorage.getItem('quadra.lang');
+    const saved = localStorage.getItem('longshot.lang');
     if (saved === 'zh' || saved === 'en') return saved;
   } catch {}
   const langs = globalThis.navigator?.languages || [globalThis.navigator?.language || 'zh-TW'];
@@ -253,13 +61,12 @@ export const pick = (lang, zh, en) => (lang === 'en' ? en : zh);
 // ---- Codes ---------------------------------------------------------------------------
 
 export const PASS_PATTERN = /^[2-9A-HJ-NP-Z]{10}$/;
-export const DEVICE_CODE_PATTERN = /^[2-9A-HJ-NP-Z]{8}$/;
 export function cleanCode(text) {
   return String(text || '')
     .toUpperCase()
     .replace(/[\s-]/g, '');
 }
-export const formatPass = code => (code && code.length === 10 ? `${code.slice(0, 5)}-${code.slice(5)}` : code && code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code || '');
+export const formatPass = code => (code && code.length === 10 ? `${code.slice(0, 5)}-${code.slice(5)}` : code || '');
 
 // ---- Storage -------------------------------------------------------------------------
 //
@@ -268,14 +75,14 @@ export const formatPass = code => (code && code.length === 10 ? `${code.slice(0,
 // shown once when it's made, and that's all.
 
 // Keyboard or touch: the focus ring shows only after a key that moves focus
-// (quadra.css), never for focus a tap or the code put somewhere.
+// (core.css), never for focus a tap or the code put somewhere.
 if (typeof document !== 'undefined') {
   const root = document.documentElement;
   document.addEventListener('keydown', e => ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && root.setAttribute('data-q-keys', ''), true);
   document.addEventListener('pointerdown', () => root.removeAttribute('data-q-keys'), true);
 }
 
-const KEY = { refresh: 'quadra.refresh', account: 'quadra.account', wallet: 'quadra.wallet', aff: 'quadra.aff', dismiss: 'quadra.dismiss' };
+const KEY = { refresh: 'longshot.refresh', account: 'longshot.account', wallet: 'longshot.wallet', aff: 'longshot.aff', dismiss: 'longshot.dismiss' };
 // This device's localStorage, never throwing (a private window, storage
 // full or blocked): a string, or a value as JSON (`fallback` when there's
 // none or it can't be read); null (or undefined) removes the key.
@@ -329,7 +136,7 @@ function cacheWallet(account, wallet) {
 // The app's own data as last read or written on this device (under the
 // account), so a cold start paints at once, before the Worker answers.
 // Only small ones (Securities keeps its own compressed copy).
-const payloadKey = app => `quadra.payload.${app}`;
+const payloadKey = app => `longshot.payload.${app}`;
 export function cachedPayload(app, account = storedAccount()) {
   const saved = readJson(payloadKey(app), null);
   return saved && account && saved.account === account ? saved.payload : null;
@@ -360,7 +167,7 @@ async function call(method, query = '', body) {
   let res;
   for (let tries = 0; ; tries++) {
     try {
-      res = await fetch(`${ECO_URL}${query}`, {
+      res = await fetch(`${PASS_URL}${query}`, {
         method,
         headers: body ? { 'Content-Type': 'text/plain;charset=UTF-8' } : {},
         body: text,
@@ -407,12 +214,12 @@ export function randomId() {
 //     request, and a first paint asks for about 28 lists at once. A batch
 //     that fails is asked again one by one.
 //
-// The session token comes from the app's quadraSession (the last one made).
+// The session token comes from the app's passSession (the last one made).
 let dataSession = null;
-const DATA_CACHE = 'quadra-data-v1';
+const DATA_CACHE = 'longshot-data-v1';
 const DATA_KEEP_MS = 4 * 86_400_000;
 const memory = new Map();
-const dataKey = (url, trim) => `https://quadra.data/${trim ? `${trim}!` : ''}${encodeURIComponent(url)}`;
+const dataKey = (url, trim) => `https://longshot.data/${trim ? `${trim}!` : ''}${encodeURIComponent(url)}`;
 const hasCaches = () => typeof caches !== 'undefined' && typeof Response !== 'undefined';
 async function persisted(key) {
   if (!hasCaches()) return null;
@@ -456,7 +263,7 @@ function keepLater(key, got) {
 // Now and then (every 6 hours on this device, while it's idle), what's
 // older than a few days goes. It read every copy kept: at each app's open
 // it was a tenth to half a second of work, beside the app's own reads.
-const PRUNED_KEY = 'quadra.dataPruned';
+const PRUNED_KEY = 'longshot.dataPruned';
 const PRUNE_EVERY_MS = 6 * 3_600_000;
 let prunedAt = 0;
 function prune() {
@@ -483,14 +290,12 @@ export function clearData() {
   memory.clear();
   if (hasCaches()) caches.delete(DATA_CACHE).catch(() => {});
 }
-// Signed out: nothing of the account stays on this device. The Quadra apps
-// share one origin, so every app's keys in this storage go (the account,
-// the wallet, each app's copy and its own settings; a home-screen app on a
-// phone has storage of its own), this tab's too, and the kept data. Only
-// how the device itself is set up stays: its language and its screen's
-// safe area, and the kit's version (the app files stay cached, so the
-// sign-in screen opens offline).
-const DEVICE_KEYS = new Set(['quadra.lang', 'quadra.safeBottom', 'quadra.kit', 'quadra.kitFiles']);
+// Signed out: nothing of the account stays on this device: every key in
+// this storage goes (the account, the balance, the app's copy and its own
+// settings), this tab's too, and the kept data. Only how the device itself
+// is set up stays: its language and its screen's safe area (the app files
+// stay cached, so the sign-in screen opens offline).
+const DEVICE_KEYS = new Set(['longshot.lang', 'longshot.safeBottom']);
 export function wipeDevice() {
   for (const store of [globalThis.localStorage, globalThis.sessionStorage]) {
     try {
@@ -505,7 +310,7 @@ export function wipeDevice() {
 export const peekJson = (url, { trim = '' } = {}) => persisted(dataKey(url, trim));
 
 // (`read`: a data proxy read, which takes a session run out up to 6 hours
-// (quadra-token.js READ_GRACE_MS): the token kept on the device goes at once,
+// (worker/token.js READ_GRACE_MS): the token kept on the device goes at once,
 // not after the sign-in's round trip, when the app opens again after a while.)
 async function dataToken(renew = false, read = false) {
   const s = dataSession;
@@ -527,16 +332,13 @@ async function signedFetch(address, init) {
 export async function workerJson(path, query, { timeout = 8000, body = null } = {}) {
   try {
     const init = body == null ? {} : { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body };
-    const res = await signedFetch(`${ECO_URL.replace(/\/eco$/, path)}?${query || 'v=1'}`, { ...init, signal: AbortSignal.timeout(timeout) });
+    const res = await signedFetch(`${WORKER}${path}?${query || 'v=1'}`, { ...init, signal: AbortSignal.timeout(timeout) });
     return res.ok ? await res.json() : null;
   } catch {
     return null;
   }
 }
-// Which app asks: the proxy counts each app's asks apart (Securities' quotes
-// left running never use up Sports' minute).
-const appParam = () => (dataSession?.app ? `&app=${dataSession.app}` : '');
-const proxyAddress = (url, trim) => `${PROXY_URL}?url=${encodeURIComponent(url)}${trim ? `&trim=${trim}` : ''}${appParam()}`;
+const proxyAddress = (url, trim) => `${PROXY_URL}?url=${encodeURIComponent(url)}${trim ? `&trim=${trim}` : ''}`;
 async function fetchOne(url, trim, timeout, extra = '') {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -584,20 +386,18 @@ async function flush() {
     const u = items.map(i => `&u=${encodeURIComponent(i.trim ? `${i.trim}!${i.url}` : i.url)}`).join('');
     // `lines`: the proxy writes each item the moment it's in, a line of its
     // own ({ i, s, b }), taken here as it comes: a batch answered whole
-    // waited on its slowest item. (A proxy from before answers whole: { r }.)
-    const res = await signedFetch(`${PROXY_URL}?batch=1&lines=1${u}${appParam()}`, { signal: AbortSignal.timeout(Math.max(...items.map(i => i.timeout))) });
+    // waited on its slowest item.
+    const res = await signedFetch(`${PROXY_URL}?batch=1&lines=1${u}`, { signal: AbortSignal.timeout(Math.max(...items.map(i => i.timeout))) });
     if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let text = '';
-    let whole = false;
     for (;;) {
       const { done: end, value } = await reader.read();
       // (A line ends only in what just came: a 2 MB line isn't searched again at each piece of it.)
       let from = text.length;
       text += decoder.decode(value || new Uint8Array(), { stream: !end });
-      whole ||= text.startsWith('{"r":');
-      for (let nl; !whole && (nl = text.indexOf('\n', from)) >= 0; from = 0) {
+      for (let nl; (nl = text.indexOf('\n', from)) >= 0; from = 0) {
         const line = text.slice(0, nl);
         text = text.slice(nl + 1);
         if (line) {
@@ -607,7 +407,6 @@ async function flush() {
       }
       if (end) break;
     }
-    if (whole) JSON.parse(text).r?.forEach((got, i) => settle(i, got));
     items.forEach((item, i) => settle(i, null));
   } catch (error) {
     // Over the limit: each asked again alone would only count against it more.
@@ -676,18 +475,14 @@ async function fetchDirect(url, timeout) {
 export function proxyJson(url, { ttl = 60_000, trim = '', persist: keep = true, timeout = 20_000, mirror = true, alone = false } = {}) {
   return keptJson(url, dataKey(url, trim), { ttl, keep }, () => (isDirect(url) ? fetchDirect(url, timeout) : !mirror ? fetchOne(url, trim, timeout, '&mirror=0') : alone ? fetchOne(url, trim, timeout) : enqueue(url, trim, timeout)));
 }
-// The family's data (the proxy's /data/, kept in R2 on Cloudflare; built at
-// night and through the day): what doesn't change in a day (a league's
-// season, sports/<league>/<year>.json), read from there, never through the
-// data proxy's sources. Kept and failed like proxyJson's; a pack not there
-// (not built yet) is a failure (404) the app reads another way. Saved on the
-// device under the address the packs had on GitHub Pages (PACKS_KEY), so
-// what a phone kept before the move is still its copy.
-export const PACKS_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/data/';
-const PACKS_KEY = 'https://jaypengx.github.io/Shared-Data/';
+// What the Worker builds and keeps (its /data/, in R2): Play's board of the
+// next days' games and F1's season packs. Kept and failed like proxyJson's;
+// a pack not there (not built yet) is a failure (404) the app reads another
+// way.
+export const PACKS_URL = `${WORKER}/data/`;
 export function packJson(path, { ttl = 3 * 3_600_000, timeout = 30_000 } = {}) {
   const url = `${PACKS_URL}${path}`;
-  return keptJson(url, dataKey(`${PACKS_KEY}${path}`, ''), { ttl, keep: true }, async () => {
+  return keptJson(url, dataKey(url, ''), { ttl, keep: true }, async () => {
     const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
     if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
     return res.text();
@@ -751,30 +546,32 @@ function keptJson(url, key, { ttl, keep }, read) {
 
 // ---- The session ---------------------------------------------------------------------
 //
-// const q = quadraSession('odds');
-// q.on('wallet', w => ...)      the wallet changed (pool, settings…)
-// q.on('active', live => ...)   true: this app is the live one; false: paused
+// const q = passSession('odds');
+// q.on('wallet', w => ...)      the wallet changed (balance, settings…)
+// q.on('active', live => ...)   true: this device is the live one; false: paused
 // q.on('claim', c => ...)      every claim's end (opening, coming back,
 //                               q.claim(), a sign-in), also one that changed
 //                               nothing: { ok, active, live, changed }
 //                               (ok false: it didn't reach the Worker)
 // q.on('signedout', () => ...)
-// await q.start()               signs in (the gate) and makes this app live;
-//                               resolves to the first reply ({ payload, inbox,
+// await q.start()               signs in (the gate) and makes this device live;
+//                               resolves to the first reply ({ payload,
 //                               wallet } or { offline })
 // q.pass                        the account's id on this device ('' signed out)
-// q.read({ data, inbox })       { wallet, pool, payload, inbox } (app data when data)
+// q.read({ data })              { wallet, pool, payload } (the app's data when data)
 // q.write({ payload, wallet })  only while live
+// q.view('slip')                the same session on another of the account's
+//                               collections (its read and write)
 // q.proxy(url, extra)           the data proxy's address for `url`, signed in
 
-// No two-finger zoom in any Quadra app. iOS ignores the viewport's
+// No two-finger zoom. iOS ignores the viewport's
 // user-scalable=no in Safari and doesn't honour touch-action for pinches
 // everywhere, so the pinch itself is stopped: its gesture events (Safari),
 // a move with two fingers down (every touch browser) and ctrl+wheel (a
 // trackpad pinch). One finger still scrolls and every tap still works.
 function noZoom() {
-  if (typeof document === 'undefined' || document.__quadraNoZoom) return;
-  document.__quadraNoZoom = true;
+  if (typeof document === 'undefined' || document.__longshotNoZoom) return;
+  document.__longshotNoZoom = true;
   const stop = e => e.cancelable && e.preventDefault();
   for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, stop, { passive: false });
   document.addEventListener('touchmove', e => e.touches && e.touches.length > 1 && stop(e), { passive: false });
@@ -800,9 +597,6 @@ export function haptic() {
     label.remove();
   } catch {}
 }
-// Also as a global: an app that calls it this way still opens on a device
-// whose kit is an older one (an import of a name the old kit lacks would not).
-if (typeof globalThis !== 'undefined') globalThis.quadraHaptic = haptic;
 
 // A sheet closing slides to the foot as its dimming fades, as iOS's (its ✕,
 // a tap outside, a swipe): it leaves at the finger's own speed (`speed`,
@@ -845,7 +639,9 @@ export function closeSheet(d, speed = 0) {
   d.addEventListener('transitionend', e => e.target === d && e.propertyName === 'transform' && shut());
   setTimeout(shut, ms + 60);
 }
-if (typeof globalThis !== 'undefined') globalThis.quadraCloseSheet = closeSheet;
+// (ui.mjs's sheets close and tap the same way, without importing this file.)
+globalThis.__longshotHaptic = haptic;
+globalThis.__longshotCloseSheet = closeSheet;
 
 // Where a sheet's swipe comes to when the finger lets go: 'close' (down past 120 px
 // or flicked), 'expand' (a medium sheet pulled up: large), 'shrink' (a large sheet
@@ -865,8 +661,8 @@ export function sheetVerdict({ dy = 0, raw = 0, speed = 0, detent = '', expandab
 // touch), else springs back. Not from a field or a sideways list, and not
 // while the sheet is scrolled (that finger scrolls it).
 function sheetSwipe() {
-  if (typeof document === 'undefined' || document.__quadraSheetSwipe) return;
-  document.__quadraSheetSwipe = true;
+  if (typeof document === 'undefined' || document.__longshotSheetSwipe) return;
+  document.__longshotSheetSwipe = true;
   let sheet = null;
   let y0 = 0;
   let x0 = 0;
@@ -969,8 +765,8 @@ sheetSwipe();
 // there from where that control's thumb last was (a control is known by
 // its options' words), so a redraw still moves like iOS's.
 function segThumbs() {
-  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || document.__quadraSegs) return;
-  document.__quadraSegs = true;
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || document.__longshotSegs) return;
+  document.__longshotSegs = true;
   const last = new Map();
   const keyOf = seg => seg.dataset.key || [...seg.children].map(b => b.textContent.trim()).join('|');
   const fit = seg => {
@@ -1012,8 +808,8 @@ segThumbs();
 
 // A search field's ✕ (.q-search-clear, the kit's): the field emptied as if
 // typed away (its own input event, so the app's search runs), and kept for typing.
-if (typeof document !== 'undefined' && !document.__quadraSearchClear) {
-  document.__quadraSearchClear = true;
+if (typeof document !== 'undefined' && !document.__longshotSearchClear) {
+  document.__longshotSearchClear = true;
   document.addEventListener('click', e => {
     const x = e.target.closest?.('.q-search-clear');
     const input = x?.closest('.q-search')?.querySelector('input');
@@ -1026,7 +822,7 @@ if (typeof document !== 'undefined' && !document.__quadraSearchClear) {
 }
 
 // A phone or a tablet: html.q-touch, so a tablet gets a phone's frame (no
-// brand header, the tabs at the bottom; quadra.css). boot.js sets it earlier
+// brand header, the tabs at the bottom; core.css). boot.js sets it earlier
 // in the apps that load it.
 if (typeof document !== 'undefined' && isPhoneOrTablet()) document.documentElement.classList.add('q-touch');
 
@@ -1039,8 +835,8 @@ if (typeof document !== 'undefined' && isPhoneOrTablet()) document.documentEleme
 export const PRESS_DELAY = 90;
 export const pressSelector = sel => sel.replace(/:active\b/g, '[data-q-press]');
 function pressOnlyWhenPressed() {
-  if (typeof document === 'undefined' || document.__quadraPress || !document.documentElement.classList.contains('q-touch')) return;
-  document.__quadraPress = true;
+  if (typeof document === 'undefined' || document.__longshotPress || !document.documentElement.classList.contains('q-touch')) return;
+  document.__longshotPress = true;
   const done = new WeakSet();
   let sheets = -1;
   const fixRules = rules => {
@@ -1109,7 +905,7 @@ function pressOnlyWhenPressed() {
 }
 pressOnlyWhenPressed();
 
-// The solid strip under the phone's status bar (see .q-statusbar in quadra.css).
+// The solid strip under the phone's status bar (see .q-statusbar in core.css).
 function statusStrip() {
   if (typeof document === 'undefined' || !document.body || document.querySelector('.q-statusbar')) return;
   const bar = document.createElement('div');
@@ -1120,7 +916,7 @@ function statusStrip() {
 // A phone turned sideways: every app's screens are drawn for a phone held
 // upright (the owner, 2026-10-10), and iOS can't lock a web app's
 // orientation, so the page turns back against the phone: it stays upright
-// on the glass as if the phone hadn't turned (quadra.css html[data-q-turn]).
+// on the glass as if the phone hadn't turned (core.css html[data-q-turn]).
 // Only a phone (its short side 520 px or less); a tablet turns as it likes.
 function uprightTurn() {
   if (typeof document === 'undefined' || document.documentElement.dataset.qTurnOn) return;
@@ -1267,24 +1063,12 @@ function keepStatusStrip() {
 }
 if (typeof document !== 'undefined') document.body ? keepStatusStrip() : document.addEventListener('DOMContentLoaded', keepStatusStrip);
 
-// The heartbeat (another device's changes, whether this app is still the live
-// one) every 2 minutes: a read of the pass each time; back on screen it's
-// asked at once anyway (wake), and a write from an app no longer live is
+// The heartbeat (another device's changes, whether this device is still the
+// live one) every 2 minutes: a read of the pass each time; back on screen it's
+// asked at once anyway (wake), and a write from a device no longer live is
 // refused by the Worker whatever the beat.
-export function quadraSession(app, { lang = detectLang(), heartbeat = 120_000 } = {}) {
-  // The app's colour and meaning tokens (quadra.css) follow <html data-app>;
-  // kit/apps.mjs writes it into the page, this covers a page it hasn't yet.
-  if (typeof document !== 'undefined' && document.documentElement && !document.documentElement.dataset.app) document.documentElement.dataset.app = app;
-  // Every app notes the kit's newest version for its next opening, also
-  // the apps that don't watch for updates (watchUpdates puts it in place
-  // at once).
-  // (A page that watches already asks with every check.)
-  if (typeof document !== 'undefined') setTimeout(() => watching || kitLatest(), 4000);
+export function passSession(app, { lang = detectLang(), heartbeat = 120_000 } = {}) {
   const made = makeSession(app, { lang, heartbeat });
-  // A link to a guide (#help=<app>:<topic>) opens the Quadra Pass
-  // sheet on it, once the app's first screen is up.
-  const help = typeof location !== 'undefined' && /(?:^|[#&])help=([a-z]+)(?::([a-z0-9]+))?/.exec(location.hash);
-  if (help && typeof document !== 'undefined') setTimeout(() => !document.querySelector('dialog[open]') && openHelp(made, help[1], help[2] || null), 800);
   made.app ??= app;
   dataSession = made;
   return made;
@@ -1294,14 +1078,12 @@ function makeSession(app, { lang, heartbeat }) {
   const emit = (name, value) => (listeners[name] || []).forEach(fn => fn(value));
   let token = '';
   let tokenAt = 0;
-  // The session's token kept on this device with its time (each app's own:
-  // the apps share one origin), so a cold start's first data call goes out
-  // with it rather than after a sign-in round trip (every opening of a
-  // home-screen app iOS had closed waited on one: Weather's forecast a second
-  // or more later). Taken only for the account signed in here and well inside
-  // its 20 minutes (quadra-token.js SESSION_MS); the refresh token beside it
+  // The session's token kept on this device with its time, so a cold
+  // start's first data call goes out with it rather than after a sign-in
+  // round trip. Taken only for the account signed in here and well inside
+  // its 20 minutes (worker/token.js SESSION_MS); the refresh token beside it
   // is the stronger key already. Gone with the account (signedOut, wipeDevice).
-  const tokenKey = `quadra.token:${app}`;
+  const tokenKey = `longshot.token:${app}`;
   // (One older, up to 6 hours, still reads public data through the proxy: readToken.)
   let keptRead = ['', 0];
   try {
@@ -1349,10 +1131,7 @@ function makeSession(app, { lang, heartbeat }) {
     if (!w) return;
     wallet = w;
     cacheWallet(storedAccount(), w);
-    // The pass's notice switches (newer here: sent up).
-    adoptNotifyPrefs(w);
     emit('wallet', w);
-    setTimeout(() => syncPrefs(s), 0);
   }
   function setActive(next, where = null) {
     live = where;
@@ -1382,8 +1161,8 @@ function makeSession(app, { lang, heartbeat }) {
   }
 
   // Every way of signing in ends here: a refresh token for this device.
-  const signIn = body => claimed(call('POST', '', { ...body, app, inbox: true }).then(res => absorb({ ...res, active: true })));
-  const login = code => signIn(DEVICE_CODE_PATTERN.test(cleanCode(code)) ? { op: 'pair-redeem', code: cleanCode(code) } : { op: 'login', passcode: cleanCode(code) });
+  const signIn = body => claimed(call('POST', '', { ...body, app }).then(res => absorb({ ...res, active: true })));
+  const login = code => signIn({ op: 'login', passcode: cleanCode(code) });
   const create = () => signIn({ op: 'create' });
   // A session from the device's refresh token (claim: make this app live).
   // One at a time: a data fetch that needs a token while the start's sign-in
@@ -1427,11 +1206,11 @@ function makeSession(app, { lang, heartbeat }) {
     const ref = readStore(KEY.refresh);
     if (!ref) return signedOut();
     try {
-      const res = absorb(await call('POST', '', { op: 'refresh', refresh: ref, app, claim, data, inbox: data, w: wallet ? walletAt : '', since: data ? since : '' }));
+      const res = absorb(await call('POST', '', { op: 'refresh', refresh: ref, app, claim, data, w: wallet ? walletAt : '', since: data ? since : '' }));
       if (res.same) res.wallet = wallet;
       return res;
     } catch (error) {
-      if (error.code === 'ECO_SIGNED_OUT' || error.code === 'ECO_TOKEN_INVALID') return signedOut();
+      if (error.code === 'SIGNED_OUT' || error.code === 'TOKEN_INVALID') return signedOut();
       throw error;
     }
   }
@@ -1456,7 +1235,7 @@ function makeSession(app, { lang, heartbeat }) {
     await freshToken();
     if (!token) {
       const error = new Error('not live');
-      error.code = 'ECO_SESSION_MOVED';
+      error.code = 'SESSION_MOVED';
       error.live = live;
       setActive(false, live);
       throw error;
@@ -1464,12 +1243,12 @@ function makeSession(app, { lang, heartbeat }) {
     try {
       return await fn(token);
     } catch (error) {
-      if (error.code === 'ECO_TOKEN_INVALID') {
+      if (error.code === 'TOKEN_INVALID') {
         await refresh({ claim: false });
         return fn(token);
       }
-      if (error.code === 'ECO_SIGNED_OUT') signedOut();
-      if (error.code === 'ECO_SESSION_MOVED') setActive(false, error.live);
+      if (error.code === 'SIGNED_OUT') signedOut();
+      if (error.code === 'SESSION_MOVED') setActive(false, error.live);
       throw error;
     }
   }
@@ -1487,43 +1266,37 @@ function makeSession(app, { lang, heartbeat }) {
       absorb(res);
       return res.passcode;
     });
-  // A device code: sign in on another device within 10 minutes, once.
-  s.deviceCode = () => withToken(qt => call('POST', '', { op: 'pair-create', qt }));
   // (The heartbeat's read every 2 minutes: the whole wallet, up to hundreds
   // of KB, came back each time, and every app redrew for it.)
   // (`since`: the updateTime of the app's data held here; while it's still
-  // the same, { unchanged: true, updateTime } comes back without `payload`.
-  // An older Worker sends the data anyway: no `unchanged` means changed.)
-  s.read = ({ data = false, inbox = false, since = '' } = {}) =>
-    withToken(qt => call('GET', qs({ qt, app: data ? app : '', inbox: inbox ? '1' : '', w: wallet ? walletAt : '', since: data ? since : '' }))).then(res => {
+  // the same, { unchanged: true, updateTime } comes back without `payload`.)
+  // (`of`: another of the account's collections, q.view's.)
+  s.read = ({ data = false, since = '', of = app } = {}) =>
+    withToken(qt => call('GET', qs({ qt, app: data ? of : '', w: wallet ? walletAt : '', since: data ? since : '' }))).then(res => {
       absorb(res);
       if (res.same) res.wallet = wallet;
       return res;
     });
-  s.write = ({ payload, wallet: patch } = {}) =>
+  s.write = ({ payload, wallet: patch, of = app } = {}) =>
     withToken(qt => {
       if (!active) {
         const error = new Error('not live');
-        error.code = 'ECO_SESSION_MOVED';
+        error.code = 'SESSION_MOVED';
         error.live = live;
         throw error;
       }
-      return call('POST', qs({ app }), { op: 'write', qt, payload, wallet: patch, w: wallet ? walletAt : '' });
+      return call('POST', qs({ app: of }), { op: 'write', qt, payload, wallet: patch, w: wallet ? walletAt : '' });
     }).then(res => {
-      if (typeof payload === 'string') cachePayload(app, storedAccount(), payload);
+      if (typeof payload === 'string') cachePayload(of, storedAccount(), payload);
       absorb(res);
       if (res.same) res.wallet = wallet;
       return res;
     });
-  // 信貸 and 急難紓困 (loan.mjs): the Worker checks and writes them.
-  s.loan = (action, body = {}) => withToken(qt => call('POST', '', { op: 'loan', qt, action, ...body })).then(res => (absorb(res), res));
-  s.relief = () => withToken(qt => call('POST', '', { op: 'relief', qt })).then(res => (absorb(res), res));
-  s.dropInbox = id => withToken(qt => call('POST', qs({ app }), { op: 'drop-inbox', qt, inbox: id }));
-  // Other passes into this one (they're deleted after).
-  s.merge = passes => withToken(qt => call('POST', '', { op: 'merge', qt, sources: passes.map(passcode => ({ passcode })) })).then(absorb);
-  s.op = (op, body = {}) => withToken(qt => call('POST', '', { op, qt, ...body }));
+  // The same session on another collection of the account (the tickets
+  // followed, 'slip'): its own read and write, everything else shared.
+  s.view = of => Object.assign(Object.create(s), { app: of, read: (o = {}) => s.read({ ...o, of }), write: (o = {}) => s.write({ ...o, of }) });
   // The data proxy, signed in.
-  s.proxy = (url, extra = '') => `${PROXY_URL}?url=${encodeURIComponent(url)}${extra}&app=${app}${token ? `&qt=${encodeURIComponent(token)}` : ''}`;
+  s.proxy = (url, extra = '') => `${PROXY_URL}?url=${encodeURIComponent(url)}${extra}${token ? `&qt=${encodeURIComponent(token)}` : ''}`;
   // A token for a data proxy read, without waiting: the one held or kept, up
   // to 6 hours old (READ_GRACE_MS, less a margin); '' when there's none.
   s.readToken = () => {
@@ -1540,21 +1313,17 @@ function makeSession(app, { lang, heartbeat }) {
     return token;
   };
 
-  // Sign in (the gate, when this device isn't), take a sign-in handed over
-  // by a link, and make this app live.
+  // Sign in (the gate, when this device isn't) and make this device live.
   s.start = async ({ data = true } = {}) => {
     if (started) return s.first || {};
-    // Every app behind the same two doors (Jay, 2026-10-18): on a phone, the
-    // home screen only (installGate, its page covered and nothing started),
-    // then a Quadra Pass (signInGate below). An app that asked first is
-    // covered once.
-    if (typeof document !== 'undefined' && installGate(app, lang)) return new Promise(() => {});
+    // Behind two doors: on a phone, the home screen only (installGate, its
+    // page covered and nothing started), then a Longshot Pass (signInGate
+    // below).
+    if (typeof document !== 'undefined' && installGate(lang)) return new Promise(() => {});
     started = true;
     let first = null;
     try {
-      first = await takeHandoff(app);
-      if (first) await claimed(Promise.resolve(first).then(f => (absorb({ ...f, active: true }), f)));
-      if (!first && storedAccount()) {
+      if (storedAccount()) {
         first = await refresh({ claim: true, data });
         if (first?.signedOut) first = null;
       }
@@ -1597,113 +1366,35 @@ function makeSession(app, { lang, heartbeat }) {
     if (document.visibilityState === 'hidden' || !storedAccount() || !active) return;
     s.read().catch(() => {});
   }
-
-  s.appUrl = (other, hash = '') => appUrl(other, hash);
-  // A link to another app that arrives signed in (apps on a phone's home
-  // screen don't share storage): a sealed sign-in, good for 3 minutes.
-  s.go = async (other, hash = '') => {
-    let target = appUrl(other, hash);
-    if (isStandalone() && storedAccount()) {
-      try {
-        const { handoff } = await s.op('handoff');
-        target = appUrl(other, [String(hash || '').replace(/^#/, ''), `qh=${handoff}`].filter(Boolean).join('&'));
-      } catch {}
-    }
-    globalThis.location.assign(target);
-  };
   return s;
 }
 
-export function appUrl(app, hash = '') {
-  const h = String(hash || '').replace(/^#/, '');
-  return `${APPS[app]?.path || '/'}${h ? `#${h}` : ''}`;
-}
+// ---- The balance -----------------------------------------------------------------------
 
-// A sign-in handed over in the address (#qh=<sealed>): taken out of the
-// address at once and traded for this device's own sign-in. null if none.
-async function takeHandoff(app) {
-  const loc = globalThis.location;
-  if (!loc?.hash) return null;
-  const parts = loc.hash.slice(1).split('&');
-  const at = parts.findIndex(p => p.startsWith('qh=') || p.startsWith('qp='));
-  if (at < 0) return null;
-  const [k, v] = [parts[at].slice(0, 2), decodeURIComponent(parts[at].slice(3))];
-  parts.splice(at, 1);
-  try {
-    globalThis.history?.replaceState(globalThis.history.state, '', `${loc.pathname}${loc.search}${parts.length ? `#${parts.join('&')}` : ''}`);
-  } catch {}
-  try {
-    sessionStorage.setItem('quadra.visit', '1');
-  } catch {}
-  if (k !== 'qh') return null;
-  try {
-    return await call('POST', '', { op: 'redeem', handoff: v, app, inbox: true });
-  } catch {
-    return null;
-  }
-}
-
-// ---- The pool --------------------------------------------------------------------------
-
-const cash = s => (typeof s?.cash === 'number' && Number.isFinite(s.cash) ? s.cash : 0);
+// The balance: the sum of the wallet's entries, the Worker's (the opening
+// money, the pay) and the app's (stakes, payouts, tickets, prizes), each
+// with a fixed id.
 export function poolBalance(wallet) {
   if (!wallet) return 0;
-  const entries = (wallet.entries || []).reduce((sum, e) => sum + e.amount, 0);
-  return Math.round((entries + Object.values(wallet.snap || {}).reduce((sum, s) => sum + cash(s), 0)) * 100) / 100;
+  return Math.round((wallet.entries || []).reduce((sum, e) => sum + e.amount, 0) * 100) / 100;
 }
-// The pool less `app`'s own part (an app with its own books shows its own
-// money plus this).
+// The balance less `app`'s own entries (the app adds its own ledger, which
+// may be ahead of the wallet's copy).
 export function othersBalance(wallet, app) {
   if (!wallet) return 0;
-  const entries = (wallet.entries || []).filter(e => e.app !== app).reduce((sum, e) => sum + e.amount, 0);
-  const snaps = Object.entries(wallet.snap || {})
-    .filter(([name]) => name !== app)
-    .reduce((sum, [, s]) => sum + cash(s), 0);
-  return Math.round((entries + snaps) * 100) / 100;
+  return Math.round((wallet.entries || []).filter(e => e.app !== app).reduce((sum, e) => sum + e.amount, 0) * 100) / 100;
 }
 
 const KIND = {
   start: ['開戶金', 'Opening money'],
-  grant: ['零用金', 'Allowance'],
-  pay: ['薪水', 'Pay'],
-  loan: ['信貸撥款', 'Loan paid out'],
-  loanfee: ['信貸開辦費', 'Loan set-up fee'],
-  loanpay: ['信貸還款', 'Loan installment'],
-  loanlate: ['信貸逾期違約金', 'Late payment charge'],
-  loanbad: ['催收：存款抵銷', 'Collection: balance taken'],
-  loangar: ['催收：薪資扣押', 'Collection: pay garnished'],
-  loanoff: ['信貸清償', 'Loan paid off'],
-  relief: ['急難紓困', 'Emergency relief'],
+  pay: ['每週零用金', 'Weekly money'],
   stake: ['下注', 'Bet'],
   payout: ['彩金', 'Winnings'],
-  tax: ['運彩中獎稅補扣', 'Sports tax, back charged'],
   refund: ['退款', 'Refund'],
   lottery: ['彩券', 'Lottery ticket'],
-  prize: ['彩券獎金', 'Lottery prize'],
-  plus: ['Quadra Plus 月費', 'Quadra Plus'],
-  plusrefund: ['Quadra Plus 退費', 'Quadra Plus refund'],
-  rebase: ['經濟調整', 'Economy reset'],
-  rank: ['財富等級獎勵', 'Wealth level reward'],
-  od: ['透支利息', 'Overdraft interest'],
-  cashout: ['提前兌現', 'Cash out'],
-  freebet: ['免費投注', 'Free bet'],
-  plusboost: ['✦ Plus 串關加成', '✦ Plus parlay boost'],
-  vip: ['VIP 投注回饋', 'VIP cashback'],
-  welcome: ['新手禮', 'Welcome offer'],
-  'xfer-in': ['轉入', 'Transfer in'],
-  'xfer-out': ['轉出', 'Transfer out'],
-  merge: ['合併帶入', 'Carried over']
+  prize: ['彩券獎金', 'Lottery prize']
 };
-// One-off Worker entries named for what they were.
-const NAMED = { 'eco:topup:v12': ['開戶金補發', 'Opening money raised'], 'eco:rebase:v3fix': ['開戶金補足', 'Opening money made up'], 'eco:odback:v3': ['透支利息退還', 'Overdraft interest refunded'] };
-export function describeEntry(e, lang = 'zh') {
-  const i = lang === 'en' ? 1 : 0;
-  const what = NAMED[e.id]?.[i] || KIND[e.kind]?.[i] || e.kind;
-  const from = e.app === 'eco' ? 'Quadra' : APPS[e.app]?.short || e.app;
-  const peer = e.peer ? ` ${e.peer}` : '';
-  const note = e.kind === 'rank' && e.app === 'eco' && e.note ? rankName(e.note, i) : e.note;
-  return `${from} · ${what}${peer}${note ? ` · ${note}` : ''}`;
-}
+export const describeEntry = (e, lang = 'zh') => KIND[e.kind]?.[lang === 'en' ? 1 : 0] || e.kind;
 
 export const setting = (wallet, key, fallback = null) => wallet?.settings?.[key]?.value ?? fallback;
 export const settingPatch = (key, value) => ({ settings: { [key]: { value, t: Date.now() } } });
@@ -1720,21 +1411,24 @@ export function money(x, { sign = false, cents = false } = {}) {
 
 const TPE = 8 * 3_600_000;
 export const taipeiDay = (t = Date.now()) => twDay(t);
+// The weekly money's next day: next Monday 00:00 Taiwan time (the Worker pays it).
+export function nextPayday(now = Date.now()) {
+  const day = new Date(now + TPE);
+  const monday = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()) - ((day.getUTCDay() + 6) % 7) * 86_400_000;
+  return monday + 7 * 86_400_000 - TPE;
+}
 
-// ---- Recommendations: one engine for every app -------------------------------------------
+// ---- Recommendations ----------------------------------------------------------------------
 //
-// Affinity: every meaningful action (opening a match, a bet, a trade, a
-// watch) adds weight to the keys it's about ('team:mlb:LAD', 'league:mlb',
-// 'sport:baseball', 'sym:2330.TW', 'sector:tech' …), decaying with a half
-// life, so the model follows what the person does now. Each app keeps its
-// own map (and syncs its strongest keys to the wallet); ranking reads all
-// the apps' maps together, so a sector traded in Securities lifts its
-// stocks' news, and a team bet on in Play its games there.
+// Affinity: every meaningful action (opening a game, a bet) adds weight to
+// the keys it's about ('team:mlb:LAD', 'league:mlb', 'sport:baseball' …),
+// decaying with a half life, so the model follows what the person does now.
+// The device keeps its map and syncs its strongest keys to the wallet.
 //
 // Ranking: score = quality × (1 + affinity) + exploration, then a diversity
-// pass (maximal marginal relevance) so one team or sector doesn't fill the
-// list, with a little exploration for keys seldom seen (so the list learns
-// instead of repeating itself) and items the person dismissed pushed down.
+// pass (maximal marginal relevance) so one team doesn't fill the list, with
+// a little exploration for keys seldom seen (so the list learns instead of
+// repeating itself) and items the person dismissed pushed down.
 
 const HALF_LIFE = 21 * 86_400_000;
 const AFF_SYNC_KEYS = 40;
@@ -1764,10 +1458,9 @@ export function affinityPatch(app, now = Date.now()) {
     .slice(0, AFF_SYNC_KEYS);
   return settingPatch(`aff:${app}`, Object.fromEntries(top));
 }
-// Everything known: this device's maps and every app's synced map (the
-// larger of the two per key), key -> weight. `apps`: only those apps' maps
-// (Orbit Sports, an add-on, reads its own).
-export function affinity(wallet, now = Date.now(), apps = Object.keys(APPS)) {
+// Everything known: this device's map and the synced one (the larger of the
+// two per key), key -> weight.
+export function affinity(wallet, now = Date.now(), apps = [APP.id]) {
   const out = {};
   const add = (k, v) => (out[k] = Math.max(out[k] || 0, v));
   for (const app of apps) {
@@ -1831,8 +1524,6 @@ function hash01(text) {
   return ((h >>> 0) % 1000) / 1000;
 }
 
-// ---- Help: every app's guide, in the Quadra Pass sheet (help.mjs) ------------------------
-
 // ---- Screens -----------------------------------------------------------------------------
 
 // The kit's element helper (ui.mjs h), as the pages have always called it.
@@ -1849,27 +1540,22 @@ function passInput(label) {
   return input;
 }
 const ERR = {
-  SYNC_PASSCODE_NOT_FOUND: ['找不到這組通行碼。', 'No Quadra Pass has this code.'],
-  ECO_CREATE_CLOSED: ['Quadra Pass 由擁有者發放，請向分享給你的人索取。', 'Quadra Passes are handed out by their owner: ask the person who shared Quadra with you.'],
-  ECO_PAIR_NOT_FOUND: ['這組裝置代碼無效或已過期（10 分鐘內、只能用一次）。', 'That device code isn’t valid or has expired (10 minutes, once).'],
+  PASSCODE_NOT_FOUND: ['找不到這組通行碼。', 'No Longshot Pass has this code.'],
+  CREATE_CLOSED: ['今天開新帳號的名額滿了，明天再試。', 'No more new accounts today. Try again tomorrow.'],
   RATE_LIMITED: ['嘗試太多次，請稍後再試。', 'Too many tries. Please wait a little.'],
-  ECO_LOAN_FUNDS: ['餘額不足以一次還清。', 'Your balance doesn’t cover paying it all off.'],
-  ECO_LOAN_NONE: ['沒有未還清的信貸。', 'There’s no loan to pay off.'],
-  ECO_LOAN_REFUSED: ['銀行婉拒了這筆申請。', 'The bank turned this application down.'],
-  ECO_RELIEF_REFUSED: ['目前不符合急難紓困資格。', 'You don’t qualify for relief right now.'],
-  ECO_SESSION_MOVED: ['帳戶正在另一個 App 使用中，回到這裡後再試一次。', 'Your account is in use in another app. Come back here and try again.'],
-  INVALID_PASSCODE: ['請輸入 10 碼通行碼（例如 ABCDE-23456）或 8 碼裝置代碼。', 'Enter your 10-character pass (like ABCDE-23456) or an 8-character device code.']
+  SESSION_MOVED: ['帳戶正在另一台裝置使用中，回到這裡後再試一次。', 'Your account is in use on another device. Come back here and try again.'],
+  INVALID_PASSCODE: ['請輸入 10 碼通行碼（例如 ABCDE-23456）。', 'Enter your 10-character pass (like ABCDE-23456).']
 };
 export const errorText = (error, lang) => {
   const e = ERR[error?.code];
   if (e) return lang === 'en' ? e[1] : e[0];
-  return lang === 'en' ? 'Couldn’t reach Quadra. Check the connection and try again.' : '無法連線到 Quadra，請檢查網路後再試一次。';
+  return lang === 'en' ? 'Couldn’t reach Longshot. Check the connection and try again.' : '無法連線到冷門，請檢查網路後再試一次。';
 };
 
-// Quadra's own screens (sign-in, install, "in use elsewhere") always sit on
-// top of everything: each is a modal <dialog> on the browser's top layer,
-// where no z-index of an app can reach it, and if an app opens a sheet of
-// its own while one is up, the Quadra screen is put back on top at once.
+// The account's own screens (sign-in, install, "in use elsewhere") always
+// sit on top of everything: each is a modal <dialog> on the browser's top
+// layer, where no z-index can reach it, and if the app opens a sheet of its
+// own while one is up, the screen is put back on top at once.
 // Esc doesn't close them.
 const onTop = new Set();
 let topWatch = null;
@@ -1902,22 +1588,24 @@ function dropFromTop(dialog) {
   dialog.remove();
 }
 
-// The sign-in screen: nothing of the app shows until there's a pass.
+// The sign-in screen: nothing of the app shows until there's a pass. A new
+// account is one tap (its pass is shown once, to keep).
 function signInGate(s) {
   const en = s.lang === 'en';
-  const a = APPS[s.app];
   document.getElementById('loading')?.setAttribute('hidden', '');
   return new Promise(resolve => {
-    const input = passInput(BRAND.pass);
+    const input = passInput('Longshot Pass');
     const error = node('p', { class: 'q-gate-error', role: 'alert' });
     const enter = node('button', { class: 'q-btn primary block', type: 'submit', text: en ? 'Sign in' : '登入' });
-    const busy = on => [enter, input].forEach(b => (b.disabled = on));
-    const done = async task => {
+    const fresh = node('button', { class: 'q-btn plain block', type: 'button', text: en ? 'New here? Open an account' : '第一次使用？開新帳號' });
+    const busy = on => [enter, fresh, input].forEach(b => (b.disabled = on));
+    const done = async (task, after = () => {}) => {
       busy(true);
       error.textContent = '';
       try {
         const res = await task();
         dropFromTop(gate);
+        await after(res);
         document.documentElement.classList.remove('q-signing-in');
         resolve(res);
       } catch (e) {
@@ -1925,6 +1613,7 @@ function signInGate(s) {
         busy(false);
       }
     };
+    fresh.addEventListener('click', () => done(() => s.create(), res => showNewPass(s, res.passcode, { first: true })));
     const form = node(
       'form',
       {
@@ -1932,21 +1621,18 @@ function signInGate(s) {
         onsubmit: event => {
           event.preventDefault();
           const code = cleanCode(input.value);
-          if (!PASS_PATTERN.test(code) && !DEVICE_CODE_PATTERN.test(code)) return void (error.textContent = errorText({ code: 'INVALID_PASSCODE' }, s.lang));
+          if (!PASS_PATTERN.test(code)) return void (error.textContent = errorText({ code: 'INVALID_PASSCODE' }, s.lang));
           done(() => s.login(code));
         }
       },
-      [node('label', { class: 'q-gate-label', text: en ? 'Your Quadra Pass or a device code' : 'Quadra Pass 或裝置代碼' }), input, error, enter]
+      [node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), input, error, enter, fresh]
     );
-    const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true', style: `--q-accent:${a.color}` }, [
+    const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true' }, [
       node('div', { class: 'q-gate-box' }, [
         node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
-        node('p', { class: 'q-gate-brand', text: a.family === 'orbit' ? 'ORBIT' : 'QUADRA' }),
-        node('h1', { class: 'q-gate-title', text: a.name }),
-        node('p', { class: 'q-gate-lede', text: en ? 'Sign in with your Quadra Pass: one account for every Quadra and Orbit app.' : '用 Quadra Pass 登入：所有 Quadra 和 Orbit 的 App 共用一個帳戶。' }),
-        form,
-        node('p', { class: 'q-gate-note', text: en ? 'No Quadra Pass yet? Ask the person who shared Quadra with you for one.' : '還沒有 Quadra Pass？請向分享 Quadra 給你的人索取。' }),
-        node('p', { class: 'q-gate-note', text: en ? 'Signed in on another device? Its Account sheet gives a device code for this one.' : '已在其他裝置登入？在那裡的「帳戶」取得裝置代碼，就能在這裡登入。' })
+        node('h1', { class: 'q-gate-title', text: en ? APP.name : `${APP.short} ${APP.name}` }),
+        node('p', { class: 'q-gate-lede', text: en ? 'Sports bets and the lottery on play money, and your real 運彩 tickets followed live.' : '用虛擬幣玩運彩與彩券，也即時追蹤你買的運彩注單。' }),
+        form
       ])
     ]);
     document.documentElement.classList.add('q-signing-in');
@@ -1957,17 +1643,15 @@ function signInGate(s) {
   });
 }
 
-// "Quadra is open in another app": this one waits.
+// "Open on another device": this one waits.
 let movedEl = null;
 function showMoved(s) {
   if (movedEl || typeof document === 'undefined') return;
   const en = s.lang === 'en';
-  const where = s.live?.app && APPS[s.live.app] ? APPS[s.live.app].name : en ? 'another app' : '另一個 App';
-  const same = s.live?.app === s.app;
   movedEl = node('dialog', { class: 'q-moved', 'aria-modal': 'true' }, [
     node('div', { class: 'q-moved-box' }, [
-      node('p', { class: 'q-moved-title', text: same ? (en ? 'Open on another device' : '已在其他裝置使用') : en ? `In use in ${where}` : `正在 ${where} 使用中` }),
-      node('p', { class: 'q-moved-text', text: en ? 'Quadra runs in one app at a time. This one paused so nothing gets out of step.' : 'Quadra 一次只在一個 App 使用，這裡先暫停，資料才不會互相覆蓋。' }),
+      node('p', { class: 'q-moved-title', text: en ? 'Open on another device' : '已在其他裝置使用' }),
+      node('p', { class: 'q-moved-text', text: en ? 'Your account runs on one device at a time. This one paused so nothing gets out of step.' : '帳戶一次只在一台裝置使用，這裡先暫停，資料才不會互相覆蓋。' }),
       node('button', {
         class: 'q-btn primary block',
         type: 'button',
@@ -1990,39 +1674,22 @@ function hideMoved() {
   movedEl = null;
 }
 
-// ---- The account sheet: the same in every app ---------------------------------------------
-//
-// accountSheet(s, { extra }) opens a sheet with the pass, the pool, the
-// apps, and the security actions. `extra`: an element the app adds (its
-// own settings).
-
-// extra(): the app's own settings for the sheet (an element), optional.
-// The button is the account's badge (a person in the Quadra mark's colours),
-// never the balance: the balance lives inside the sheet.
+// The account button: a person, never the balance (the balance lives inside
+// the sheet).
 const PERSON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-4 4.2-6 7.5-6s6.3 2 7.5 6"/></svg>';
-export function accountButton(s, { extra = null } = {}) {
-  const btn = node('button', { class: 'q-account', type: 'button', 'aria-label': s.lang === 'en' ? 'Quadra Pass' : 'Quadra Pass 帳戶', title: BRAND.pass });
-  const dot = node('span', { class: 'q-account-dot', 'aria-hidden': 'true' });
-  // The avatar worn, else the person.
-  const paint = () => {
-    const a = avatarOf(s.wallet);
-    const f = frameOf(s.wallet);
-    btn.replaceChildren();
-    for (const c of [...btn.classList]) if (c.startsWith('q-frame-')) btn.classList.remove(c);
-    if (f) btn.classList.add('q-framed', `q-frame-${f.id}`);
-    else btn.classList.remove('q-framed');
-    if (a) btn.append(node('span', { class: 'q-avatar', 'aria-hidden': 'true', text: a.glyph }));
-    else btn.innerHTML = PERSON_SVG;
-    btn.append(dot);
-    btn.classList.toggle('signed', Boolean(s.wallet));
-  };
-  paint();
-  s.on('wallet', paint);
-  btn.addEventListener('click', () => accountSheet(s, { extra: extra ? extra() : null }));
+export function accountButton(s) {
+  const btn = node('button', { class: 'q-account', type: 'button', 'aria-label': s.lang === 'en' ? 'Account' : '帳戶', title: 'Longshot Pass' });
+  btn.innerHTML = PERSON_SVG;
+  btn.addEventListener('click', () => accountSheet(s));
   return btn;
 }
+// The account sheet (pass.mjs, loaded when first opened); tab: 'pass' | 'truth'.
+export async function accountSheet(s, { tab = 'pass' } = {}) {
+  const { openPass } = await import('./pass.mjs');
+  return openPass(s, { tab });
+}
 
-// ---- Dialogs: Quadra's own, never the browser's alert/confirm ---------------------------
+// ---- Dialogs: our own, never the browser's alert/confirm --------------------------------
 //
 // ask({ title, body, ok, cancel, danger }) resolves true or false; tell({
 // title, body, ok }) resolves once closed. A centred card over the page (and
@@ -2077,326 +1744,9 @@ export function ask({ title, body = '', points = [], ok = '', cancel = '', dange
 }
 export const tell = (opts = {}) => ask({ ...opts, alertOnly: true }).then(() => undefined);
 
-// The next payday: next Monday 00:00 Taiwan time.
-export const nextPayday = (now = Date.now()) => nextWeekPayday(now);
-const mdText = t => {
-  const d = new Date(t + TPE);
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
-};
-export function paydayText(lang, now = Date.now()) {
-  const next = mdText(nextPayday(now));
-  const amount = money(ECONOMY.weekly);
-  return lang === 'en' ? `Next pay ${amount} · Mon ${next}` : `下次發薪 ${amount} · ${next}（一）`;
-}
-
-// The account at a glance: its number, since when, this month's money in
-// and out, and the latest entries (every app's, like a bank statement).
-// An entry that moved money (free bet tokens are amount 0).
-const moved = e => e.amount !== 0;
-export function accountDetails(wallet, lang = 'zh', now = Date.now()) {
-  const entries = [...(wallet?.entries || [])].sort((a, b) => b.t - a.t);
-  const month = taipeiDay(now).slice(0, 7);
-  const thisMonth = entries.filter(e => taipeiDay(e.t).slice(0, 7) === month);
-  const sum = list => Math.round(list.reduce((x, e) => x + e.amount, 0) * 100) / 100;
-  return {
-    created: Number.isFinite(wallet?.created) ? wallet.created : null,
-    in: sum(thisMonth.filter(e => e.amount > 0)),
-    out: sum(thisMonth.filter(e => e.amount < 0)),
-    count: thisMonth.filter(moved).length,
-    recent: entries.filter(moved).slice(0, 8).map(e => ({ t: e.t, amount: e.amount, text: describeEntry(e, lang), app: e.app }))
-  };
-}
-const accountNumber = id => (id ? `QP ${id.slice(0, 4).toUpperCase()} ${id.slice(4, 8).toUpperCase()} ${id.slice(8, 12).toUpperCase()}` : '');
-function detailsCard(s) {
-  const en = s.lang === 'en';
-  const T = (zh, e) => (en ? e : zh);
-  const d = accountDetails(s.wallet, s.lang);
-  const date = t => new Date(t).toLocaleDateString(en ? 'en-US' : 'zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
-  const short = t => new Date(t).toLocaleDateString(en ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric' });
-  const days = d.created ? Math.max(1, Math.round((Date.now() - d.created) / 86_400_000)) : 0;
-  return node('div', { class: 'q-details' }, [
-    node('div', { class: 'q-card-hero' }, [
-      node('div', { class: 'q-hero-top' }, [node('span', { class: 'q-hero-brand', text: 'QUADRA PASS' }), node('span', { class: 'q-hero-no num', text: accountNumber(s.pass) })]),
-      node('span', { class: 'q-hero-label', text: T('Quadra 餘額', 'Quadra balance') }),
-      node('strong', { class: 'q-hero-balance num', text: money(s.pool) }),
-      node('span', { class: 'q-hero-sub', text: d.created ? T(`${date(d.created)} 開戶 · 第 ${days} 天`, `Opened ${date(d.created)} · day ${days}`) : '' })
-    ]),
-    node('div', { class: 'q-month' }, [
-      node('div', {}, [node('small', { text: T('本月收入', 'In this month') }), node('strong', { class: 'num up', text: money(d.in, { sign: true }) })]),
-      node('div', {}, [node('small', { text: T('本月支出', 'Out this month') }), node('strong', { class: 'num down', text: money(d.out) })])
-    ]),
-    overdraft(s.wallet) > 0 ? node('p', { class: 'q-overdraft', text: T(`帳戶透支 ${money(overdraft(s.wallet))}：每月計息 1%。2 天內沒補足就是違約交割：扣 7% 違約金、賣出持股，5 年內不能融資。`, `Overdrawn by ${money(overdraft(s.wallet))}: 1% a month. Not covered within 2 days, it's a default: a 7% penalty, holdings sold, and no margin for 5 years.`) }) : null,
-    node('p', { class: 'q-payday', text: paydayText(s.lang) }),
-    d.recent.length
-      ? node('details', { class: 'q-recent' }, [
-          node('summary', { text: T(`最近明細（本月 ${d.count} 筆）`, `Latest entries (${d.count} this month)`) }),
-          node(
-            'ul',
-            {},
-            d.recent.map(e => node('li', {}, [node('span', { class: 'q-recent-when num', text: short(e.t) }), node('span', { class: 'q-recent-what', text: e.text }), node('strong', { class: `num ${e.amount < 0 ? 'down' : 'up'}`, text: money(e.amount, { sign: true }) })]))
-          )
-        ])
-      : null
-  ].filter(Boolean));
-}
-// The Quadra Pass sheet, in every app (the account button, #help= links; its
-// 說明 tab is the one place the guide lives now): Pass (this account), 外觀
-// (avatar and frame), 真相 (how the money moves), App (every app) and 說明
-// (every app's guide). Loaded when first opened (pass.mjs). tab: 'pass' |
-// 'looks' | 'truth' | 'apps' | 'help';
-// help: { app, topic } for the guide to open on.
-export async function accountSheet(s, { extra = null, tab = 'pass', help = null } = {}) {
-  const { openPass } = await import('./pass.mjs');
-  return openPass(s, { extra, tab, help });
-}
-export const openHelp = (s, app = s.app, topic = null) => accountSheet(s, { tab: 'help', help: { app, topic } });
-
-// ---- 信貸 and 急難紓困 on screen (the rules: loan.mjs) -------------------------------------
-//
-// In the Pass tab under the balance: the loan as a bank shows it (what's
-// left, the weekly installment, late weeks or 催收 in red, pay it off), or
-// an application (amount, term, every cost before signing), and relief
-// only when the account has nothing.
-const pctText = x => `${Math.round(x * 1000) / 10}%`;
-const LOAN_WHY = {
-  active: ['一次只能有一筆信貸。', 'One loan at a time.'],
-  collection: ['催收中，不能再借。', 'In collection: no new loans.'],
-  record: ['聯徵有違約紀錄，{d} 前不能借款。', 'A default on your credit record: no loans until {d}.'],
-  new: ['開戶滿 4 週才能申請，{d} 起可以借。', 'Accounts can borrow after 4 weeks: from {d}.'],
-  term: ['請選擇期數。', 'Pick a term.'],
-  amount: ['金額要在 {min} 到 {max} 之間。', 'The amount must be between {min} and {max}.']
-};
-const RELIEF_WHY = {
-  cooldown: ['每 13 週只能申請一次，{d} 起可以再申請。', 'Once every 13 weeks: again from {d}.'],
-  year: ['今年已申請 3 次，明年再來。', 'Three times this year already.'],
-  collection: ['催收中的帳戶不能申請。', 'Not while a loan is in collection.'],
-  payday: ['發薪日快到了，{d} 會入帳。', 'Payday is close: your pay arrives {d}.'],
-  worth: ['名下現金、股票和投注中的錢合計要低於 {v}。', 'Your cash, stocks and open bets together must be under {v}.']
-};
-const whyText = (table, why, lang, vars = {}) => (table[why]?.[lang === 'en' ? 1 : 0] || '').replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
-const dayText = (t, lang) => new Date(t).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-TW', { month: 'numeric', day: 'numeric' });
-export function loanCard(s) {
-  const en = s.lang === 'en';
-  const T = (zh, e) => (en ? e : zh);
-  const box = node('div', { class: 'q-loan' });
-  const note = node('p', { class: 'q-sheet-note', role: 'status' });
-  let weeks = LOAN.terms[0];
-  let amount = null;
-  let open = false;
-  const refusal = e =>
-    e.code === 'ECO_LOAN_REFUSED' && e.why
-      ? whyText(LOAN_WHY, e.why, s.lang, { min: money(LOAN.min), max: money(e.max || 0), d: e.until ? dayText(e.until, s.lang) : '' })
-      : e.code === 'ECO_RELIEF_REFUSED' && e.why
-        ? whyText(RELIEF_WHY, e.why, s.lang, { v: money(RELIEF.under), d: e.until ? dayText(e.until, s.lang) : '' })
-        : errorText(e, s.lang);
-  const btn = (label, fn, cls = 'q-btn tinted block') =>
-    node('button', {
-      class: cls,
-      type: 'button',
-      text: label,
-      onclick: async event => {
-        const b = event.currentTarget;
-        b.disabled = true;
-        note.textContent = '';
-        try {
-          await fn();
-        } catch (e) {
-          note.textContent = refusal(e);
-        } finally {
-          b.disabled = false;
-        }
-      }
-    });
-  const head = (left, right) => node('div', { class: 'q-loan-head' }, [node('span', { text: left }), node('span', { class: 'num', text: right })]);
-  const fact = (label, value, tone = '') => node('div', { class: 'q-loan-fact' }, [node('small', { text: label }), node('strong', { class: `num ${tone}`, text: value })]);
-  const sub = text => node('p', { class: 'q-loan-sub', text });
-  function current(loan, now) {
-    const owed = loanOwed(loan, now);
-    const late = Math.max(0, dueCount(loan, now) - loan.paid);
-    const payoff = payoffAmount(loan, now);
-    const years = T(`${loan.weeks / 52} 年`, `${loan.weeks / 52} yr`);
-    const next = dayText(nextPayday(now), s.lang);
-    return [
-      head(loan.bad ? T('信貸 · 催收中', 'Loan · in collection') : T('信貸', 'Personal loan'), `${pctText(loan.apr)} · ${years}`),
-      node('div', { class: 'q-loan-facts' }, [
-        fact(loan.bad ? T('尚欠', 'Owed') : T('剩餘未還', 'Left to repay'), money(owed), loan.bad || late ? 'down' : ''),
-        loan.bad ? fact(T('每週扣薪', 'Taken from pay'), money(Math.round(PAY_WEEK * LOAN.garnish)), 'down') : fact(T('每週扣款', 'Each Monday'), money(loan.installment))
-      ]),
-      loan.bad ? null : node('div', { class: 'q-loan-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(loan.weeks), 'aria-valuenow': String(loan.paid) }, [node('span', { style: `width:${Math.round((loan.paid / loan.weeks) * 100)}%` })]),
-      loan.bad ? null : sub(T(`已繳 ${loan.paid} / ${loan.weeks} 期 · ${next}（一）發薪後扣款`, `${loan.paid} of ${loan.weeks} paid · next Mon ${next}, after the pay`)),
-      loan.bad
-        ? node('p', { class: 'q-loan-warn', text: T('已轉催收：存款已抵銷，之後每週薪水扣三分之一，利息照算，直到還清。聯徵紀錄保留到還清後 1 年。', "In collection: your balance was taken, then a third of every weekly pay until it's paid, with interest running. Your credit record keeps it for a year after.") })
-        : late
-          ? node('p', { class: 'q-loan-warn', text: T(`逾期 ${late} 期，已計違約金。餘額一夠就自動扣款；逾期滿 ${LOAN.missesToDefault} 期就轉催收，全部到期。`, `${late} installment${late > 1 ? 's' : ''} late, with late charges. It's taken as soon as the balance covers it; at ${LOAN.missesToDefault} late the whole loan falls due and goes to collection.`) })
-          : null,
-      btn(
-        T(`一次還清 · ${money(payoff)}`, `Pay it all off · ${money(payoff)}`),
-        async () => {
-          const body = payoff > owed ? T(`含提前清償違約金 ${money(payoff - owed)}（借款 1 年內 2%）。`, `Includes ${money(payoff - owed)} for paying off early (2% in the first year).`) : T('從 Quadra 餘額扣款。', 'Taken from your Quadra balance.');
-          if (!(await ask({ lang: s.lang, icon: '🏦', title: T(`還清 ${money(payoff)}？`, `Pay off ${money(payoff)}?`), body, ok: T('還清', 'Pay off') }))) return;
-          await s.loan('payoff');
-          note.textContent = T('信貸已還清。', 'The loan is paid off.');
-        },
-        'q-btn plain block'
-      )
-    ].filter(Boolean);
-  }
-  function apply(w, now) {
-    const can = canBorrow(w, now);
-    const c = can.credit;
-    if (!can.ok) return [head(T('信貸', 'Personal loan'), pctText(c.apr)), sub(whyText(LOAN_WHY, can.why, s.lang, { d: can.until ? dayText(can.until, s.lang) : '' }))];
-    if (!open) {
-      return [
-        head(T('信貸', 'Personal loan'), T(`年利率 ${pctText(c.apr)}`, `${pctText(c.apr)} a year`)),
-        node('div', { class: 'q-loan-facts' }, [fact(T('可借額度', 'You can borrow'), money(c.limit)), fact(T('最長', 'Up to'), T(`${LOAN.terms.at(-1) / 52} 年`, `${LOAN.terms.at(-1) / 52} years`))]),
-        btn(T('申請信貸', 'Apply for a loan'), async () => ((open = true), paint()))
-      ];
-    }
-    const max = maxFor(c.apr, weeks, c.limit);
-    amount = Math.min(max, Math.max(LOAN.min, amount ?? LOAN.base));
-    const offer = loanOffer(w, amount, weeks, now);
-    const out = node('strong', { class: 'q-loan-amount num', text: money(amount) });
-    const range = node('input', { type: 'range', class: 'q-loan-range', min: String(LOAN.min), max: String(Math.max(LOAN.min, max)), step: '10000', value: String(amount), 'aria-label': T('借款金額', 'Amount') });
-    range.addEventListener('input', () => ((amount = Number(range.value)), (out.textContent = money(amount))));
-    range.addEventListener('change', () => paint());
-    const seg = segmented(
-      LOAN.terms.map(n => ({ id: n, label: T(`${n / 52} 年`, `${n / 52} yr`) })),
-      { value: weeks, onChange: id => ((weeks = id), paint()), label: T('期數', 'Term') }
-    );
-    const sign = async () => {
-      const points = [
-        ['📅', T(`每週一扣 ${money(offer.installment)}`, `${money(offer.installment)} each Monday`), T(`年利率 ${pctText(offer.apr)}，共 ${weeks} 期，發薪後自動扣款`, `${pctText(offer.apr)} a year, ${weeks} installments, taken after the pay`)],
-        ['🧾', T(`總共要還 ${money(offer.total)}`, `${money(offer.total)} to repay in all`), T(`開辦費 ${money(offer.fee)} 從撥款扣除`, `A ${money(offer.fee)} set-up fee comes off the money`)],
-        ['⚠️', T('逾期 3 期轉催收', '3 late and it goes to collection'), T('全部到期、存款抵銷、每週扣薪三分之一', 'It all falls due: your balance is taken, then a third of every pay')],
-        ['🔒', T('1 年內還清收 2%', '2% to pay off within a year'), T('提前清償違約金', 'An early repayment charge')]
-      ];
-      if (!(await ask({ lang: s.lang, icon: '🏦', title: T(`借 ${money(offer.principal)}？`, `Borrow ${money(offer.principal)}?`), points, ok: T('簽約', 'Sign'), cancel: T('先不要', 'Not now') }))) return;
-      await s.loan('borrow', { amount: offer.principal, weeks });
-      open = false;
-      note.textContent = T(`已撥款 ${money(offer.principal - offer.fee)}。`, `${money(offer.principal - offer.fee)} paid in.`);
-      paint();
-    };
-    return [
-      head(T('申請信貸', 'Apply for a loan'), T(`最多 ${money(max)}`, `Up to ${money(max)}`)),
-      out,
-      range,
-      seg,
-      offer.ok ? node('div', { class: 'q-loan-facts three' }, [fact(T('每週扣款', 'Each Monday'), money(offer.installment)), fact(T('利息＋開辦費', 'Interest + fee'), money(offer.cost), 'down'), fact(T('總費用年百分率', 'APR with fees'), pctText(offer.totalApr))]) : null,
-      offer.ok ? btn(T(`簽約借款 · 實拿 ${money(offer.principal - offer.fee)}`, `Sign · you get ${money(offer.principal - offer.fee)}`), sign) : sub(whyText(LOAN_WHY, offer.why, s.lang, { min: money(LOAN.min), max: money(max) })),
-      btn(T('取消', 'Cancel'), async () => ((open = false), paint()), 'q-btn plain block')
-    ].filter(Boolean);
-  }
-  function relief(w, now) {
-    const worth = poolBalance(w) + finiteOr0(w?.snap?.stock?.holdings) + openStakes(w);
-    if (!(worth < RELIEF.under)) return [];
-    const check = reliefCheck(w, worth, now);
-    return [
-      head(T('急難紓困', 'Emergency relief'), money(RELIEF.amount)),
-      check.ok
-        ? btn(T(`申請 ${money(RELIEF.amount)}`, `Apply for ${money(RELIEF.amount)}`), async () => {
-            if (!(await ask({ lang: s.lang, icon: '🤝', title: T(`申請急難紓困 ${money(RELIEF.amount)}？`, `Apply for ${money(RELIEF.amount)} relief?`), body: T('一次性救助：每 13 週一次、一年最多 3 次，會留在紀錄上。', 'One-off help: once every 13 weeks, 3 times a year at most, and it stays on your record.'), ok: T('申請', 'Apply') }))) return;
-            await s.relief();
-            note.textContent = T(`已撥入 ${money(RELIEF.amount)}。`, `${money(RELIEF.amount)} paid in.`);
-          })
-        : sub(whyText(RELIEF_WHY, check.why, s.lang, { v: money(RELIEF.under), d: check.until ? dayText(check.until, s.lang) : '' }))
-    ];
-  }
-  function paint() {
-    const w = s.wallet;
-    const now = Date.now();
-    const loan = activeLoan(w);
-    const help = relief(w, now);
-    box.replaceChildren(node('div', { class: `q-loan-card${loan?.bad ? ' bad' : ''}` }, loan ? current(loan, now) : apply(w, now)), ...(help.length ? [node('div', { class: 'q-loan-card' }, help)] : []), note);
-  }
-  paint();
-  s.on?.('wallet', () => box.isConnected && !open && paint());
-  return box;
-}
-
-// The Pass tab: the account, its devices, notices and security. close()
-// closes the sheet (before a new pass is shown over everything).
-export function passAccount(s, { extra = null, close = () => {} } = {}) {
-  const en = s.lang === 'en';
-  const T = (zh, e) => (en ? e : zh);
-  const note = node('p', { class: 'q-sheet-note', role: 'status' });
-  const act = (label, fn, cls = 'q-row-btn') =>
-    node('button', {
-      class: cls,
-      type: 'button',
-      text: label,
-      onclick: async event => {
-        const b = event.currentTarget;
-        b.disabled = true;
-        try {
-          await fn();
-        } catch (e) {
-          note.textContent = errorText(e, s.lang);
-        } finally {
-          b.disabled = false;
-        }
-      }
-    });
-  // A device code, shown with its countdown.
-  const device = node('div', { class: 'q-device', hidden: true });
-  let tick = 0;
-  const showCode = ({ code, exp }) => {
-    clearInterval(tick);
-    const left = node('span', { class: 'q-device-left' });
-    const paint = () => {
-      const ms = exp - Date.now();
-      if (ms <= 0) {
-        clearInterval(tick);
-        device.hidden = true;
-        return;
-      }
-      left.textContent = T(`${Math.ceil(ms / 60_000)} 分鐘內有效，只能用一次`, `Valid ${Math.ceil(ms / 60_000)} more min, once`);
-    };
-    device.replaceChildren(node('span', { class: 'q-device-label', text: T('裝置代碼', 'Device code') }), node('strong', { class: 'q-device-code num', text: formatPass(code) }), left, node('span', { class: 'q-device-how', text: T('在另一台裝置輸入這組代碼登入', 'Enter it on the other device to sign in') }));
-    device.hidden = false;
-    paint();
-    tick = setInterval(paint, 15_000);
-  };
-  const nodes = [
-    detailsCard(s),
-    loanCard(s),
-    ...(extra ? [extra] : []),
-    node('h3', { class: 'q-sheet-h', text: T('裝置', 'Devices') }),
-    node('div', { class: 'q-rows' }, [act(T('新增裝置（取得裝置代碼）', 'Add a device (get a device code)'), async () => showCode(await s.deviceCode())), device]),
-    node('h3', { class: 'q-sheet-h', text: T('通知', 'Notifications') }),
-    ...notifyRows(s, note),
-    node('h3', { class: 'q-sheet-h', text: T('除錯紀錄', 'Debug log') }),
-    recRows(s, note),
-    node('h3', { class: 'q-sheet-h', text: T('帳戶安全', 'Security') }),
-    node('div', { class: 'q-rows' }, [
-      act(T('登出其他所有裝置', 'Sign out every other device'), async () => {
-        if (!(await ask({ lang: s.lang, icon: '🔒', title: T('登出其他所有裝置？', 'Sign out every other device?'), body: T('除了這台，所有裝置都會登出。', 'Every device but this one is signed out.'), ok: T('全部登出', 'Sign them out'), danger: true }))) return;
-        await s.signOutEverywhere();
-        note.textContent = T('其他裝置都已登出。', 'Every other device is signed out.');
-      }),
-      act(T('更換通行碼', 'Change my pass'), async () => {
-        if (!(await ask({ lang: s.lang, icon: '🔑', title: T('換一組新的通行碼？', 'Get a new pass?'), body: T('舊通行碼立即失效，其他裝置會登出。新通行碼只顯示一次。', 'The old pass stops working and other devices sign out. The new one is shown once.'), ok: T('換新通行碼', 'Get a new pass'), danger: true }))) return;
-        const passcode = await s.rotate();
-        // The sheet closes first: a modal sheet stays above everything else,
-        // so the new pass would open behind it.
-        close();
-        await showNewPass(s, passcode);
-      }),
-      act(
-        T('在這台裝置登出', 'Sign out on this device'),
-        async () => {
-          if (!(await ask({ lang: s.lang, icon: '👋', title: T('在這台裝置登出？', 'Sign out on this device?'), body: T('這台裝置上的資料會全部清除，都保留在 Quadra Pass。', 'Everything on this device is wiped; it all stays on your Quadra Pass.'), ok: T('登出', 'Sign out') }))) return;
-          s.signOut();
-          location.reload();
-        },
-        'q-row-btn danger'
-      )
-    ]),
-    node('p', { class: 'q-sheet-sub', text: T('忘記通行碼？在已登入的裝置按「更換通行碼」。', 'Forgot your pass? Choose “Change my pass” on a signed-in device.') }),
-    note
-  ];
-  return { nodes, stop: () => clearInterval(tick) };
-}
-export function showNewPass(s, passcode) {
+// A new pass, shown once: kept only after its last 5 characters are typed
+// back. `first`: the account was just opened.
+export function showNewPass(s, passcode, { first = false } = {}) {
   const en = s.lang === 'en';
   const T = (zh, e) => (en ? e : zh);
   const shown = formatPass(passcode);
@@ -2417,12 +1767,12 @@ export function showNewPass(s, passcode) {
       ok.disabled = typed !== tail;
       hint.textContent = typed.length === 5 && typed !== tail ? T('不對：請對照上面的通行碼。', 'That doesn’t match: check the pass above.') : '';
     });
-    const box = node('dialog', { class: 'q-gate q-newpass', style: `--q-accent:${APPS[s.app].color}` }, [
+    const box = node('dialog', { class: 'q-gate q-newpass' }, [
       node('div', { class: 'q-gate-box' }, [
-        node('p', { class: 'q-gate-brand', text: 'QUADRA PASS' }),
-        node('h1', { class: 'q-gate-title', text: T('這是你的新通行碼', 'This is your new pass') }),
+        node('p', { class: 'q-gate-brand', text: 'LONGSHOT PASS' }),
+        node('h1', { class: 'q-gate-title', text: first ? T('這是你的通行碼', 'This is your pass') : T('這是你的新通行碼', 'This is your new pass') }),
         node('div', { class: 'q-pass-code' }, [node('strong', { class: 'num', text: shown }), copy]),
-        node('p', { class: 'q-gate-lede', text: T('只會顯示這一次，請記在安全的地方。', 'Shown only once: keep it somewhere safe.') }),
+        node('p', { class: 'q-gate-lede', text: T('只會顯示這一次，請記在安全的地方：換手機或清除資料時，要用它登入。', 'Shown only once: keep it somewhere safe. You sign in with it on a new phone.') }),
         node('label', { class: 'q-newpass-label', text: T('記好以後，輸入通行碼的最後 5 個字確認：', 'Once it’s saved, type its last 5 characters to confirm:') }),
         check,
         hint,
@@ -2438,344 +1788,19 @@ export function showNewPass(s, passcode) {
   });
 }
 
-// ---- Notifications: the same in every app --------------------------------------------
+// ---- Notices: a banner while the app is on screen ------------------------------------------
 //
-// notify(s, { title, body, tag, hash }) shows an in-app banner while the app
-// is on screen, and a system notification when it isn't (once allowed in
-// the account sheet, per device). `tag` keeps one notice per thing (a slip,
-// a match), `hash` is where tapping it goes, `kind` is its NOTICE_KINDS entry
-// (a kind turned off in the account sheet is dropped).
-//
-// A phone stops an app in the background, so what's known ahead (a game's
-// start, a class, a streak about to end) and what the Worker can find out
-// itself (a final score, a price reached) goes to the Worker as a list,
-// schedulePush(s, items), and arrives as a push notice while the app is
-// closed (Shared-Proxy/push.js).
-
-// Notices on for the pass (every app, every device) and allowed on this one.
-export const notifyOn = () => notifyPrefs().on === true && globalThis.Notification?.permission === 'granted';
-
-const PUSH_URL = ECO_URL.replace(/\/eco$/, '/push');
-async function pushPost(s, path, body) {
-  const token = await s.ensureToken?.().catch(() => s.token || '');
-  if (!token) return null;
-  // text/plain: no preflight request.
-  return fetch(`${PUSH_URL}/${path}?qt=${encodeURIComponent(token)}`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) })
-    .then(r => (r.ok ? r.json() : null))
-    .catch(() => null);
-}
-const keyBytes = text => Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((text.length + 3) % 4)), c => c.charCodeAt(0));
-// This device's push subscription, given to the Worker (again each day, or
-// whenever it changes). False when this browser can't take pushes (an
-// iPhone needs the app on the home screen, iOS 16.4 or later).
-export async function enablePush(s, force = false) {
-  if (!notifyOn() || !globalThis.navigator?.serviceWorker) return false;
-  try {
-    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r => setTimeout(r, 4000))]);
-    if (!reg?.pushManager) return false;
-    // The Worker's key, asked once a day (it was asked at every list change).
-    const day = new Date().toDateString();
-    const kept = readJson('quadra.push.key', null);
-    const key = kept?.day === day && kept.key ? kept.key : (await fetch(`${PUSH_URL}/key`).then(r => r.json())).key;
-    if (key && !(kept?.day === day && kept.key === key)) writeStore('quadra.push.key', JSON.stringify({ key, day }));
-    let sub = await reg.pushManager.getSubscription();
-    // One made with another key is replaced.
-    const own = sub?.options?.applicationServerKey ? btoa(String.fromCharCode(...new Uint8Array(sub.options.applicationServerKey))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') === key : true;
-    if (sub && !own) await sub.unsubscribe().catch(() => {});
-    if (!sub || !own) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
-    const mark = `${sub.endpoint}|${new Date().toDateString()}`;
-    const storeKey = `quadra.push.sub.${s.app}`;
-    if (!force && readStore(storeKey) === mark) return true;
-    if (await pushPost(s, 'subscribe', { sub: sub.toJSON(), lang: s.lang })) writeStore(storeKey, mark);
-    return true;
-  } catch {
-    return false;
-  }
-}
-// The app's coming notices, for the Worker to send while the app is closed:
-// [{ at, title, body, tag, hash, kind, check, until }] (check: see push.js). The
-// whole list each time (it replaces the last); sent only when it changed.
-export async function schedulePush(s, items) {
-  if (!s?.app) return;
-  const storeKey = `quadra.push.list.${s.app}`;
-  // Turned off: the Worker's list emptied too (once).
-  if (!notifyOn()) {
-    // (Something of the person's own to send, and the pass wants notices: this phone asked, once.)
-    if (items.some(x => x && kindOn(s.app, x.kind))) offerNotices(s);
-    if (readStore(storeKey) && readStore(storeKey) !== '[]' && (await pushPost(s, 'schedule', { items: [] }))) writeStore(storeKey, '[]');
-    return;
-  }
-  const base = `${globalThis.location?.origin || 'https://jaypengx.github.io'}${APPS[s.app]?.path || '/'}`;
-  const list = items
-    .filter(x => x && Number.isFinite(x.at) && kindOn(s.app, x.kind))
-    .map(x => ({ at: Math.round(x.at), title: x.title || '', body: x.body || '', tag: `${s.app}:${x.tag || x.title}`, ...(x.kind ? { kind: x.kind } : {}), url: `${base}${x.hash ? `#${x.hash}` : ''}`, ...(x.check ? { check: x.check } : {}), ...(x.until ? { until: Math.round(x.until) } : {}) }))
-    .sort((a, b) => a.at - b.at)
-    .slice(0, 60);
-  const text = JSON.stringify(list);
-  if (readStore(storeKey) === text && readStore(`quadra.push.sub.${s.app}`)) return;
-  if (!(await enablePush(s))) return;
-  const before = readStore(storeKey);
-  if (await pushPost(s, 'schedule', { items: list })) {
-    keepPushed(s.app, before);
-    writeStore(storeKey, text);
-  }
-}
-// What the Worker had on the list and whose time has come was sent as a
-// phone notice: remembered (two days) when the list is replaced, so the app
-// doesn't show it again as a banner once its item is off the new list (a
-// class's notice, then the app opened later in the same break).
-const PUSHED_MS = 2 * 86_400_000;
-function keepPushed(app, listText) {
-  const now = Date.now();
-  let kept = {};
-  try {
-    kept = JSON.parse(readStore(`quadra.push.sent.${app}`) || '{}') || {};
-    for (const x of JSON.parse(listText || '[]')) if (x?.tag && x.at <= now) kept[x.tag] = x.at;
-  } catch {}
-  writeStore(`quadra.push.sent.${app}`, JSON.stringify(Object.fromEntries(Object.entries(kept).filter(([, at]) => at > now - PUSHED_MS))));
-}
-function pushedHere(app, key) {
-  try {
-    const now = Date.now();
-    if (JSON.parse(readStore(`quadra.push.list.${app}`) || '[]').some(x => x.tag === key)) return true;
-    const at = JSON.parse(readStore(`quadra.push.sent.${app}`) || '{}')[key];
-    return Number.isFinite(at) && at > now - PUSHED_MS;
-  } catch {
-    return false;
-  }
-}
-
-// Every kind of notice, by app: what it is and when it comes. Each can be
-// turned off on its own; a kind that's off shows neither a banner nor a
-// system notice, and the Worker drops it from what it sends while the app
-// is closed.
-export const NOTICE_KINDS = {
-  match: [
-    ['start', '比賽開打', 'A game starts', '你追蹤的球隊比賽開始時。', 'When a team you follow starts a game.'],
-    ['end', '比賽結束', 'Final score', '你追蹤的球隊比賽結束，附上比分。', 'When a team you follow finishes a game, with the score.'],
-    ['pick', '今日推薦開賽', 'Today’s picks start', '今日推薦的每一場開始時。', 'When each of today’s picks starts.'],
-    ['pickend', '今日推薦賽果', 'Today’s picks: final', '今日推薦的每一場結束，附上比分。', 'When each of today’s picks ends, with the score.']
-  ],
-  odds: [
-    ['slip', '投注單結算', 'Slip settled', '投注單的比賽全部結束、算好派彩時。', 'When every game on a slip is over and it’s paid.'],
-    ['ticket', '彩券中獎', 'Lottery win', '電腦彩券開獎、你的彩券中獎時。', 'When a draw is out and your ticket won.'],
-  ],
-  vocab: [
-    ['streak', '連續練習快斷了', 'Streak ending', '今天還沒練習單字，連續天數今晚就會歸零時。', 'When you haven’t practised today and your streak ends tonight.']
-  ],
-  stock: [
-    ['alert', '價格提醒', 'Price alert', '你設定的價格提醒到價時。', 'When a price alert you set is reached.'],
-    ['fill', '委託成交', 'Order filled', '掛單或定期定額成交時，和定期定額扣款日當天。', 'When an order or a monthly plan is filled, and on a plan’s day.'],
-    ['order', '委託未成交', 'Order not filled', '委託到期失效、被取消，或定期定額這個月跳過時。', 'When an order lapses or is dropped, or a monthly plan skips a month.'],
-    ['margin', '維持率與斷頭', 'Margin call', '維持率偏低，或融資、放空被強制處理時。', 'When margin runs low, or a loan or short is force-closed.'],
-    ['income', '股利與利息', 'Dividends and interest', '除息、股利入帳、債券配息和活存利息入帳時。', 'When a holding goes ex-dividend, and when dividends, coupons or interest arrive.']
-  ],
-  slip: [
-    ['start', '注單比賽開打', 'A ticket’s game starts', '注單上的比賽開始時。', 'When a game on one of your tickets starts.'],
-    ['end', '注單比賽結束', 'A ticket’s game ends', '注單上的比賽結束，附上比分。', 'When a game on one of your tickets ends, with the score.']
-  ],
-  orbit: [['class', '上課提醒', 'Class reminder', '每堂課開始前 5 分鐘。', 'Five minutes before each class.']],
-  weather: [
-    ['brief', '早晨天氣', 'Morning weather', '每天早上一句話：降雨、溫度、紫外線、空氣。', 'Each morning in one line: rain, temperature, UV, air.'],
-    ['rain', '降雨提醒', 'Rain alert', '白天 2 小時內可能下雨時，一天最多一次。', 'When rain is likely within 2 hours, once a day at most.']
-  ],
-  transit: [
-    ['bus', '到站提醒', 'Bus alert', '你設定的公車快到站時，手機鎖著也會通知。', 'When a bus you set an alert for is nearly at your stop, even with the phone locked.'],
-    ['nav', '導航提醒', 'Navigation', '導航中：該出發、要搭的公車快到了、火車快開、快到下車站，手機鎖著也會通知。', 'While navigating: time to leave, your bus nearly here, your train about to leave, your stop coming up, even with the phone locked.']
-  ]
-};
-
-// The switches belong to the pass, not the device: the wallet setting
-// `notify` ({ on, off: ['stock:alert', …] }, newest wins), so every app and
-// every device follows the same ones (apps on a phone's home screen don't
-// even share storage). This device keeps a copy (`quadra.notify.prefs`, with
-// the time it was set) for when it's offline, and sends a newer one up when
-// its app is the live one. `on` is "system notices wanted"; each device (and,
-// on an iPhone, each app) still has to be allowed once by the phone.
-const PREFS_KEY = 'quadra.notify.prefs';
-const cleanPrefs = v => ({
-  ...(typeof v?.on === 'boolean' ? { on: v.on } : {}),
-  // (The ask closed once, anywhere: never asked again, in any app or on any device.)
-  ...(v?.quiet === true ? { quiet: true } : {}),
-  off: [...new Set((Array.isArray(v?.off) ? v.off : []).filter(k => typeof k === 'string' && /^[a-z]+:[a-z]+$/.test(k)))].sort()
-});
-export function notifyPrefs() {
-  const saved = readJson(PREFS_KEY, null);
-  return saved && typeof saved === 'object' ? { ...cleanPrefs(saved), t: Number(saved.t) || 0 } : { off: [], t: 0 };
-}
-const samePrefs = (a, b) => a.on === b.on && Boolean(a.quiet) === Boolean(b.quiet) && a.off.join() === b.off.join();
-function savePrefs(next, s) {
-  const prefs = { ...cleanPrefs(next), t: Date.now() };
-  writeStore(PREFS_KEY, JSON.stringify(prefs));
-  if (s) syncPrefs(s);
-  return prefs;
-}
-// Whether notices of this kind are wanted (every kind is, until turned off).
-export const kindOn = (app, kind) => !kind || !notifyPrefs().off.includes(`${app}:${kind}`);
-export function setKind(app, kind, on, s = null) {
-  const prefs = notifyPrefs();
-  const off = prefs.off.filter(k => k !== `${app}:${kind}`);
-  if (!on) off.push(`${app}:${kind}`);
-  return savePrefs({ ...prefs, off }, s);
-}
-export const setNotifyOn = (on, s = null) => savePrefs({ ...notifyPrefs(), on: Boolean(on) }, s);
-// The pass's copy and this device's, made one: the newer wins; a newer (or
-// never uploaded) copy here goes up when this app may write; the Worker's
-// copy (for notices sent while the app is closed) follows.
-let syncingPrefs = null;
-export function adoptNotifyPrefs(wallet) {
-  const held = wallet?.settings?.notify;
-  const mine = notifyPrefs();
-  if (!held?.value || !(Number(held.t) > mine.t)) return false;
-  writeStore(PREFS_KEY, JSON.stringify({ ...cleanPrefs(held.value), t: Number(held.t) }));
-  return true;
-}
-export async function syncPrefs(s) {
-  if (!s?.wallet || syncingPrefs) return;
-  syncingPrefs = (async () => {
-    adoptNotifyPrefs(s.wallet);
-    const mine = notifyPrefs();
-    const held = s.wallet.settings?.notify;
-    const heldPrefs = held?.value ? cleanPrefs(held.value) : null;
-    const worth = mine.on !== undefined || mine.off.length;
-    if (s.active && worth && (!heldPrefs || (mine.t > (Number(held.t) || 0) && !samePrefs(mine, heldPrefs)))) {
-      const t = mine.t || Date.now();
-      const { t: _, ...value } = mine;
-      await s.write({ wallet: { settings: { notify: { value, t } } } }).catch(() => null);
-    }
-    // The Worker's copy, once per change.
-    const now = notifyPrefs();
-    const text = JSON.stringify({ on: now.on !== false, off: now.off });
-    if (readStore('quadra.push.prefs') !== text && (await pushPost(s, 'prefs', JSON.parse(text)))) writeStore('quadra.push.prefs', text);
-  })().finally(() => (syncingPrefs = null));
-  return syncingPrefs;
-}
-
-// Notices were turned on for the pass (on another device or in another
-// app), but the phone hasn't been asked here yet: a banner offers it (the
-// phone asks only after a tap) once this app has a notice of the person's
-// own to send (a team followed, a reminder set), never as the app opens.
-// Once per app on a device, ever; closed, never again anywhere (Jay
-// 2026-10-21: "keep giving me in app notification to turn on notification").
-function offerNotices(s) {
-  if (typeof document === 'undefined' || !s.pass || !('Notification' in globalThis)) return;
-  if (notifyPrefs().on !== true || notifyPrefs().quiet || Notification.permission !== 'default') return;
-  if (readStore('quadra.notify.offered') || bannerEl?.isConnected) return;
-  const T = (zh, e) => (s.lang === 'en' ? e : zh);
-  bannerEl?.remove();
-  const el = node('div', { class: 'q-banner q-banner-ask', role: 'dialog', 'aria-label': T('開啟通知', 'Turn on notices'), style: `--q-accent:${APPS[s.app].color}` }, [
-    node('img', { src: './favicon.svg', alt: '' }),
-    node('div', {}, [node('strong', { text: T('在這裡也開啟通知？', 'Notices here too?') }), node('span', { text: T(`你的 Quadra Pass 開啟了通知，${APPS[s.app].short} 在這台裝置還需要允許一次。`, `Your Quadra Pass has notices on; ${APPS[s.app].short} on this device needs allowing once.`) })]),
-    node('button', { class: 'q-banner-go', type: 'button', text: T('允許', 'Allow') }),
-    node('button', { class: 'q-banner-x', type: 'button', 'aria-label': T('關閉', 'Close'), text: '×' })
-  ]);
-  writeStore('quadra.notify.offered', String(Date.now()));
-  const gone = (quiet = false) => {
-    if (quiet) savePrefs({ ...notifyPrefs(), quiet: true }, s);
-    el.classList.add('out');
-    setTimeout(() => el.remove(), 250);
-  };
-  el.querySelector('.q-banner-x').addEventListener('click', () => gone(true));
-  el.querySelector('.q-banner-go').addEventListener('click', async () => {
-    const p = await Notification.requestPermission().catch(() => 'denied');
-    if (p === 'granted') enablePush(s, true);
-    gone();
-  });
-  document.body.append(el);
-  bannerEl = el;
-}
-
-// A switch: role=switch, aria-checked.
-function toggle(on, label, onchange) {
-  const b = node('button', { class: 'q-switch', type: 'button', role: 'switch', 'aria-checked': String(on), 'aria-label': label });
-  b.addEventListener('click', async () => {
-    haptic();
-    const next = b.getAttribute('aria-checked') !== 'true';
-    const ok = await onchange(next);
-    if (ok !== false) b.setAttribute('aria-checked', String(next));
-  });
-  return b;
-}
-
-// The account sheet's notices: system notices for the pass (on, off, or
-// not allowed yet by this phone), then every kind of notice with what it is
-// and its own switch. All of them follow the pass to every app and device.
-function notifyRows(s, note) {
-  const en = s.lang === 'en';
-  const T = (zh, e) => (en ? e : zh);
-  const supported = 'Notification' in globalThis;
-  const state = () => {
-    if (!supported) return notifyPrefs().on ? T('已開啟；這個瀏覽器收不到通知', 'On; this browser can’t show them') : T('這個瀏覽器不支援', 'Not supported here');
-    if (Notification.permission === 'denied') return T('這台裝置封鎖了通知：請到系統設定允許', 'Blocked on this device: allow them in system settings');
-    if (notifyOn()) return T('開啟：每個 App、每台裝置', 'On: every app, every device');
-    if (notifyPrefs().on) return T('已開啟；這台裝置還沒允許，點開關允許', 'On; not allowed on this device yet: tap to allow');
-    return T('關閉', 'Off');
-  };
-  const sub = node('small', { class: 'q-notice-sub', text: state() });
-  const master = node('div', { class: 'q-notice-row master' }, [
-    // Notifications' own red tile, as iOS's Settings draws it (no emoji).
-    tile(icons.bell, 'var(--q-red)'),
-    node('div', { class: 'q-notice-text' }, [node('strong', { text: T('系統通知', 'System notices') }), sub]),
-    supported
-      ? toggle(notifyOn(), T('系統通知', 'System notices'), async on => {
-          if (!on) {
-            setNotifyOn(false, s);
-            sub.textContent = state();
-            schedulePush(s, []);
-            return true;
-          }
-          const p = await Notification.requestPermission().catch(() => 'denied');
-          if (p === 'granted') {
-            setNotifyOn(true, s);
-            enablePush(s, true);
-          } else note.textContent = T('請到系統設定允許通知。', 'Allow notifications in system settings.');
-          sub.textContent = state();
-          return p === 'granted';
-        })
-      : null
-  ]);
-  // This app's kinds first, then the rest.
-  const order = [s.app, ...Object.keys(NOTICE_KINDS).filter(a => a !== s.app)].filter(a => NOTICE_KINDS[a] && APPS[a]);
-  const groups = order.map(app =>
-    node('div', { class: 'q-notice-group' }, [
-      node('p', { class: 'q-notice-app', text: APPS[app].short }),
-      ...NOTICE_KINDS[app].map(([kind, zh, e, dzh, de]) =>
-        node('div', { class: 'q-notice-row' }, [
-          node('div', { class: 'q-notice-text' }, [node('strong', { text: T(zh, e) }), node('small', { class: 'q-notice-sub', text: T(dzh, de) })]),
-          toggle(kindOn(app, kind), T(zh, e), on => void setKind(app, kind, on, s))
-        ])
-      )
-    ])
-  );
-  return [
-    node('div', { class: 'q-rows' }, [master]),
-    node('p', { class: 'q-notice-note', text: T('通知設定跟著 Quadra Pass：在每個 App、每台裝置都一樣。', 'Notice settings follow your Quadra Pass: the same in every app, on every device.') }),
-    node('div', { class: 'q-rows q-notice-kinds' }, groups)
-  ];
-}
+// notify(s, { title, body, tag, hash }): a banner at the top while the app
+// is on screen (a slip paid, a ticket's game over). `tag` keeps one notice
+// per thing (a slip, a game), `hash` is where tapping it goes. Nothing is
+// sent while the app is closed.
 
 const shown = new Set();
-export async function notify(s, { title, body = '', tag = '', hash = '', kind = '' }) {
-  if (!kindOn(s.app, kind)) return;
-  const key = `${s.app}:${tag || title}`;
+export function notify(s, { title, body = '', tag = '', hash = '' }) {
+  const key = tag || title;
   if (tag && shown.has(key)) return;
   if (tag) shown.add(key);
-  // One the Worker sends (or already sent) this device as a phone notice
-  // (schedulePush, push on here): no banner on top of it.
-  if (tag && notifyOn() && readStore(`quadra.push.sub.${s.app}`) && pushedHere(s.app, key)) return;
-  if (typeof document !== 'undefined' && document.visibilityState === 'visible') return queueBanner(s, { title, body, hash });
-  if (!notifyOn()) return;
-  const options = { body, tag: key, icon: './icons/icon-192.png', badge: './icons/icon-192.png', data: { url: `${APPS[s.app].path}${hash ? `#${hash}` : ''}` } };
-  try {
-    const reg = await navigator.serviceWorker?.getRegistration?.();
-    if (reg?.showNotification) return void (await reg.showNotification(title, options));
-    const n = new Notification(title, options);
-    n.onclick = () => {
-      globalThis.focus?.();
-      if (hash) location.hash = hash;
-      n.close();
-    };
-  } catch {}
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') queueBanner(s, { title, body, hash });
 }
 // Notices that come together (the first sign-in on a device, catching up
 // after a while away) are one banner: the first, and how many more.
@@ -2794,7 +1819,7 @@ function queueBanner(s, notice) {
 let bannerEl = null;
 function banner(s, { title, body, hash, more = [] }) {
   bannerEl?.remove();
-  const el = node('div', { class: 'q-banner', role: 'status', style: `--q-accent:${APPS[s.app].color}` }, [
+  const el = node('div', { class: 'q-banner', role: 'status' }, [
     node('img', { src: './favicon.svg', alt: '' }),
     node('div', {}, [node('strong', { text: title }), body ? node('span', { text: body }) : null])
   ]);
@@ -2848,17 +1873,16 @@ export function isPhoneOrTablet() {
 }
 const isIOS = () => /iPhone|iPad|iPod/i.test(globalThis.navigator?.userAgent || '') || (/Macintosh/.test(globalThis.navigator?.userAgent || '') && (globalThis.navigator?.maxTouchPoints || 0) > 1);
 const inAppBrowser = () => /Line\/|FBAN|FBAV|Instagram|Messenger|MicroMessenger|KAKAOTALK/i.test(globalThis.navigator?.userAgent || '');
-// On phones and tablets the apps run from the home screen only, every one
-// of them: opened from another app or a link in Safari, it asks to be added
-// too (a hand-over no longer lets it run in the browser). Returns true when
-// it covered the page (the app shouldn't start).
+// On phones and tablets the app runs from the home screen only: opened in
+// Safari, it asks to be added first. Returns true when it covered the page
+// (the app shouldn't start).
 let installCovered = false;
-export function installGate(app, lang = detectLang()) {
+export function installGate(lang = detectLang()) {
   if (!isPhoneOrTablet() || isStandalone()) return false;
   if (installCovered) return true;
   installCovered = true;
   const en = lang === 'en';
-  const name = appName(app);
+  const name = en ? APP.name : APP.short;
   const steps = inAppBrowser()
     ? en
       ? ['Open this page in Safari (iPhone) or Chrome (Android): tap ⋯ and “Open in browser”.', 'Then add it to your home screen.']
@@ -2866,15 +1890,14 @@ export function installGate(app, lang = detectLang()) {
     : isIOS()
       ? en
         ? ['Tap Share (the square with an arrow) in Safari.', 'Choose “Add to Home Screen”, then “Add”.', `Open ${name} from its new icon.`]
-        : ['點 Safari 的「分享」（方框加箭頭）。', '選「加入主畫面」，再點「新增」。', `從主畫面的新圖示打開 ${name}。`]
+        : ['點 Safari 的「分享」（方框加箭頭）。', '選「加入主畫面」，再點「新增」。', `從主畫面的新圖示打開${name}。`]
       : en
         ? ['Tap ⋮ at the top right of Chrome.', 'Choose “Add to Home screen” (or “Install app”).', `Open ${name} from its new icon.`]
-        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」或「安裝應用程式」。', `從主畫面的新圖示打開 ${name}。`];
-  const gate = node('dialog', { class: 'q-gate q-install', 'aria-modal': 'true', style: `--q-accent:${APPS[app].color}` }, [
+        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」或「安裝應用程式」。', `從主畫面的新圖示打開${name}。`];
+  const gate = node('dialog', { class: 'q-gate q-install', 'aria-modal': 'true' }, [
     node('div', { class: 'q-gate-box' }, [
       node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
-      node('p', { class: 'q-gate-brand', text: APPS[app].family === 'orbit' ? 'ORBIT' : 'QUADRA' }),
-      node('h1', { class: 'q-gate-title', text: en ? `Add ${name} to your home screen` : `把 ${name} 加入主畫面` }),
+      node('h1', { class: 'q-gate-title', text: en ? `Add ${name} to your home screen` : `把${name}加入主畫面` }),
       node(
         'ol',
         { class: 'q-steps' },
@@ -2888,93 +1911,17 @@ export function installGate(app, lang = detectLang()) {
   return true;
 }
 
-// A phone-only app on a computer: covers the page with where to open it
-// instead (a QR code the app draws, `qr` as SVG markup, and the link), then
-// how to add it to the home screen. Returns true when it covered the page.
-export function phoneOnlyGate(app, { lang = detectLang(), qr = '' } = {}) {
-  if (isPhoneOrTablet()) return false;
-  const en = lang === 'en';
-  const name = appName(app);
-  const url = `${SITE}${APPS[app].path}`;
-  const qrBox = node('div', { class: 'q-qr', role: 'img', 'aria-label': en ? `QR code for ${url}` : `${url} 的 QR code` });
-  qrBox.innerHTML = qr;
-  const copy = node('button', {
-    class: 'q-btn',
-    type: 'button',
-    text: en ? 'Copy the link' : '複製連結',
-    onclick: async () => {
-      try {
-        await navigator.clipboard.writeText(url);
-        copy.textContent = en ? 'Copied ✓' : '已複製 ✓';
-      } catch {}
-    }
-  });
-  const gate = node('dialog', { class: 'q-gate q-phone-only', 'aria-modal': 'true', style: `--q-accent:${APPS[app].color}` }, [
-    node('div', { class: 'q-gate-box' }, [
-      node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
-      node('p', { class: 'q-gate-brand', text: APPS[app].family === 'orbit' ? 'ORBIT' : 'QUADRA' }),
-      node('h1', { class: 'q-gate-title', text: en ? `${name} is made for your phone` : `${name} 是手機 App` }),
-      node('p', { class: 'q-gate-lede', text: en ? 'It lives in your pocket, beside your day. Open it on your phone:' : '課表跟著你一整天，所以只在手機上使用。用手機打開：' }),
-      qrBox,
-      node('p', { class: 'q-qr-url', text: url.replace(/^https:\/\//, '') }),
-      copy,
-      node(
-        'ol',
-        { class: 'q-steps' },
-        (en
-          ? ['Scan the code with your phone’s camera (or open the link on it).', 'Add it to the home screen: Share → “Add to Home Screen” on iPhone, ⋮ → “Install app” on Android.', 'Sign in with your Quadra Pass or a device code: your schedule is already there.']
-          : ['用手機相機掃描上面的條碼（或在手機打開連結）。', '加入主畫面：iPhone 點「分享」→「加入主畫面」；Android 點 ⋮ →「安裝應用程式」。', '用 Quadra Pass 或裝置代碼登入，課表就在裡面。']
-        ).map(t => node('li', { text: t }))
-      )
-    ])
-  ]);
-  keepOnTop(gate);
-  document.documentElement.classList.add('q-signing-in');
-  document.getElementById('loading')?.setAttribute('hidden', '');
-  return true;
-}
-
-// Keeps every open Quadra page on the latest deploy, at once, whatever the
-// person is doing (the owner's rule: an update never waits for a sheet to
-// close or a relaunch). version.json is read as soon as the kit loads (this
-// module starts the watch itself from the page's build-version, before the
-// app's own start has finished), every `every` ms, whenever the page comes
-// back into view, gets focus or comes online, and as soon as any other open
-// Quadra page has found an update (a BroadcastChannel). A newer deploy is put
-// in place straight away: the place on the page kept (rememberPlace), the new
-// page loaded (cached files kept: each file's address is its content's, so
-// only what changed downloads again). A reload that came back on the
-// old page (GitHub's CDN a moment behind the deploy) is tried again a few
-// seconds later, not left for the next launch.
-// The kit, loaded from one place for every app (kit/loader.html), has its
-// own version. kitLatest() notes the newest one for the next page load
-// and each file's hash (quadra.kit and quadra.kitFiles, which the loader
-// reads) and says whether this page runs an older one: 'kit:<version>', or
-// null when it's current. The first version seen on a device is only noted:
-// that page already runs the latest (or the hashes its deploy baked in).
-const KIT = () => globalThis.QUADRA_KIT;
-async function kitLatest() {
-  const kit = KIT();
-  if (!kit?.base) return null;
-  try {
-    const res = await fetch(`${kit.base}version.json?t=${Date.now()}`, { cache: 'no-store' });
-    const got = res.ok ? await res.json() : null;
-    const latest = got?.version;
-    if (!latest) return null;
-    if (readStore('quadra.kit') !== latest) writeStore('quadra.kit', latest);
-    const files = got.files ? JSON.stringify({ version: latest, files: got.files }) : null;
-    if (files && readStore('quadra.kitFiles') !== files) writeStore('quadra.kitFiles', files);
-    if (latest === kit.version) return null;
-    if (!kit.version || kit.noted === false) {
-      kit.version = latest;
-      kit.noted = true;
-      return null;
-    }
-    return `kit:${latest}`;
-  } catch {
-    return null;
-  }
-}
+// Keeps the open page on the latest deploy, at once, whatever the person is
+// doing (an update never waits for a sheet to close or a relaunch).
+// version.json is read as soon as the kit loads (this module starts the
+// watch itself from the page's build-version, before the app's own start
+// has finished), every `every` ms, whenever the page comes back into view,
+// gets focus or comes online. A newer deploy is put in place straight away:
+// the place on the page kept (rememberPlace), the new page loaded (cached
+// files kept: each file's address is its content's, so only what changed
+// downloads again). A reload that came back on the old page (GitHub's CDN a
+// moment behind the deploy) is tried again a few seconds later, not left for
+// the next launch.
 
 // Whether the app may lift its loading screen: once boot.js's first update
 // check has answered, true; false when that check is reloading the page onto
@@ -3011,23 +1958,20 @@ export function sounding() {
 }
 
 let watching = null;
-export function watchUpdates({ current, key, every = 15_000 } = {}) {
+export function watchUpdates({ current, every = 15_000 } = {}) {
   if (!current || current === 'dev' || typeof document === 'undefined') return;
   // Started already (by the kit itself, or an earlier call): one watch a page.
   if (watching) return;
-  watching = { current, key };
+  watching = { current };
   let checking = false;
   let retry = 0;
-  const channel = globalThis.BroadcastChannel ? new BroadcastChannel('quadra-updates') : null;
   async function apply(latest) {
     // (Music playing: not now. The check every few seconds, or the next opening, updates once it stops.)
     if (sounding()) return;
-    // (Out of sight: never. All the apps share one site, so one app finding
-    // a new kit told every other app, and Beats playing in the background
-    // reloaded and stopped (2026-10-21). Coming back on screen checks at once.)
+    // (Out of sight: never. Coming back on screen checks at once.)
     if (document.visibilityState === 'hidden') return;
     // The same deploy tried again at most 6 times in the session, 5 s apart.
-    const flag = `${key || 'quadra'}.reloadedTo`;
+    const flag = 'longshot.reloadedTo';
     const [was, tries = 0, at = 0] = String(sessionStorage.getItem(flag) || '').split('|');
     const n = was === latest ? Number(tries) || 0 : 0;
     if (n >= 6) return;
@@ -3041,9 +1985,6 @@ export function watchUpdates({ current, key, every = 15_000 } = {}) {
     rememberPlace();
     // (Leaving: what the page still had on the way fails as the page goes, and says nothing of the network.)
     globalThis.__bootUpdating = true;
-    // Only the kit changed: the same page again, its loader now on the new
-    // kit (the app's own files are still current).
-    if (latest.startsWith('kit:')) return location.reload();
     // (The files kept on the phone stay: every one is kept under its own
     // hash, so the new page asks only for the ones that changed. They were
     // all dropped here, and every update downloaded the whole app again.)
@@ -3059,11 +2000,9 @@ export function watchUpdates({ current, key, every = 15_000 } = {}) {
     checking = true;
     lastAt = Date.now();
     try {
-      const [res, kitNew] = await Promise.all([fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' }), kitLatest()]);
-      const appNew = res.ok ? (await res.json())?.version : null;
-      const latest = appNew && appNew !== current ? appNew : kitNew;
-      if (!latest) return;
-      channel?.postMessage({ update: key || location.pathname });
+      const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+      const latest = res.ok ? (await res.json())?.version : null;
+      if (!latest || latest === current) return;
       await apply(latest);
     } catch {
     } finally {
@@ -3075,7 +2014,6 @@ export function watchUpdates({ current, key, every = 15_000 } = {}) {
   const boot = globalThis.__bootCheck;
   if (boot?.then) boot.then(r => r !== 'boot' && r !== 'none' && check(true), () => check(true));
   else check();
-  channel?.addEventListener('message', () => check(true));
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && check());
   globalThis.addEventListener?.('focus', () => check());
   globalThis.addEventListener?.('online', () => check(true));
@@ -3085,16 +2023,16 @@ export function watchUpdates({ current, key, every = 15_000 } = {}) {
   // (Not while the app is out of sight: coming back asks at once.)
   setInterval(() => document.visibilityState !== 'hidden' && check(), every);
 }
-// Every app's page starts the watch as the kit loads: its build-version, the
-// same one it passes to watchUpdates later (that call then finds it running).
+// The page starts the watch as the kit loads: its build-version, the same
+// one it passes to watchUpdates later (that call then finds it running).
 if (typeof document !== 'undefined' && typeof location !== 'undefined') {
   const current = document.querySelector('meta[name="build-version"]')?.content;
-  if (current) watchUpdates({ current, key: `quadra.page:${location.pathname}` });
-  // Back from an update's reload: the scroll put back once the app lifts its loading screen, in every app.
+  if (current) watchUpdates({ current });
+  // Back from an update's reload: the scroll put back once the app lifts its loading screen.
   const box = document.getElementById('loading');
   let placed = false;
   try {
-    placed = Boolean(sessionStorage.getItem('quadra.place'));
+    placed = Boolean(sessionStorage.getItem('longshot.place'));
   } catch {}
   if (box && placed && typeof MutationObserver !== 'undefined') {
     const seen = new MutationObserver(() => {
@@ -3120,8 +2058,8 @@ if (typeof document !== 'undefined' && typeof location !== 'undefined') {
 // the one the person scrolled away from never pulled back. Every app,
 // every strip, nothing to call.
 function keepStrips() {
-  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__quadraStrips) return;
-  globalThis.__quadraStrips = true;
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__longshotStrips) return;
+  globalThis.__longshotStrips = true;
   const kept = new Map();
   const host = el => el.parentElement?.closest('[id]') || document.body;
   const classOf = el => (typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(c => !/^(is-|on$|active$|open$|stuck$)/.test(c)).sort().join('.') : '');
@@ -3173,8 +2111,8 @@ function keepStrips() {
       const h = k.hostId ? document.getElementById(k.hostId) : document.body;
       if (!h) continue;
       const el = likes(h, k.tag, k.cls)[k.index];
-      if (!el || el.__quadraKept === k || !sideways(el)) continue;
-      el.__quadraKept = k;
+      if (!el || el.__longshotKept === k || !sideways(el)) continue;
+      el.__longshotKept = k;
       k.el = el;
       if (el.scrollLeft !== 0) continue;
       const item = k.text == null ? null : [...el.children].find(c => c.textContent === k.text);
@@ -3208,7 +2146,7 @@ keepStrips();
 // a search at the top was pushed off the screen. The kit follows the visible
 // part of the screen (visualViewport) and writes it as CSS variables on
 // <html>: --q-kb (how much the keys cover at the foot), --q-vvh (the height
-// still seen); .q-kb while the keys are up. quadra.css lifts open sheets
+// still seen); .q-kb while the keys are up. core.css lifts open sheets
 // above the keys and fits them to what's left, hides the tab bar, and
 // anything marked .q-kb-dock (a bar that belongs on top of the keys) sits
 // there, as does a bar fixed at the foot holding the field (.q-kb-docked).
@@ -3221,8 +2159,8 @@ keepStrips();
 // part the keys cover, 0 there, since the page's foot is already on them).
 function watchKeyboard() {
   const vv = globalThis.visualViewport;
-  if (typeof document === 'undefined' || !vv || globalThis.__quadraKeyboard) return;
-  globalThis.__quadraKeyboard = true;
+  if (typeof document === 'undefined' || !vv || globalThis.__longshotKeyboard) return;
+  globalThis.__longshotKeyboard = true;
   const root = document.documentElement;
   let frame = 0;
   // The page's height before any typing, at this width (an iPhone turned resets it).
@@ -3449,8 +2387,8 @@ export function balanceRows(root = document) {
   }
 }
 function watchNames() {
-  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__quadraFit) return;
-  globalThis.__quadraFit = true;
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__longshotFit) return;
+  globalThis.__longshotFit = true;
   let frame = 0;
   const soon = () => (frame ||= requestAnimationFrame(() => ((frame = 0), fitNames(), balanceRows())));
   const start = () => {
@@ -3620,8 +2558,8 @@ export function darkLogoFailed(img) {
   return true;
 }
 function watchDarkLogos() {
-  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__quadraDarkLogos) return;
-  globalThis.__quadraDarkLogos = true;
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || globalThis.__longshotDarkLogos) return;
+  globalThis.__longshotDarkLogos = true;
   let frame = 0;
   const soon = () => (frame ||= requestAnimationFrame(() => ((frame = 0), darkLogos())));
   const start = () => {
@@ -3655,7 +2593,7 @@ watchDarkLogos();
 
 // Where the person was (the scroll), kept across a reload for an update and
 // put back by restorePlace() once the app has painted.
-const PLACE_KEY = 'quadra.place';
+const PLACE_KEY = 'longshot.place';
 export function rememberPlace() {
   try {
     sessionStorage.setItem(PLACE_KEY, JSON.stringify({ path: location.pathname, hash: location.hash, y: Math.round(globalThis.scrollY || 0), t: Date.now() }));
@@ -3671,7 +2609,7 @@ export function restorePlace() {
 
 // The fixed tab bar keeps clear of the iPhone's home indicator even when iOS
 // reports no safe area after a resume (the largest inset seen is a floor).
-const SAFE_KEY = 'quadra.safeBottom';
+const SAFE_KEY = 'longshot.safeBottom';
 function steadyTabBar() {
   if (typeof window === 'undefined' || typeof document === 'undefined' || !window.getComputedStyle) return;
   const root = document.documentElement;
@@ -3774,13 +2712,12 @@ function judgeNet() {
   }
   setNet(netVerdict({ onLine: globalThis.navigator?.onLine, fails: net.fails, waitingSince: waits, lastOk: net.lastOk, probing: net.probing, now }));
 }
-// One small ask that never comes from a copy: the kit's version.
+// One small ask that never comes from a copy: the page's version.
 function probeNet() {
-  const base = globalThis.QUADRA_KIT?.base;
-  if (!base || net.probing) return;
+  if (net.probing) return;
   net.probing = Date.now();
   globalThis
-    .fetch(`${base}version.json?net=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+    .fetch(`./version.json?net=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) })
     .catch(() => {})
     .finally(() => {
       net.probing = 0;
@@ -3864,8 +2801,8 @@ function paintCover() {
   document.body.append(cover);
 }
 function watchNet() {
-  if (typeof window === 'undefined' || window.__quadraNet || typeof window.fetch !== 'function') return;
-  window.__quadraNet = true;
+  if (typeof window === 'undefined' || window.__longshotNet || typeof window.fetch !== 'function') return;
+  window.__longshotNet = true;
   const real = window.fetch.bind(window);
   const own = url => {
     try {
@@ -3876,11 +2813,11 @@ function watchNet() {
       return true;
     }
   };
-  // The family's own: the proxy, the page's site (the kit's probe), the kit's.
+  // Our own: the Worker, the page's site (the probe).
   const ours = url => {
     try {
       const u = new URL(url, location.href);
-      return u.origin === location.origin || u.hostname.endsWith('.workers.dev') || (globalThis.QUADRA_KIT?.base && u.href.startsWith(new URL(globalThis.QUADRA_KIT.base, location.href).href));
+      return u.origin === location.origin || u.origin === WORKER;
     } catch {
       return true;
     }
@@ -3915,7 +2852,7 @@ function watchNet() {
   const reboot = () => {
     if (!broken || sounding()) return false;
     try {
-      const key = `quadra.reboot:${location.pathname}`;
+      const key = `longshot.reboot:${location.pathname}`;
       if (Date.now() - Number(sessionStorage.getItem(key) || 0) < 30 * 60_000) return false;
       sessionStorage.setItem(key, String(Date.now()));
     } catch {
@@ -3980,7 +2917,7 @@ function watchNet() {
         // Given up on by the app (a sheet closed): says nothing of the network. A time limit run out: slow at best.
         // Another site's refusal reads the same as no network (TheSportsDB's 429 has no CORS header: the
         // browser calls it a failed request, and two put an online-only app behind 沒有網路連線, 2026-10-17):
-        // only the family's own (the proxy, the kit's probe) count; another's asks the probe instead.
+        // only our own (the Worker, the probe) count; another's asks the probe instead.
         if (leaving || globalThis.__bootUpdating) throw error;
         const cut = document.visibilityState === 'hidden' || at <= shownAt + 1000;
         if (error?.name !== 'AbortError' && error?.name !== 'TimeoutError') ours(url) && !cut ? (net.fails += 1) : probeSoon();
@@ -4161,7 +3098,7 @@ export function tabBar({ tabs, onSelect, hash = id => `#${id}`, nav = document.g
         if (b.getAttribute('aria-selected') !== String(on)) b.setAttribute('aria-selected', String(on));
         if (b.tabIndex !== (on ? 0 : -1)) b.tabIndex = on ? 0 : -1;
         const panel = document.getElementById(`panel-${tid}`);
-        // (.q-tabpanel: hidden without dropping its drawing, quadra.css, so its
+        // (.q-tabpanel: hidden without dropping its drawing, core.css, so its
         // pictures are there at once when it's chosen again, never redrawn blank.)
         if (panel && !panel.classList.contains('q-tabpanel')) panel.classList.add('q-tabpanel');
         if (panel && panel.hidden !== !on) panel.hidden = !on;
@@ -4225,20 +3162,18 @@ export function tabBar({ tabs, onSelect, hash = id => `#${id}`, nav = document.g
   return api;
 }
 
-// topActions(s, { help, refresh, extra }): the top-right of every app, in
-// #top-actions: the account, and nothing else but what the app asks for.
+// topActions(s, { help, refresh }): the top-right, in #top-actions: the
+// account, and nothing else but what the app asks for.
 //   refresh(): reloads the app's data (it may return a promise). On a touch
 //     screen that is pull-to-refresh, the page dragged down from its top (the
 //     kit's pullToRefresh), and no button; on a computer the button stays
 //     (id="refresh", it spins while it's disabled). Either way `refresh`
 //     in the result has a `disabled` an app sets while it loads: on a phone
 //     it holds off a pull, on a computer it spins the button.
-//   help(): only for an app with a help of its own: it keeps its 說明 button.
-//     Without it there's none: 說明 is a tab of the Quadra Pass sheet (the
-//     account button), opening on this app's guide.
+//   help(): a 說明 button.
 // Returns { help, refresh } (the buttons, or null, or refresh's stand-in).
 let stopPull = null;
-export function topActions(s, { help = null, refresh = null, extra = null, into = document.getElementById('top-actions') } = {}) {
+export function topActions(s, { help = null, refresh = null, into = document.getElementById('top-actions') } = {}) {
   const en = s.lang === 'en';
   let helpBtn = null;
   if (help) {
@@ -4270,7 +3205,7 @@ export function topActions(s, { help = null, refresh = null, extra = null, into 
   }
   if (pull) stopPull = pullToRefresh(() => refresh(), { disabled: () => refreshButton.disabled });
   into.classList.add('q-actions');
-  into.replaceChildren(...[helpBtn, pull ? null : refreshButton, accountButton(s, { extra })].filter(Boolean));
+  into.replaceChildren(...[helpBtn, pull ? null : refreshButton, accountButton(s)].filter(Boolean));
   return { help: helpBtn, refresh: refreshBtn };
 }
 
@@ -4280,8 +3215,7 @@ export function topActions(s, { help = null, refresh = null, extra = null, into 
 // a 64px box, which then showed 11,7… instead of shrinking. Text doesn't
 // narrow exactly with its size, −NT$1,052 at 13.2px still 75.9px in a 75px
 // box, so each one shrunk is checked again and stepped down until it fits.)
-// Play's and Securities' own copies were this; `node.__fit` is the text it
-// was last fitted for (watchFit).
+// `node.__fit` is the text it was last fitted for (watchFit).
 const textWidth = node => {
   const range = document.createRange();
   range.selectNodeContents(node);
@@ -4331,18 +3265,17 @@ export function watchFit(selector, { roots = null } = {}) {
   };
 }
 
-// ---- 除錯紀錄: what an app did, for its maker to replay ---------------------------------------
+// ---- 除錯紀錄: what the app did, for its maker to replay ---------------------------------------
 //
-// Each app notes what it worked something out from (rec(kind, data): Orbit
-// Transit a trip's plans and the bikes round them, before they're ranked).
+// The app notes what it worked something out from (rec(kind, data)).
 // The last of each kind is always kept, in memory only, so 複製 right after
 // something looks wrong has it, with nothing switched on first. With 記錄
-// on (Quadra Pass → 除錯紀錄; it stays on until switched off), every one is
+// on (the account sheet → 除錯紀錄; it stays on until switched off), every one is
 // kept on this device, with the app's errors and the screens opened, up to
 // about 2 MB, oldest gone first. Nothing leaves the device unless copied or
 // shared, and never the pass, a token or a key (left out by name).
-const REC_KEY = 'quadra.rec';
-const REC_ON = 'quadra.recOn';
+const REC_KEY = 'longshot.rec';
+const REC_ON = 'longshot.recOn';
 const REC_MAX = 2_000_000;
 const recLast = new Map();
 const secret = /^(pass|passcode|token|secret|auth|authorization|password|apikey|api_key)$/i;
@@ -4416,7 +3349,7 @@ export function recDump(app = dataSession?.app || '') {
     {
       app,
       at: new Date().toISOString(),
-      kit: globalThis.QUADRA_KIT?.version || '',
+      build: document.querySelector?.('meta[name="build-version"]')?.content || '',
       page: typeof location !== 'undefined' ? location.pathname + location.hash : '',
       ua: typeof navigator !== 'undefined' ? navigator.userAgent : '',
       installed: typeof matchMedia !== 'undefined' && matchMedia('(display-mode: standalone)').matches,
@@ -4439,7 +3372,19 @@ if (typeof window !== 'undefined') {
   window.addEventListener('hashchange', () => recOn() && rec('screen', { hash: location.hash }));
   if (document.documentElement) recMark();
 }
-function recRows(s, note) {
+// A switch: role=switch, aria-checked.
+function toggle(on, label, onchange) {
+  const b = node('button', { class: 'q-switch', type: 'button', role: 'switch', 'aria-checked': String(on), 'aria-label': label });
+  b.addEventListener('click', async () => {
+    haptic();
+    const next = b.getAttribute('aria-checked') !== 'true';
+    const ok = await onchange(next);
+    if (ok !== false) b.setAttribute('aria-checked', String(next));
+  });
+  return b;
+}
+// The account sheet's 除錯紀錄: record, copy, share, clear.
+export function recRows(s, note) {
   const en = s.lang === 'en';
   const T = (zh, e) => (en ? e : zh);
   const sub = node('small', { class: 'q-notice-sub' });
@@ -4476,7 +3421,7 @@ function recRows(s, note) {
   ]);
 }
 
-// ---- 中場休息: how long the break has left, the same in every app ----------------------------
+// ---- 中場休息: how long the break has left ------------------------------------------------
 // When a half ended, to the second: the latest play on the wall clock in
 // ESPN's game summary (soccer's 'halftime' key event, basketball's End
 // Period, football's End of Half: checked live 2026-10-17). The break's
@@ -4486,7 +3431,7 @@ function recRows(s, note) {
 // never a redraw (an element with halftimeAttrs).
 const HALFTIME_MIN = { soccer: 15, basketball: 15, football: 13 };
 const HALFTIME_LEAGUE_MIN = { ncaaf: 20, 'college-football': 20, 'football/college-football': 20 };
-const HALFTIME_KEY = 'quadra.halftime';
+const HALFTIME_KEY = 'longshot.halftime';
 export const halftimeMinutes = (sport, league = '') => HALFTIME_LEAGUE_MIN[league] ?? HALFTIME_MIN[sport] ?? null;
 export function halftimeStartOf(summary) {
   const drives = summary?.drives || {};
@@ -4643,8 +3588,8 @@ export function liveChanged(key, text, now = globalThis.performance?.now?.() ?? 
   return before != null && before !== text && /\d/.test(before) && /\d/.test(text) && now > LIVE_QUIET_MS;
 }
 function watchLive() {
-  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || document.__quadraLive) return;
-  document.__quadraLive = true;
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined' || document.__longshotLive) return;
+  document.__longshotLive = true;
   const pop = el => {
     if (reducedMotion() || document.hidden) return;
     el.classList.remove('q-bump');

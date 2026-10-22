@@ -1,34 +1,29 @@
-// Quadra's loading screen and first update check, shared by every app (a
-// classic script, loaded right after <div id="loading"> so it runs before
-// the app's modules): the kit's copy, synced as public/boot.js. Never edit
-// an app's copy.
+// Longshot's loading screen and first update check (a classic script,
+// loaded right after <div id="loading"> so it runs before the app's modules).
 //
-// - Draws the loading screen into #loading (logo, the app's name from
-//   data-title, a progress line and what it's doing), so every app opens
-//   the same way.
-// - Checks version.json (the app's and the kit's) while the app's files
-//   load: a newer deploy than this page (meta build-version) or a newer kit
-//   is loaded straight away in one reload, before anything starts.
-//   The kit's watchUpdates keeps the page current after.
+// - Draws the loading screen into #loading (logo, the name from data-title,
+//   a progress line and what it's doing).
+// - Checks version.json while the app's files load: a newer deploy than this
+//   page (meta build-version) is loaded straight away in one reload, before
+//   anything starts. core.mjs watchUpdates keeps the page current after.
 // - When the app fails to start (an error, a script that didn't come, or
 //   15 s with nothing more arriving), asks whether the network is there.
 //   Offline: says so. Online, it's an update that didn't finish (GitHub's
-//   CDN still on an old file under a new address): each of the page's
-//   files is checked against its hash, only a wrong one fetched again, and
-//   the page reloaded, up to 5 times, further apart; then it says the
-//   update didn't finish, with reload (mends again) or open anyway. Nothing
-//   right is dropped or downloaded again. The app says it started with
-//   window.__fxStarted and hides #loading itself (the kit does).
+//   CDN still on an old file under a new address): each of the page's files
+//   is checked against its hash, only a wrong one fetched again, and the page
+//   reloaded, up to 5 times, further apart; then it says the update didn't
+//   finish, with reload (mends again) or open anyway. The app says it started
+//   with window.__fxStarted and hides #loading itself (core.mjs does).
 (function () {
   // A phone or a tablet (an iPad says Macintosh, with touch): the phone's
-  // frame, set before the first paint (quadra.css .q-touch).
+  // frame, set before the first paint (core.css .q-touch).
   var ua = navigator.userAgent || '';
   if (/iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) document.documentElement.classList.add('q-touch');
   // The Worker's connection (DNS, TCP, TLS: two or three round trips on a
   // phone's link) opened now, while the app's files load, not at its first ask.
   var pre = document.createElement('link');
   pre.rel = 'preconnect';
-  pre.href = 'https://orbit-workers-proxy.pengzjay.workers.dev';
+  pre.href = 'https://longshot.pengzjay.workers.dev';
   pre.crossOrigin = 'anonymous';
   document.head.appendChild(pre);
   var box = document.getElementById('loading');
@@ -45,7 +40,7 @@
   box.innerHTML =
     '<div class="q-boot-box">' +
     '<img class="q-boot-logo" alt="" width="72" height="72">' +
-    '<p class="q-boot-brand">' + (/^Orbit/.test(title) ? 'ORBIT' : 'QUADRA') + '</p>' +
+    '<p class="q-boot-brand">LONGSHOT</p>' +
     '<p class="q-boot-title"></p>' +
     '<div class="q-boot-bar" aria-hidden="true"><i></i></div>' +
     '<p class="q-boot-step"></p>' +
@@ -77,7 +72,7 @@
   };
   paint();
   step.textContent = L('載入中…', 'Loading…');
-  var countKey = 'quadra.bootFiles:' + location.pathname;
+  var countKey = 'longshot.bootFiles:' + location.pathname;
   var expected = 0;
   try {
     expected = Number(localStorage.getItem(countKey)) || 0;
@@ -142,9 +137,8 @@
       }
     );
   };
-  // Every file of the page addressed by its own hash (kit/hash.mjs): its
-  // scripts, styles and preloads, the import map's kit files, and what has
-  // loaded so far.
+  // Every file of the page addressed by its own hash (scripts/hash.mjs): its
+  // scripts, styles and preloads, and what has loaded so far.
   var pageFiles = function () {
     var seen = {};
     var add = function (u) {
@@ -155,11 +149,6 @@
     };
     var els = document.querySelectorAll('script[src],link[href]');
     for (var i = 0; i < els.length; i++) add(els[i].src || els[i].href);
-    var map = document.querySelector('script[type=importmap]');
-    try {
-      var imports = map ? JSON.parse(map.textContent).imports : {};
-      for (var k in imports) add(imports[k]);
-    } catch (e) {}
     if (window.performance && performance.getEntriesByType) performance.getEntriesByType('resource').forEach(function (r) {
       add(r.name);
     });
@@ -220,7 +209,7 @@
   // Tries this session for this page (its version): mended and reloaded
   // up to 5 times, further apart each time (the CDN keeps a file at most
   // 10 minutes; it's usually seconds).
-  var healKey = 'quadra.bootHeal:' + location.pathname;
+  var healKey = 'longshot.bootHeal:' + location.pathname;
   var healWait = [0, 4000, 12000, 30000, 60000];
   var tried = function () {
     try {
@@ -279,7 +268,7 @@
   var broke = function (message) {
     fail(typeof message === 'string' ? message : '');
   };
-  window.__quadraFail = window.__fxFail = window.__oddsFail = window.__stockFail = broke;
+  window.__longshotFail = broke;
   // Before it starts: an error in its code (an old file with a new one), or
   // one of its own scripts that didn't come (the service worker's 503 for a
   // file the CDN hasn't updated yet). (A picture, or another site's script
@@ -321,11 +310,9 @@
     }, 30000);
   };
 
-  // A newer deploy than this page (or a newer kit): load it now, before the
-  // app starts, both in one reload (the kit's version and file hashes noted
-  // for the loader, quadra.kit and quadra.kitFiles). A reload that came back
-  // on the old page (the CDN a moment behind) is tried again, up to 3 times a
-  // session.
+  // A newer deploy than this page: load it now, before the app starts. A
+  // reload that came back on the old page (the CDN a moment behind) is tried
+  // again, up to 3 times a session.
   var meta = document.querySelector('meta[name="build-version"]');
   var current = meta && meta.content;
   if (!current || current === 'dev' || !window.fetch) return;
@@ -333,60 +320,32 @@
   setTimeout(function () {
     if (ctl) ctl.abort();
   }, 6000);
-  var kit = window.QUADRA_KIT || {};
-  var read = function (url) {
-    return fetch(url + '?t=' + Date.now(), { cache: 'no-store', signal: ctl && ctl.signal })
-      .then(function (r) {
-        return r.ok ? r.json() : null;
-      })
-      .then(function (v) {
-        return v && v.version ? v : null;
-      })
-      .catch(function () {
-        return null;
-      });
-  };
-  // (The kit's watch skips its own first check, this one just made, and
-  // waits for its answer: __bootCheck says 'boot' when this reload is under
-  // way, 'none' when both versions were read and nothing is newer, 'watch'
-  // otherwise: a newer one found with the app already on screen, or a version
-  // not read. Then the watch looks again at once, so the first opening after
-  // a deploy gets it, not the next one.)
+  // (core.mjs watchUpdates skips its own first check, this one just made,
+  // and waits for its answer: __bootCheck says 'boot' when this reload is
+  // under way, 'none' when the version was read and nothing is newer,
+  // 'watch' otherwise: a newer one found with the app already on screen, or
+  // the version not read. Then the watch looks again at once.)
   window.__bootChecked = Date.now();
-  window.__bootCheck = Promise.all([read('./version.json'), kit.base ? read(kit.base + 'version.json') : null]).then(function (got) {
-    var latest = got[0] && got[0].version;
-    var kitLatest = got[1] && got[1].version;
-    var appNew = latest && latest !== current;
-    // A kit newer than this page's (the first one seen on a device is only
-    // noted: it's what loaded, or close to it, the hashes the app's deploy
-    // baked in).
-    var kitNew = kitLatest && kit.version && kit.noted !== false && kitLatest !== kit.version;
-    // Noted for the next opening: the version and each file's hash (the
-    // loader's addresses, so only the files that changed are fetched).
-    if (kitLatest) {
-      try {
-        if (localStorage.getItem('quadra.kit') !== kitLatest) localStorage.setItem('quadra.kit', kitLatest);
-        var files = got[1].files ? JSON.stringify({ version: kitLatest, files: got[1].files }) : null;
-        if (files && localStorage.getItem('quadra.kitFiles') !== files) localStorage.setItem('quadra.kitFiles', files);
-      } catch (e) {}
-    }
-    if (!appNew && !kitNew) return got[0] && (got[1] || !kit.base) ? 'none' : 'watch';
-    // (An app already on screen leaves it to the watch; one still behind
-    // this loading screen is reloaded now, before anything shows.)
-    if (box.hidden) return 'watch';
-    var flag = 'quadra.bootTo:' + location.pathname;
-    var want = (appNew ? latest : current) + '|' + (kitLatest || '');
-    var was = String(sessionStorage.getItem(flag) || '').split('#');
-    var tries = was[0] === want ? Number(was[1]) || 0 : 0;
-    if (tries >= 3) return 'none';
-    sessionStorage.setItem(flag, want + '#' + (tries + 1));
-    window.__bootUpdating = true;
-    going();
-    // (The files the phone kept stay: each is kept under its own hash, so
-    // the new page fetches only what changed. They were all dropped here
-    // first, and every update downloaded the whole app again.)
-    if (appNew) location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + (tries ? '&r=' + tries : '') + location.hash);
-    else location.reload();
-    return 'boot';
-  });
+  window.__bootCheck = fetch('./version.json?t=' + Date.now(), { cache: 'no-store', signal: ctl && ctl.signal })
+    .then(function (r) {
+      return r.ok ? r.json() : null;
+    })
+    .catch(function () {
+      return null;
+    })
+    .then(function (v) {
+      var latest = v && v.version;
+      if (!latest) return 'watch';
+      if (latest === current) return 'none';
+      if (box.hidden) return 'watch';
+      var flag = 'longshot.bootTo:' + location.pathname;
+      var was = String(sessionStorage.getItem(flag) || '').split('#');
+      var tries = was[0] === latest ? Number(was[1]) || 0 : 0;
+      if (tries >= 3) return 'none';
+      sessionStorage.setItem(flag, latest + '#' + (tries + 1));
+      window.__bootUpdating = true;
+      going();
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + (tries ? '&r=' + tries : '') + location.hash);
+      return 'boot';
+    });
 })();

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readBoard, boardLottery } from '../public/lib/boardstart.mjs';
-import * as boardKit from '#kit/play-boardfile.mjs';
+import * as boardKit from '../public/kit/play-boardfile.mjs';
 
 const NOW = Date.parse('2026-10-19T09:30:00Z');
 const minutesAgo = m => new Date(NOW - m * 60_000).toISOString();

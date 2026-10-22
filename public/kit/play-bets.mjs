@@ -2,12 +2,12 @@
 // without names. One copy for Play (app.js names each bet: chip, label,
 // shortLabel, matchup) and the Worker, which prices a placed bet again with
 // it and refuses one sold better than this (Shared-Proxy settle.js).
-import { gameOptions, offerOptions } from '#kit/play-board.mjs';
-import { estimateF1Odds, f1Phase, estimateFuturesOdds, FUTURES_OVERROUND, ODDS_ERROR, median } from '#kit/play-odds.mjs';
-import { withRules, houseCut } from '#kit/play-rules.mjs';
-import { f1Driver, familyOf, teamZh } from '#kit/play-teams.mjs';
-import { inningsLeft, liveBaseball, liveSoccer, liveGoals, livePoints, fitGoals, liveMarkets, liveOdds, pregameRuns, nextRunChances, nextRunOdds, LIVE_THREE_WAY } from '#kit/play-live.mjs';
-import { fitHockey } from '#kit/play-markets.mjs';
+import { gameOptions, offerOptions } from './play-board.mjs';
+import { estimateF1Odds, f1Phase, estimateFuturesOdds, FUTURES_OVERROUND, ODDS_ERROR, median } from './play-odds.mjs';
+import { withRules, houseCut } from './play-rules.mjs';
+import { f1Driver, familyOf, teamZh } from './play-teams.mjs';
+import { inningsLeft, liveBaseball, liveSoccer, liveGoals, livePoints, fitGoals, liveMarkets, liveOdds, pregameRuns, nextRunChances, nextRunOdds, LIVE_THREE_WAY } from './play-live.mjs';
+import { fitHockey } from './play-markets.mjs';
 
 // The lottery's locks and parlay-only rules (rules.mjs), on every pick
 // (board.mjs already applies them to games; F1 and live picks here).

@@ -2,9 +2,9 @@
 // The general formatters (Securities' format.mjs without its own): one
 // DASH for a value that's missing, and a sign only on a figure that shows
 // one: whatever rounds to nothing prints bare (NT$0, 0.00%), never +NT$0
-// or −NT$0 (quadra.mjs money() keeps the same rule for NT$ play money).
+// or −NT$0 (core.mjs money() keeps the same rule for NT$ play money).
 //
-//   import { DASH, money, pct, price, num, compact, setFormatLocale, twDay, twMonth, finiteOr0 } from '#kit/format.mjs';
+//   import { DASH, money, pct, price, num, compact, setFormatLocale, twDay, twMonth, finiteOr0 } from './format.mjs';
 // Each currency's symbol and decimals, as stock-markets.mjs CURRENCIES has
 // them (a test keeps them equal); kept here so an app that only shows NT$
 // doesn't load the markets' tables.

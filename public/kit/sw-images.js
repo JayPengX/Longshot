@@ -1,14 +1,13 @@
-// Pictures from other sites (team, league and company logos, flags, people's
-// photos), for every Quadra app's service worker (`importScripts`): kept on
-// the device in one cache all the apps share, served from there at once,
-// and checked again in the background after a week. Most of these sites
-// tell browsers to keep a picture for seconds (ESPN's two), so without this
-// every opening downloaded every logo again. A download that fails is tried
-// again before the page sees an error. Part of the shared kit.
-const IMAGE_CACHE = 'quadra-images-v1';
+// Pictures from other sites (team and league logos, flags, players'
+// photos), imported by ../sw.js: kept on the device, served from there at
+// once, and checked again in the background after a week. Most of these
+// sites tell browsers to keep a picture for seconds (ESPN's two), so without
+// this every opening downloaded every logo again. A download that fails is
+// tried again before the page sees an error.
+const IMAGE_CACHE = 'longshot-images-v1';
 const IMAGE_FRESH_MS = 7 * 86_400_000;
 const IMAGE_MAX = 1_500;
-const IMAGE_SAVED = 'x-quadra-saved-at';
+const IMAGE_SAVED = 'x-longshot-saved-at';
 const IMAGE_RETRY_MS = [300, 1_200];
 
 // The page asked for a picture on another site.

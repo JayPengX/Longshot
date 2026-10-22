@@ -15,9 +15,9 @@
 // football's and basketball's points by the share of the clock left
 // (livePoints, liveGoals). Kambi's sports use Kambi's own live prices
 // (kambi.mjs, parseKambiInPlay), the margin taken out.
-import { fitted, fitTeamRuns, TEAM_RUNS_DISPERSION, GOALS_DISPERSION, estimateLineOdds, round2 } from '#kit/play-odds.mjs';
-import { pointsModel, pointsMarkets, normalCdf, normalQuantile, SCORE_SPREAD } from '#kit/play-markets.mjs';
-import { isSoccer, familyOf } from '#kit/play-teams.mjs';
+import { fitted, fitTeamRuns, TEAM_RUNS_DISPERSION, GOALS_DISPERSION, estimateLineOdds, round2 } from './play-odds.mjs';
+import { pointsModel, pointsMarkets, normalCdf, normalQuantile, SCORE_SPREAD } from './play-markets.mjs';
+import { isSoccer, familyOf } from './play-teams.mjs';
 
 export const LIVE_OVERROUND = 1.16;
 // Polymarket's live winner price counts only with this much money behind it.
@@ -365,5 +365,5 @@ export function nextRunOdds(fair) {
 
 export { round2 };
 // Who scored each run, in order: the shared kit's (settle.mjs).
-import { runOrder } from '#kit/settle.mjs';
+import { runOrder } from './settle.mjs';
 export { runOrder };

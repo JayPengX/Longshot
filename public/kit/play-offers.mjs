@@ -13,12 +13,12 @@
 // the board's sides are ESPN's. Prices come with Kambi's margin taken out
 // (each market's outcomes scaled to add up to one); the board then puts the
 // house's own cut on them, like every other price.
-import { devigProportional } from '#kit/play-odds.mjs';
-import { CUT } from '#kit/play-markets.mjs';
-import { familyOf } from '#kit/play-teams.mjs';
-import { sideOfGame, sideScore } from '#kit/play-house.mjs';
-import { propOf } from '#kit/play-props.mjs';
-import { SET_SPORTS } from '#kit/settle.mjs';
+import { devigProportional } from './play-odds.mjs';
+import { CUT } from './play-markets.mjs';
+import { familyOf } from './play-teams.mjs';
+import { sideOfGame, sideScore } from './play-house.mjs';
+import { propOf } from './play-props.mjs';
+import { SET_SPORTS } from './settle.mjs';
 
 export const offersUrl = (kambiBase, id, live = false) => `${kambiBase}/betoffer/event/${encodeURIComponent(id)}.json?lang=en_GB&market=GB${live ? '&live=1' : ''}`;
 

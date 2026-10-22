@@ -6,10 +6,10 @@
 // answers are kept on the device (a found photo two months, none a week).
 // The kit's copy (Shared-Proxy/kit/photos.mjs), synced into Orbit Sports and Play
 // as lib/photos.mjs: never edit an app's copy.
-import { CATALOG } from '#kit/catalog.mjs';
-import { logoPicture, f1Driver, f1Constructor } from '#kit/logos.mjs';
-import { fold } from '#kit/names.mjs';
-import * as kit from '#kit/quadra.mjs';
+import { CATALOG } from './catalog.mjs';
+import { logoPicture, f1Driver, f1Constructor } from './logos.mjs';
+import { fold } from './names.mjs';
+import * as kit from './core.mjs';
 
 import { CDN, smallPhoto, espnHeadshot, espnCollegeHeadshot } from './photo-urls.mjs';
 export { smallPhoto, espnHeadshot, espnCollegeHeadshot };

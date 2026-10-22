@@ -27,7 +27,7 @@
 // - a copy the same as the one last merged or written here (its updateTime)
 //   isn't decoded, merged or redrawn again.
 //
-// Loaded with import('#kit/pass-sync.mjs').catch(() => null): an older kit
+// Loaded with import('./pass-sync.mjs').catch(() => null): an older kit
 // cached on a phone lacks it (that load stays on the app's own copy).
 //
 //   const sync = passSync(q, { decode, apply, encode });   q: quadraSession(…)

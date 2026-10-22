@@ -1,5 +1,5 @@
 // Quadra Play's odds, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
-import { minLegsProblem, BASE_CUT } from '#kit/play-rules.mjs';
+import { minLegsProblem, BASE_CUT } from './play-rules.mjs';
 // Pure odds math, shared by the browser page and scripts/build-data.mjs.
 
 // Every fit of a model to a game's prices (a bisection over score grids: the

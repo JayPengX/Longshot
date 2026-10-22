@@ -1,4 +1,4 @@
-import { familyOf } from '#kit/play-teams.mjs';
+import { familyOf } from './play-teams.mjs';
 // Quadra Play's rules, in the shared kit: Play and the Worker's settling (settle.mjs) use this one copy.
 // The house's rules for single options, shared by the bet slip and the
 // Worker's settling, so both play by exactly the same rules.

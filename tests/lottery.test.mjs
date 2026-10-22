@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as L from '../public/lib/lottery.mjs';
 const { GAMES, GAME_ORDER, nextDraw, ticketPrize, expectedReturn, parseDraw, parseBingo, buyTicket, settleTicket, betCount, dueTickets } = L;
-import { newAccount, balance, mergeAccounts } from '../public/lib/account.mjs';
+import { newAccount as emptyAccount, balance, mergeAccounts } from '../public/lib/account.mjs';
+
+const START_BALANCE = 10_000;
+// An account with NT$10,000 of its own to bet with (the wallet's money, in the app).
+const newAccount = (now, { start = true } = {}) => {
+  const a = emptyAccount(now);
+  return start ? { ...a, ledger: [{ id: 'start', t: a.created, kind: 'start', amount: START_BALANCE }] } : a;
+};
 
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/lottery-api/${name}.json`, import.meta.url)));
 const first = (name, list) => fixture(name).content[list][0];

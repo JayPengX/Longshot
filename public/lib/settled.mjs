@@ -3,7 +3,7 @@
 // pays the pass's wallet (the ledger's own ids, `payout-<slip>`: never twice)
 // and keeps each slip's results here for Play to apply. (No cash out since
 // 2026-10-21; a slip cashed before still comes back as `cashedOut`.)
-const PLAY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/play';
+const PLAY_URL = 'https://longshot.pengzjay.workers.dev/play';
 
 // The pass's session token: `tokenOf(renew)`, a string or a promise of one
 // (the kit's q.ensureToken: a fresh one when the held one is old, a new one

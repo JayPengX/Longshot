@@ -16,7 +16,7 @@ const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // A tick felt (the kit's: iOS's switch trick, a short buzz on Android).
 const feel = (ms = 6) => {
   try {
-    globalThis.quadraHaptic?.();
+    globalThis.__longshotHaptic?.();
     navigator.vibrate?.(ms);
   } catch {}
 };

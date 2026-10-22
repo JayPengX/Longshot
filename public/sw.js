@@ -1,9 +1,5 @@
-// Quadra Play: the family's one service worker (Shared-Proxy/kit/sw.js),
-// with this app's settings. It keeps the page's own files so the app opens
-// without a connection and can be installed, and never keeps a file that
-// isn't the one its address names (GitHub's CDN can answer a new address
-// with the old file for a while after a deploy).
-// Pictures from other sites: the kit's shared picture cache (sw-images.js).
-self.QUADRA_SW = { cache: 'quadra-odds-v1', title: 'Quadra Play' };
-importScripts('../Shared-Proxy/kit/sw-images.js');
-importScripts('../Shared-Proxy/kit/sw.js');
+// Longshot's service worker: the settings, then the worker itself (kit/sw.js)
+// and its picture cache (kit/sw-images.js).
+self.LONGSHOT_SW = { cache: 'longshot-v1' };
+importScripts('./kit/sw-images.js');
+importScripts('./kit/sw.js');

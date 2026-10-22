@@ -6,10 +6,10 @@
 // A player: { id, name, side: 'home' | 'away', pos, photo, out, gp, totals }
 // with `totals` the season's numbers under the board's stat names
 // (props.mjs), `gp` the games they're over.
-import { LEAGUES, familyOf } from '#kit/play-teams.mjs';
-import { espnHeadshot, smallPhoto } from '#kit/photo-urls.mjs';
+import { LEAGUES, familyOf } from './play-teams.mjs';
+import { espnHeadshot, smallPhoto } from './photo-urls.mjs';
 
-import { ESPN_SITE } from '#kit/catalog.mjs';
+import { ESPN_SITE } from './catalog.mjs';
 export { ESPN_SITE };
 export const ESPN_COMMON = 'https://site.api.espn.com/apis/common/v3/sports';
 export const rosterUrl = (path, teamId) => `${ESPN_SITE}/${path}/teams/${encodeURIComponent(teamId)}/roster`;

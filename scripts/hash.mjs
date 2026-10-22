@@ -1,28 +1,25 @@
-// A build tool (the kit's and every app's deploy, never served): each file's
-// address carries its own content's hash (`./ui.mjs?v=3f9a1c20b7`), not the
-// deploy's, so a phone downloads only the files a deploy changed. Before,
-// every file of an app took the build's version and every kit file the
-// kit's: each push re-downloaded the whole app or the whole kit (300 KB+)
-// on every phone, and on a slow connection that was the opening.
+// A build tool (scripts/stamp-version.mjs, never served): each file's
+// address carries its own content's hash (`./kit/ui.mjs?v=3f9a1c20b7a4`), so
+// a phone downloads only the files a deploy changed and never mixes a new
+// file with an old one it cached.
 //
 // A file's hash covers what it says about its imports (their hashes are in
 // its text), so a change reaches every file that leads to it and nothing
 // else. Files that import each other (a cycle) share one hash.
 //
 // A file on its own is addressed by the hash of exactly what is served (12
-// hex digits), so a phone can tell a file from the wrong one under its
-// address: GitHub Pages' CDN ignores the ?v= part, and for a while after a
-// deploy it can answer a new address with the old file (kit/sw.js checks
-// each one). A cycle's shared hash (10 digits) can't be checked that way.
+// hex digits), so the service worker (kit/sw.js) can tell a file from the
+// wrong one under its address: GitHub Pages' CDN can answer a new address
+// with the old file for a while after a deploy. A cycle's shared hash (10
+// digits) can't be checked that way.
 //
 // The files are also minified first (whitespace and syntax; names kept, so
-// an error still says where it was): a third less to download.
+// an error still says where it was).
 //
 //   const { files, hashes } = await hashFiles(texts, { refs, minify })
 //   texts:  Map<path, text> of every file that can be referred to
 //   refs:   (text, path) → [{ start, end, target }] the references in a text
 //           (end: just after the path; the ?v= goes there) to other paths
-//   finish: (text, path) → text, the served text from the stamped one (the kit's #kit/ imports)
 //   →       files: Map<path, text> stamped; hashes: Map<path, hash>
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -40,7 +37,7 @@ let esbuild = null;
 // esbuild, installed once into the machine's temp folder (CI: each run).
 async function loadEsbuild() {
   if (esbuild) return esbuild;
-  const dir = join(tmpdir(), `quadra-esbuild-${ESBUILD}`);
+  const dir = join(tmpdir(), `longshot-esbuild-${ESBUILD}`);
   const main = join(dir, 'node_modules/esbuild/lib/main.js');
   if (!existsSync(main)) {
     mkdirSync(dir, { recursive: true });
@@ -59,7 +56,7 @@ export async function minify(text, path) {
   return transformSync(text, { loader, minifyWhitespace: true, minifySyntax: true, legalComments: 'none', charset: 'utf8' }).code;
 }
 
-export async function hashFiles(texts, { refs, minify: shrink = true, finish = text => text }) {
+export async function hashFiles(texts, { refs, minify: shrink = true }) {
   const paths = [...texts.keys()];
   const src = new Map();
   for (const p of paths) src.set(p, shrink ? await minify(texts.get(p), p) : texts.get(p));
@@ -107,7 +104,7 @@ export async function hashFiles(texts, { refs, minify: shrink = true, finish = t
       next += `${text.slice(at, r.end)}?v=${h}`;
       at = r.end;
     }
-    return finish(next + text.slice(at), p);
+    return next + text.slice(at);
   };
   for (const group of order) {
     // On its own: the hash of what's served. A cycle: one hash for all of them, of their texts with everything outside it stamped.

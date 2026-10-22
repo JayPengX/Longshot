@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pointsModel, pointsMarkets, goalMarkets, fitHockey, baseballMarkets, marketOdds, normalCdf, normalQuantile, CUT } from '#kit/play-markets.mjs';
+import { pointsModel, pointsMarkets, goalMarkets, fitHockey, baseballMarkets, marketOdds, normalCdf, normalQuantile, CUT } from '../public/kit/play-markets.mjs';
 import { fitGoals } from '../public/lib/live.mjs';
 import { legResult } from '../public/lib/account.mjs';
 

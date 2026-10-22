@@ -1,10 +1,8 @@
 // 為你推薦: picks for this person, not just the board's best prices.
 //
-// What they care about, from everything Quadra knows on this device:
-// - the teams and leagues they follow in Orbit Sports (its pass data, cached on
-//   this device, and its affinity map), the strongest signal;
-// - the teams they've bet on here (their slips: the more often, the more);
-// - every app's affinity map (what they open, bet on and trade).
+// What they care about, from what the app knows:
+// - the teams they've bet on (their slips: the more often, the more);
+// - the affinity map (what they open and bet on).
 //
 // Then each upcoming pick is scored: how much they care about its game's
 // teams and league, how good a price it is (recommend.mjs's tag), and how
@@ -12,18 +10,14 @@
 // in 你的投注): what they've backed points at the next games instead, the
 // same teams' and the same leagues'. One pick a game; picks on the team they
 // care about, never against it.
-import { normalizeTeamName } from '#kit/logos.mjs';
-import { CATALOG } from '#kit/catalog.mjs';
+import { normalizeTeamName } from '../kit/logos.mjs';
 import { familyOf } from './teams.mjs';
 
-const FOR_YOU = { n: 8, horizonH: 72, followH: 10 * 24, backedH: 5 * 24, perSport: 2, follow: 1, backed: 0.6, league: 0.35, sport: 0.12 };
+const FOR_YOU = { n: 8, horizonH: 72, backedH: 5 * 24, perSport: 2, backed: 0.6, league: 0.35, sport: 0.12 };
 
 const teamKey = (sport, name) => `team:${sport}:${normalizeTeamName(name)}`;
-// Orbit Sports' league key to Play's.
-const playKey = league => CATALOG[league]?.bet ?? league;
-
 // { teams: Map key -> { w, why }, leagues: Map sport -> w, sports: Map family -> w, held: Set gameId }
-export function tasteOf({ aff = {}, fixtures = null, slips = [], now = Date.now() } = {}) {
+export function tasteOf({ aff = {}, slips = [], now = Date.now() } = {}) {
   const teams = new Map();
   const leagues = new Map();
   const sports = new Map();
@@ -31,7 +25,7 @@ export function tasteOf({ aff = {}, fixtures = null, slips = [], now = Date.now(
     const had = map.get(k);
     if (!had || had.w < w) map.set(k, why ? { w, why } : { w });
   };
-  // Every app's affinity, scaled to its strongest key.
+  // The affinity, scaled to its strongest key.
   const max = Math.max(1, ...Object.values(aff));
   for (const [k, v] of Object.entries(aff)) {
     const w = Math.min(1, v / max);
@@ -39,14 +33,6 @@ export function tasteOf({ aff = {}, fixtures = null, slips = [], now = Date.now(
     else if (k.startsWith('league:')) lift(leagues, k.slice(7), w);
     else if (k.startsWith('sport:')) lift(sports, k.slice(6), w);
   }
-  // Orbit Sports: followed teams (a player's team too), followed leagues in order.
-  for (const f of fixtures?.follows || []) {
-    const sport = playKey(f.league);
-    const name = f.athlete ? f.team?.name : f.name;
-    if (name) lift(teams, teamKey(sport, name), 1, 'follow');
-    lift(leagues, sport, 0.8);
-  }
-  (fixtures?.leagues || []).forEach((l, i) => lift(leagues, playKey(l), Math.max(0.4, 0.9 - i * 0.1)));
   // Slips: teams backed (recent ones more), and the games still open.
   const held = new Set();
   const backed = new Map();
@@ -73,7 +59,7 @@ export function gameInterest(game, taste) {
   for (const side of ['home', 'away']) {
     const t = taste.teams.get(teamKey(game.sport, game[side]?.en ?? game[side]));
     if (!t) continue;
-    const s = t.w * (t.why === 'follow' ? FOR_YOU.follow : t.why === 'backed' ? FOR_YOU.backed + 0.25 : FOR_YOU.backed);
+    const s = t.w * (t.why === 'backed' ? FOR_YOU.backed + 0.25 : FOR_YOU.backed);
     if (s > best.score) best = { score: s, why: t.why, side };
   }
   const league = (taste.leagues.get(game.sport) || 0) * FOR_YOU.league;
@@ -99,9 +85,8 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     const picks = byGame.get(g.id);
     if (!picks?.length) continue;
     const interest = gameInterest(g, taste);
-    // A followed team's next game however far this week (an NFL or a
-    // league side plays once a week); a backed team's within five days.
-    const horizon = interest.why === 'follow' ? FOR_YOU.followH : interest.why === 'backed' ? FOR_YOU.backedH : FOR_YOU.horizonH;
+    // A backed team's next game within five days.
+    const horizon = interest.why === 'backed' ? FOR_YOU.backedH : FOR_YOU.horizonH;
     if (start - now > horizon * 3_600_000) continue;
     const soon = start - now < 12 * 3_600_000 ? 0.12 : start - now < 30 * 3_600_000 ? 0.06 : start - now > 72 * 3_600_000 ? -0.1 : 0;
     // The pick: on their team when they have one (its win, else its handicap),
@@ -110,7 +95,7 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     const onSide = b => (b.kind === 'ml' || b.kind === 'spread' || b.kind === 'runline' || b.kind === 'dnb') && b.side === interest.side;
     let choice;
     if (interest.side) {
-      const mine = picks.filter(b => onSide(b) && b.fairChance >= 0.12 && (!b.cap || interest.why === 'follow' || interest.why === 'backed'));
+      const mine = picks.filter(b => onSide(b) && b.fairChance >= 0.12 && (!b.cap || interest.why === 'backed'));
       choice = mine.sort((a, b) => (a.kind === 'ml' ? 0 : 1) - (b.kind === 'ml' ? 0 : 1) || tagValue(b) - tagValue(a))[0];
     }
     if (!choice) {
@@ -127,10 +112,10 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     out.push({ bet: choice, game: g, why, side: interest.side, tag: recs.get(choice.id)?.tag ?? null, score: interest.score + (own ? 1 : 0.4) * (tagValue(choice) + soon) });
   }
   // Best first. A league the person shows no interest in gets one card at
-  // most (two such cards in all), a league they like two, followed teams
+  // most (two such cards in all), a league they like two, backed teams
   // all theirs: a night of many games in one league doesn't fill the row.
   out.sort((a, b) => b.score - a.score);
-  // One followed team's game first per team (its next one), then the caps.
+  // One backed team's game first per team (its next one), then the caps.
   const perLeague = new Map();
   const perFamily = new Map();
   const teamsShown = new Set();
@@ -140,7 +125,7 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     const fam = familyOf(x.game.sport) || x.game.sport;
     const f = perFamily.get(fam) || 0;
     const known = leagueTaste(x.game.sport, taste) >= 0.2;
-    const mine = x.why === 'follow' || x.why === 'backed';
+    const mine = x.why === 'backed';
     if (mine) {
       const team = `${x.game.sport}:${x.game[x.side]?.en ?? x.game[x.side]}`;
       if (teamsShown.has(team)) return false;
@@ -196,18 +181,4 @@ export function spreadLeagues(items, taste, { n, per = 1, liked = 2, perSport = 
     if (out.length >= n) break;
   }
   return interleave(out, x => familyOf(sportOf(x)) || sportOf(x));
-}
-
-// The person's Orbit Sports follows: the pass's copy (`follows:match`, written
-// by Orbit Sports, so every device and home-screen app has it) and this
-// device's Orbit Sports data, together.
-export function fixturesTaste(cachedPayload, wallet = null) {
-  let local = null;
-  try {
-    local = JSON.parse(cachedPayload('match') || 'null');
-  } catch {}
-  const synced = wallet?.settings?.['follows:match']?.value;
-  const leagues = [...new Set([...(Array.isArray(local?.leagues) ? local.leagues : []), ...(Array.isArray(synced?.leagues) ? synced.leagues : [])])];
-  const follows = [...(Array.isArray(local?.follows) ? local.follows : []), ...(Array.isArray(synced?.teams) ? synced.teams.filter(t => Array.isArray(t) && t[1]).map(([league, name]) => ({ league, name })) : [])];
-  return leagues.length || follows.length ? { leagues, follows } : null;
 }

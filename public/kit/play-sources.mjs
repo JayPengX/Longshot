@@ -7,22 +7,22 @@
 // Worker's own reads when it checks a bet's price.
 let reader = { proxyJson: () => Promise.reject(new Error('no reader')), packJson: null };
 export const useReader = r => (reader = { ...reader, ...r });
-import { americanToProbability, devigProportional, devigPower } from '#kit/play-odds.mjs';
-import { normalizeTeamName, teamZh, LEAGUES, familyOf, isSoccer, rememberLogo, rememberTeams, hasTeams } from '#kit/play-teams.mjs';
-import { shareLeft } from '#kit/play-live.mjs';
-import { overByRule, parseStatus } from '#kit/sports-espn.mjs';
-import { KAMBI, kambiUrl, parseKambiEvents, parseKambiInPlay, useKambiToken, fetchKambiLeague, watchKambiMatches, fetchKeptKambi } from '#kit/play-kambi.mjs';
-import { KAMBI_LEAGUES } from '#kit/play-teams.mjs';
-import { withHousePrices, loadStrengths } from '#kit/play-house.mjs';
-import { SOLD_DAYS, ASIA_URL, asiaMonth, asiaMonthOf, ESPN_SITE } from '#kit/catalog.mjs';
-import { parseAsiaSchedule } from '#kit/play-schedules.mjs';
-import { offersUrl, parseOffers } from '#kit/play-offers.mjs';
-import { loadGamePlayers } from '#kit/play-players.mjs';
+import { americanToProbability, devigProportional, devigPower } from './play-odds.mjs';
+import { normalizeTeamName, teamZh, LEAGUES, familyOf, isSoccer, rememberLogo, rememberTeams, hasTeams } from './play-teams.mjs';
+import { shareLeft } from './play-live.mjs';
+import { overByRule, parseStatus } from './sports-espn.mjs';
+import { KAMBI, kambiUrl, parseKambiEvents, parseKambiInPlay, useKambiToken, fetchKambiLeague, watchKambiMatches, fetchKeptKambi } from './play-kambi.mjs';
+import { KAMBI_LEAGUES } from './play-teams.mjs';
+import { withHousePrices, loadStrengths } from './play-house.mjs';
+import { SOLD_DAYS, ASIA_URL, asiaMonth, asiaMonthOf, ESPN_SITE } from './catalog.mjs';
+import { parseAsiaSchedule } from './play-schedules.mjs';
+import { offersUrl, parseOffers } from './play-offers.mjs';
+import { loadGamePlayers } from './play-players.mjs';
 
-export const PROXY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev';
+export const PROXY_URL = 'https://longshot.pengzjay.workers.dev';
 // Reading results and the parsers both the phone and the Worker's settling
 // use: the shared kit's (settle.mjs), one copy.
-import { yyyymmdd, parseJsonArray, futureTeamName, sameGame, sidesMatch, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, readOutcomes, F1_FLAG_KINDS } from '#kit/settle.mjs';
+import { yyyymmdd, parseJsonArray, futureTeamName, sameGame, sidesMatch, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, readOutcomes, F1_FLAG_KINDS } from './settle.mjs';
 export { futureTeamName, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, F1_FLAG_KINDS };
 const ESPN = ESPN_SITE;
 const GAMMA = 'https://gamma-api.polymarket.com';
@@ -126,7 +126,7 @@ export const EXTRA_FUTURES = [
   { key: 'f1constructors', sport: 'f1', query: "F1 Constructors' Champion", title: /^F1 Constructors' Champion$/i }
 ];
 
-// The proxy answers signed-in apps only: the Quadra session (quadra.mjs)
+// The proxy answers signed-in apps only: the Quadra session (core.mjs)
 // supplies the token.
 let session = null;
 export function useSourcesSession(s) {
@@ -159,7 +159,7 @@ function ttlFor(url) {
   if (day) return Math.abs(Date.parse(`${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(6)}T12:00:00Z`) - Date.now()) < 36 * 3_600_000 ? LIVE_TTL : 60_000;
   if (/scoreboard\?dates=/.test(url)) return 60_000;
   // A finished F1 session from F1's archive: it doesn't change.
-  if (url.startsWith('https://f1-live.quadra/session.json')) return 24 * 3_600_000;
+  if (url.startsWith('https://f1-live.longshot/session.json')) return 24 * 3_600_000;
   return LIVE_TTL;
 }
 // What's on now is read again after this long (the proxy keeps it 10 s).
@@ -350,8 +350,8 @@ const fetchEspnMlb = now => fetchMonths('mlb', 'baseball/mlb', now);
 // MLB's postseason list (kit/postseason.mjs; an older kit without it: none),
 // read with MLB's months while any of its games to come is a play-off one.
 const mlbDay = t => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(t));
-const postKit = import('#kit/postseason.mjs').catch(() => null);
-const f1Kit = import('#kit/f1live.mjs').catch(() => null);
+const postKit = import('./postseason.mjs').catch(() => null);
+const f1Kit = import('./f1live.mjs').catch(() => null);
 async function mlbPostseason(pages, now) {
   const playoff = pages.some(p => (p?.events || []).some(e => e.season?.type === 3 && e.status?.type?.state === 'pre'));
   const k = playoff ? await postKit : null;
@@ -772,7 +772,7 @@ export async function loadExtraFutures(now = new Date()) {
 // league's table read once (the same trimmed one the house's prices read),
 // MLB's postseason, F1's points and races left. A league whose table can't
 // be read keeps its board as Polymarket has it (closed markets already off).
-const aliveKit = import('#kit/play-alive.mjs').catch(() => null);
+const aliveKit = import('./play-alive.mjs').catch(() => null);
 const STANDINGS = 'https://site.api.espn.com/apis/v2/sports';
 const TITLE_BY_TABLE = new Set(['epl', 'laliga', 'seriea', 'bundesliga', 'ligue1']);
 const PLAYOFF_BY_TABLE = new Set(['mlb', 'nba', 'nhl', 'nfl', 'wnba', 'mls']);
@@ -1250,7 +1250,7 @@ export async function loadLeagueTeams(sport) {
 // season), so opening the app doesn't download every league's again. In
 // the browser's Cache Storage, shared by the Quadra apps on this site; the
 // service workers never clear it.
-const TEAMS_CACHE = 'quadra-teams-v1';
+const TEAMS_CACHE = 'longshot-teams-v1';
 const TEAMS_FRESH_MS = 7 * 24 * 3600 * 1000;
 async function storedTeams(url) {
   try {

@@ -122,7 +122,7 @@ export const SOLD_DAYS = 14;
 // month, games: [{ id, start, home: { en, zh }, away, homeScore, awayScore,
 // state: 'pre' | 'in' | 'post' | 'void', venue }] }. `getJson(url)` is the
 // app's proxied fetch.
-export const ASIA_URL = 'https://asia-baseball.quadra';
+export const ASIA_URL = 'https://asia-baseball.longshot';
 export const asiaMonthUrl = (league, ym) => `${ASIA_URL}/${league}/${ym}.json`;
 // "2026-09" for a date (Asia's own calendar: UTC+8 is close enough for all three).
 export const asiaMonthOf = ms => new Date(ms + 8 * 3_600_000).toISOString().slice(0, 7);
@@ -272,8 +272,8 @@ function directRead(url) {
 // under 10 minutes old; any copy when TheSportsDB refuses. CPBL's month on
 // a phone was 14 day lists two at a time at every opening (3 s and more on
 // a phone's link, the proxy refused all October).
-const DEVICE_CACHE = 'quadra-data-v1';
-const deviceKey = url => `https://quadra.data/${encodeURIComponent(url)}`;
+const DEVICE_CACHE = 'longshot-data-v1';
+const deviceKey = url => `https://longshot.data/${encodeURIComponent(url)}`;
 async function deviceCopy(url) {
   try {
     const hit = await (await caches.open(DEVICE_CACHE)).match(deviceKey(url));
