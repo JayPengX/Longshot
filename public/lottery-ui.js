@@ -4,7 +4,7 @@
 // they come out, and pay into the same pool.
 import { GAMES, GAME_ORDER, gameName, nextDraw, quickPick, betCount, checkSelection, buyTicket, settleTicket, ticketPrize, upcoming, nextDraws, dueTickets, drawFor, latestResults, choose, addTickets } from './lib/lottery.mjs';
 import { CARDS, CARD_ORDER, face, facePays, buyScratch, revealScratch, topPrize, onSale as cardOnSale } from './lib/scratch.mjs';
-import { buyTickets, buyCard as sellCard, revealCard } from './lib/settled.mjs';
+import { buyTickets, buyCard as sellCard, buyCardsAt, revealCard } from './lib/settled.mjs';
 import { balance, newSlipId } from './lib/account.mjs';
 import { compactMoney } from './home.js';
 import { faceDrawer, ticketLook } from './scratch-face.js';
@@ -34,7 +34,7 @@ const T = {
     seriesN: '多期 {k}/{n}', betsN: '{n} 注', winsN: '中 {n} 注', foldMore: '再看 {n} 注', foldLess: '收起', toScratch: '刮開', seriesLeft: '連續 {n} 期，還有 {k} 期待開獎', tooMany: '一次最多 {n} 注，請分次購買', comboNote: '每期獎金以台灣彩券公告為準',
     strongman: '大力士分數', yourScores: '您的分數', yourDice: '您的骰子', theirDice: '對手的骰子', threeOf: '3個{s}', roundN: '第{n}局', pickNow: '去選號', inMinShort: '{n} 分後截止', inHourShort: '{h} 小時後截止',
     gameN: '遊戲{n}', thanks: '謝謝', zoneX: '獎金{x}倍區', countN: '{n}個', xN: '{x}倍', sumTo: '兩數相加為 {n}', luckyCode: '幸運密碼', yourCode: '您的密碼', hitsN: '對中{n}個', hitsSp: '{n}個＋特別號', linesN: '{n}條連線', goldNums: '金樂透號碼 ＋ 特別號', onePt: '1分區', tenPt: '10分區', ptsTotal: '對中總分數', ptsN: '{n}分', soldUntil: '{d}停售', allPrices: '全部',
-    kindsN: '{n} 款', winRate: '中獎率', everyN: '每 {n} 張中 1', topN: '共 {n} 張', price1: '售價', oddsTab: '獎金與機率', tapHint: '用手指刮，或點一下小格', nextCard: '下一張 · 剩 {n}', againCard: '再買 {v}', howShort: '玩法'
+    kindsN: '{n} 款', winRate: '中獎率', everyN: '每 {n} 張中 1', topN: '共 {n} 張', price1: '售價', oddsTab: '獎金與機率', tapHint: '用手指刮，或點一下小格', partN: '第 {i}/{n} 區 · 刮完自動到下一區', nextCard: '下一張 · 剩 {n}', againCard: '再買 {v}', howShort: '玩法'
   },
   en: {
     draws: 'Draw games', scratch: 'Scratch cards', mine: 'My tickets', nextDraw: 'Next draw', closeInMin: 'Closes in {n} min', closeInHour: 'Closes in {h}h {m}m', closeAt: 'Closes {when}', jackpot: 'Jackpot', price: 'A bet', buy: 'Buy', cancel: 'Cancel', buyAsk: 'Buy {n} for {v}?', buyAskBody: '{name}; checked by itself after the draw.', scratchAsk: 'Buy a {name} card?', scratchAskBody: '{v}; scratch it straight away.', cost: 'Total', bets: 'bets', multiple: 'Multiple',
@@ -50,7 +50,7 @@ const T = {
     seriesN: 'Multi-draw {k}/{n}', betsN: '{n} bets', winsN: '{n} won', foldMore: '{n} more bets', foldLess: 'Show fewer', toScratch: 'Scratch', seriesLeft: '{n} draws in a row, {k} still to come', tooMany: 'At most {n} bets at once: buy the rest after', comboNote: 'Each draw pays as Taiwan Lottery announces',
     strongman: 'Strongman', yourScores: 'Your scores', yourDice: 'Your die', theirDice: 'Their die', threeOf: '3 × {s}', roundN: 'Round {n}', pickNow: 'Pick numbers', inMinShort: '{n} min left', inHourShort: '{h}h left',
     gameN: 'Game {n}', thanks: 'ZERO', zoneX: '{x}× zone', countN: '{n}', xN: '{x}×', sumTo: 'Two that add up to {n}', luckyCode: 'Lucky code', yourCode: 'Your code', hitsN: '{n} match', hitsSp: '{n} + special', linesN: '{n} lines', goldNums: 'Gold lotto + special', onePt: '1-point zone', tenPt: '10-point zone', ptsTotal: 'Points', ptsN: '{n} pts', soldUntil: 'Ends {d}', allPrices: 'All',
-    kindsN: '{n} cards', winRate: 'Win rate', everyN: '1 in {n}', topN: '{n} printed', price1: 'Price', oddsTab: 'Prizes and odds', tapHint: 'Scratch, or tap a box', nextCard: 'Next · {n} left', againCard: 'Again {v}', howShort: 'How to play'
+    kindsN: '{n} cards', winRate: 'Win rate', everyN: '1 in {n}', topN: '{n} printed', price1: 'Price', oddsTab: 'Prizes and odds', tapHint: 'Scratch, or tap a box', partN: 'Part {i} of {n} · on to the next when it’s off', nextCard: 'Next · {n} left', againCard: 'Again {v}', howShort: 'How to play'
   }
 };
 const COMBO_NAME = { zh: { 2: '二合', 3: '三合', 4: '四合', 5: '五合' }, en: { 2: '2 numbers', 3: '3 numbers', 4: '4 numbers', 5: '5 numbers' } };
@@ -719,7 +719,7 @@ export function mountLottery(ctx) {
     // How many: 1 to 10, the price on the button.
     let n = 1;
     const count = el('strong', { class: 'sc-n num', text: '1' });
-    const buyBtn = el('button', { class: 'q-btn primary sc-buy', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => buyCards(id, n, sheet) });
+    const buyBtn = el('button', { class: 'q-btn primary sc-buy', type: 'button', text: t('buyCard', { price: money(c.price) }), onclick: () => buyCards(id, n, sheet, on => ((buyBtn.disabled = on), buyBtn.classList.toggle('busy', on))) });
     const setN = k => {
       n = Math.max(1, Math.min(10, k));
       count.textContent = `×${n}`;
@@ -752,24 +752,43 @@ export function mountLottery(ctx) {
 
   // Buys n of a card (each checked here, then sold by the Worker, which
   // draws its prize: lib/settled.mjs buyCard), and opens the first.
-  async function buyCards(id, n, page) {
+  async function buyCards(id, n, page, buying = () => {}) {
     if (!cardOnSale(id)) return;
     const c = CARDS[id];
     const own = ctx.funds(ctx.getAccount());
     if (c.price * n > own) return void tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(c.price * n) }) }, 'coin');
-    const got = [];
+    // Each checked here (the balance), then all sold by the Worker in one go
+    // (one charge, each prize drawn there), kept and saved once.
+    let acc = ctx.getAccount();
+    const asked = [];
     for (let i = 0; i < n; i++) {
-      const r = buyScratch(ctx.getAccount(), { id: newSlipId(), card: id }, new Date(), { extra: extra() });
+      const r = buyScratch(acc, { id: newSlipId(), card: id }, new Date(), { extra: extra(acc) });
       if (r.error) break;
-      const sold = await sellCard(r.ticket.id, id).catch(() => null);
-      if (!sold?.ticket) {
-        if (!got.length) return void (sold?.refused?.problem === 'funds' ? tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(c.price) }) }, 'coin') : tell({ lang, icon: '⏳', title: t('failed') }));
-        break;
-      }
-      ctx.setWallet(sold.wallet);
-      ctx.commitAccount(addTickets(ctx.getAccount(), [sold.ticket]));
-      got.push(sold.ticket);
+      acc = r.account;
+      asked.push(r.ticket);
     }
+    if (!asked.length) return;
+    buying(true);
+    let got = [];
+    let wallet = null;
+    let sold = await buyCardsAt(asked).catch(() => null);
+    if (sold?.tickets) [got, wallet] = [sold.tickets, sold.wallet];
+    else if (sold?.refused?.problem === 'shape' || !sold) {
+      // (A Worker from before: one at a time.)
+      for (const x of asked) {
+        const one = await sellCard(x.id, id).catch(() => null);
+        if (!one?.ticket) {
+          sold = one;
+          break;
+        }
+        got.push(one.ticket);
+        wallet = one.wallet;
+      }
+    }
+    buying(false);
+    if (!got.length) return void (sold?.refused?.problem === 'funds' ? tellK({ lang, title: t('funds'), body: t('fundsBody', { v: money(c.price * n) }) }, 'coin') : tell({ lang, icon: '⏳', title: t('failed') }));
+    ctx.setWallet(wallet);
+    ctx.commitAccount(addTickets(ctx.getAccount(), got));
     if (!got.length) return;
     ctx.track([`scratch:${id}`], got.length);
     page?.close();
@@ -787,10 +806,8 @@ export function mountLottery(ctx) {
     let cover = null;
     let player = null;
     // Under the ticket, the same row before and after: how to scratch, then what it won.
-    const result = el('div', { class: 'sc-result hint', role: 'status' }, [
-      el('span', { class: 'sc-result-label', text: t('tapHint') }),
-      el('button', { class: 'sc-how-btn', type: 'button', text: t('howShort'), onclick: () => tellK({ lang, title: c[lang], body: howSteps(c.how[lang]).map((x, i, all) => (all.length > 1 ? `${i + 1}. ${x}` : x)).join('\n') }, cardArt(ticket.card, c[lang], c.color, 'sc-ask')) })
-    ]);
+    // Under the ticket once it's played: what it won (nothing of it before).
+    const result = el('div', { class: 'sc-result', role: 'status' });
     // Another card still to scratch (any kind), the one bought next first.
     const nextOpen = () => ctx.getAccount().tickets.filter(x => x.card && x.status === 'open' && x.id !== ticketId);
     const done = () => {
@@ -802,6 +819,8 @@ export function mountLottery(ctx) {
         if (pays && !player) navigator.vibrate?.([30, 40, 60]);
       }
       ticketEl.classList.add('revealed');
+      // (Played: the ticket at its own height, its result and numbers under it.)
+      dialog?.classList.remove('sc-playing');
       cover?.clear();
       player?.clear();
       if (fresh) player?.celebrate(pays > 0, pays >= c.price * 10);
@@ -812,6 +831,9 @@ export function mountLottery(ctx) {
         allBtn.textContent = rest.length ? t('nextCard', { n: rest.length }) : lang === 'en' ? 'Close' : '關閉';
         allBtn.onclick = () => (close(), rest.length && openScratch((rest.find(x => x.card === ticket.card) || rest[0]).id));
       }
+      stepHint?.remove();
+      bar.classList.remove('playing');
+      if (againBtn) bar.append(againBtn);
       result.className = `sc-result ${pays ? 'won' : 'lost'}`;
       const amount = pays ? el('strong', { class: 'sc-result-amount num', text: money(fresh && player ? 0 : pays) }) : null;
       result.replaceChildren(...[pays ? kitGlyph(kitUI, 'spark', 'sc-result-icon') : null, el('strong', { class: 'sc-result-label', text: pays ? t('youWon') : t('noWin') }), amount].filter(Boolean));
@@ -850,12 +872,20 @@ export function mountLottery(ctx) {
         el('p', { class: 'sc-how', text: c.how[lang] })
       ]);
     }
-    const bar = el('div', { class: 'lotto-buybar sc-bar q-sheet-foot' }, [
+    // While it's played: the ticket and the bar only (what to do, then 一次刮開);
+    // played: 下一張 (or 關閉) and 再買.
+    const playing = real && fresh;
+    const againBtn = !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('againCard', { v: money(c.price) }), onclick: () => (close(), openCard(ticket.card)) });
+    const stepHint = playing ? el('button', { class: 'sc-step-hint', type: 'button', onclick: () => tellK({ lang, title: c[lang], body: howSteps(c.how[lang]).map((x, i, all) => (all.length > 1 ? `${i + 1}. ${x}` : x)).join('\n') }, cardArt(ticket.card, c[lang], c.color, 'sc-ask')) }, [el('span', { class: 'sc-step-text', text: t('tapHint') }), el('small', { text: t('howShort') })]) : null;
+    player?.onStep((i, n) => stepHint?.firstElementChild && (stepHint.firstElementChild.textContent = n ? t('partN', { i: i + 1, n }) : t('tapHint')));
+    const bar = el('div', { class: `lotto-buybar sc-bar q-sheet-foot${playing ? ' playing' : ''}` }, [
+      stepHint,
       (allBtn = el('button', { class: 'q-btn', type: 'button', text: t('scratchAll'), disabled: !fresh ? '' : null, onclick: () => ((allBtn.disabled = true), player ? player.all() : cover ? cover.all() : done()) })),
-      !cardOnSale(ticket.card) ? null : el('button', { class: 'q-btn primary', type: 'button', text: t('againCard', { v: money(c.price) }), onclick: () => (close(), openCard(ticket.card)) })
+      playing ? null : againBtn
     ]);
-    const sheet = kitUI.sheet({ title: c[lang], body: real ? [ticketEl, info, prizes] : [ticketEl, bar], foot: real ? bar : null, cls: `lotto-sheet${real ? ' sc-real-sheet' : ''}`, detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });
-    const dialog = sheet.el;
+    let dialog = null;
+    const sheet = kitUI.sheet({ title: c[lang], body: real ? [ticketEl, info, prizes] : [ticketEl, bar], foot: real ? bar : null, cls: `lotto-sheet${real ? ' sc-real-sheet' : ''}${playing ? ' sc-playing' : ''}`, detent: 'large', closeLabel: lang === 'en' ? 'Close' : '關閉', onClose: () => render() });
+    dialog = sheet.el;
     // (Its buttons in the ticket's own panel colour.)
     dialog.style.setProperty('--lotto', ticketLook(ticket.card)['--panel']);
     dialog.addEventListener('close', () => player?.stop(), { once: true });
@@ -1236,7 +1266,7 @@ export function mountLottery(ctx) {
     return el('div', { class: 'lt-group', style: `--lotto:${c.color}` }, [
       el('div', { class: 'lt-head' }, [el('div', { class: 'lt-who' }, [cardArt(list[0].card, c[lang], c.color, 'sc-thumb'), el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: open ? `${t('scratch')} · ${t('unscratched')}` : t('scratch') })])]), open ? el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) })]) : list.length > 1 ? netChip(got) : null]),
       // Even rows: at most four a row, the rows as full as each other.
-      el('div', { class: 'lt-cards', style: `--n:${Math.ceil(list.length / Math.ceil(list.length / 4))}` }, list.map(x => el('button', { type: 'button', class: `lt-card${x.prize > 0 ? ` won out-up` : ''}${open ? ' unscratched' : ''}`, onclick: () => openScratch(x.id), text: open ? t('toScratch') : x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') })))
+      el('div', { class: 'lt-cards', style: `--n:${Math.ceil(list.length / Math.ceil(list.length / 4))}` }, list.map(x => el('button', { type: 'button', class: `lt-card${!open && x.prize > 0 ? ' won out-up' : ''}${open ? ' unscratched' : ''}`, onclick: () => openScratch(x.id), text: open ? t('toScratch') : x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') })))
     ]);
   }
   // A ticket's picks with what the draw hit lit up; a 大樂透 pick equal to the

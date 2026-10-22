@@ -1095,3 +1095,19 @@ html .q-logo img { width: 88%; height: 88%; }
 /* No room left under a tall ticket: its numbers go (they're on the card's page). */
 .sc-real-sheet.tight :is(.sc-info, .sc-prizes) { display: none; }
 .sc-card-sheet > * { flex-shrink: 0; }
+/* Scratching: the ticket has the sheet (the result and its numbers come after). */
+.sc-real-sheet.sc-playing :is(.sc-info, .sc-prizes, .sc-result) { display: none; }
+.sc-real-sheet.sc-playing .sc-real { flex: 1 1 auto; min-height: 0; margin-bottom: 10px; }
+.tk-frame.fill { flex: 1 1 auto; min-height: 0; max-height: none; }
+.sc-result:empty { display: none; }
+/* A wide ticket played a part at a time: the whole of it above, the part shown boxed. */
+.tk-ov { flex: none; margin-bottom: 10px; cursor: pointer; }
+.tk.tk-copy { box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5); }
+.tk-ov-box { position: absolute; z-index: 2; border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(0, 0, 0, 0.4) inset; pointer-events: none; transition: left 0.3s, top 0.3s, width 0.3s, height 0.3s; }
+.sc-bar.playing { display: flex; align-items: center; }
+.sc-bar.playing .q-btn { flex: none; }
+.sc-step-hint { display: grid; flex: 1; min-width: 0; gap: 2px; padding: 0; border: 0; background: none; color: var(--q-label); text-align: left; }
+.sc-step-text { overflow: hidden; font: 600 14px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.sc-step-hint small { color: var(--lotto); font: 700 12px/1.2 var(--q-font); }
+:root[data-theme='dark'] .sc-step-hint small { color: color-mix(in srgb, var(--lotto) 55%, #fff); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .sc-step-hint small { color: color-mix(in srgb, var(--lotto) 55%, #fff); } }
