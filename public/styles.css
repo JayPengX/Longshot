@@ -288,12 +288,6 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .leg-odds.flash { animation: odds-flash 1s ease-out 2; border-radius: 6px; }
 @keyframes odds-flash { 0% { background: color-mix(in srgb, currentColor 22%, transparent); } 100% { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .leg-odds.flash { animation: none; } }
-/* 賠率變動時: a label and three choices on one row. */
-.sl-accept { display: flex; align-items: center; gap: 8px; }
-.sl-accept .sl-label { flex: none; margin: 0; }
-.sl-accept .q-seg { flex: 1; min-width: 0; }
-.sl-accept .q-seg button { white-space: nowrap; font-size: 13px; padding-inline: 4px; }
-@media (max-width: 340px) { .sl-accept .q-seg button { font-size: 12px; padding-inline: 2px; } }
 .sl-label { padding: 0 4px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 .sl-chips { margin-top: -6px; flex-wrap: wrap; overflow: visible; }
 /* The stake: NT$ and a big number, the usual amounts a tap away. */
@@ -861,8 +855,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* (.q-fit-wrap titles shrink to one line first and wrap only when 72% can't fit.) */
 .q-ritem .q-ritem-title:not(.q-fit-wrap), .q-ritem-text .q-ritem-title:not(.q-fit-wrap), .q-ritem-title.q-wrapped, .sc-card-name.q-wrapped { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .sl { min-width: 0; }
-.sl .q-sheet-foot { display: block; }
-.sl .q-sheet-foot .place-button { width: 100%; min-width: 0; }
+.sl .q-sheet-foot .place-button { flex: 1; width: auto; min-width: 0; }
 .sl-leg { min-width: 0; }
 .sl > * { min-width: 0; max-width: 100%; }
 .sl-quick { flex-wrap: wrap; overflow: visible; }
@@ -876,8 +869,6 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .slip-leg-game { white-space: normal; overflow: visible; text-overflow: clip; }
 .sl-pay:has(.q-sheet-hero) { padding: 0; background: none; }
 .sl-pay .q-sheet-hero { margin: 0; }
-.sl .q-sheet-foot { display: grid; gap: 6px; }
-.sl .q-sheet-foot > * { width: 100%; }
 /* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
 .q-section { margin-top: 28px; }
 .pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); }
@@ -897,12 +888,21 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .sl-stake-box::after { content: ''; flex: none; width: 18px; height: 18px; background: var(--q-label-3, var(--q-label-2)); -webkit-mask: var(--sl-pen) center / contain no-repeat; mask: var(--sl-pen) center / contain no-repeat; }
 .sl-stake-box:focus-within::after { background: var(--q-blue); }
 .sl-stake { --sl-pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E"); }
-/* 確認下注 floats over the sheet, centred, with no band behind it (as Securities' 買進/賣出). */
-.sl .q-sheet-foot.q-sf { margin: 16px 0 0; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); border-top: 0; background: transparent; box-shadow: none; pointer-events: none; }
-.sl .q-sheet-foot.q-sf > * { pointer-events: auto; }
-.sl .q-sheet-foot .place-row { display: grid; justify-items: center; gap: 6px; }
-.sl .q-sheet-foot .place-button { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); }
-.sl .q-sheet-foot .place-row > small { padding: 4px 12px; border-radius: 12px; background: var(--q-sheet); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); }
+/* 確認下注 docked at the sheet's foot, a solid bar with the balance on its
+   left (Jay 2026-10-22: the floating button and 餘額 pill let the payout
+   card slide under them while typing the stake). Nothing shows through it. */
+.sl .q-sheet-foot.q-sf { gap: 14px; max-width: none; }
+.sl > .sl-rules + .q-sheet-foot { margin-top: 8px; }
+.sl .q-sheet-foot .place-button { min-height: 50px; padding-inline: 12px; box-shadow: none; }
+.place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
+.sl .q-sf .q-sf-sum b.q-fit { display: block; overflow: hidden; }
+/* The foot is the sheet's last thing and keeps the home bar's room itself:
+   no sheet padding under it for the content to scroll through. */
+#slip-sheet[open] { padding-bottom: 0; }
+.sl .q-sf .q-sf-sum { flex: 0 1 auto; min-width: 0; max-width: 42%; }
+.sl .q-sf .q-sf-sum b { font-size: 17px; font-variant-numeric: tabular-nums; }
+/* Typing the stake: the keys cover the home bar, so the foot sits right on them. */
+html.q-kb .sl .q-sheet-foot.q-sf { padding-block: 8px; }
 /* Team logos fill their tile on white, no dark frame around the crest (as Securities' stock logos; html: over the kit's .q-logo, loaded later). */
 html .q-logo:not(.text) { background: #ffffff; }
 html .q-logo img { width: 88%; height: 88%; }

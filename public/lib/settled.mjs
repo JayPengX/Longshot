@@ -5,12 +5,26 @@
 // 2026-10-21; a slip cashed before still comes back as `cashedOut`.)
 const PLAY_URL = 'https://orbit-workers-proxy.pengzjay.workers.dev/play';
 
+// The pass's session token: `tokenOf(renew)`, a string or a promise of one
+// (the kit's q.ensureToken: a fresh one when the held one is old, a new one
+// on `renew`). The session token lives 20 minutes: Play used the one held
+// as it was, so a phone back from sleep or open a while had its slips
+// turned away (401) and every bet said 現在無法下注 until something else
+// renewed it (Jay 2026-10-22).
 let tokenOf = () => '';
 export const useSettleToken = fn => (tokenOf = fn);
-const signed = () => `${PLAY_URL}?qt=${encodeURIComponent(tokenOf())}`;
-async function call(method, body) {
-  if (!tokenOf()) throw new Error('signed out');
-  const res = await fetch(signed(), { method, ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15_000) });
+// How long an answer is waited for: placing a live pick waits the house's 5
+// seconds and reads the live board again, so it gets longer.
+const WAIT_MS = 15_000;
+const PLACE_WAIT_MS = 30_000;
+async function call(method, body, wait = WAIT_MS) {
+  const send = async token => {
+    if (!token) throw new Error('signed out');
+    return fetch(`${PLAY_URL}?qt=${encodeURIComponent(token)}`, { method, ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(wait) });
+  };
+  let res = await send(await tokenOf(false));
+  // Turned away for its token: once more with a new one.
+  if (res.status === 401) res = await send(await tokenOf(true));
   if (!res.ok) throw new Error(String(res.status));
   return res.json();
 }
@@ -31,7 +45,7 @@ export const slipSpec = slip => ({
 });
 
 // Placed: { placed: [id…], wallet } or { refused: { problem, moved: [{ id, odds }] } }.
-export const placeSlips = slips => call('POST', { op: 'place', slips: slips.map(slipSpec) });
+export const placeSlips = slips => call('POST', { op: 'place', slips: slips.map(slipSpec) }, PLACE_WAIT_MS);
 
 // The lottery (Shared-Proxy lotto.js): tickets sold { tickets, wallet }, a
 // scratch card bought { ticket, wallet } (its prize drawn there), scratched
