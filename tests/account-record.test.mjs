@@ -19,3 +19,15 @@ test("the account card counts bets and lottery tickets together; nothing decided
   const c = { slips: [slip('s1', 'open', 100)], ledger: [] };
   assert.deepEqual([accountRecord(c).net, accountRecord(c).back, accountRecord(c).decided], [null, null, 0]);
 });
+
+test('投注單 card: the bets alone, every figure over the same set (50 open tickets never make it 「51 張」)', () => {
+  const slip = (id, status, cost, payout = 0) => ({ id, status, cost, payout, legs: [] });
+  const ticket = (id, status, cost, prize = 0) => ({ id, status, cost, prize });
+  const a = {
+    slips: [slip('s1', 'open', 500), slip('s2', 'settled', 200, 500), slip('s3', 'settled', 300)],
+    tickets: [...Array.from({ length: 50 }, (_, i) => ticket(`o${i}`, 'open', 50)), ticket('d', 'settled', 100, 2000)],
+    ledger: [{ kind: 'payout', amount: 500 }, { kind: 'prize', amount: 2000 }]
+  };
+  assert.deepEqual(accountRecord(a, { tickets: false }), { open: 500, openCount: 1, won: 500, decided: 2, net: 0, back: 100 });
+  assert.equal(accountRecord(a).openCount, 51);
+});

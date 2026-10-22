@@ -2533,13 +2533,16 @@ function renderAccount() {
   const account = state.account;
   // No slips yet: no zero figures (the empty state below says it).
   if (!account.slips.length) return void $('account-body').replaceChildren();
-  const r = accountRecord(account);
+  // The bets alone, every figure (the list under it is bets; the lottery's
+  // tickets and prizes are in 我的彩券): 50 open tickets once made
+  // 進行中投注 「51 張」 beside a 全中最多可拿 of the one bet.
+  const r = accountRecord(account, { tickets: false });
   const most = slipsMost(account.slips.filter(x => x.status === 'open'));
   // One hero: the net so far, big; 回收率 and the tax withheld (to 政府, the
   // Pass's 真相 a tap away) under it; then the record as an even 2×2 of
   // figures (pills wrapped, leaving one alone on a second line).
   const tax = taxPaid(account);
-  const taxed = (tax.sports || 0) + (tax.lottery || 0);
+  const taxed = tax.sports || 0;
   const cell = (label, value, sub = '') => el('div', { class: 'pl-hc-cell' }, [el('small', { text: label }), el('strong', { class: 'num', text: value }), sub ? el('span', { class: 'pl-hc-sub', text: sub }) : null]);
   const hero = el('section', { class: `q-hero-card pl-hero pl-rec-hero${r.net > 0 ? ' up' : r.net < 0 ? ' down' : ''}` }, [
     el('span', { class: 'q-hc-eyebrow' }, [kitGlyph(kitUI, 'chart'), el('span', { text: t('accountNet') })]),
@@ -2563,7 +2566,7 @@ function renderAccount() {
 // its slips only; again, all of them.
 function monthsCard(account) {
   const t = state.t;
-  const months = monthsOf(account);
+  const months = monthsOf({ slips: account.slips });
   if (!months.length) return null;
   const chosen = months.find(m => m.key === state.historyMonth) ?? null;
   const focus = chosen ?? months.at(-1);
