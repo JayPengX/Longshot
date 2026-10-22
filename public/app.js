@@ -2368,6 +2368,9 @@ async function mergeRemote(remote, applied = () => {}) {
   const had = wallet?.snap?.odds;
   const pl = resultByMarket(merged);
   const gov = taxPaid(merged);
+  // (The Worker keeps an app's figures only under 4,000 characters: past
+  // that, the Pass goes by the total alone.)
+  if (gov.slips && JSON.stringify({ open, n, pl, gov, t: Date.now() }).length > 3_800) delete gov.slips;
   const same = had?.open === open && had?.n === n && !had?.slips && JSON.stringify(had?.pl || {}) === JSON.stringify(pl) && JSON.stringify(had?.gov || {}) === JSON.stringify(gov);
   const snap = same ? undefined : { odds: { open, n, pl, gov, t: Date.now() } };
   const changed = !theirs || JSON.stringify(merged) !== JSON.stringify(theirs);

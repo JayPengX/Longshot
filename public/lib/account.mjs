@@ -147,28 +147,40 @@ export function poolEntries(account) {
 // All time, from the whole history: a slip or ticket settled before `gross`
 // was kept has its tax worked out again from its picks' results (a slip) or
 // its draw (a ticket), the same way it was settled. Totals, never sums of
-// what was sent before, so a sync can't count anything twice.
+// what was sent before, so a sync can't count anything twice. Only slips
+// still on the record count: a back charge whose slip is gone (off the
+// record, or no longer in the account) is no tax of this account's.
+// `slips`: the sports tax by slip, so the Pass counts only the slips its
+// wallet still holds.
 export function taxPaid(account) {
-  let sports = 0;
-  for (const slip of account?.slips || []) {
-    if (slip.status !== 'settled') continue;
-    if (slip.gross > 0) {
-      const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
-      sports += Math.max(0, slip.gross - back);
-    } else if (slip.gross == null && !slip.cashedOut && slip.payout > 0) sports += slipTaxAgain(slip);
-  }
+  const bySlip = taxBySlip(account);
   let lottery = 0;
   for (const x of account?.tickets || []) {
     if (x.status !== 'settled') continue;
     if (x.gross > 0) lottery += Math.max(0, x.gross - (x.prize || 0));
     else if (x.gross == null && x.prize > 0) lottery += ticketTaxAgain(x);
   }
+  const sports = Object.values(bySlip).reduce((a, b) => a + b, 0);
+  return { sports: Math.round(sports), lottery: Math.round(lottery), ...(Object.keys(bySlip).length ? { slips: bySlip } : {}) };
+}
+function taxBySlip(account) {
+  const out = {};
+  const add = (id, v) => v > 0 && (out[id] = Math.round((out[id] || 0) + v));
+  const slips = account?.slips || [];
+  for (const slip of slips) {
+    if (slip.status !== 'settled') continue;
+    if (slip.gross > 0) {
+      const back = slip.payout + (slip.free && slip.payout > 0 ? (slip.freeValue ?? slip.stake) : 0);
+      add(slip.id, Math.max(0, slip.gross - back));
+    } else if (slip.gross == null && !slip.cashedOut && slip.payout > 0) add(slip.id, slipTaxAgain(slip));
+  }
   // The sports tax back charged on payouts from before it went to the whole
-  // slip (the Worker's `odds:tax-<slip>` entries).
+  // slip (the Worker's `odds:tax-<slip>` entries), for a slip still here.
   // (A slip that took it in counts it above, as its gross less its payout.)
-  const took = new Set((account?.slips || []).filter(x => x.backTax).map(x => x.id));
-  for (const e of account?.ledger || []) if (e.kind === 'tax' && e.amount < 0 && !took.has(e.slipId)) sports -= e.amount;
-  return { sports: Math.round(sports), lottery: Math.round(lottery) };
+  const here = new Set(slips.map(x => x.id));
+  const took = new Set(slips.filter(x => x.backTax).map(x => x.id));
+  for (const e of account?.ledger || []) if (e.kind === 'tax' && e.amount < 0 && here.has(e.slipId) && !took.has(e.slipId)) add(e.slipId, -e.amount);
+  return out;
 }
 // An older slip's tax: its payout table again, before tax less after.
 function slipTaxAgain(slip) {
