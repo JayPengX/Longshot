@@ -9,7 +9,7 @@ import * as kitTeams from '#kit/play-teams.mjs';
 import { LIVE_MIN_LIQUIDITY, PERIODS } from './lib/live.mjs';
 import { accountFor, balance, newSlipId, placeSlip, legResult, applyResults, mergeAccounts, recoverFromWallet, mergeDistinct, poolEntries, resultByMarket, taxPaid, compactAccount, cashOut, isAccount } from './lib/account.mjs';
 import { futureBets, liveBets, legOf, f1Bets, fillTypicalMargins } from './lib/bets.mjs';
-import { useSettleToken, readSettled, ackSettled, placeSlips, revealPending } from './lib/settled.mjs';
+import { useSettleToken, readSettled, ackSettled, placeSlips, revealPending, settleNow } from './lib/settled.mjs';
 import { renderHome, tasteKey } from './home.js';
 import { mountLottery } from './lottery-ui.js';
 import { mountStats } from './stats-ui.js';
@@ -51,6 +51,12 @@ const state = {
   liveAt: null,
   parlay: [],
   pickedOdds: {},
+  // Odds changes on the slip (takeOddsChanges): the setting, the house's
+  // price found when placing, the changes flashing.
+  acceptOdds: readAccept(),
+  houseOdds: {},
+  oddsFlash: {},
+  slipNote: null,
   slipMode: 'single',
   // Chosen 過關組合 sizes; 'all' stands for 全過, whatever the leg count.
   slipSizes: new Set([2, 'all']),
@@ -1721,14 +1727,70 @@ function futuresBoard(market) {
 
 // ---- Bet slip -----------------------------------------------------------------
 
-// A pick's odds on the slip: as now, and the way they moved since it was
-// picked (the old figure beside them).
-function legOdds(b) {
-  const now = effectiveOdds(b);
+// Odds changes on the slip, as a sportsbook's: never a pop-up. A pick's
+// price is the board's now, or the house's when placing found it moved
+// (`houseOdds`, until the board's own figure changes). Each pick keeps the
+// odds its owner agreed to (`pickedOdds`); a change the setting accepts
+// (較高賠率, the default, or 任何變動) is taken at once and flashes in place,
+// any other waits on the pick (the old figure beside it) and the place button
+// asks for it once (接受賠率變動) for every pick together.
+const ACCEPT_KEY = 'play.acceptOdds.v1';
+const ACCEPT_MODES = ['ask', 'better', 'any'];
+// (Read as the page's state is made: before the names above exist.)
+function readAccept() {
+  try {
+    const v = localStorage.getItem('play.acceptOdds.v1');
+    return ['ask', 'better', 'any'].includes(v) ? v : 'better';
+  } catch {
+    return 'better';
+  }
+}
+function setAccept(v) {
+  state.acceptOdds = v;
+  try {
+    localStorage.setItem(ACCEPT_KEY, v);
+  } catch {}
+}
+function slipOdds(b) {
+  const h = state.houseOdds[b.id];
+  return h && h.board === effectiveOdds(b) ? h.odds : effectiveOdds(b);
+}
+const oddsMove = b => {
   const was = state.pickedOdds[b.id];
-  const moved = was && Math.abs(now - was) >= 0.005 ? (now > was ? 'up' : 'down') : '';
-  return el('span', { class: `leg-odds${moved ? ` moved ${moved}` : ''}` }, [
-    moved ? el('small', { class: 'leg-was', text: `${moved === 'up' ? '▲' : '▼'} ${fmtOdds(was)}` }) : null,
+  const now = slipOdds(b);
+  return was && Math.abs(now - was) >= 0.005 ? (now > was ? 'up' : 'down') : '';
+};
+// The changes the setting takes, taken (each flashes for a few seconds); the
+// picks whose change still waits on their owner.
+const FLASH_MS = 3000;
+function takeOddsChanges(legs) {
+  const mode = state.acceptOdds;
+  for (const b of legs) {
+    if (!state.pickedOdds[b.id]) state.pickedOdds[b.id] = slipOdds(b);
+    const move = oddsMove(b);
+    if (!move || !(mode === 'any' || (mode === 'better' && move === 'up'))) continue;
+    state.oddsFlash[b.id] = { move, was: state.pickedOdds[b.id], until: Date.now() + FLASH_MS };
+    state.pickedOdds[b.id] = slipOdds(b);
+  }
+  return legs.filter(oddsMove);
+}
+function acceptOddsChanges(legs) {
+  for (const b of legs) state.pickedOdds[b.id] = slipOdds(b);
+  saveSlip();
+  kit.haptic();
+  renderParlay();
+}
+// A pick's odds on the slip: as now; a change waiting (the old figure beside
+// it, its arrow), or one just taken (flashing).
+function legOdds(b) {
+  const now = slipOdds(b);
+  const was = state.pickedOdds[b.id];
+  const waiting = oddsMove(b);
+  const flash = !waiting && state.oddsFlash[b.id]?.until > Date.now() ? state.oddsFlash[b.id] : null;
+  const move = waiting || flash?.move || '';
+  const from = waiting ? was : flash?.was;
+  return el('span', { class: `leg-odds${move ? ` moved ${move}` : ''}${flash ? ' flash' : ''}`, 'data-odds': b.id }, [
+    move ? el('small', { class: 'leg-was', text: `${move === 'up' ? '▲' : '▼'} ${fmtOdds(from)}` }) : null,
     document.createTextNode(fmtOdds(now))
   ]);
 }
@@ -1745,7 +1807,7 @@ function toggleLeg(bet) {
     // system combination never holds two of the same game (odds.mjs).
     state.parlay.push(bet.id);
     // The odds when it was picked: the slip shows if they move after.
-    state.pickedOdds[bet.id] = effectiveOdds(bet);
+    state.pickedOdds[bet.id] = slipOdds(bet);
     if (state.parlay.length > SLIP_RULES.maxLegs) state.parlay.shift();
     // Two picks or more make a parlay unless another way was chosen.
     if (!state.modeChosen && state.parlay.length >= 2) state.slipMode = 'parlay';
@@ -1758,6 +1820,8 @@ function toggleLeg(bet) {
 // slip, its bar and F1's market tabs (a dot on a tab with a pick).
 let slipShown = new Set();
 function slipChanged() {
+  state.slipNote = null;
+  for (const id of Object.keys(state.houseOdds)) if (!state.parlay.includes(id)) delete state.houseOdds[id];
   saveSlip();
   const now = new Set(state.parlay);
   const moved = [...now, ...slipShown].filter(id => now.has(id) !== slipShown.has(id));
@@ -1831,7 +1895,7 @@ function sizeName(k, n) {
 // The slip being made, by the ticket rules (lib/slip.mjs): its picks at the
 // board's odds now, the mode, sizes and stake chosen. No free bet and no
 // boost: a 台灣運彩 ticket is paid in full and pays its odds.
-const currentQuote = legs => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: effectiveOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake });
+const currentQuote = legs => slipQuote({ bets: legs.map(b => ({ ...b, estOdds: slipOdds(b) })), mode: state.slipMode, chosen: state.slipSizes, stake: state.slipStake });
 
 // The slip's 限關 problem, saying why: the pick's short odds ("賠率 1.06 偏低：
 // 只能串 3 關以上") or its game's own minimum ("這場比賽限串 3 關以上"); named
@@ -1857,12 +1921,18 @@ function renderParlay() {
   const { legs, dropped } = slipLegs();
   const n = legs.length;
   renderTabs();
+  const waiting = takeOddsChanges(legs);
+  // A flash runs out: drawn again without it.
+  clearTimeout(flashTimer);
+  const flashing = legs.map(b => state.oddsFlash[b.id]?.until - Date.now()).filter(ms => ms > 0);
+  if (flashing.length) flashTimer = setTimeout(renderParlay, Math.max(...flashing) + 50);
   const mode = state.slipMode;
   // (lib/slip.mjs slipQuote: the same numbers as the slip bar's.)
   const quote = currentQuote(legs);
   const { sizes, stake, errors, cost, legs: slip } = quote;
   const rerender = () => renderParlay();
-  const droppedTag = dropped ? el('p', { class: 'sl-note' }, [el('span', { class: 'q-tag orange', text: t('slipDroppedLive', { n: dropped }) })]) : null;
+  const note = dropped ? t('slipDroppedLive', { n: dropped }) : state.slipNote;
+  const droppedTag = note ? el('p', { class: 'sl-note' }, [el('span', { class: 'q-tag orange', text: note })]) : null;
 
   if (n === 0) {
     const go = el('button', { class: 'q-btn primary', type: 'button', text: t('goPick'), onclick: () => showTab('games') });
@@ -1965,8 +2035,17 @@ function renderParlay() {
     parts.push(el('ul', { class: 'sl-errors' }, errors.map(e => el('li', { text: e === 'minLegs' ? minLegsError(legs, slip, sizes) : t(`slipError_${e}`, { max: SLIP_RULES.maxLegs, min: fmtMoney(SLIP_RULES.minTicket, { sign: false }), maxTicket: fmtMoney(SLIP_RULES.maxTicket, { sign: false }), capped: fmtMoney(SLIP_RULES.capped, { sign: false }), unit: SLIP_RULES.unit, need: minLegsProblem(slip, sizes) }) }))));
   }
   if (sizes.length && !errors.includes('stakeUnit') && cost > 0) parts.push(payoutBox(slip, sizes, stake, mode));
+  // 賠率變動時: what's taken without asking (each phone's own).
+  parts.push(
+    el('div', { class: 'sl-accept' }, [
+      el('span', { class: 'sl-label', text: t('acceptOddsLabel') }),
+      el('div', { class: 'q-seg', role: 'group', 'aria-label': t('acceptOddsLabel'), style: `--q-seg-n:3;--q-seg-i:${ACCEPT_MODES.indexOf(state.acceptOdds)}` },
+        ACCEPT_MODES.map(m => el('button', { type: 'button', 'aria-pressed': String(m === state.acceptOdds), text: t(`acceptOdds_${m}`), onclick: () => (setAccept(m), rerender()) }))
+      )
+    ])
+  );
   // The place button in a sticky foot with the balance on its left.
-  parts.push(el('div', { class: 'q-sheet-foot q-sf' }, [placeButton(legs, sizes, cost, errors)]));
+  parts.push(el('div', { class: 'q-sheet-foot q-sf' }, [waiting.length ? acceptButton(waiting) : placeButton(legs, sizes, cost, errors)]));
   parts.push(el('button', { class: 'sl-link sl-rules', type: 'button', text: t('slipRulesTitle'), onclick: () => tell({ lang: state.locale, icon: 'book', title: t('slipRulesTitle'), body: t('slipRulesNote') }) }));
   const next = el('div', { class: 'sl' }, parts);
   // Typing a stake: its box stays as it is (a new field would drop the
@@ -1985,6 +2064,7 @@ function renderParlay() {
   typing.querySelector('.sl-quick')?.replaceWith(fresh.querySelector('.sl-quick'));
 }
 let stakeTimer = 0;
+let flashTimer = 0;
 
 // The stake per combination, kept on the device for next time.
 const QUICK_STAKES = [100, 500, 1000, 2000, 5000];
@@ -2351,7 +2431,17 @@ function legIcon(leg, size = 'logo-sm') {
 
 // What a pick on the slip needs to be settled later, whatever the board shows then.
 function legRecord(bet) {
-  return { ...legOf(bet), odds: effectiveOdds(bet), logo: legLogo(bet) };
+  return { ...legOf(bet), odds: slipOdds(bet), logo: legLogo(bet) };
+}
+
+// In the place button's spot while a change waits: one tap takes every
+// change on the slip (the picks show which, and how).
+function acceptButton(waiting) {
+  const t = state.t;
+  return el('div', { class: 'place-row' }, [
+    el('button', { class: 'q-btn primary place-button', type: 'button', text: t('acceptOdds'), onclick: () => acceptOddsChanges(waiting) }),
+    el('small', { class: 'muted', text: t('acceptOddsNote', { n: waiting.length }) })
+  ]);
 }
 
 // The 模擬下注 button: buys the slip on the practice account.
@@ -2369,18 +2459,25 @@ function placeButton(legs, sizes, cost, errors) {
       disabled: blocked ? '' : null,
       // One line: what's bought for how much.
       text: state.placing ? t('placing') : updating ? t('placeUpdating') : short ? t('placeShort', { v: fmtMoney(money, { sign: money < 0 }) }) : t('placeSlip', { v: fmtMoney(cost, { sign: false }) }),
-      onclick: async () => {
+      onclick: () => place(false)
+    });
+  // (`again`: bought again at once, the house's new price taken by the setting.)
+  async function place(again) {
         // A stake typed since this button was drawn (the tap that left the
         // field): drawn again with it, never bought at the old amount.
         if (state.slipStake !== drawnStake) return void (clearTimeout(stakeTimer), renderParlay());
+        state.slipNote = null;
         // Bought in one tap at the board's odds now: the slip redraws with
         // every refresh (moved odds marked there), so what it shows is what's
         // bought. Only a pick gone, locked or started stops it.
+        // A change the setting doesn't take stops it: the slip shows it and
+        // the button asks for it.
         const current = () => {
           const board = betById();
           const now = legs.map(b => board.get(b.id));
           return now.every(b => b && !b.lock && b.estOdds > 1 && !started(b)) ? now : null;
         };
+        const changed = picks => (renderParlay(), takeOddsChanges(picks).length > 0);
         // 單場: each pick its own slip (its own bet, its own line in 紀錄),
         // the stake the same on each; the others, one slip.
         const build = picks => {
@@ -2391,25 +2488,31 @@ function placeButton(legs, sizes, cost, errors) {
               : [{ id: newSlipId(), mode: state.slipMode, sizes, stake: state.slipStake, cost, legs: records }];
           return { records, slips };
         };
-        const stop = () => (renderParlay(), tell({ lang: state.locale, icon: 'clock', title: t('pickGone'), body: t('pickGoneBody') }));
+        // A pick gone or started: said on the slip, not in a pop-up.
+        const stop = () => ((state.slipNote = t('pickGoneNote')), renderParlay());
         let picks = current();
         if (!picks) return stop();
+        if (changed(picks)) return;
         let { records, slips } = build(picks);
         if (cost > funds()) return;
-        // Every purchase asks first: what it costs, and the most it can pay.
-        const most = slips.reduce((sum, one) => sum + Math.max(0, slipRange(one).most), 0);
-        const asked = await ask({
-          lang: state.locale,
-          icon: 'ticket',
-          title: t('placeAsk', { v: fmtMoney(cost, { sign: false }) }),
-          body: t('placeAskBody', { n: records.length, most: fmtMoney(most, { sign: false }) }),
-          ok: t('placeOk'),
-          cancel: t('askCancel')
-        });
-        if (!asked || cost > funds()) return;
-        picks = current();
-        if (!picks) return stop();
-        ({ records, slips } = build(picks));
+        // Every purchase asks first: what it costs, and the most it can pay
+        // (not again when the house's new price was just taken).
+        if (!again) {
+          const most = slips.reduce((sum, one) => sum + Math.max(0, slipRange(one).most), 0);
+          const asked = await ask({
+            lang: state.locale,
+            icon: 'ticket',
+            title: t('placeAsk', { v: fmtMoney(cost, { sign: false }) }),
+            body: t('placeAskBody', { n: records.length, most: fmtMoney(most, { sign: false }) }),
+            ok: t('placeOk'),
+            cancel: t('askCancel')
+          });
+          if (!asked || cost > funds()) return;
+          picks = current();
+          if (!picks) return stop();
+          if (changed(picks)) return;
+          ({ records, slips } = build(picks));
+        }
         // Placed through the Worker (lib/settled.mjs): every pick's price
         // checked by the house, the stake taken from the pass, all or none.
         state.placing = true;
@@ -2419,12 +2522,26 @@ function placeButton(legs, sizes, cost, errors) {
         renderParlay();
         if (!placed?.placed && !placed?.refused) return tell({ lang: state.locale, icon: 'clock', title: t('placeFailed'), body: t('placeFailedBody') });
         if (placed.refused) {
-          const moved = placed.refused.moved?.[0];
-          const pick = moved && records.find(r => r.id === moved.id);
-          // A price that moved stops it and says so; the board is read again.
-          if (moved) {
-            load();
-            return tell({ lang: state.locale, icon: 'clock', title: t('priceMoved'), body: moved.odds ? t('priceMovedBody', { pick: pick?.shortLabel || '', odds: fmtOdds(moved.odds) }) : t('pickGoneBody') });
+          const moved = placed.refused.moved || [];
+          // A price that moved: the house's new one on the pick (the slip shows
+          // the change), bought again at once when the setting takes it, else
+          // waiting on the accept button; a pick closed leaves the slip. No pop-up.
+          if (moved.length) {
+            const board = betById();
+            for (const m of moved) {
+              const b = board.get(m.id);
+              if (m.odds && b) state.houseOdds[m.id] = { odds: m.odds, board: effectiveOdds(b) };
+            }
+            const gone = moved.filter(m => !m.odds).map(m => m.id);
+            if (gone.length) {
+              state.parlay = state.parlay.filter(id => !gone.includes(id));
+              slipChanged();
+              state.slipNote = t('pickGoneNote');
+              return void renderParlay();
+            }
+            const now = current();
+            if (!now || changed(now) || again) return;
+            return place(true);
           }
           return tell({ lang: state.locale, icon: 'clock', title: t('placeRefused'), body: t(placed.refused.problem === 'funds' ? 'placeRefusedFunds' : 'placeRefusedBody') });
         }
@@ -2450,8 +2567,7 @@ function placeButton(legs, sizes, cost, errors) {
         track([...new Set(slip.legs.flatMap(leg => betKeys(leg)))], 3);
         slipChanged();
         showTab('history');
-      }
-    });
+  }
   return el('div', { class: 'place-row' }, [button, el('small', { class: 'muted', text: t('placeNote', { v: fmtMoney(money, { sign: money < 0 }) }) })]);
 }
 
@@ -2468,7 +2584,9 @@ async function applySettled(force = false) {
   if (!state.accountReady || !q.active || !state.account.slips.some(s => s.status === 'open')) return;
   if (!force && Date.now() - settledAt < SETTLED_EVERY_MS) return;
   settledAt = Date.now();
-  const records = await readSettled().catch(() => null);
+  applyRecords(await readSettled().catch(() => null));
+}
+function applyRecords(records) {
   if (!records) return;
   const now = new Date();
   let account = state.account;
@@ -2487,7 +2605,10 @@ async function applySettled(force = false) {
 // (Shared-Proxy settle.js watchSlips).
 // A check runs unseen: only a tap on 查詢結果 shows it working (`shown`), and
 // the screens are drawn again only when a score, a result or a pick's state changed.
+// (Each slip asked once a minute at most: a parlay's other games still on.)
+const askedSettle = new Map();
 async function checkResults(force = false) {
+  for (const [id, at] of askedSettle) if (Date.now() - at > 60_000) askedSettle.delete(id);
   if (!state.accountReady) return;
   await applySettled(force);
   let open = state.account.slips.filter(s => s.status === 'open');
@@ -2513,6 +2634,13 @@ async function checkResults(force = false) {
   try {
     // (No Kambi match is sent to watch: the Worker watches every slip it placed.)
     const outcomes = await fetchOutcomes(pending, now, { watch: [] });
+    // A game this phone sees over (the kit's rule, the Worker's too): its
+    // slips settled by the Worker now, not on its next run.
+    const over = open.filter(s => s.legs.some(l => !l.result && legResult(l, outcomes.get(l.id)))).map(s => s.id).filter(id => !askedSettle.has(id));
+    if (over.length) {
+      over.forEach(id => askedSettle.set(id, Date.now()));
+      settleNow(over.slice(0, 10)).then(records => (applyRecords(records), renderSaved(), state.tab === 'home' && drawHome())).catch(() => over.forEach(id => askedSettle.delete(id)));
+    }
     state.legLive = new Map([...outcomes].filter(([, o]) => o?.status === 'pending' && o.state === 'in'));
     state.legOutcome = new Map([...outcomes].filter(([, o]) => o?.status === 'void' || (o?.status === 'pending' && o.state === 'pre')));
   } catch (error) {

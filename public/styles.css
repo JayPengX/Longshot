@@ -266,6 +266,8 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .leg-main { flex: 1; display: grid; gap: 2px; min-width: 0; }
 .leg-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .leg-pick strong { min-width: 0; overflow: hidden; font: 600 15px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+/* On the slip a long name goes whole under its market tag, never cut. */
+.sl-leg .leg-pick { flex-wrap: wrap; row-gap: 2px; }
 .slip-leg-game { overflow: hidden; color: var(--q-label-2); font: var(--q-t-caption); white-space: nowrap; text-overflow: ellipsis; }
 .market-tag { flex: none; padding: 1px 6px; border-radius: 6px; background: var(--q-fill-3); color: var(--q-label-2); font: 600 11px/1.5 var(--q-font); }
 .market-tag.tag-ml { background: var(--wash-accent); color: var(--accent); }
@@ -275,8 +277,23 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .leg-odds { flex: none; display: inline-flex; align-items: baseline; gap: 2px; font: 700 17px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .leg-odds small { color: var(--q-label-2); font: 600 11px/1 var(--q-font); }
 .leg-odds .leg-was { margin-right: 3px; }
+/* (A change: the old figure over the new, so the pick's name keeps its room.) */
+.leg-odds.moved { flex-direction: column; align-items: flex-end; gap: 3px; }
+.leg-odds.moved .leg-was { margin-right: 0; }
 .leg-odds.up .leg-was { color: var(--good); }
 .leg-odds.down .leg-was { color: var(--bad); }
+/* A change taken by the setting flashes once in place; one waiting keeps its colour. */
+.leg-odds.moved.up { color: var(--good); }
+.leg-odds.moved.down { color: var(--bad); }
+.leg-odds.flash { animation: odds-flash 1s ease-out 2; border-radius: 6px; }
+@keyframes odds-flash { 0% { background: color-mix(in srgb, currentColor 22%, transparent); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .leg-odds.flash { animation: none; } }
+/* 賠率變動時: a label and three choices on one row. */
+.sl-accept { display: flex; align-items: center; gap: 8px; }
+.sl-accept .sl-label { flex: none; margin: 0; }
+.sl-accept .q-seg { flex: 1; min-width: 0; }
+.sl-accept .q-seg button { white-space: nowrap; font-size: 13px; padding-inline: 4px; }
+@media (max-width: 340px) { .sl-accept .q-seg button { font-size: 12px; padding-inline: 2px; } }
 .sl-label { padding: 0 4px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 .sl-chips { margin-top: -6px; flex-wrap: wrap; overflow: visible; }
 /* The stake: NT$ and a big number, the usual amounts a tap away. */

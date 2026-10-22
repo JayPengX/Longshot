@@ -49,5 +49,8 @@ export async function revealPending(account, wallet) {
 
 // The Worker's results: { slipId: { results, finals, settled, payout, at } }.
 export const readSettled = async () => (await call('GET')).settled || {};
+// Slips whose game this phone saw end: the Worker looks at them now (it reads
+// the games itself) and answers with the records, as readSettled.
+export const settleNow = async ids => (await call('POST', { op: 'settle', ids })).settled || {};
 // Applied: the Worker forgets them.
 export const ackSettled = async ids => (ids.length ? call('POST', { op: 'ack', ids }) : null);
