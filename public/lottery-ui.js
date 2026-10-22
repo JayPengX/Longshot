@@ -1037,7 +1037,7 @@ export function mountLottery(ctx) {
     // The winners first; past FOLD 注, the rest a tap away.
     const lines = [...list].sort((a, b) => (b.prize || 0) - (a.prize || 0));
     return el('div', { class: 'lt-group', style: `--lotto:${g.color}` }, [
-      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: gameName(x0.game, lang) }), el('small', { class: 'num', text: termText(x0) || hourText(x0.draw.at) })]), list.length > 1 ? el('span', { class: 'lt-sum' }, [netChip(got), el('small', { class: 'num', text: [t('betsN', { n: betsOf(list) }), wins ? t('winsN', { n: wins }) : ''].filter(Boolean).join(' · ') })]) : netChip(got)]),
+      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-who' }, [gameLogo(x0.game, gameName(x0.game, lang), g.color, 'lt-mark-row'), el('div', { class: 'lt-title' }, [el('strong', { text: gameName(x0.game, lang) }), el('small', { class: 'num', text: termText(x0) || hourText(x0.draw.at) })])]), list.length > 1 ? el('span', { class: 'lt-sum' }, [netChip(got), el('small', { class: 'num', text: [t('betsN', { n: betsOf(list) }), wins ? t('winsN', { n: wins }) : ''].filter(Boolean).join(' · ') })]) : netChip(got)]),
       drawn ? el('div', { class: 'lt-drawn' }, [el('span', { class: 'lt-label', text: t('called') }), el('div', { class: 'balls' }, [...(drawn.digits || drawn.numbers || []).map(n => ball(n, 'dim', Boolean(drawn.digits))), drawn.special != null ? ball(drawn.special, 'dim special') : null, drawn.zone2 != null ? ball(drawn.zone2, 'dim special') : null].filter(Boolean))]) : null,
       foldedLines(key, lines, lineRow, Math.max(FOLD, wins))
     ]);
@@ -1094,7 +1094,7 @@ export function mountLottery(ctx) {
       const state = g === RETIRED ? t('retired') : list.some(x => ui.pending.has(x.id)) ? t('pendingPay') : drawWhen(x0);
       return el('div', { class: 'lt-group', style: `--lotto:${g.color}` }, [
         el('div', { class: 'lt-head' }, [
-          el('div', { class: 'lt-title' }, [el('strong', { text: gameName(x0.game, lang) }), el('small', { class: 'num', text: [openTerm(x0), state].filter(Boolean).join(' · ') })]),
+          el('div', { class: 'lt-who' }, [gameLogo(x0.game, gameName(x0.game, lang), g.color, 'lt-mark-row'), el('div', { class: 'lt-title' }, [el('strong', { text: gameName(x0.game, lang) }), el('small', { class: 'num', text: [openTerm(x0), state].filter(Boolean).join(' · ') })])]),
           el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) }), el('small', { class: 'num', text: t('betsN', { n: betsOf(list) }) })])
         ]),
         foldedLines(`o:${k}`, list, lineRow),
@@ -1103,7 +1103,8 @@ export function mountLottery(ctx) {
     });
     return [...drawCards, ...[...cards.values()].map(scratchGroup)];
   }
-  // Scratch cards of one kind that day: a tile each, tap to see it again.
+  // Scratch cards of one kind that day: a tile each, tap to see it again
+  // (one card: its tile says what it won, no second figure in the head).
   function scratchGroup(list) {
     const c = CARDS[list[0].card];
     const got = list.reduce((s, x) => s + (x.prize || 0), 0);
@@ -1111,7 +1112,7 @@ export function mountLottery(ctx) {
     const cost = list.reduce((s, x) => s + (Number(x.cost) || 0), 0);
     // Not scratched yet: what they cost, a tile each to scratch.
     return el('div', { class: 'lt-group', style: `--lotto:${c.color}` }, [
-      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: open ? `${t('scratch')} · ${t('unscratched')}` : t('scratch') })]), open ? el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) })]) : netChip(got)]),
+      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-who' }, [cardArt(list[0].card, c[lang], c.color, 'sc-thumb'), el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: open ? `${t('scratch')} · ${t('unscratched')}` : t('scratch') })])]), open ? el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) })]) : list.length > 1 ? netChip(got) : null]),
       // Even rows: at most four a row, the rows as full as each other.
       el('div', { class: 'lt-cards', style: `--n:${Math.ceil(list.length / Math.ceil(list.length / 4))}` }, list.map(x => el('button', { type: 'button', class: `lt-card${x.prize > 0 ? ` won out-up` : ''}${open ? ' unscratched' : ''}`, onclick: () => openScratch(x.id), text: open ? t('toScratch') : x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') })))
     ]);

@@ -31,14 +31,16 @@ export function winsOf(account, since = 0) {
       cashed: Boolean(s.cashedOut),
       free: Boolean(s.freeBet || s.free),
       sport: sports.length === 1 ? sports[0] : 'mixed',
-      labels: legs.map(l => l.shortLabel || l.label)
+      labels: legs.map(l => l.shortLabel || l.label),
+      // Its first pick (by when it was played), for the row's logo.
+      lead: [...legs].sort((a, b) => String(a.startUtc || '').localeCompare(String(b.startUtc || '')))[0] || null
     });
   }
   for (const x of account?.tickets || []) {
     if (x.status !== 'settled' || !(x.prize > 0)) continue;
     const at = Date.parse(x.settledAt || x.t);
     if (at < since) continue;
-    out.push({ at, amount: x.prize, cost: x.cost, kind: 'lotto', card: Boolean(x.card), game: x.game });
+    out.push({ at, amount: x.prize, cost: x.cost, kind: 'lotto', card: x.card || null, game: x.game });
   }
   return out.sort((a, b) => b.at - a.at);
 }

@@ -1,11 +1,11 @@
 // 紀錄 › 戰績: the wins. What's been won (bets paid, cashed out, lottery
 // prizes) with its rhythm over time, the numbers worth bragging about,
 // achievements to chase (each with its progress), the biggest moments, the
-// sports that pay, then 會員 (VIP cashback). A period filter on top.
-import { gameName } from './lib/lottery.mjs';
+// sports that pay. A period filter on top.
+import { gameName, GAMES } from './lib/lottery.mjs';
+import { gameLogo, cardArt, kitGlyph } from './icons.js';
 import { CARDS } from './lib/scratch.mjs';
 import { winsOf, longestRun, achievementsOf } from './lib/stats.mjs';
-import { vipStatus, vipName, VIP, tell } from '#kit/quadra.mjs';
 import * as kitUI from '#kit/ui.mjs';
 
 const T = {
@@ -14,10 +14,8 @@ const T = {
     total: '累計中獎', biggestV: '最大一筆 {v}', none: '還沒有中獎', byWeek: '每週中獎', byDay: '每日中獎',
     month: '本月中獎', streak: '最長連中', streakN: '{n} 張', top: '最高倍數', cashed: '提前兌現', bigLotto: '彩券最大獎', winsNV: '中獎 {n} 次',
     badges: '成就', moments: '中獎時刻', sports: '拿手運動',
-    slipWin: '{n} 場', lottery: '彩券', scratch: '刮刮樂', cashTag: '提前兌現', freeTag: '免費投注',
-    mixed: '混合串關', member: '會員',
-    vipNone: 'VIP 回饋', vipUpTo: '最高回饋 {top}', vipBack: '本月回饋 {p} · 約 {v}', vipNext: '再投注 {v} 升{name}', vipPaid: '上月回饋 {v} 已入帳',
-    vipTitle: 'VIP 投注回饋', vipBody: '每月投注決定等級，下個月初自動回饋。免費，不用報名。', vipTier: '月投注 {min} 起 · 回饋 {back}',
+    slipWin: '{n} 場', lottery: '彩券', scratch: '刮刮樂',
+    mixed: '混合串關',
     b_first: '首勝', b_firstD: '第一筆中獎',
     b_run3: '三連中', b_run3D: '連續 3 張投注單中獎',
     b_run5: '五連中', b_run5D: '連續 5 張投注單中獎',
@@ -34,10 +32,8 @@ const T = {
     total: 'Total won', biggestV: 'Biggest {v}', none: 'No wins yet', byWeek: 'Won by week', byDay: 'Won by day',
     month: 'Won this month', streak: 'Longest run', streakN: '{n} slips', top: 'Top multiple', cashed: 'Cashed out', bigLotto: 'Biggest lottery prize', winsNV: '{n} wins',
     badges: 'Achievements', moments: 'Big moments', sports: 'Your best sports',
-    slipWin: '{n} picks', lottery: 'Lottery', scratch: 'Scratch card', cashTag: 'Cashed out', freeTag: 'Free bet',
-    mixed: 'Mixed parlays', member: 'Membership',
-    vipNone: 'VIP cashback', vipUpTo: 'Up to {top} back', vipBack: '{p} back this month · about {v}', vipNext: '{v} more for {name}', vipPaid: 'Last month’s {v} paid in',
-    vipTitle: 'VIP cashback', vipBody: 'A month’s stakes set your tier; the cashback arrives early next month. Free, nothing to sign up for.', vipTier: '{min}+ a month · {back} back',
+    slipWin: '{n} picks', lottery: 'Lottery', scratch: 'Scratch card',
+    mixed: 'Mixed parlays',
     b_first: 'First win', b_firstD: 'Your first win',
     b_run3: 'Hat trick', b_run3D: '3 winning slips in a row',
     b_run5: 'On fire', b_run5D: '5 winning slips in a row',
@@ -55,7 +51,7 @@ const DAY = 86_400_000;
 const TPE = 8 * 3_600_000;
 
 export function mountStats(ctx) {
-  const { state, el, fmtMoney, sportName } = ctx;
+  const { state, el, fmtMoney, sportName, legIcon, leagueIcon } = ctx;
   const lang = () => (state.locale === 'en' ? 'en' : 'zh');
   const t = (key, vars = {}) => String(T[lang()][key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
   const money = v => fmtMoney(v, { sign: false });
@@ -115,9 +111,7 @@ export function mountStats(ctx) {
       ]);
     const shown = [...ach].sort((x, y) => Number(y.done) - Number(x.done) || y.progress - x.progress);
     const badges = section(t('badges'), el('div', { class: 'q-rail small st-badges' }, shown.map(badge)), `${unlocked}/${ach.length}`);
-    const member = membership();
-
-    if (!list.length) return root.replaceChildren(...[chips, hero, badges, member].filter(Boolean));
+    if (!list.length) return root.replaceChildren(chips, hero, badges);
 
     const thisMonth = wins(0).filter(w => month(w.at) === month(Date.now())).reduce((s, w) => s + w.amount, 0);
     const top = list.filter(w => w.kind === 'slip' && w.cost > 0).reduce((m, w) => Math.max(m, w.amount / w.cost), 0);
@@ -132,12 +126,20 @@ export function mountStats(ctx) {
       lotto ? stat(t('bigLotto'), money(lotto.amount)) : null
     ].filter(Boolean));
 
-    const moment = (w, i) =>
+    // A moment's picture: the scratch card's face, the draw game's logo, or
+    // the first pick's team logo (its sport's for a race or flag).
+    const momentArt = w =>
+      w.kind === 'lotto'
+        ? w.card
+          ? cardArt(w.card, w.title, CARDS[w.card]?.color, 'sc-thumb st-art')
+          : gameLogo(w.game, w.title, GAMES[w.game]?.color, 'lt-mark-row st-art')
+        : el('span', { class: 'st-logo', 'aria-hidden': 'true' }, [w.lead ? legIcon(w.lead, 'logo-md') : leagueIcon(w.sport)]);
+    const moment = w =>
       el('div', { class: `q-ritem st-moment ${w.kind}` }, [
-        el('span', { class: 'q-tile sm', style: `--t:${i === 0 ? '#d9a441' : 'var(--q-accent)'}`, text: String(i + 1) }),
+        momentArt(w),
         el('span', { class: 'q-ritem-text' }, [
           el('span', { class: 'q-ritem-title q-fit-wrap', text: w.title }),
-          el('small', { text: [w.kind === 'lotto' ? t(w.card ? 'scratch' : 'lottery') : t('slipWin', { n: w.legs }), w.cashed ? t('cashTag') : '', w.free ? t('freeTag') : '', day(w.at)].filter(Boolean).join(' · ') })
+          el('small', { text: [w.kind === 'lotto' ? t(w.card ? 'scratch' : 'lottery') : t('slipWin', { n: w.legs }), day(w.at)].join(' · ') })
         ]),
         el('span', { class: 'q-ritem-end' }, [el('span', { class: 'num', text: money(w.amount) }), w.cost > 0 && w.amount > w.cost ? el('small', { class: 'num', text: mult(w.amount / w.cost) }) : null])
       ]);
@@ -157,40 +159,15 @@ export function mountStats(ctx) {
         sports.length
           ? section(t('sports'), el('div', { class: 'q-rowcard st-sports' }, sports.map(([sport, v]) =>
               el('div', { class: 'st-sport' }, [
+                el('span', { class: 'st-logo sm', 'aria-hidden': 'true' }, [sport === 'mixed' ? kitGlyph(kitUI, 'ticket') : leagueIcon(sport, 'logo-xs')]),
                 el('span', { class: 'st-sport-name', text: sport === 'mixed' ? t('mixed') : sportName(sport) }),
                 el('span', { class: 'st-track' }, [el('i', { style: `--w:${((v / max) * 100).toFixed(1)}%` })]),
                 el('strong', { class: 'num', text: money(v) })
               ])
             )))
-          : null,
-        member
+          : null
       ].filter(Boolean)
     );
-  }
-
-  // 會員: this month's VIP tier with its cashback.
-  function membership() {
-    if (!state.wallet) return null;
-    const L = lang();
-    const now = Date.now();
-    const v = vipStatus(state.wallet, now);
-    const pct = x => `${Math.round(x * 1000) / 10}%`;
-    const top = VIP.tiers.at(-1);
-    const share = v.next ? Math.min(1, v.stakes / v.next.min) : 1;
-    const paidNow = v.paid && now - v.paid.t < 7 * DAY ? t('vipPaid', { v: money(v.paid.amount) }) : '';
-    const explain = () => tell({ lang: L, icon: '◆', title: t('vipTitle'), body: t('vipBody'), points: VIP.tiers.map(x => ['◆', vipName(x, L), t('vipTier', { min: money(x.min), back: pct(x.back) })]) });
-    const vip = el('button', { class: 'q-ritem chevron st-vip', type: 'button', onclick: explain }, [
-      el('span', { class: 'q-tile', style: '--t:#d9a441', 'aria-hidden': 'true', text: '◆' }),
-      el('span', { class: 'q-ritem-text' }, [
-        el('span', { class: 'q-ritem-title q-fit-wrap', text: v.tier ? vipName(v.tier, L) : t('vipNone') }),
-        el('small', { class: 'num', text: paidNow || (v.tier ? t('vipBack', { p: pct(v.tier.back), v: money(v.back) }) : v.next ? t('vipNext', { v: money(v.toNext), name: vipName(v.next, L) }) : t('vipUpTo', { top: pct(top.back) })) }),
-        el('span', { class: 'st-progress', style: `--p:${Math.round(share * 100)}%` })
-      ])
-    ]);
-    return el('section', { class: 'q-section' }, [
-      el('div', { class: 'q-section-head' }, [el('h2', { text: t('member') })]),
-      el('div', { class: 'q-rowcard' }, [vip])
-    ]);
   }
 
   return { render };

@@ -3917,7 +3917,7 @@ function homeCtx() {
     openSlip: () => openSlip(),
     slipCount: () => slipLegs().legs.length, state, q, el, fmtMoney, fmtOdds, fmtTime, gameTime, legWhen, shortTeam: (sport, team) => shortTeamName(sport, team.en, teamName(team)), shortPick, shortMatchup, legIcon, teamName, logoImg, leagueImg, toggleLeg, takeParlay, showTab, openGame, openLive, liveStateText, betKeys, track, funds, leagueTier: shownTier, winnerSides, parlayPays, boostPct: () => 0 };
 }
-statsUi = mountStats({ state, q, el, fmtMoney, showTab, sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
+statsUi = mountStats({ state, q, el, fmtMoney, showTab, legIcon, leagueIcon: (sport, size = 'logo-md') => leagueImg(sport, size), sportName: key => (key === 'mixed' ? state.t('sportMixed') : state.t(`sport_${key}`) === `sport_${key}` ? String(key).toUpperCase() : state.t(`sport_${key}`)) });
 lotteryUi = mountLottery({ redraw, state, q, el, fmtMoney, funds, commitAccount, track, getAccount: () => state.account, syncNow, showTickets, setWallet: w => w && (state.wallet = w), redrawHome: () => drawHome(), boardLottery: () => (state.board ? boardLottery(state.board) : null) });
 
 // The saved board, drawn while signing in (a network round trip).

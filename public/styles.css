@@ -469,15 +469,17 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .st-progress { position: relative; display: block; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 2px; background: var(--q-fill-3); }
 .st-progress::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 2px; background: var(--gold); }
 .st-badge .st-progress { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: 0; }
-.st-moment .q-tile { font: 700 15px/1 var(--q-font-rounded); }
+.st-logo { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--q-fill-3); }
+.st-logo.sm { width: 28px; height: 28px; border-radius: 9px; }
+.st-logo.sm .q-gl { width: 18px; height: 18px; }
+.lt-who .lt-mark-row, .st-moment .lt-mark-row { width: 53px; padding: 5px; }
 .st-moment .q-ritem-end span { color: var(--good); font-family: var(--q-font-rounded); }
 .st-sports { gap: 0; padding: 6px 0; }
-.st-sport { display: grid; grid-template-columns: minmax(0, 7em) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; }
+.st-sport { display: grid; grid-template-columns: auto minmax(0, 7em) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; }
 .st-sport-name { overflow: hidden; font: 500 15px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .st-track { height: 8px; overflow: hidden; border-radius: 4px; background: var(--q-fill-3); }
 .st-track i { display: block; width: var(--w); height: 100%; border-radius: 4px; background: var(--accent); }
 .st-sport strong { font: 600 15px/1 var(--q-font-rounded); }
-.st-vip .q-ritem-text { gap: 3px; }
 
 /* ==== 9 彩券 ==== */
 /* The tab: the biggest jackpot, the games as tiles, the scratch cards as a rail. */
@@ -743,8 +745,11 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .lt-head strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .lt-title { display: grid; gap: 2px; min-width: 0; }
 .lt-title small { color: var(--q-label-2); font: var(--q-t-caption); }
-.lt-net { flex: none; padding: 3px 10px; border-radius: 999px; background: var(--q-fill-3); color: var(--q-label-2); font: 700 14px/1.2 var(--q-font-rounded); }
-.lt-net.out-up { background: var(--wash-good); color: var(--good); }
+/* What a day or a draw won: a plain figure (green when it won), no capsule. */
+.lt-net { flex: none; color: var(--q-label-2); font: 700 15px/1.2 var(--q-font-rounded); white-space: nowrap; }
+.lt-net.out-up { color: var(--good); }
+/* A group's head: the game's logo or the card's face, then its name. */
+.lt-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .lt-drawn { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px dashed var(--q-sep); }
 .lt-label { color: var(--q-label-2); font-size: 12px; }
 .lt-lines { display: grid; gap: 6px; }
