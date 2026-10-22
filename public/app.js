@@ -690,13 +690,11 @@ function renderDayFilter() {
     current: state.day,
     today,
     onPick: pickDay,
-    label: dayLabel,
-    sub: day => day.split('-').slice(1).map(Number).join('/'),
+    // (Each chip's two lines, 今天 or the weekday over the date, the kit's: every app's the same.)
     // Any day: the first one with games on or after it (the last one past them).
     clamp: v => days.find(d => d >= v) ?? days.at(-1) ?? v,
     bounds: { from: days[0], to: days.at(-1) },
-    follow: true,
-    pickLabel: state.t('pickDate')
+    follow: true
   });
   if (strip.parentElement !== $('day-bar')) $('day-bar').replaceChildren(strip);
   // 場中 shows on today only.
