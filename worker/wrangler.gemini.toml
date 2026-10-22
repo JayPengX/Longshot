@@ -1,0 +1,20 @@
+# The Gemini relay (gemini.js): Gemini called from Taiwan, for Longshot's
+# Worker (its service binding GEMINI). Deployed by worker.yml before it. No
+# address of its own. Its one secret, GEMINI_API_KEY, is put on it by the
+# workflow when the repo has it; without it every ask answers 503.
+name = "longshot-gemini"
+main = "gemini.js"
+compatibility_date = "2025-01-01"
+workers_dev = false
+preview_urls = false
+
+# Taiwan (Changhua): a Gemini-supported location; Smart Placement once chose
+# Hong Kong, which Gemini refuses.
+[placement]
+region = "gcp:asia-east1"
+
+[limits]
+cpu_ms = 1000
+
+[observability]
+enabled = true

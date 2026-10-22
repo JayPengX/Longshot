@@ -3907,7 +3907,7 @@ div.q-ritem {
   min-height: 44px;
   margin: -12px 0 -12px auto;
   padding: 0 0 0 12px;
-  color: var(--q-blue);
+  color: var(--q-accent);
   font: 500 15px/1 var(--q-font);
 }
 .q-sh-more svg {
@@ -4094,7 +4094,7 @@ div.q-ritem {
   font-variant-numeric: tabular-nums;
 }
 .q-price[aria-pressed='true'] {
-  background: var(--q-blue);
+  background: var(--q-accent);
   color: #ffffff;
 }
 .q-price[aria-pressed='true'] small {
@@ -4214,7 +4214,7 @@ div.q-ritem {
 
 /* -- A hero inside a sheet (sheetHero) -- */
 .q-sheet-hero {
-  --t: var(--q-blue);
+  --t: var(--q-accent);
   margin: 4px 0 16px;
   padding: 16px;
   border-radius: 20px;

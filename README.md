@@ -1,22 +1,24 @@
-# Quadra Play
+# Longshot · 冷門
 
-A plain sportsbook and Taiwan Lottery's games, on the one Quadra balance
-(play money). It prices and settles like a real sportsbook: the house
-never loses on its own prices.
+A Taiwan sportsbook and Taiwan Lottery's games on play money, and the real
+台灣運彩 tickets you bought, followed live. It prices and settles like a
+real sportsbook: the house never loses on its own prices. Its own account
+(the Longshot Pass) and its own Worker; it shares nothing with any other app.
 
-Live: https://jaypengx.github.io/Quadra-Play/
+Live: https://jaypengx.github.io/Longshot/ (https://jaypengx.github.io/Quadra-Play/
+until the repo is renamed).
 
 ## How it works
 
 - **Tabs:** 首頁 (balance, 場中焦點, 為你推薦, 焦點賽事, open bets, jackpots) ·
-  賽事 (sport tiles, league chips, day strip, search) · 彩券 · 紀錄. 投注單
-  (the slip) is a sheet over any tab.
+  賽事 (sport tiles, league chips, day strip, search) · 彩券 · 注單 (your real
+  運彩 tickets) · 紀錄. 投注單 (the play-money slip) is a sheet over any tab.
 - **What's sold:** every catalogue league with a `bet` key, games within
   14 days (`SOLD_DAYS`), priced by:
   - ESPN with DraftKings' lines (the US leagues, top soccer);
   - Kambi (NPB, KBO, CPBL, EuroLeague, NBL, K League);
   - Polymarket (win chances, championships, F1);
-  - the house's own model (kit `play-house.mjs`) when nobody prices a game yet.
+  - the house's own model (`kit/play-house.mjs`) when nobody prices a game yet.
 
   A bookmaker's line replaces the house's as soon as one is posted.
 - **Markets** (`lib/board.mjs`, one pricing path for the page and the Worker):
@@ -26,7 +28,7 @@ Live: https://jaypengx.github.io/Quadra-Play/
   the expected total (kit `play-lines.mjs`).
 - **F1:** the race winner (冠軍) alone, as 台灣運彩 sells it (pole, podium,
   top six/ten, teammates, team and the safety-car markets were removed
-  2026-10-21; an old slip holding one still settles).
+  2026-10-21).
 - **冠軍 boards** list only who can still win (kit `play-alive.mjs`): ESPN's
   'e' (out of the play-offs), a lost play-off series (MLB's list), a soccer
   club that can't catch the leader on points, an F1 driver or team that
@@ -58,13 +60,12 @@ Live: https://jaypengx.github.io/Quadra-Play/
 - **限2關 / 限3關:** the house's price bands (under 1.25 → 2+, under 1.12 →
   3+), or a game's own minimum where the kit reads one (`eventMinLegs`). The
   slip says which: 「賠率 1.06 偏低：只能串 3 關以上」 or 「這場比賽限串 3 關以上」.
-- **A bet is final:** as at 台灣運彩, no cash out, cancel or edit (cash out
-  was removed 2026-10-21; the Worker refuses one).
-- **The proxy places and settles** (`Shared-Proxy/settle.js`):
+- **A bet is final:** as at 台灣運彩, no cash out, cancel or edit.
+- **The Worker places and settles** (`worker/settle.js`):
   - Placing re-prices every pick and takes the stake, or says the price
     moved. Live bets wait 5 s.
   - When a game should be over, it is read once for every slip on it, and
-    the wallet is paid with a notice. Play only applies the results.
+    the wallet is paid. The page only applies the results.
   - Lottery tickets and scratch cards are bought there too.
 - **Lottery** (`lib/lottery.mjs`, `scratch.mjs`): 8 draw games settled
   against the real draws, and scratch cards. As each game's 投注方式 has it
@@ -77,30 +78,55 @@ Live: https://jaypengx.github.io/Quadra-Play/
   ticket whose pool prize isn't announced yet stays open (「等待派彩公告」).
   Scratch cards: the kit's `CARD_ORDER` (Taiwan Lottery's own, in their
   words: 幸運號碼, 大力士分數); a `retired` card is never sold but one bought
-  before still scratches. A kit export added from now on is used with a
-  `?.` fallback until phones have it (the rulebook's §4).
+  before still scratches.
   The counter (`lottery-ui.js`): a shelf a price, each card its whole ticket
   (`art/ticket/s/`, 360 px) with 頭獎 and 中獎率; a card's page has 玩法 as
   steps, every prize with its odds (1/N of 發行張數) and buys 1 to 10. The
   scratch sheet shows the whole ticket (never cut at a side), a
   fingertip-wide coin, and a tap on a small scratch-off opens it whole.
-- **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress, cash out), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
+- **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
+- **注單** (`slips/`, was Orbit Slips): the real 台灣運彩 tickets you bought,
+  read from a photo (Gemini, through the Worker's `/slip-scan`, 30 a day)
+  or picked by hand, followed live: what each is worth now, every pick as
+  it happens, 戰績 of the settled ones. Every 運彩 market, graded by the
+  same `kit/settle.mjs`; F1 is 冠軍 only. Names all in Chinese
+  (`slips/lib/zh.mjs`). Odds left blank (估) are priced again from the
+  closing lines once the games are over. 用模擬金下注 puts a ticket's picks
+  on the play-money slip. Its rules are scoped to `.sl-app` (the tab and
+  its sheets).
 - **Opens fast:** on the saved board (3 days, `SNAPSHOT_V`); the loading
   screen lifts once today's board, the balance and the live games are in
   (2 s at most). Model fits are kept by their inputs, so a reopen prices
   in a quarter of the time.
 - **Offline:** covered (`onlineOnly`); never old odds.
-- **Saved:** the ledger on the Pass (`odds-study-accounts`, `gz1:`). The
-  balance is the sum of entries with fixed ids, so copies merge by union.
+- **Saved:** on the Longshot Pass, one session for both: Play's ledger under
+  app `odds` (`gz1:`), the tickets under `slip` (`slips/lib/sync.mjs`). The
+  balance is the wallet's entries (the Worker's `pass:start`, `pass:pay:<Monday>`,
+  and the account's `odds:<id>`), so copies merge by union.
+
+## The Longshot Pass
+
+`public/kit/core.mjs` (`passSession`, the sign-in screen), `kit/pass.mjs` (the
+account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
+
+- Open sign-up (開新帳號, rate-limited); a 10-character 通行碼 is the only key,
+  shown once. Sign out others, a new 通行碼, sign out here.
+- Money: NT$200,000 to open, NT$10,000 every Monday (Taiwan time), paid by
+  the Worker. Only the Worker adds money.
+- 真相: the house's edge for 1 to 7 legs, your bets' and tickets' payback,
+  the lottery's and scratch cards'.
+- One device live at a time; the other says 已在其他裝置使用.
 
 ## Decisions in force
 
 - A plain sportsbook: prices and the slip, no analysis tags. Calm home:
   no banners, hot parlays or nags.
-- Nothing talks people out of it: 戰績 shows only wins, slips show what
-  they paid, the lottery shows prizes, not odds.
+- 戰績 shows only wins, slips show what they paid, the lottery shows
+  prizes; the house's edge is one tap away in the Pass's 真相, never pushed.
+- No hooks (2026-10-22, the owner found Play addictive): no push notices,
+  loans, relief, levels, streak rewards or anything that calls people back.
 - 為你推薦 picks are on the team cared about, never against it.
-- Only what Taiwan can watch. Tennis and UFC were removed; no edit-slip.
+- Only what Taiwan can watch. No edit-slip.
 - No promotions on the ticket: no boosts, free bets or cash out (2026-10-21).
 - Empty passive document-wide touch listeners fix iOS's double-tap. Don't
   remove them.
@@ -109,41 +135,44 @@ Live: https://jaypengx.github.io/Quadra-Play/
 
 ## Files
 
-Most of `lib/` is the shared kit's logic (`export * from '#kit/play-*.mjs'`):
-`board`, `bets`, `odds`, `rules`, `live`, `players`, `props`, `recommend`,
-`lottery`, `scratch`, `teams`. Tests of other kit parts (`house`,
-`kambi`, `lines`, `markets`, `offers`, `propmodel`, `schedules`) import
-`#kit/play-*.mjs` directly.
+The page is static: `index.html` loads `kit/core.css`, `styles.css`,
+`slips/slips.css`, `kit/boot.js` (the loading screen and first update
+check) and `app.js`; everything else by relative imports. `public/kit/` is
+the shared logic the page and the Worker both run (`play-*.mjs`,
+`settle.mjs`, `catalog.mjs`…) plus the UI core (`core.mjs`, `ui.mjs`,
+`core.css`). Most of `lib/` re-exports it.
 
 | File | What |
 | --- | --- |
 | `public/app.js`, `home.js`, `lottery-ui.js`, `stats-ui.js` | Rendering and the tabs |
-| `lib/sources.mjs`, `boardstart.mjs` | Reading ESPN, Polymarket, Kambi, F1; start-up on the proxy's board |
-| `lib/slip.mjs` | The slip's one quote and rules (cost, most it pays, the cap, singles judged one slip each, as `price.js` checks them) |
+| `public/slips/slips.mjs`, `slips/lib/` | 注單 (mounted the first time its tab opens) |
+| `public/kit/core.mjs`, `pass.mjs`, `truth.mjs`, `ui.mjs` | Session, sign-in, account sheet, 真相, the iOS components |
+| `lib/session.mjs` | The one Pass session (`odds`, and `q.view('slip')`) |
+| `lib/sources.mjs`, `boardstart.mjs` | Reading ESPN, Polymarket, Kambi, F1; start-up on the Worker's board |
+| `lib/slip.mjs` | The slip's one quote and rules (as `worker/price.js` checks them) |
 | `lib/account.mjs`, `settled.mjs`, `history.mjs` | The ledger; the Worker's placing and settling; the account card |
-| `lib/stats.mjs` | 戰績's numbers |
-| `lib/foryou.mjs`, `codec.mjs`, `i18n.mjs` | 為你推薦; saves; text |
+| `lib/stats.mjs`, `foryou.mjs`, `codec.mjs`, `i18n.mjs` | 戰績's numbers; 為你推薦; saves; text |
+| `worker/` | The Worker (see `worker/README.md`) |
+| `scripts/stamp-version.mjs`, `hash.mjs` | The Pages build: minify, content-hash every file, version.json |
 
 ## Run and test
 
 ```bash
 npm test
+cd public && python3 -m http.server 8000   # http://localhost:8000
 ```
 
-```bash
-node ../Shared-Proxy/tools/preview.mjs play --live --width 375
-```
-
-Tests include real lottery prices as fixtures. A push to `main` tests and
-deploys to Pages.
+Tests include real lottery prices and ESPN/Kambi answers as fixtures.
+A push to `main` tests and deploys: Pages (`.github/workflows/deploy.yml`)
+and the Worker (`worker.yml`, needs the `CLOUDFLARE_API_TOKEN` secret).
 
 ## If you change…
 
 | This | Also check |
 | --- | --- |
-| A cut or rule | The kit's `truth.mjs` and `help.mjs`, `tools/economy.mjs` |
-| A market | Its settling |
-| F1 markets or settling | `kit/f1live.mjs`, Shared-Proxy's `f1-live.js`, Orbit Sports |
-| Ledger ids | Merging, the Worker's `ENTRY_APPS` and VIP stakes |
-| The slip's rules (`lib/slip.mjs`) | Shared-Proxy `price.js` `checkSlip`: the phone must say what the Worker will |
-| The league list | `kit/catalog.mjs` (shared with Orbit Sports) |
+| A cut or rule | `kit/truth.mjs` (真相) |
+| A market | Its settling (`kit/settle.mjs`), and 注單's grading |
+| F1 markets or settling | `kit/f1live.mjs`, `worker/f1-live.js` |
+| Ledger ids | Merging, the Worker's entry checks |
+| The slip's rules (`lib/slip.mjs`) | `worker/price.js` `checkSlip`: the phone must say what the Worker will |
+| The league list | `kit/catalog.mjs` |

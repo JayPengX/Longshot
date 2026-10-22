@@ -8,7 +8,7 @@
 /* ==== 1 Tokens ==== */
 :root {
   color-scheme: light;
-  /* Colours are the kit's: <html data-app="odds"> sets --q-accent; win/loss are the kit's meaning tokens. */
+  /* Colours are the kit's: core.css sets --q-accent (deep green); win/loss are its meaning tokens. */
   --accent: var(--q-accent);
   --q-accent-ink: #fff;
   --good: var(--q-win, #16a34a);
@@ -1005,15 +1005,15 @@ html .q-logo img { width: 88%; height: 88%; }
 .sl-bal.short { color: var(--bad); }
 .sl-stake-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 10px; }
 .sl-stake-box { display: flex; align-items: center; gap: 6px; min-width: 0; height: 54px; padding: 0 14px; border-radius: 14px; background: var(--q-fill-3); box-shadow: inset 0 0 0 1.5px transparent; cursor: text; transition: box-shadow 0.15s; }
-.sl-stake-box:focus-within { background: var(--q-surface); box-shadow: inset 0 0 0 2px var(--q-blue); }
+.sl-stake-box:focus-within { background: var(--q-surface); box-shadow: inset 0 0 0 2px var(--q-accent); }
 .sl-stake-box b { flex: none; color: var(--q-label-2); font: 600 17px/1 var(--q-font-rounded); }
-.sl-stake-box input { flex: 1; width: 100%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label); caret-color: var(--q-blue); font: 700 26px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; outline: none; }
+.sl-stake-box input { flex: 1; width: 100%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label); caret-color: var(--q-accent); font: 700 26px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; outline: none; }
 .sl-win { display: grid; align-content: center; justify-items: end; gap: 2px; min-width: 0; max-width: 46vw; padding: 0 4px; text-align: right; }
 .sl-win small { color: var(--q-label-2); font: 500 12px/1.2 var(--q-font); white-space: nowrap; }
 .sl-win b { display: block; max-width: 100%; overflow: hidden; color: var(--q-green); font: 700 22px/1.15 var(--q-font-rounded); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sl-quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .sl-quick button { min-width: 0; height: 34px; padding: 0; border: 0; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label); font: 600 14px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sl-quick button[aria-pressed='true'] { background: color-mix(in srgb, var(--q-blue) 18%, transparent); color: var(--q-blue); }
+.sl-quick button[aria-pressed='true'] { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-accent); }
 .sl-panel:not(.sl-app *) .sl-errors { padding: 8px 12px; border-radius: 12px; font-size: 13px; }
 .sl-panel:not(.sl-app *) .place-button { width: 100%; min-width: 0; min-height: 52px; padding-inline: 14px; border-radius: 16px; box-shadow: none; font-size: 17px; }
 .place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }

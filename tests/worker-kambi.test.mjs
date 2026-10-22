@@ -1,0 +1,113 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { handleKambiRequest, refreshKambiWatch, KAMBI_COLLECTION } from '../worker/kambi.js';
+
+// An in-memory store and a scripted Kambi.
+function setup(now, live = {}) {
+  const store = new Map();
+  const deps = {
+    json: (body, status) => ({ status, body }),
+    errorJson: (code, status) => ({ status, body: { error: { code } } }),
+    upstreamFailed: error => ({ status: 502, body: { error: error.message } }),
+    readJsonBody: async req => req.body,
+    INVALID_BODY: Symbol('invalid'),
+    fsGet: async (env, c, id) => (store.has(id) ? { exists: true, payload: store.get(id) } : { exists: false, payload: '' }),
+    fsWrite: async (env, c, id, payload, pre) => {
+      assert.equal(c, KAMBI_COLLECTION);
+      if (pre?.exists === false && store.has(id)) throw Object.assign(new Error('exists'), { precondition: true });
+      store.set(id, payload);
+    },
+    fsDelete: async (env, c, id) => store.delete(id),
+    fetchLive: async id => live[id] ?? { status: 404, data: null },
+    now: () => now.t
+  };
+  return { store, deps };
+}
+const env = { STORE: {} };
+const req = (method, url, body) => ({ method, url: `https://w.test/kambi${url}`, body });
+const entry = (store, id) => JSON.parse(store.get(id));
+
+test('matches are watched once, scored while live, and kept after Kambi drops them', async () => {
+  const now = { t: Date.parse('2026-09-26T13:00:00Z') };
+  const live = { 1029276719: { status: 200, data: { liveData: { score: { home: '7', away: '2', info: '0-1 | 2-0', version: 1 } } } } };
+  const { store, deps } = setup(now, live);
+  const post = await handleKambiRequest(req('POST', '', { events: [{ id: 1029276719, start: '2026-09-26T10:00:00Z' }, { id: 'x', start: 'no' }] }), env, {}, deps);
+  assert.deepEqual(post.body, { watching: 1, added: 1 });
+  await refreshKambiWatch(env, deps);
+  assert.equal(entry(store, '1029276719').live.score.home, '7');
+  // Registering again leaves the score alone.
+  await handleKambiRequest(req('POST', '', { events: [{ id: 1029276719, start: '2026-09-26T10:00:00Z' }] }), env, {}, deps);
+  assert.equal(entry(store, '1029276719').live.score.home, '7');
+  // Kambi drops it: the last score stays, marked gone.
+  delete live[1029276719];
+  now.t += 3600_000;
+  await refreshKambiWatch(env, deps);
+  const kept = entry(store, '1029276719');
+  assert.equal(kept.gone, true);
+  assert.equal(kept.done, true);
+  const got = await handleKambiRequest(req('GET', '?ids=1029276719,bad'), env, {}, deps);
+  assert.equal(got.body.results['1029276719'].live.score.away, '2');
+  // Four days on it's forgotten.
+  now.t += 5 * 86_400_000;
+  await refreshKambiWatch(env, deps);
+  // Only the index of watched matches is left.
+  assert.deepEqual([...store.keys()], ['_index']);
+});
+
+test('a run with nothing on reads only the index, and writes nothing', async () => {
+  const now = { t: Date.parse('2026-09-26T08:00:00Z') };
+  const { store, deps } = setup(now);
+  let reads = 0;
+  const get = deps.fsGet;
+  deps.fsGet = async (...a) => (reads++, get(...a));
+  deps.fsWrite = async () => assert.fail('nothing to write');
+  await refreshKambiWatch(env, deps);
+  assert.equal(reads, 1);
+  assert.equal(store.size, 0);
+});
+
+test('not started yet: not read; never seen and long past: given up', async () => {
+  const now = { t: Date.parse('2026-09-26T08:00:00Z') };
+  let reads = 0;
+  const { store, deps } = setup(now);
+  deps.fetchLive = async () => (reads++, { status: 404, data: null });
+  await handleKambiRequest(req('POST', '', { events: [{ id: 123456789, start: '2026-09-26T10:00:00Z' }] }), env, {}, deps);
+  await refreshKambiWatch(env, deps);
+  assert.equal(reads, 0);
+  now.t = Date.parse('2026-09-27T00:00:00Z');
+  await refreshKambiWatch(env, deps);
+  assert.equal(entry(store, '123456789').done, true);
+});
+
+test("Play's results check asks the Worker to watch only the Kambi matches it isn't watching already", async () => {
+  const src = await import('#kit/play-sources.mjs');
+  src.useReader({ proxyJson: async () => ({ events: [] }) });
+  const posts = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = async (url, init) => (posts.push([String(url), init?.method || 'GET']), new Response('{}', { status: 200 }));
+  try {
+    const leg = id => ({ id: `npb|${id}|ml|home`, sport: 'npb', kind: 'ml', side: 'home', kambiId: id, start: '2026-10-16T09:00:00Z', away: 'A', home: 'B' });
+    // Placed through the Worker (watched as it was placed): not asked again.
+    await src.fetchOutcomes([leg(101)], new Date('2026-10-16T10:00:00Z'), { watch: [] });
+    assert.equal(posts.filter(([u, m]) => u.includes('/kambi') && m === 'POST').length, 0);
+    // An older slip's pick: asked once.
+    await src.fetchOutcomes([leg(102)], new Date('2026-10-16T10:00:00Z'), { watch: [leg(102)] });
+    assert.equal(posts.filter(([u, m]) => u.includes('/kambi') && m === 'POST').length, 1);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
+test('matches already watched: registering them again writes nothing (neither the index nor the entries)', async () => {
+  const now = { t: Date.parse('2026-09-26T13:00:00Z') };
+  const { deps } = setup(now);
+  const events = [{ id: 1029276719, start: '2026-09-26T10:00:00Z' }, { id: 1029276720, start: '2026-09-26T11:00:00Z' }];
+  await handleKambiRequest(req('POST', '', { events }), env, {}, deps);
+  let writes = 0;
+  const write = deps.fsWrite;
+  deps.fsWrite = async (...a) => (writes++, write(...a));
+  const again = await handleKambiRequest(req('POST', '', { events }), env, {}, deps);
+  assert.deepEqual(again.body, { watching: 2, added: 0 });
+  // (Each entry's create-only write is tried and refused; the index isn't written.)
+  assert.equal(writes, 2);
+});

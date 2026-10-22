@@ -1,0 +1,47 @@
+# Longshot's Worker (worker.js). .github/workflows/worker.yml deploys this
+# file with Wrangler on every push to main that touches worker/ or
+# public/kit/. A deploy pushes THIS FILE's bindings as the Worker's whole
+# config, replacing whatever is live on Cloudflare. Secrets are stored
+# apart and a deploy never touches them; none is needed (the token secret
+# is made by the Worker itself and kept in D1, token.js; TOKEN_SECRET, if
+# ever set, takes its place).
+#
+# Two bindings are added by the workflow before it deploys, made once on
+# the account: the R2 bucket longshot-data (DATA: the board, the proxy's
+# kept copies) and the D1 database longshot-store (STORE: the passes,
+# wallets, slips). Without them the Worker still runs: /pass answers
+# MISSING_STORE and nothing is kept.
+name = "longshot"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# No [placement]: the Worker runs at the colo each request comes in through,
+# near the caller. Gemini alone goes through a relay pinned to Taiwan
+# (gemini.js, wrangler.gemini.toml), as Cloudflare advises for one part that
+# must run somewhere.
+[[services]]
+binding = "GEMINI"
+service = "longshot-gemini"
+
+# The clock (clock.js): a Durable Object whose alarm runs each minute's jobs.
+[[durable_objects.bindings]]
+name = "CLOCK"
+class_name = "Clock"
+
+[[migrations]]
+tag = "clock-1"
+new_sqlite_classes = ["Clock"]
+
+# The clock's backup: the even minutes and the odd (every minute between
+# them). A minute's jobs run once whichever wakes the clock first.
+[triggers]
+crons = ["*/2 * * * *", "1-59/2 * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 0.25
+
+# The $5 plan lets an invocation run 30 s of CPU: the board's build needs
+# seconds; a request uses milliseconds.
+[limits]
+cpu_ms = 30000
