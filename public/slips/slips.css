@@ -1999,3 +1999,137 @@ html.q-kb .sl-app .add .save-bar {
   cursor: pointer;
 }
 
+
+/* 比賽 / 冠軍 in the picker (Play keeps them apart): 冠軍 is every league's
+   championship by sport, a roomy row each (its league, its name and season,
+   the three most likely to win). */
+.sl-app .pk-mode,
+.pk-mode.sl-app {
+  margin: 4px 0 12px;
+}
+.sl-app .add.champs :is(.pk-find, .lgs, .pk-days, .pk-recent),
+.add.champs.sl-app :is(.pk-find, .lgs, .pk-days, .pk-recent) {
+  display: none;
+}
+.sl-app .ch-head,
+.ch-head.sl-app {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 4px 8px;
+  color: var(--q-label);
+  font: 600 17px/22px var(--q-font);
+}
+.sl-app .ch-head:first-child,
+.ch-head.sl-app:first-child {
+  margin-top: 4px;
+}
+.sl-app .champ.q-ritem,
+.champ.q-ritem.sl-app {
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  --q-ritem-sep: 66px;
+}
+.sl-app .champ .q-ritem-title,
+.champ.sl-app .q-ritem-title {
+  font: 600 16px/21px var(--q-font);
+}
+.sl-app .ch-top,
+.ch-top.sl-app {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.sl-app .ch-pic,
+.ch-pic.sl-app {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border: 2px solid var(--q-grouped-2, var(--q-bg-2));
+  border-radius: 50%;
+  background: var(--q-grouped-3, var(--q-fill-3));
+}
+.sl-app .ch-pic + .ch-pic,
+.ch-pic.sl-app + .ch-pic {
+  margin-left: -9px;
+}
+.sl-app .ch-pic > :is(img, .logo, .q-logo),
+.ch-pic.sl-app > :is(img, .logo, .q-logo) {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  object-fit: contain;
+}
+.sl-app .ch-pic .face,
+.sl-app .ch-pic .face :is(img, .logo),
+.ch-pic.sl-app .face :is(img, .logo) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* An F1 race in the list: F1's mark, the Grand Prix with 正賽 under it, the winner's face. */
+.sl-app .game.race .race-name,
+.game.race.sl-app .race-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sl-app .game.race .q-ritem-title,
+.game.race.sl-app .q-ritem-title {
+  font: 600 16px/21px var(--q-font);
+}
+.sl-app .game.race .win,
+.game.race.sl-app .win {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 14px/18px var(--q-font);
+}
+.sl-app .game.race .win :is(img, .logo),
+.game.race.sl-app .win :is(img, .logo) {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* A championship's contenders: one a row, the club's logo, 運彩's likely price under its name, its chance. */
+.sl-app .teams,
+.teams.sl-app {
+  margin-bottom: 12px;
+}
+.sl-app .teams .driver.q-ritem,
+.teams.sl-app .driver.q-ritem {
+  min-height: 60px;
+  --q-ritem-sep: 58px;
+}
+.sl-app .teams .driver .logo,
+.teams.sl-app .driver .logo,
+.sl-app .teams .driver .q-logo,
+.teams.sl-app .driver .q-logo {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 0;
+  object-fit: contain;
+}
+.sl-app .teams .pct,
+.teams.sl-app .pct {
+  flex: none;
+  color: var(--q-label-2);
+  font: 600 15px/1 var(--q-font-rounded);
+}
+.sl-app .teams .driver[aria-pressed='true'] .pct,
+.teams.sl-app .driver[aria-pressed='true'] .pct {
+  color: var(--q-accent);
+}
+html.q-kb .sl-app .teams > .driver:not([aria-pressed='true']) {
+  display: none;
+}

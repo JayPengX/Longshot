@@ -9,6 +9,7 @@ import { parseTsdbDay as kitTsdbDay, asiaMonth as kitAsiaMonth, ASIA_URL as ASIA
 import { ESPN, KAMBI, kambiUrl as kambiList, kambiLiveDataUrl as kambiLiveUrl, soccerGoals, voidAt, runOrder, touchdowns, teamCorners, parseKambiLiveData, decidedTeamGame, kambiUnresolvable } from '../../kit/settle.mjs';
 import { marketOf, marketOfPickcenter, devig } from './model.mjs';
 import { parseF1Season, parseF1Standings, f1Championship, f1Live, isChamp, sameDriver } from './f1.mjs';
+import { isTeamChamp, champRead } from './champ.mjs';
 
 // The leagues the lottery sells that a slip can follow (Shared-Proxy/kit/
 // catalog.mjs's, those with live scores to read).
@@ -407,6 +408,20 @@ async function refreshF1(legs, out, now) {
     if (live) out[g.id] = live;
   }
 }
+// A championship's picks read again: its Polymarket market (champ.mjs:
+// every contender's chance now, the winner once it's settled), every 10 minutes at most.
+const GAMMA = 'https://gamma-api.polymarket.com';
+async function refreshChamps(legs, out) {
+  const games = new Map(legs.map(l => [l.game.id, l.game]));
+  await Promise.all(
+    [...games.values()].map(async g => {
+      try {
+        const next = champRead(g, await getJson(`${GAMMA}/events?slug=${encodeURIComponent(g.slug)}`, 600_000));
+        if (next) out[g.id] = next;
+      } catch {}
+    })
+  );
+}
 const boardOf = (league, day, fresh) => getJson(`${ESPN}/${LEAGUES[league].path}/scoreboard?dates=${compact(day)}&limit=300`, fresh).then(x => parseEspn(x, league));
 // A game put off, played again by the same two teams before its time is up
 // (voidAtOf), still counts: that game, its first start kept (`sched`); null
@@ -430,8 +445,10 @@ export async function refresh(legs, now = Date.now()) {
   const reading = f1.length ? refreshF1(f1, out, now) : null;
   const kambiLegs = legs.filter(l => LEAGUES[l.game.league]?.data === 'kambi');
   const kambiReading = kambiLegs.length ? refreshKambi(kambiLegs, out, now) : null;
+  const champLegs = legs.filter(l => isTeamChamp(l.game));
+  const champReading = champLegs.length ? refreshChamps(champLegs, out) : null;
   for (const leg of legs) {
-    if (LEAGUES[leg.game.league]?.data === 'f1' || LEAGUES[leg.game.league]?.data === 'kambi') continue;
+    if (LEAGUES[leg.game.league]?.data === 'f1' || LEAGUES[leg.game.league]?.data === 'kambi' || isTeamChamp(leg.game)) continue;
     const { league, start, id } = leg.game;
     const espn = LEAGUES[league]?.data === 'espn';
     const day = espn ? usDay.format(Date.parse(start)) : twDay(Date.parse(start));
@@ -466,6 +483,7 @@ export async function refresh(legs, now = Date.now()) {
   );
   await reading;
   await kambiReading;
+  await champReading;
   await addExtras(legs, out, kept);
   return out;
 }

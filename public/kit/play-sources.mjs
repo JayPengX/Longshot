@@ -752,6 +752,8 @@ export function parseFutures(events, sport, markets = FUTURES.filter(f => f.spor
       sport: market.sport,
       slug: event.slug,
       season: seasonLabel(event, market.sport),
+      // (When it's settled, about: 注單's 冠軍 sort by it.)
+      ...(event.endDate ? { ends: event.endDate } : {}),
       teams: teams
         .map((t, i) => ({ name: { en: t.name, zh: teamZh(market.sport, t.name) }, fair: fair[i] }))
         .sort((a, b) => b.fair - a.fair)

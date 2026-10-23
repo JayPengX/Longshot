@@ -886,10 +886,14 @@ export function logoTileHtml(src, { size = 40, alt = '', fallbackText = '', tint
   if (first) return `<span class="q-logo"${styleOf(['--s', `${size}px`])}><img src="${E(first)}" alt="${E(alt)}" loading="lazy" decoding="async"${dataOf({ fallback: kind, tint })}${rest.length ? dataOf({ srcs: JSON.stringify(rest) }) : ''}></span>`;
   return `<span class="q-logo text" role="img" aria-label="${E(alt || fallbackText)}"${styleOf(['--s', `${size}px`], ['--t', tint])}>${logoMark(kind)}</span>`;
 }
+// A logo's dark-screen version missing (ESPN has none for some: Coventry's
+// 500-dark is a 404): core.mjs darkLogos puts the ordinary one back, so no
+// fallback takes over. (Whichever error listener runs first: theirs, or a
+// fallback's, which used to draw the mark over a logo that had one.)
+const darkMissing = img => Boolean(img.dataset?.qDarkFailed || (img.dataset?.qLight && /\/500-dark\/|epl-dark\.png/.test(img.getAttribute('src') || '')));
 export function wireLogos(root = document) {
   const fall = img => {
-    // (Its dark-screen version missing: core.mjs darkLogos put the ordinary one back.)
-    if (img.dataset?.qDarkFailed) return;
+    if (darkMissing(img)) return;
     const t = img.closest?.('.q-logo');
     // The next URL of a list first, the letter once they are used up.
     let rest = [];
@@ -1043,7 +1047,7 @@ export function logoTile(src, { size = 40, alt = '', fallbackText = '', tint = '
   if (srcs.length) {
     const img = h('img', { src: srcs[0], alt, loading: 'lazy', decoding: 'async' });
     let at = 0;
-    img.addEventListener('error', () => (++at < srcs.length ? img.setAttribute('src', srcs[at]) : mark()));
+    img.addEventListener('error', () => darkMissing(img) || (++at < srcs.length ? img.setAttribute('src', srcs[at]) : mark()));
     t.append(img);
   } else mark();
   return t;

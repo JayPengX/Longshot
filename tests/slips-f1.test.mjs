@@ -114,9 +114,9 @@ test('a ticket with a race in it: settles and pays on the order; over only with 
 
 test('words: the pick by surname; the lap while a race runs; the races run of a season', () => {
   const us = byId('f1:600057446:race');
-  assert.equal(pickText(leg(us, 'Lando Norris')), '諾里斯 奪冠');
+  assert.equal(pickText(leg(us, 'Lando Norris')), 'Norris 奪冠');
   const c = f1Championship(games, standings, 2026);
-  assert.equal(pickText(leg(c, 'Kimi Antonelli')), '安東內利 年度冠軍');
+  assert.equal(pickText(leg(c, 'Kimi Antonelli')), 'Antonelli 年度冠軍');
   assert.deepEqual(statusOf({ ...us, state: 'in', lap: { now: 12, of: 56 } }), { text: '第 12/56 圈', live: true });
   assert.deepEqual(statusOf(c), { text: '已賽 1/2 站', live: false });
 });

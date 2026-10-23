@@ -25,9 +25,10 @@ import { W, en, lang } from './lib/lang.mjs';
 import { shrink, readSlip, matchPicks, combosOf, stakeOf, timesOf } from './lib/scan.mjs';
 import { fitGame, pickChance, marketChance, lotteryOdds } from './lib/model.mjs';
 import { slipView, earliest, openLegs, nextRead, isNear, applyGames, repriceBlank, specOf, sportOfLeague } from './lib/ticket.mjs';
-import { money, pct, odds2, signedMoney, signed, nm, lg, kindName, sideName, when, dayText, statusOf as statusWords, pickText, shareText, raceText, driverName, standOf, matchText } from './lib/words.mjs';
+import { money, pct, odds2, signedMoney, signed, nm, lg, kindName, sideName, when, dayText, statusOf as statusWords, pickText, shareText, raceText, driverName, teamName, standOf, matchText, champText } from './lib/words.mjs';
 import { warm, onNames, useTranslator } from './lib/zh.mjs';
 import { isF1, isChamp, placeOf, teamColor, f1Chance, byTeam, f1Guess, gpName } from './lib/f1.mjs';
+import { isTeamChamp, champGame, champName, champSettles, champOdds, sameTeam, CHAMP_MARKETS } from './lib/champ.mjs';
 import { sectionsFor } from './lib/board.mjs';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -262,7 +263,7 @@ const legHtml = (l, full) => {
   // A small scoreboard (Apple Sports'): a row per side (a race: the driver),
   // its logo, name and score; where the game is beside them.
   const row = (k, pic) => `<span class="board" data-${k}>${pic}<span class="tn"></span><b class="ts num"></b></span>`;
-  const sides = isF1(l.game) ? row('d', driverFace(l.game, l.driver)) : row('away', logoImg(l.game.away, 'logo', l.game)) + row('home', logoImg(l.game.home, 'logo', l.game));
+  const sides = isF1(l.game) ? row('d', driverFace(l.game, l.driver)) : isTeamChamp(l.game) ? row('d', logoImg({ logo: champLogo(l.game, l.team), en: l.team })) : row('away', logoImg(l.game.away, 'logo', l.game)) + row('home', logoImg(l.game.home, 'logo', l.game));
   return `<div class="leg${full ? ' full' : ''}" data-leg="${esc(l.id)}">
     <span class="mark"></span>
     <span class="pick"><b class="pt"></b><span class="odds num"></span></span>
@@ -348,6 +349,11 @@ function fill(el, slip, v) {
         sc.textContent = text;
       }
       b.classList.toggle('lead', p === 1);
+    } else if (isTeamChamp(g)) {
+      // The championship beside the club (the pick already names it).
+      const b = $('[data-d]', row);
+      setText($('.tn', b), champText(g));
+      b.classList.toggle('lead', x.result === 'won');
     } else for (const side of ['away', 'home']) {
       const b = $(`[data-${side}]`, row);
       // (A pair's names apart at the slash, never inside a name.)
@@ -1117,6 +1123,112 @@ const CIRCUITS = [
 const raceHit = (g, q) => !isChamp(g) && [g.title, gpName(g, true), gpName(g, false), raceText(g), ...CIRCUITS.filter(([re]) => re.test(g.title)).map(([, w]) => w)].some(n => norm(n).includes(q));
 const pressed = (box, b) => box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
 
+// ---- 冠軍 -------------------------------------------------------------------------
+
+// Every championship on sale (champ.mjs: Play's markets, its prices) and
+// F1's (the standings), read once and kept 10 minutes. Through Play's own
+// readers (the kit's play-sources: the clubs' logos with them).
+let champsKept = null;
+function champsOn(today) {
+  if (champsKept && Date.now() - champsKept.at < 600_000) return champsKept.p;
+  const p = (async () => {
+    const [kit, teams] = await Promise.all([import('../kit/play-sources.mjs'), import('../kit/play-teams.mjs')]);
+    const f1 = gamesAround('f1', today, today).then(gs => gs.filter(isChamp)).catch(() => []);
+    const markets = (await Promise.all(CHAMP_MARKETS.map(m => kit.loadFuture(m.key).catch(() => null)))).filter(Boolean);
+    await kit.loadFutureTeams(markets).catch(() => {});
+    const logoOf = (sport, name) => teams.teamLogo(sport, name) ?? teams.findTeamLogo(kit.futureTeamLeagues(sport), name);
+    return [...(await f1), ...markets.map(m => champGame(m, logoOf))];
+  })();
+  champsKept = { at: Date.now(), p };
+  p.catch(() => (champsKept = null));
+  return p;
+}
+// A club's logo on its championship (its field's).
+const champLogo = (g, team) => (g.field || []).find(t => sameTeam(t.name, team))?.logo || '';
+// A championship's name alone (年度車手冠軍, 世界大賽冠軍) and its season under
+// it (F1's with the races run; when it's settled is in its sheet).
+const champTitle = g => (isF1(g) ? W('年度車手冠軍', "Drivers' Championship") : champName(g.market, en));
+const champSub = g => (isF1(g) ? [g.title, statusOf(g).text].filter(Boolean).join(' · ') : W(`${g.title} 賽季`, `${g.title} season`));
+// The championships by sport, as Play's 賽事 sorts them: each its league's
+// logo, its name and season, the three most likely to win.
+const SPORT_ORDER = ['baseball', 'basketball', 'football', 'hockey', 'soccer', 'racing'];
+function champGroups(list) {
+  const by = new Map(SPORT_ORDER.map(k => [k, []]));
+  for (const g of list) by.get(LEAGUES[g.league]?.sport)?.push(g);
+  const out = [];
+  for (const [sport, games] of by) {
+    if (!games.length) continue;
+    const sp = SPORTS[sport];
+    const h = document.createElement('h4');
+    h.className = 'ch-head';
+    h.innerHTML = `${tile(sp.svg, sp.color, 'sm')}<span>${esc(W(...SPORT_NAMES[sport]))}</span>`;
+    const card = document.createElement('div');
+    card.className = 'q-rowcard ch-list';
+    card.innerHTML = games
+      .map(g => {
+        const top = (g.field || []).slice(0, 3);
+        const faces = top.map(t => `<span class="ch-pic">${isF1(g) ? driverFace(g, t.name, 'logo') : logoImg({ logo: t.logo, en: t.name, zh: t.zh })}</span>`).join('');
+        return `<button class="q-ritem chevron champ" type="button" data-g="${esc(g.id)}">
+          ${kitUI.logoTileHtml(leagueLogo(g.league), { size: 40, kind: 'league', alt: lg(g.league) })}
+          <span class="q-ritem-text"><span class="q-ritem-title q-fit">${esc(champTitle(g))}</span><small>${esc(champSub(g))}</small></span>
+          <span class="ch-top">${faces}</span>
+        </button>`;
+      })
+      .join('');
+    out.push(h, card);
+  }
+  return out;
+}
+
+// One championship: its contenders by their chance (each with 運彩's likely
+// price, Play's 冠軍 board's), one picked and the ticket's odds.
+function pickChampSheet(g, add) {
+  const pick = { team: null, odds: '' };
+  const odds = champOdds(g);
+  const field = (g.field || []).filter(t => !t.out && t.fair > 0);
+  const el = document.createElement('div');
+  el.className = 'pk';
+  el.innerHTML = `<div class="race-head q-kb-hide">${kitUI.logoTileHtml(leagueLogo(g.league), { size: 52, kind: 'league', alt: lg(g.league) })}<b>${esc(champText(g))}</b><small>${esc(champSettles(g.market, en))}</small></div><div class="pk-body"></div>`;
+  const s = kitSheet({ title: W('選擇冠軍', 'Pick the champion'), body: [el], cls: 'sl-app sl-sheet', closeLabel: W('關閉', 'Close') });
+  const chosen = () => field.find(t => t.name === pick.team);
+  const guess = () => (pick.team ? odds.get(pick.team) : null);
+  const ready = () => pick.team && (Number(pick.odds) > 1 || guess() > 1);
+  const draw = () => {
+    const box = $('.pk-body', el);
+    box.innerHTML = `<div class="q-rowcard teams">${field
+      .map(t => {
+        const on = pick.team === t.name;
+        return `<button class="q-ritem driver" type="button" data-tm="${esc(t.name)}" aria-pressed="${on}">${logoImg({ logo: t.logo, en: t.name, zh: t.zh })}<span class="q-ritem-text"><span class="q-ritem-title q-fit">${esc(teamName(t))}</span><small class="num">${W('運彩約', 'Lottery ~')} ${odds2(odds.get(t.name))}</small></span><span class="pct num">${pct(t.fair, t.fair < 0.1 ? 1 : 0)}</span>${on ? icon('check') : ''}</button>`;
+      })
+      .join('')}</div>
+      <label class="field q-kb-hide"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess() > 1 ? odds2(guess()) : W('選球隊', 'Pick a team')}" value="${esc(pick.odds)}"></label>
+      <small class="od-note q-kb-hide" ${guess() > 1 && !pick.odds ? '' : 'hidden'}>${guess() > 1 ? W(`不記得就留空：用估計的 ${odds2(guess())}，標「估」`, `Don’t remember? Leave it: est. ${odds2(guess())}, marked est.`) : ''}</small>
+      <button class="q-btn primary large block" type="button" data-add ${ready() ? '' : 'disabled'}>${W('加入注單', 'Add to ticket')}</button>`;
+    const od = $('.od', box);
+    od.oninput = () => {
+      pick.odds = od.value.replace(/[^\d.]/g, '');
+      $('[data-add]', box).disabled = !ready();
+      $('.od-note', box).hidden = !(guess() > 1) || Boolean(pick.odds);
+    };
+  };
+  el.addEventListener('click', e => {
+    const tm = e.target.closest('[data-tm]');
+    if (tm) {
+      pick.team = pick.team === tm.dataset.tm ? null : tm.dataset.tm;
+      draw();
+      if (pick.team) $('.od', el)?.focus();
+      return;
+    }
+    if (e.target.closest('[data-add]') && ready()) {
+      const typed = Number(pick.odds) > 1;
+      const t = chosen();
+      add({ id: newId('l'), kind: 'future', team: t.name, teamZh: t.zh, fair: t.fair, game: g, odds: typed ? Math.round(Number(pick.odds) * 100) / 100 : guess(), ...(typed ? {} : { est: true }) });
+      s.close();
+    }
+  });
+  draw();
+}
+
 function addSheet({ scan = false, game = null } = {}) {
   const today = twDay(Date.now());
   const from = shiftDay(today, -BACK);
@@ -1138,6 +1250,7 @@ function addSheet({ scan = false, game = null } = {}) {
     <div class="dr"></div>
     <section class="pick-games q-kb-hide">
       <h3 class="sl-h">${W('選比賽', 'Pick a game')}</h3>
+      <div class="pk-mode"></div>
       <div class="pk-find"></div>
       <div class="q-chips lgs">${ORDER.map(lgChip).join('')}</div>
       <div class="pk-days"></div>
@@ -1193,12 +1306,32 @@ function addSheet({ scan = false, game = null } = {}) {
     })
   );
 
+  // 比賽 or 冠軍, as Play keeps them apart: the season's championships of
+  // every league by sport (F1's too), never a row above one day's games.
+  draft.view = 'games';
+  $('.pk-mode', el).append(
+    segmented(
+      [
+        { id: 'games', label: W('比賽', 'Games') },
+        { id: 'champs', label: W('冠軍', 'Champions') }
+      ],
+      {
+        value: draft.view,
+        onChange: v => {
+          draft.view = v;
+          el.classList.toggle('champs', v === 'champs');
+          loadGames();
+        }
+      }
+    )
+  );
+
   // The teams on this phone's tickets, newest first: a tap finds their games.
   const recent = (() => {
     const seen = new Map();
     for (const sl of [...slips].sort((a, b) => String(b.created || '').localeCompare(String(a.created || ''))))
       for (const l of sl.legs)
-        if (!isF1(l.game))
+        if (!isF1(l.game) && !isChamp(l.game))
           for (const side of ['away', 'home']) {
             const t = l.game[side];
             const key = `${l.game.league}:${t.en || t.zh}`;
@@ -1240,16 +1373,17 @@ function addSheet({ scan = false, game = null } = {}) {
     c.classList.add('pk-card');
     return c;
   };
+  // A race: when, F1's mark, the Grand Prix (正賽 under it), its winner's face once it's run.
   const raceRow = g => {
     const s2 = statusOf(g);
-    const at = g.off ? esc(s2.text) : isChamp(g) && g.state === 'pre' ? W('年度', 'Season') : g.state === 'pre' ? when(g.start).time : g.state === 'post' ? W('完賽', 'Final') : esc(s2.text);
+    const at = g.off ? esc(s2.text) : g.state === 'pre' ? when(g.start).time : g.state === 'post' ? W('完賽', 'Final') : esc(s2.text);
     const winner = g.state === 'post' ? g.order?.[0] : null;
     const row = document.createElement('div');
     row.className = 'q-rowcard';
-    row.innerHTML = `<button class="q-ritem game" type="button" data-g="${esc(g.id)}">
+    row.innerHTML = `<button class="q-ritem game race" type="button" data-g="${esc(g.id)}">
       <span class="when ${s2.live ? 'live' : ''}">${at}</span>
-      <span class="sides"><span>${tile(SPORTS.racing.svg, SPORTS.racing.color, 'sm')}${esc(raceText(g))}</span></span>
-      <span class="sc">${winner ? `<span class="win">${icon('trophy')}${esc(driverName(winner))}</span>` : ''}</span>
+      <span class="race-name">${kitUI.logoTileHtml(leagueLogo('f1'), { size: 36, kind: 'league', alt: 'F1' })}<span class="q-ritem-text"><span class="q-ritem-title">${esc(gpName(g, en))}</span><small>${esc(raceText(g).replace(gpName(g, en), '').trim())}</small></span></span>
+      <span class="sc">${winner ? `<span class="win">${driverFace(g, winner, 'logo')}<b>${esc(driverName(winner))}</b></span>` : ''}</span>
     </button>`;
     return row;
   };
@@ -1289,6 +1423,15 @@ function addSheet({ scan = false, game = null } = {}) {
     paint = null;
     box.replaceChildren(Object.assign(document.createElement('div'), { className: 'spin' }));
     try {
+      if (draft.view === 'champs') {
+        const list = await champsOn(today);
+        await ready(list);
+        if (n !== reading) return;
+        shownGames = list;
+        paint = () => box.replaceChildren(...(list.length ? champGroups(list) : [note(W('現在沒有開賣的冠軍', 'No championships on sale now'))]));
+        paint();
+        return;
+      }
       if (draft.query) {
         // Every league (each read once, then kept): its sides, its event, a
         // race by its Grand Prix or circuit; drawn as each league comes in
@@ -1320,7 +1463,6 @@ function addSheet({ scan = false, game = null } = {}) {
         );
         return;
       }
-      const f1 = isF1({ league: draft.league });
       const league = draft.league;
       const wide = await Promise.race([farOf(league), Promise.resolve(null)]);
       const near = (wide ?? (await around(league))).filter(playable);
@@ -1336,8 +1478,8 @@ function addSheet({ scan = false, game = null } = {}) {
           const seen = new Set(near.map(g => g.id));
           if (drawStrip([...near, ...all.filter(g => playable(g) && !seen.has(g.id))])) loadGames();
         });
-      // The day's games; F1's championship above its race.
-      const shown = [...(f1 ? near.filter(isChamp) : []), ...games.filter(g => !isChamp(g) && twDay(Date.parse(g.start)) === draft.day)];
+      // The day's games (F1's championship is under 冠軍).
+      const shown = games.filter(g => !isChamp(g) && twDay(Date.parse(g.start)) === draft.day);
       await ready(shown);
       if (n !== reading) return;
       shownGames = shown;
@@ -1356,14 +1498,14 @@ function addSheet({ scan = false, game = null } = {}) {
     const out = [];
     const groups = new Map();
     for (const g of games) {
-      const d = isChamp(g) ? 'season' : twDay(Date.parse(g.start));
+      const d = twDay(Date.parse(g.start));
       if (!groups.has(d)) groups.set(d, []);
       groups.get(d).push(g);
     }
-    const keys = [...groups.keys()].sort((a, b) => (a === 'season' ? -1 : b === 'season' ? 1 : cmp(dayOrder(a), dayOrder(b))));
+    const keys = [...groups.keys()].sort((a, b) => cmp(dayOrder(a), dayOrder(b)));
     for (const d of keys) {
       // (One day's, under the strip: no day head, the strip says it.)
-      if (withLeague || d === 'season') out.push(head(d === 'season' ? W('年度冠軍', 'Season') : `${dayName(d, today)} · ${md(d)}`));
+      if (withLeague) out.push(head(`${dayName(d, today)} · ${md(d)}`));
       const one = g => {
         // (A card already drawn kept, its logos with it: a list drawn again as leagues come in never blinks.)
         const key = `${g.id}|${g.state}|${g.score?.away}-${g.score?.home}|${statusOf(g).text}|${isF1(g) ? '' : `${sideName(g, 'away')}|${sideName(g, 'home')}`}`;
@@ -1410,14 +1552,14 @@ function addSheet({ scan = false, game = null } = {}) {
     return Boolean(d && (pickDay(d), true));
   });
   $('.games', el).onclick = e => {
-    const b = e.target.closest('.game');
+    const b = e.target.closest('.game, .champ');
     if (!b || b.disabled) return;
     const g = shownGames.find(x => x.id === b.dataset.g);
     if (g) pickGame(g);
   };
   // A game's bets in their sheet; the pick made, onto the draft.
   const pickGame = g =>
-    (isF1(g) ? pickF1Sheet : pickSheet)(g, leg => {
+    (isTeamChamp(g) ? pickChampSheet : isF1(g) ? pickF1Sheet : pickSheet)(g, leg => {
       draft.legs.push(leg);
       drawDraft();
       requestAnimationFrame(() => $('.dr', el).scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -1465,7 +1607,7 @@ function addSheet({ scan = false, game = null } = {}) {
       <div class="q-rowcard q-kb-hide">${draft.legs
         .map((l, i) => {
           const sp = SPORTS[sportOfLeague(l.game.league)];
-          return `<div class="q-ritem">${tile(sp?.svg || icon('ticket'), sp?.color || '', 'sm')}<span class="q-ritem-text"><span class="q-ritem-title">${esc(pickText(l))} <span class="odds num">@${odds2(l.odds)}${l.est ? W(' 估', ' est.') : ''}</span></span><small>${esc(`${isF1(l.game) ? raceText(l.game) : `${sideName(l.game, 'away')} vs ${sideName(l.game, 'home')}`} · ${kindName(l.kind)}`)}</small></span><button class="del" type="button" data-del="${i}" aria-label="${W('移除', 'Remove')}">${OWN.minus}</button></div>`;
+          return `<div class="q-ritem">${tile(sp?.svg || icon('ticket'), sp?.color || '', 'sm')}<span class="q-ritem-text"><span class="q-ritem-title">${esc(pickText(l))} <span class="odds num">@${odds2(l.odds)}${l.est ? W(' 估', ' est.') : ''}</span></span><small>${esc(`${isF1(l.game) || isChamp(l.game) ? matchText(l.game) : `${sideName(l.game, 'away')} vs ${sideName(l.game, 'home')}`} · ${kindName(l.kind)}`)}</small></span><button class="del" type="button" data-del="${i}" aria-label="${W('移除', 'Remove')}">${OWN.minus}</button></div>`;
         })
         .join('')}</div>
       <div class="q-seg modes">${modes.map(([k, t]) => `<button type="button" data-m="${k}" aria-pressed="${k === draft.mode}" ${k !== 'single' && n < 2 ? 'disabled' : ''}>${t}</button>`).join('')}</div>
@@ -1821,7 +1963,7 @@ function pickF1Sheet(g, add) {
   const el = document.createElement('div');
   el.className = 'pk';
   const sub = isChamp(g) ? statusOf(g).text : `${when(g.start).day} ${when(g.start).time}`;
-  el.innerHTML = `<div class="race-head q-kb-hide">${tile(SPORTS.racing.svg, SPORTS.racing.color, 'lg')}<b>${esc(raceText(g))}</b><small>${esc(sub)}</small></div><div class="pk-body"></div>`;
+  el.innerHTML = `<div class="race-head q-kb-hide">${kitUI.logoTileHtml(leagueLogo('f1'), { size: 52, kind: 'league', alt: 'F1' })}<b>${esc(raceText(g))}</b><small>${esc(sub)}</small></div><div class="pk-body"></div>`;
   const s = kitSheet({ title: W('選擇冠軍車手', 'Pick the winner'), body: [el], cls: 'sl-app sl-sheet', closeLabel: W('關閉', 'Close') });
   // Odds left blank: the estimate from the season's points, marked 估.
   const guess = () => (pick.driver ? f1Guess(g, pick.driver) : null);
@@ -1832,7 +1974,7 @@ function pickF1Sheet(g, add) {
       ? `<div class="q-rowcard drivers">${field
           .map(d => {
             const on = pick.driver === d.name;
-            return `<button class="q-ritem driver" type="button" data-dv="${esc(d.name)}" aria-pressed="${on}">${driverFace(g, d.name)}<span class="q-ritem-text"><span class="q-ritem-title">${esc(driverName(d.name))}</span></span>${on ? icon('check') : ''}</button>`;
+            return `<button class="q-ritem driver" type="button" data-dv="${esc(d.name)}" aria-pressed="${on}">${driverFace(g, d.name)}<span class="q-ritem-text"><span class="q-ritem-title">${esc(driverName(d.name))}</span>${isChamp(g) && d.points != null ? `<small class="num">${d.points} ${W('分', 'pts')}</small>` : ''}</span>${on ? icon('check') : ''}</button>`;
           })
           .join('')}</div>
       <label class="field q-kb-hide"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess() > 1 ? odds2(guess()) : W('選車手', 'Pick a driver')}" value="${esc(pick.odds)}"></label>

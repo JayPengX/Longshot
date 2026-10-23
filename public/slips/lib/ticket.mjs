@@ -6,6 +6,7 @@ import { lateOutcome, decidedSoFar } from '../../kit/settle.mjs';
 import { evaluate, settle, grade, canPay, decidedEarly } from './slip.mjs';
 import { fitGame, pickChance, marketChance, leftOf, sportOf, chanceFromOdds, lotteryOdds } from './model.mjs';
 import { isF1, isChamp, f1LegView, f1Guess } from './f1.mjs';
+import { isTeamChamp, champLegView } from './champ.mjs';
 import { isExtra, gradeExtra, needsSummary } from './board.mjs';
 
 // A league's sport, and how its games are timed and scored (model.mjs SPORT).
@@ -33,7 +34,7 @@ function lapsed(g, now) {
 }
 
 // A game is over for good: final with its score, or void (calledOff).
-export const gameOver = g => (g?.state === 'post' && Boolean(isF1(g) ? g.order?.length : g.score)) || Boolean(calledOff(g));
+export const gameOver = g => (g?.state === 'post' && Boolean(isF1(g) || isChamp(g) ? g.order?.length : g.score)) || Boolean(calledOff(g));
 
 const CERTAIN = { won: { win: 1, push: 0 }, void: { win: 0, push: 1 }, lost: { win: 0, push: 0 } };
 
@@ -46,6 +47,7 @@ const CERTAIN = { won: { win: 1, push: 0 }, void: { win: 0, push: 1 }, lost: { w
 export function legView(leg, legs = [leg]) {
   const g = leg.game;
   if (isF1(g)) return f1LegView(leg);
+  if (isTeamChamp(g)) return champLegView(leg);
   if (isExtra(leg)) return extraLegView(leg);
   const model = modelFor(g, legs.filter(l => l.game.id === g.id));
   // Before the game: the market's price for this pick, else the model's
@@ -190,7 +192,7 @@ export const optionOf = (leg, sections) => sections.flatMap(s => s.options).find
 // `sectionsOf(game)`: its board's sections (for 更多 picks). True when
 // anything changed. (F1's are priced on their grid: applyGames.)
 export async function repriceBlank(slips, { closing, sectionsOf }) {
-  const legs = slips.flatMap(s => s.legs).filter(l => l.est && !l.closing && l.game?.state === 'post' && !isF1(l.game));
+  const legs = slips.flatMap(s => s.legs).filter(l => l.est && !l.closing && l.game?.state === 'post' && !isF1(l.game) && !isChamp(l.game));
   let changed = false;
   await Promise.all(
     legs.map(async l => {

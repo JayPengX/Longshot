@@ -165,24 +165,21 @@ function legWhen(iso) {
   if (day(at) === day(Date.now() + 86_400_000)) return `${state.locale === 'zh' ? '明天' : 'Tomorrow'} ${hm}`;
   return fmtShort(iso);
 }
-// A driver in Chinese as 台灣運彩 writes him ("維斯塔潘"), English's full
-// name otherwise (Jay 2026-10-21: drivers translated, like every team).
-const driverZh = name => F1_NAMES_ZH[f1Driver(name).surname] || null;
-const driverName = name => (state.locale === 'zh' && driverZh(name)) || name;
-// A driver's surname as the grid writes it ("Carlos Sainz Jr." is Sainz, not "Jr."); Chinese's name in Chinese.
+// A driver in their own name in either language (people are never put into
+// Chinese: Jay 2026-10-23, every team in Chinese, every person in English).
+const driverName = name => name;
+// A driver's surname as the grid writes it ("Carlos Sainz Jr." is Sainz, not "Jr.").
 function shortDriver(name) {
-  if (state.locale === 'zh' && driverZh(name)) return driverZh(name);
   const words = String(name || '').split(' ').filter(w => !/^(jr|sr|ii|iii|iv)\.?$/i.test(w));
   const known = f1Driver(name).surname;
   return (known && words.find(w => w.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === known.toLowerCase())) || words.slice(-1)[0] || '';
 }
 const F1_EN = Object.fromEntries(Object.entries(F1_NAMES_ZH).map(([surname, zh]) => [zh, F1_PAGE[surname] ? F1_PAGE[surname].split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : surname]));
-// A saved pick's name as shown now: a driver in the page's language (a
-// ticket from before keeps "G.羅素", "羅素" or "George Russell").
+// A saved pick's name as shown now: a driver in their own name (a ticket
+// from before keeps "G.羅素" or "羅素": shown as George Russell).
 const shownLabel = leg => {
   const label = String(leg.shortLabel || leg.label || '').replace(/^[A-Z]{1,3}\.(?=[\u4e00-\u9fff])/, '');
-  if (state.locale !== 'zh') return F1_EN[label] || label;
-  return leg.sport === 'f1' && !/[\u4e00-\u9fff]/.test(label) ? driverZh(label) || label : label;
+  return F1_EN[label] || label;
 };
 // A game's time: its day and 待定 while its hour isn't set (a play-off's
 // next game: sold until the earliest it can start, the time it carries).
@@ -1697,12 +1694,19 @@ function boardBody({ emblem, title, sub, tabs = null, lead = null, entries }) {
 
 // 冠軍: one row per market (its league, its name, the favourite's price),
 // each opening its board.
+// A search keeps the championships it names (世界大賽, 英超) or with a club
+// it names (道奇: the World Series, its price the club's), never all of them.
 function renderFutures() {
+  const q = state.query;
+  const hit = text => Boolean(text) && (searchKey(text).includes(searchKey(q)) || String(text).includes(q));
+  const named = b => hit(b.teamEn) || hit(b.shortLabel) || hit(b.label);
   const markets = groupBy(state.futures.filter(b => inSport(b.sport)), b => b.market);
-  $('futures').hidden = markets.size === 0 || Boolean(state.query);
+  if (q) for (const [market, bets] of markets) if (!hit(bets[0].matchup) && !hit(state.t(`sport_${bets[0].sport}`)) && !bets.some(named)) markets.delete(market);
+  $('futures').hidden = markets.size === 0;
   $('futures-list').replaceChildren(
     ...[...markets.entries()].map(([market, bets]) => {
-      const top = [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b)).slice(0, 1);
+      const clubs = q ? bets.filter(named) : [];
+      const top = (clubs.length ? clubs : [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b))).slice(0, 1);
       return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
         el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
         el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
@@ -3872,6 +3876,7 @@ $('game-search').addEventListener('input', event => {
   wantFull();
   state.query = event.target.value.trim();
   if (state.data) renderGames();
+  renderFutures();
 });
 // A ticket of 注單's put on the play-money slip (its 「用模擬金下注」):
 // #slip=<base64url of UTF-8 JSON {legs:[{league, home, away, start, kind, side, line, gameId?}]}>.

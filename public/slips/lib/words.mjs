@@ -6,8 +6,9 @@ import { KINDS, KINDS_EN, modeName } from './slip.mjs';
 import { specOf } from './ticket.mjs';
 import { isF1, isChamp, F1_KINDS, F1_KINDS_EN, gpName, sessionName, surname } from './f1.mjs';
 import { extraKindName } from './board.mjs';
+import { isTeamChamp, champName, CHAMP_KINDS, CHAMP_KINDS_EN } from './champ.mjs';
 import { money } from '../../kit/core.mjs';
-import { nameZh, hasZh, driverZh } from './zh.mjs';
+import { nameZh, hasZh } from './zh.mjs';
 
 export { money };
 export const pct = (p, d = 0) => `${(p * 100).toFixed(d)}%`;
@@ -22,18 +23,23 @@ export const signed = x => (x > 0 ? `+${x}` : `${x}`);
 const zhOf = t => (hasZh(t.zh) ? t.zh : nameZh(t.en) ?? t.zh);
 export const nm = t => (en ? t.en || t.zh : zhOf(t));
 export const lg = league => (en ? LEAGUES[league]?.en : LEAGUES[league]?.zh) || '';
-export const kindName = k => (en ? KINDS_EN[k] ?? F1_KINDS_EN[k] : KINDS[k] ?? F1_KINDS[k]) ?? extraKindName(k) ?? '';
+export const kindName = k => (en ? KINDS_EN[k] ?? F1_KINDS_EN[k] ?? CHAMP_KINDS_EN[k] : KINDS[k] ?? F1_KINDS[k] ?? CHAMP_KINDS[k]) ?? extraKindName(k) ?? '';
 // An F1 race in words: 美國站 正賽 / United States GP Race.
 export const raceText = g => `${gpName(g, en)} ${sessionName(g, en)}`;
-// What a pick is on: the two sides of a game, or the race.
-export const matchText = g => (isF1(g) ? raceText(g) : `${nm(g.away, g)} @ ${nm(g.home, g)}`);
+// A championship in words: 2026 世界大賽冠軍 / 2026 World Series champion.
+export const champText = g => champName(g.market, en, g.title);
+// What a pick is on: the two sides of a game, the race, or the championship.
+export const matchText = g => (isF1(g) ? raceText(g) : isTeamChamp(g) ? champText(g) : `${nm(g.away, g)} @ ${nm(g.home, g)}`);
 export const sideName = (g, side) => {
   const t = g[side];
   if (en) return t.abbr || t.en || t.short;
   return hasZh(t.short) ? t.short : (nameZh(t.en) ?? t.short);
 };
-// A driver: their surname, Chinese as Taiwan says it (羅素) in Chinese.
-export const driverName = name => (en ? surname(name) : driverZh(name) ?? surname(name));
+// A driver: their surname, in their own name in either language (people are
+// never put into Chinese: Jay 2026-10-23).
+export const driverName = name => surname(name);
+// A championship's contender: the club in Chinese as Taiwan says it.
+export const teamName = t => (en ? t.name : hasZh(t.zh) ? t.zh : (nameZh(t.name) ?? t.zh ?? t.name));
 
 // A time in Taiwan: { day: 今天 / 明天 / 昨天 / 10/21（三）, time: 19:05 }.
 const TW = 8 * 3_600_000;
@@ -60,6 +66,7 @@ export function statusOf(g, now = Date.now()) {
   // The championship: how many of its races are run.
   if (isChamp(g) && g.state === 'pre' && g.progress?.now) return { text: W(`已賽 ${g.progress.now}/${g.progress.of} 站`, `${g.progress.now} of ${g.progress.of} races run`), live: false };
   if (isF1(g) && g.state === 'void') return { text: W('取消', 'Called off'), live: false };
+  if (isTeamChamp(g) && g.state === 'pre') return { text: W('賽季進行中', 'In season'), live: false };
   if (g.off) return { text: g.off === 'suspended' ? W('暫停', 'Suspended') : W('延賽', 'Postponed'), live: false };
   if (g.state === 'void') return { text: W('延賽或取消', 'Called off'), live: false };
   if (g.state === 'post') return { text: /OT|SO/.test(g.detail || '') ? W('完賽（延長）', 'Final (OT)') : W('完賽', 'Final'), live: false };
@@ -88,6 +95,8 @@ export function statusOf(g, now = Date.now()) {
 export function pickText(leg) {
   const g = leg.game;
   switch (leg.kind) {
+    case 'future':
+      return W(`${teamName({ name: leg.team, zh: leg.teamZh })} 奪冠`, `${leg.team} to win`);
     case 'f1':
       return isChamp(g) ? W(`${driverName(leg.driver)} 年度冠軍`, `${surname(leg.driver)} champion`) : W(`${driverName(leg.driver)} 奪冠`, `${surname(leg.driver)} to win`);
     case 'ml':
@@ -213,7 +222,7 @@ const UNIT = { soccer: ['球', 'goals'], hockey: ['球', 'goals'] };
 const fmtN = n => String(Math.round(Math.abs(n) * 10) / 10);
 export function standOf(leg) {
   const g = leg.game;
-  if (isF1(g) || g.state !== 'in' || !g.score) return null;
+  if (isF1(g) || isChamp(g) || g.state !== 'in' || !g.score) return null;
   const { home, away } = g.score;
   const [uz, ue] = UNIT[LEAGUES[g.league]?.sport] ?? ['分', 'pts'];
   const unit = n => W(`${fmtN(n)} ${uz}`, `${fmtN(n)} ${ue}`);
