@@ -974,8 +974,8 @@ html .q-logo img { width: 88%; height: 88%; }
    The ways to buy in the sheet's head under its title; the picks and the
    payout lines scroll; the bet panel is docked at the foot: the stake and
    what it pays side by side, the quick amounts, one button. Typing the
-   stake (.sl-typing) the sheet is that panel alone at the top of the
-   screen, so the iPhone's keys and their ^ ˅ ✓ bar never cover it. */
+   stake the sheet is that panel alone, right above the iPhone's keys and
+   their ^ ˅ ✓ bar. */
 #slip-sheet[open] { display: flex; flex-direction: column; padding-bottom: 0; }
 #slip-sheet #parlay-body { flex: 1 0 auto; display: flex; flex-direction: column; padding-bottom: 0; }
 #slip-sheet .sl { flex: 1 0 auto; display: flex; flex-direction: column; }
@@ -1010,14 +1010,15 @@ html .q-logo img { width: 88%; height: 88%; }
 .sl-panel:not(.sl-app *) .place-button { width: 100%; min-width: 0; min-height: 52px; padding-inline: 14px; border-radius: 16px; box-shadow: none; font-size: 17px; }
 .place-button > .q-fit { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
 .sl-win b.q-fit { display: block; }
-/* Typing the stake: the panel alone, at the top of what's seen. */
-#slip-sheet.sl-typing[open], html.q-kb #slip-sheet.sl-typing[open] { width: min(520px, calc(100vw - 16px)); height: fit-content; max-height: none; margin: calc(var(--sl-top, 0px) + max(env(safe-area-inset-top), 12px) + 6px) auto auto; padding-top: 4px; border-radius: 26px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); }
-#slip-sheet.sl-typing #parlay-body, #slip-sheet.sl-typing .sl { flex: none; }
-#slip-sheet.sl-typing::before, #slip-sheet.sl-typing .q-sheet-head { display: none; }
-#slip-sheet.sl-typing .sl > :not(.sl-panel):not(.sl-note) { display: none; }
-#slip-sheet.sl-typing .sl-panel { position: static; margin: 0 calc(-1 * var(--q-margin)); padding: 14px var(--q-margin) 16px; border-radius: 0; box-shadow: none; background: none; }
-#slip-sheet.sl-typing .sl-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 2px; color: var(--q-label); font: 600 15px/1.2 var(--q-font); }
-#slip-sheet.sl-typing .sl-sum b { color: var(--q-label); font: 700 15px/1.2 var(--q-font-rounded); }
+/* Typing the stake (the kit's html.q-kb: the sheet runs under the keys): the panel alone, right above them. */
+html.q-kb #slip-sheet[open] { padding-bottom: calc(var(--q-kb) + 12px); }
+html.q-kb #slip-sheet #parlay-body, html.q-kb #slip-sheet .sl { flex: none; }
+html.q-kb #slip-sheet::before, html.q-kb #slip-sheet .q-sheet-head, html.q-kb #slip-sheet .sl > :not(.sl-panel):not(.sl-note) { display: none; }
+html.q-kb #slip-sheet .sl-panel { position: static; margin: 0 calc(-1 * var(--q-margin)); padding: 14px var(--q-margin) 0; border-radius: 0; box-shadow: none; background: none; }
+html.q-kb #slip-sheet .sl-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 2px; color: var(--q-label); font: 600 15px/1.2 var(--q-font); }
+html.q-kb #slip-sheet .sl-sum b { color: var(--q-label); font: 700 15px/1.2 var(--q-font-rounded); }
+/* (A short phone, 320×548: the 1 場 · 單場 line waits too, or the button went under the keys.) */
+@media (max-height: 600px) { html.q-kb #slip-sheet .sl-sum { display: none; } html.q-kb #slip-sheet .sl-panel { padding-top: 8px; } }
 /* 刮刮樂 at the counter: a shelf a price, its cards side by side, each its whole ticket. */
 .sc-shelves { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .sc-shelf { min-width: 0; }

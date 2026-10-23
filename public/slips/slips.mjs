@@ -1179,11 +1179,11 @@ function addSheet({ scan = false, game = null } = {}) {
     return `<button type="button" class="q-chip lg-chip" data-lg="${k}" aria-pressed="${k === draft.league}">${mark}<span>${esc(lg(k))}</span></button>`;
   };
   el.innerHTML = `
-    <button class="scan q-hero-card q-press" type="button" data-scan-btn>${tile(icon('camera'), '', 'lg')}<span class="scan-txt"><b>${W('拍注單自動填入', 'Scan a ticket')}</b><small class="scan-line">${W('拍照或選截圖', 'A photo or a screenshot')}</small></span></button>
+    <button class="scan q-hero-card q-press q-kb-hide" type="button" data-scan-btn>${tile(icon('camera'), '', 'lg')}<span class="scan-txt"><b>${W('拍注單自動填入', 'Scan a ticket')}</b><small class="scan-line">${W('拍照或選截圖', 'A photo or a screenshot')}</small></span></button>
     <input type="file" class="scan-file" accept="image/*" hidden>
-    <div class="missed"></div>
+    <div class="missed q-kb-hide"></div>
     <div class="dr"></div>
-    <section class="pick-games">
+    <section class="pick-games q-kb-hide">
       <h3 class="sl-h">${W('選比賽', 'Pick a game')}</h3>
       <div class="pk-find"></div>
       <div class="q-chips lgs">${ORDER.map(lgChip).join('')}</div>
@@ -1519,8 +1519,8 @@ function addSheet({ scan = false, game = null } = {}) {
       ['system', W('組合', 'System')]
     ];
     const stat = (label, value, cls = '') => `<div class="q-stat"><small>${label}</small><strong class="num ${cls}">${value}</strong></div>`;
-    box.innerHTML = `<h3 class="sl-h">${W(`這張注單 · ${n} 場`, `This ticket · ${n} game${n > 1 ? 's' : ''}`)}</h3>
-      <div class="q-rowcard">${draft.legs
+    box.innerHTML = `<h3 class="sl-h q-kb-hide">${W(`這張注單 · ${n} 場`, `This ticket · ${n} game${n > 1 ? 's' : ''}`)}</h3>
+      <div class="q-rowcard q-kb-hide">${draft.legs
         .map((l, i) => {
           const sp = SPORTS[sportOfLeague(l.game.league)];
           return `<div class="q-ritem">${tile(sp?.svg || icon('ticket'), sp?.color || '', 'sm')}<span class="q-ritem-text"><span class="q-ritem-title">${esc(pickText(l))} <span class="odds num">@${odds2(l.odds)}${l.est ? W(' 估', ' est.') : ''}</span></span><small>${esc(`${isF1(l.game) ? raceText(l.game) : `${sideName(l.game, 'away')} vs ${sideName(l.game, 'home')}`} · ${kindName(l.kind)}`)}</small></span><button class="del" type="button" data-del="${i}" aria-label="${W('移除', 'Remove')}">${OWN.minus}</button></div>`;
@@ -1694,8 +1694,8 @@ function pickSheet(g, add) {
   const pick = { kind: 'ml', side: null, homeLine: soccer ? (Number.isInteger(m?.spread?.line) && m.spread.line ? m.spread.line : -1) : m?.spread?.line ?? (sport === 'baseball' || sport === 'hockey' ? -1.5 : sport === 'football' ? -3.5 : -4.5), total: m?.total?.line ?? Math.floor(spec.avg) + 0.5, odds: '' };
   const el = document.createElement('div');
   el.className = 'pk';
-  el.innerHTML = `<div class="matchup"><div>${logoImg(g.away, 'big', g)}<b>${esc(sideName(g, 'away').replace(/\//g, '/\u200b'))}</b><small>${W('客', 'Away')}</small></div><span class="vs num">${g.score ? `${g.score.away} : ${g.score.home}` : 'vs'}</span><div>${logoImg(g.home, 'big', g)}<b>${esc(sideName(g, 'home').replace(/\//g, '/\u200b'))}</b><small>${W('主', 'Home')}</small></div></div>
-    <div class="q-seg kinds">${(sets ? Object.keys(SET_TABS) : [...Object.keys(KINDS), 'more'])
+  el.innerHTML = `<div class="matchup q-kb-hide"><div>${logoImg(g.away, 'big', g)}<b>${esc(sideName(g, 'away').replace(/\//g, '/\u200b'))}</b><small>${W('客', 'Away')}</small></div><span class="vs num">${g.score ? `${g.score.away} : ${g.score.home}` : 'vs'}</span><div>${logoImg(g.home, 'big', g)}<b>${esc(sideName(g, 'home').replace(/\//g, '/\u200b'))}</b><small>${W('主', 'Home')}</small></div></div>
+    <div class="q-seg kinds q-kb-hide">${(sets ? Object.keys(SET_TABS) : [...Object.keys(KINDS), 'more'])
       .map((k, i) => `<button type="button" data-k="${k}" aria-pressed="${i === 0}">${sets ? SET_TABS[k] : k === 'more' ? W('更多', 'More') : kindName(k)}</button>`)
       .join('')}</div>
     <div class="pk-body"></div>`;
@@ -1748,8 +1748,8 @@ function pickSheet(g, add) {
       <div class="sides" style="--n:${wide ? 3 : 2}">${sec.options
         .map((x, j) => `<button type="button" data-opt="${j}" aria-pressed="${x === o}"><b>${esc(pickText({ ...x.leg, game: g }))}</b><small class="num">${W(`${est ? '估 ' : ''}運彩約`, `${est ? 'est. ' : ''}lottery ~`)} ${odds2(x.est)}</small></button>`)
         .join('')}</div>
-      <label class="field"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${o ? odds2(o.est) : '1.75'}" value="${esc(pick.odds)}"></label>
-      <small class="od-note" ${o ? '' : 'hidden'}>${o ? W(`不記得就留空：用估計的 ${odds2(o.est)}，標「估」`, `Don’t remember? Leave it: est. ${odds2(o.est)}, marked est.`) : ''}</small>
+      <label class="field q-kb-hide"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${o ? odds2(o.est) : '1.75'}" value="${esc(pick.odds)}"></label>
+      <small class="od-note q-kb-hide" ${o ? '' : 'hidden'}>${o ? W(`不記得就留空：用估計的 ${odds2(o.est)}，標「估」`, `Don’t remember? Leave it: est. ${odds2(o.est)}, marked est.`) : ''}</small>
       <div class="price">${priceTags(est, chance)}</div>
       <button class="q-btn primary large block" type="button" data-add ${ready() ? '' : 'disabled'}>${W('加入注單', 'Add to ticket')}</button>`;
     pick.guess = o?.est ?? null;
@@ -1778,15 +1778,15 @@ function pickSheet(g, add) {
     const chosen = pick.side ? chanceOf(pick.side) : null;
     const guess = (pick.guess = chosen ? Math.round(lotteryOdds(chosen.win + chosen.push / 2, three && pick.kind === 'ml') * 100) / 100 : null);
     box.innerHTML = `
-      ${line ? `<label class="field"><span>${line[0]}</span><input class="line num" data-line="${line[2]}" inputmode="decimal" value="${signedLine(pick.kind, line[1])}"><span class="step">${isHcap(pick.kind) ? `<button type="button" data-flip aria-label="${W('正負', 'Flip')}">±</button>` : ''}<button type="button" data-l="-0.5">−</button><button type="button" data-l="0.5">＋</button></span></label>` : ''}
+      ${line ? `<label class="field q-kb-hide"><span>${line[0]}</span><input class="line num" data-line="${line[2]}" inputmode="decimal" value="${signedLine(pick.kind, line[1])}"><span class="step">${isHcap(pick.kind) ? `<button type="button" data-flip aria-label="${W('正負', 'Flip')}">±</button>` : ''}<button type="button" data-l="-0.5">−</button><button type="button" data-l="0.5">＋</button></span></label>` : ''}
       <div class="sides" style="--n:${sides.length}">${sides
         .map(([k, t]) => {
           const c = chanceOf(k);
           return `<button type="button" data-side="${k}" aria-pressed="${pick.side === k}"><b>${esc(t)}</b>${c ? `<small class="num">${W(`${est ? '估 ' : ''}運彩約`, `${est ? 'est. ' : ''}lottery ~`)} ${odds2(lotteryOdds(c.win + c.push / 2, three && pick.kind === 'ml'))}</small>` : ''}</button>`;
         })
         .join('')}</div>
-      <label class="field"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess > 1 ? odds2(guess) : '1.75'}" value="${esc(pick.odds)}"></label>
-      <small class="od-note" ${guess > 1 ? '' : 'hidden'}>${W(`不記得就留空：用估計的 ${odds2(guess)}，標「估」`, `Don’t remember? Leave it: est. ${odds2(guess)}, marked est.`)}</small>
+      <label class="field q-kb-hide"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess > 1 ? odds2(guess) : '1.75'}" value="${esc(pick.odds)}"></label>
+      <small class="od-note q-kb-hide" ${guess > 1 ? '' : 'hidden'}>${W(`不記得就留空：用估計的 ${odds2(guess)}，標「估」`, `Don’t remember? Leave it: est. ${odds2(guess)}, marked est.`)}</small>
       <div class="price">${priceTags(est)}</div>
       <button class="q-btn primary large block" type="button" data-add ${pick.side && (Number(pick.odds) > 1 || guess > 1) ? '' : 'disabled'}>${W('加入注單', 'Add to ticket')}</button>`;
     const od = $('.od', box);
@@ -1891,7 +1891,7 @@ function pickF1Sheet(g, add) {
   const el = document.createElement('div');
   el.className = 'pk';
   const sub = isChamp(g) ? statusOf(g).text : `${when(g.start).day} ${when(g.start).time}`;
-  el.innerHTML = `<div class="race-head">${tile(SPORTS.racing.svg, SPORTS.racing.color, 'lg')}<b>${esc(raceText(g))}</b><small>${esc(sub)}</small></div><div class="pk-body"></div>`;
+  el.innerHTML = `<div class="race-head q-kb-hide">${tile(SPORTS.racing.svg, SPORTS.racing.color, 'lg')}<b>${esc(raceText(g))}</b><small>${esc(sub)}</small></div><div class="pk-body"></div>`;
   const s = kitSheet({ title: W('選擇冠軍車手', 'Pick the winner'), body: [el], cls: 'sl-app sl-sheet', closeLabel: W('關閉', 'Close') });
   // Odds left blank: the estimate from the season's points, marked 估.
   const guess = () => (pick.driver ? f1Guess(g, pick.driver) : null);
@@ -1905,8 +1905,8 @@ function pickF1Sheet(g, add) {
             return `<button class="q-ritem driver" type="button" data-dv="${esc(d.name)}" aria-pressed="${on}">${driverFace(g, d.name)}<span class="q-ritem-text"><span class="q-ritem-title">${esc(driverName(d.name))}</span></span>${on ? icon('check') : ''}</button>`;
           })
           .join('')}</div>
-      <label class="field"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess() > 1 ? odds2(guess()) : W('選車手', 'Pick a driver')}" value="${esc(pick.odds)}"></label>
-      <small class="od-note" ${guess() > 1 && !pick.odds ? '' : 'hidden'}>${guess() > 1 ? W(`不記得就留空：用估計的 ${odds2(guess())}，標「估」`, `Don’t remember? Leave it: est. ${odds2(guess())}, marked est.`) : ''}</small>
+      <label class="field q-kb-hide"><span>${W('注單賠率', 'Ticket odds')}</span><input class="od num" inputmode="decimal" placeholder="${guess() > 1 ? odds2(guess()) : W('選車手', 'Pick a driver')}" value="${esc(pick.odds)}"></label>
+      <small class="od-note q-kb-hide" ${guess() > 1 && !pick.odds ? '' : 'hidden'}>${guess() > 1 ? W(`不記得就留空：用估計的 ${odds2(guess())}，標「估」`, `Don’t remember? Leave it: est. ${odds2(guess())}, marked est.`) : ''}</small>
       <div class="price"></div>
       <button class="q-btn primary large block" type="button" data-add ${ready() ? '' : 'disabled'}>${W('加入注單', 'Add to ticket')}</button>`
       : `<div class="note">${W('還沒有這場的車手名單', 'No field for this race yet')}</div>`;

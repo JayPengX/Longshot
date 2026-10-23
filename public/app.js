@@ -1981,8 +1981,8 @@ function renderParlay() {
   // The bet panel, docked at the sheet's foot (Jay 2026-10-22, "redesign"):
   // what's staked and what it pays side by side, the quick amounts, the one
   // button; the balance on the panel's top line. Typing the stake, the slip
-  // becomes this panel alone at the top of the screen (slipTyping), clear of
-  // the iPhone's keys and their ^ ˅ ✓ bar however tall they are.
+  // is this panel alone, right above the iPhone's keys and their ^ ˅ ✓ bar
+  // (styles.css, on the kit's html.q-kb).
   const totals = sizes.length && cost > 0 ? payoutTotals({ legs: slip, sizes, stake, mode }) : null;
   const money = funds();
   const stakeInput = el('input', {
@@ -2005,9 +2005,7 @@ function renderParlay() {
       // Redraw after the event: redrawing removes this input, and removing a
       // focused input fires another change while the first is still running.
       setTimeout(rerender);
-    },
-    onfocus: () => slipTyping(true),
-    onblur: () => setTimeout(() => document.activeElement?.closest?.('.sl-stake-box') || slipTyping(false))
+    }
   });
   numberField(stakeInput, { digits: 6 });
   // (A tap on the panel's buttons keeps the keys up: the field stays focused.)
@@ -2071,35 +2069,6 @@ function placeModes(body, modes) {
   const had = head.querySelector(':scope > .sl-modes');
   if (!modes) return void had?.remove();
   had ? had.replaceWith(modes) : head.append(modes);
-}
-// Typing the stake: the slip is its bet panel alone, at the top of what's
-// seen (visualViewport: where iOS slid the screen to), its other parts back
-// when the keys go and the slip from its top again.
-let typingWatch = null;
-function slipTyping(on) {
-  const dialog = $('slip-sheet');
-  if (!dialog) return;
-  const vv = globalThis.visualViewport;
-  if (on) {
-    const place = () => dialog.style.setProperty('--sl-top', `${Math.max(0, Math.round(vv?.offsetTop || 0))}px`);
-    place();
-    if (vv && !typingWatch) {
-      typingWatch = place;
-      vv.addEventListener('resize', place);
-      vv.addEventListener('scroll', place);
-    }
-    dialog.classList.add('sl-typing');
-    return;
-  }
-  if (typingWatch && vv) {
-    vv.removeEventListener('resize', typingWatch);
-    vv.removeEventListener('scroll', typingWatch);
-  }
-  typingWatch = null;
-  if (!dialog.classList.contains('sl-typing')) return;
-  dialog.classList.remove('sl-typing');
-  dialog.style.removeProperty('--sl-top');
-  dialog.scrollTop = 0;
 }
 let stakeTimer = 0;
 let flashTimer = 0;

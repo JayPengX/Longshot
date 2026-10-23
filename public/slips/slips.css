@@ -7,7 +7,6 @@
 
 /* ---- Frame ---- */
 .sl-app {
-  margin: 0;
   font: var(--q-t-body);
   -webkit-user-select: none;
   user-select: none;
@@ -591,6 +590,27 @@
 .sl-app .save-bar[hidden],
 .save-bar[hidden].sl-app {
   display: none;
+}
+/* Typing (core.css: what's .q-kb-hide waits behind the keys): the stake,
+   with what the ticket costs and pays; a game searched, its results alone;
+   a winner's odds, the driver picked alone. */
+html.q-kb .sl-app .add:has(.pick-games:focus-within) :is(.dr, .save-bar),
+html.q-kb .sl-app .add .sums > .q-stat:nth-child(n + 3),
+html.q-kb .sl-app .drivers > .driver:not([aria-pressed='true']) {
+  display: none;
+}
+html.q-kb .sl-app .add {
+  min-height: 0;
+}
+html.q-kb .sl-app .add .save-bar {
+  margin-top: 0;
+  padding-top: 8px;
+}
+/* (A short screen in 組合, its sizes a row more: the stake and its sizes alone.) */
+@media (max-height: 740px) {
+  html.q-kb .sl-app .add .dr:has(.sizes) .sums {
+    display: none;
+  }
 }
 
 /* Picking the bet on one game. */
