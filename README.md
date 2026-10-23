@@ -115,7 +115,7 @@ account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
 - Open sign-up (開新帳號, rate-limited); a 10-character 通行碼 is the only key,
   shown once. Sign out others, a new 通行碼, sign out here.
 - Money, sized like a real 運彩 customer's budget so a loss is felt and
-  nothing invites chasing it: NT$10,000 to open, NT$5,000 on the 1st of each
+  nothing invites chasing it: NT$30,000 to open, NT$10,000 on the 1st of each
   month (Taiwan time), paid by the Worker. Broke waits for the 1st (no relief
   or top-up); a ticket is still 台灣運彩's NT$100–100,000. Only the Worker adds money.
 - 真相: the house's edge for 1 to 7 legs, your bets' and tickets' payback,

@@ -78,13 +78,13 @@ export function emptyWallet(now = Date.now()) {
 // ---- The money: an opening and a monthly deposit --------------------------------------
 //
 // Sized like a real 運彩 customer's budget, not a jackpot: a new pass opens
-// with NT$10,000 (`pass:start`), and the Worker deposits NT$5,000 on the 1st
+// with NT$30,000 (`pass:start`), and the Worker deposits NT$10,000 on the 1st
 // of each Taiwan month (`pass:pay:<YYYY-MM>`): on the first sign-in, refresh
 // or save that month; a month nobody opened the app is paid the next time
 // (so staying away costs nothing and coming back earns nothing). The month
 // the pass was made pays nothing more: its opening is that month's money.
 // Broke is broke until the 1st: no relief, no top-up.
-export const PAY = { start: 10_000, month: 5_000 };
+export const PAY = { start: 30_000, month: 10_000 };
 const TPE = 8 * 3_600_000;
 // The 1st 00:00 (Taiwan) of the month of `t`.
 export function monthStart(t) {

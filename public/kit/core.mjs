@@ -1377,9 +1377,9 @@ export function money(x, { sign = false, cents = false } = {}) {
 
 const TPE = 8 * 3_600_000;
 export const taipeiDay = (t = Date.now()) => twDay(t);
-// The monthly deposit (NT$5,000, the Worker pays it): its amount and next day,
+// The monthly deposit (NT$10,000, the Worker pays it): its amount and next day,
 // the 1st of next month at 00:00 Taiwan time.
-export const MONTHLY = 5_000;
+export const MONTHLY = 10_000;
 export function nextPayday(now = Date.now()) {
   const day = new Date(now + TPE);
   return Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 1, 1) - TPE;

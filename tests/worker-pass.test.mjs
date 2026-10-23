@@ -60,14 +60,14 @@ async function newPass(t, app = 'odds') {
 }
 const claimsOf = token => JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString());
 
-test('a handed-out pass: signed in and live, with NT$10,000 and nothing else', async () => {
+test('a handed-out pass: signed in and live, with NT$30,000 and nothing else', async () => {
   const t = setup();
   const acct = await newPass(t);
   assert.match(acct.passcode, /^[2-9A-HJ-NP-Z]{10}$/);
   assert.ok(acct.token && acct.refresh);
   assert.equal(acct.active, true);
   assert.equal(acct.pool, PAY.start);
-  assert.deepEqual(acct.wallet.entries.map(e => [e.id, e.app, e.amount]), [['pass:start', 'pass', 10_000]]);
+  assert.deepEqual(acct.wallet.entries.map(e => [e.id, e.app, e.amount]), [['pass:start', 'pass', 30_000]]);
   assert.equal(acct.wallet.sec, undefined);
   // The pass itself is never stored: only its hash, which names the account.
   assert.ok(![...t.store.keys()].some(k => k.includes(acct.passcode)));
@@ -203,13 +203,13 @@ test('sign out everywhere: every earlier token stops working', async () => {
   assert.equal((await t.call('POST', '', { op: 'login', passcode: acct.passcode, app: 'odds' })).status, 200);
 });
 
-test('payday: NT$5,000 on the 1st of each Taiwan month after the month the pass was made, back pay included', () => {
+test('payday: NT$10,000 on the 1st of each Taiwan month after the month the pass was made, back pay included', () => {
   const pays = (w, now) => paydayEntries(w, now).filter(e => e.kind === 'pay').map(e => e.id);
   // Made on 10/21: its own month is the opening money's.
   const made = Date.UTC(2026, 9, 21, 3);
   assert.deepEqual(pays({ created: made, entries: [] }, made), []);
   assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 10, 3, 3)), ['pass:pay:2026-11']);
-  assert.equal(paydayEntries({ created: made, entries: [] }, Date.UTC(2026, 10, 3, 3)).find(e => e.kind === 'pay').amount, 5_000);
+  assert.equal(paydayEntries({ created: made, entries: [] }, Date.UTC(2026, 10, 3, 3)).find(e => e.kind === 'pay').amount, 10_000);
   // Back pay: every month nobody opened the app, paid the next time (no
   // reward for coming back, no loss for staying away).
   assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2027, 0, 10, 3)), ['pass:pay:2026-11', 'pass:pay:2026-12', 'pass:pay:2027-01']);

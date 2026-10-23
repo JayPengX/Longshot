@@ -85,8 +85,8 @@ break it and say so in a line.
 - **Test against real data through the dev door,** not by signing in: the
   deployed Worker answers `Origin: http://localhost:<port>` with no pass.
 - **Secrets** live only as GitHub or Cloudflare secrets, never in a repo.
-- **The money:** only the Worker adds money (the opening NT$10,000 and
-  NT$5,000 on the 1st of each month; nothing when a balance hits zero). Close any exploit with a test that tries it.
+- **The money:** only the Worker adds money (the opening NT$30,000 and
+  NT$10,000 on the 1st of each month; nothing when a balance hits zero). Close any exploit with a test that tries it.
 - **No hooks.** The owner found the app addictive: no push notices, loans,
   levels, streak rewards or anything that pulls people back.
 
