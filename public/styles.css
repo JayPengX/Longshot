@@ -1105,3 +1105,11 @@ html.q-kb #slip-sheet .sl-sum b { color: var(--q-label); font: 700 15px/1.2 var(
 .sc-step-hint small { color: var(--lotto); font: 700 12px/1.2 var(--q-font); }
 :root[data-theme='dark'] .sc-step-hint small { color: color-mix(in srgb, var(--lotto) 55%, #fff); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .sc-step-hint small { color: color-mix(in srgb, var(--lotto) 55%, #fff); } }
+/* The coin's sound, on or off (scratch-sound.js): a small speaker in the bar while it's played. */
+.sc-sound { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label); }
+.sc-sound svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sc-sound svg path:first-child { fill: currentColor; }
+.sc-sound.off { color: var(--q-label-2); }
+/* Just scratched: what it won, quietly, beside 繼續. */
+.sc-step-result { font: 700 16px/1.25 var(--q-font); color: var(--q-label-2); }
+.sc-step-result.won { color: var(--good); }
