@@ -13,7 +13,7 @@ export const STRINGS = {
     moreMarkets: '更多玩法',
     gameGone: '這場比賽已不在投注板上。',
     legendOdds: '估計賠率',
-    title: '冷門',
+    title: 'Longshot',
     tab_home: '首頁',
     tab_lottery: '彩券',
     tab_slips: '注單',

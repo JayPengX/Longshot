@@ -44,7 +44,7 @@ export function everyDev(key, fn) {
   return () => ((stopped = true), clearTimeout(timer));
 }
 // The app, as the screens name it.
-export const APP = { id: 'odds', name: 'Longshot', short: '冷門', color: '#047857' };
+export const APP = { id: 'odds', name: 'Longshot', color: '#047857' };
 
 // ---- Language ------------------------------------------------------------------------
 
@@ -107,11 +107,12 @@ export const readJson = (key, fallback) => {
   }
 };
 
-// The signed-in account's id on this device (the first 16 characters of
-// the pass's hash, from the refresh token), '' when signed out.
+// The signed-in account's id on this device (16 letters and digits, from
+// the refresh token), '' when signed out. (It checked for 16 hex digits,
+// which a Longshot id never is: every app start looked signed out.)
 export function storedAccount() {
   const id = readStore(KEY.account) || '';
-  return /^[0-9a-f]{16}$/.test(id) && readStore(KEY.refresh) ? id : '';
+  return /^[0-9A-Za-z]{16}$/.test(id) && readStore(KEY.refresh) ? id : '';
 }
 function accountOf(refresh) {
   try {
@@ -1510,7 +1511,7 @@ const ERR = {
 export const errorText = (error, lang) => {
   const e = ERR[error?.code];
   if (e) return lang === 'en' ? e[1] : e[0];
-  return lang === 'en' ? 'Couldn’t reach Longshot. Check the connection and try again.' : '無法連線到冷門，請檢查網路後再試一次。';
+  return lang === 'en' ? 'Couldn’t reach Longshot. Check the connection and try again.' : '無法連線到 Longshot，請檢查網路後再試一次。';
 };
 
 // The account's own screens (sign-in, install, "in use elsewhere") always
@@ -1590,7 +1591,7 @@ function signInGate(s) {
     const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true' }, [
       node('div', { class: 'q-gate-box' }, [
         node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
-        node('h1', { class: 'q-gate-title', text: en ? APP.name : `${APP.short} ${APP.name}` }),
+        node('h1', { class: 'q-gate-title', text: APP.name }),
         node('p', { class: 'q-gate-lede', text: en ? 'Sports bets and the lottery on play money, and your real 運彩 tickets followed live.' : '用虛擬幣玩運彩與彩券，也即時追蹤你買的運彩注單。' }),
         form
       ])
@@ -1825,7 +1826,7 @@ export function installGate(lang = detectLang()) {
   if (installCovered) return true;
   installCovered = true;
   const en = lang === 'en';
-  const name = en ? APP.name : APP.short;
+  const name = APP.name;
   const steps = inAppBrowser()
     ? en
       ? ['Open this page in Safari (iPhone) or Chrome (Android): tap ⋯ and “Open in browser”.', 'Then add it to your home screen.']
@@ -1833,14 +1834,14 @@ export function installGate(lang = detectLang()) {
     : isIOS()
       ? en
         ? ['Tap Share (the square with an arrow) in Safari.', 'Choose “Add to Home Screen”, then “Add”.', `Open ${name} from its new icon.`]
-        : ['點 Safari 的「分享」（方框加箭頭）。', '選「加入主畫面」，再點「新增」。', `從主畫面的新圖示打開${name}。`]
+        : ['點 Safari 的「分享」（方框加箭頭）。', '選「加入主畫面」，再點「新增」。', `從主畫面的新圖示打開 ${name}。`]
       : en
         ? ['Tap ⋮ at the top right of Chrome.', 'Choose “Add to Home screen” (or “Install app”).', `Open ${name} from its new icon.`]
-        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」或「安裝應用程式」。', `從主畫面的新圖示打開${name}。`];
+        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」或「安裝應用程式」。', `從主畫面的新圖示打開 ${name}。`];
   const gate = node('dialog', { class: 'q-gate q-install', 'aria-modal': 'true' }, [
     node('div', { class: 'q-gate-box' }, [
       node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
-      node('h1', { class: 'q-gate-title', text: en ? `Add ${name} to your home screen` : `把${name}加入主畫面` }),
+      node('h1', { class: 'q-gate-title', text: en ? `Add ${name} to your home screen` : `把 ${name} 加入主畫面` }),
       node(
         'ol',
         { class: 'q-steps' },

@@ -210,7 +210,7 @@ export function shareText(slip, v) {
   });
   const head = `${modeName(slip.mode, slip.legs, slip.sizes, en)} · ${money(v.pre.cost)}`;
   const tail = v.done ? (v.status === 'refund' ? W(`退款 ${money(v.paid.net)}`, `Refunded: ${money(v.paid.net)}`) : v.paid.gross > 0 ? W(`中獎，實拿 ${money(v.paid.net)}`, `Won: ${money(v.paid.net)} after tax`) : W('未中獎', 'Lost')) : W(`全中可得 ${money(v.pre.best.net)} · 現在價值 ${money(v.now.net)}`, `Pays ${money(v.pre.best.net)} if all win · worth ${money(v.now.net)} now`);
-  return `${W('我的運彩注單', 'My ticket')}：${head}\n${lines.join('\n')}\n${tail}\n— Longshot 冷門`;
+  return `${W('我的運彩注單', 'My ticket')}：${head}\n${lines.join('\n')}\n${tail}\n— Longshot`;
 }
 
 // How a live pick stands on the score, in a line under its scoreboard:

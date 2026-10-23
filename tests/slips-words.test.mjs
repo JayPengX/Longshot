@@ -70,7 +70,7 @@ test('a ticket shared as words: each pick marked with its score, what it pays', 
   assert.equal(lines[1], '✓ 塞爾提克 勝 @1.80（尼克 @ 塞爾提克 100–110）');
   assert.equal(lines[2], '● 大 210.5 @1.90（尼克 @ 塞爾提克 12–10）');
   assert.match(lines[3], /^全中可得 NT\$342 · 現在價值 NT\$\d+/);
-  assert.equal(lines.at(-1), '— Longshot 冷門');
+  assert.equal(lines.at(-1), '— Longshot');
   const lost = { ...slip, legs: [{ ...slip.legs[0], side: 'away' }, slip.legs[1]] };
   assert.equal(shareText(lost, slipView(lost)).split('\n')[3], '未中獎');
 });

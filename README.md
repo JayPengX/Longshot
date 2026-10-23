@@ -1,4 +1,4 @@
-# Longshot · 冷門
+# Longshot
 
 A Taiwan sportsbook and Taiwan Lottery's games on play money, and the real
 台灣運彩 tickets you bought, followed live. It prices and settles like a

@@ -54,9 +54,9 @@ const ERRORS = {
   UNKNOWN_APP: ['Unknown app', '未知的應用程式'],
   UNKNOWN_OP: ['Unknown operation', '未知的操作'],
   TOKEN_INVALID: ['Your sign-in has expired. Signing in again…', '登入已過期，正在重新登入…'],
-  SIGNED_OUT: ['This device was signed out. Sign in with your Longshot Pass.', '這台裝置已登出，請用冷門通行證登入。'],
-  SESSION_MOVED: ['Longshot is open on another device.', '冷門正在另一台裝置使用中。'],
-  PASS_REQUIRED: ['Sign in with your Longshot Pass.', '請用冷門通行證登入。'],
+  SIGNED_OUT: ['This device was signed out. Sign in with your Longshot Pass.', '這台裝置已登出，請用 Longshot Pass 登入。'],
+  SESSION_MOVED: ['Longshot is open on another device.', 'Longshot 正在另一台裝置使用中。'],
+  PASS_REQUIRED: ['Sign in with your Longshot Pass.', '請用 Longshot Pass 登入。'],
   NOT_FOUND: ['Not found', '找不到此路徑。'],
   WORKER_FAILED: ['Something went wrong. Please try again.', '發生錯誤，請再試一次。']
 };

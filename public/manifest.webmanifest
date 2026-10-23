@@ -1,6 +1,6 @@
 {
-  "name": "Longshot · 冷門",
-  "short_name": "冷門",
+  "name": "Longshot",
+  "short_name": "Longshot",
   "description": "運彩與彩券的模擬下注，加上你真的買的運彩注單：每一注的數學都看得見。",
   "lang": "zh-Hant-TW",
   "start_url": "./",

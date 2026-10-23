@@ -2607,6 +2607,7 @@ dialog.q-moved::backdrop {
 }
 .q-hero-top {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
@@ -2617,6 +2618,7 @@ dialog.q-moved::backdrop {
 }
 .q-hero-brand {
   font-weight: 800;
+  white-space: nowrap;
 }
 .q-hero-no {
   letter-spacing: 0.08em;
@@ -2784,6 +2786,8 @@ dialog {
 .q-pass .pad { padding: 14px; }
 .q-pass .q-card + .q-card { margin-top: 12px; }
 .q-pass .q-card.list { padding: 0; overflow: hidden; }
+.q-pass .q-card.list.q-recent { padding: 2px 16px; }
+.q-pass .q-sheet-h { margin: 22px 0 8px; }
 .q-pass .section-sub { color: var(--q-muted); font-size: 13px; margin: -6px 0 10px; }
 .q-pass .q-btn.ghost { background: none; border-color: transparent; }
 .q-pass .q-btn.block { width: 100%; }
@@ -2793,7 +2797,7 @@ dialog {
 .q-pass .q-chips.small .q-chip { min-height: 30px; padding: 0 12px; font-size: 13px; }
 
 .q-pass .looks { display: grid; gap: 10px; }
-/* ---- Truth ---- */
+/* (Its own layout, whatever a page's own .facts is.) */
 /* (Its own layout, whatever an app's own .facts is: Orbit Sports' is a two-column grid.) */
 .q-pass .facts { display: block; grid-template-columns: none; gap: 0; margin: 0; padding: 0; list-style: none; font-size: inherit; color: inherit; }
 .q-pass .facts .t-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--q-divider, var(--q-border)); }
@@ -2810,10 +2814,17 @@ dialog {
 
 /* 除錯紀錄: its buttons under the switch, and a small red dot at the top while recording. */
 .q-rec-acts {
-  display: flex;
-  flex-wrap: wrap;
+  /* One row of three at any width (清除 sat alone on a second row at 320 px). */
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   padding: 2px 14px 12px;
+}
+.q-rec-acts .q-chip {
+  justify-content: center;
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
 }
 html.q-recording body::after {
   content: '';

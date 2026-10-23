@@ -1,4 +1,4 @@
-# Working on Longshot · 冷門
+# Working on Longshot
 
 Read `docs/TRUTH.md` first (one page: how the owner works and what matters).
 The README is this repo's map.
