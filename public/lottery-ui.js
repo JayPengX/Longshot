@@ -1126,6 +1126,8 @@ export function mountLottery(ctx) {
     const net = prizeOf(list) - costOf(list);
     return el('span', { class: `lt-net num out-${net > 0 ? 'up' : net < 0 ? 'down' : 'none'}`, text: money(net, { sign: true }) });
   };
+  // (Three figures side by side at 320 px: each shrinks to its third, never runs into the next.)
+  const fitted = node => (node.classList.add('q-fit'), node);
   function myTickets() {
     const tickets = ctx.getAccount().tickets || [];
     if (!tickets.length) return kitUI.empty({ title: t('noTickets') });
@@ -1136,9 +1138,9 @@ export function mountLottery(ctx) {
       // The whole record: paid, won, net, every ticket drawn.
       done.length
         ? el('div', { class: 'lotto-summary' }, [
-            el('span', { class: 'lotto-fig' }, [el('small', { text: t('paidSum') }), el('strong', { class: 'num', text: money(costOf(done)) })]),
-            el('span', { class: 'lotto-fig' }, [el('small', { text: t('wonTotal') }), el('strong', { class: 'num', text: money(prizeOf(done)) })]),
-            el('span', { class: 'lotto-fig' }, [el('small', { text: t('netSum') }), netChip(done)])
+            el('span', { class: 'lotto-fig' }, [el('small', { text: t('paidSum') }), el('strong', { class: 'num q-fit', text: money(costOf(done)) })]),
+            el('span', { class: 'lotto-fig' }, [el('small', { text: t('wonTotal') }), el('strong', { class: 'num q-fit', text: money(prizeOf(done)) })]),
+            el('span', { class: 'lotto-fig' }, [el('small', { text: t('netSum') }), fitted(netChip(done))])
           ])
         : null,
       open.length ? el('p', { class: 'lotto-h', text: t('waiting') }) : null,
