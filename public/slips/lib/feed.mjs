@@ -6,14 +6,14 @@
 import { teamNameZh } from '../../kit/names.mjs';
 import { twDay, addDays } from '../../kit/format.mjs';
 import { parseTsdbDay as kitTsdbDay, asiaMonth as kitAsiaMonth, ASIA_URL as ASIA } from '../../kit/catalog.mjs';
-import { ESPN, KAMBI, kambiUrl as kambiList, kambiLiveDataUrl as kambiLiveUrl, soccerGoals, voidAt, runOrder, touchdowns, teamCorners, parseKambiLiveData, decidedTeamGame, kambiSets, setOver, kambiUnresolvable } from '../../kit/settle.mjs';
+import { ESPN, KAMBI, kambiUrl as kambiList, kambiLiveDataUrl as kambiLiveUrl, soccerGoals, voidAt, runOrder, touchdowns, teamCorners, parseKambiLiveData, decidedTeamGame, kambiUnresolvable } from '../../kit/settle.mjs';
 import { marketOf, marketOfPickcenter, devig } from './model.mjs';
 import { parseF1Season, parseF1Standings, f1Championship, f1Live, isChamp, sameDriver } from './f1.mjs';
 
 // The leagues the lottery sells that a slip can follow (Shared-Proxy/kit/
 // catalog.mjs's, those with live scores to read).
 const espn = (sport, path, zh, en = zh) => ({ sport, data: 'espn', path, zh, en });
-const kambi = (sport, path, zh, en, only = null) => ({ sport, data: 'kambi', kambi: path, zh, en, ...(only ? { only } : {}) });
+const kambi = (sport, path, zh, en) => ({ sport, data: 'kambi', kambi: path, zh, en });
 export const LEAGUES = {
   mlb: espn('baseball', 'baseball/mlb', 'MLB'),
   cpbl: { sport: 'baseball', data: 'asia', zh: '中職', en: 'CPBL' },
@@ -56,19 +56,9 @@ export const LEAGUES = {
   worldcup: espn('soccer', 'soccer/fifa.world', '世界盃', 'World Cup'),
   // From Kambi's lists (the odds feed behind Play's EuroLeague and K League):
   // its matches to come and on, each settled from its live data once over.
-  // The set sports only where 運彩 sells them (the tours, not the
-  // satellites: `only` the competitions' Kambi paths).
   euroleague: kambi('basketball', 'basketball/euroleague', '歐洲籃球', 'EuroLeague'),
-  kleague: kambi('soccer', 'football/south_korea/k-league_1', '韓K聯', 'K League 1'),
-  tennis: kambi('tennis', 'tennis', '網球', 'Tennis', /^(atp|wta|grand_slam|australian_open|french_open|wimbledon|us_open|davis_cup|billie_jean|united_cup|olympic)/),
-  // (Volleyball: the leagues and cups 運彩 sells, not every country's.)
-  volleyball: kambi('volleyball', 'volleyball', '排球', 'Volleyball', /^(italy\/(serie_a1|superlega)|poland\/(plusliga|tauron)|japan|turkey|brazil|south_korea|korea|champions_league(__w_)?$|world|vnl|nations_league|olympic)/),
-  badminton: kambi('badminton', 'badminton', '羽球', 'Badminton'),
-  tabletennis: kambi('tabletennis', 'table_tennis', '桌球', 'Table tennis', /^(wtt|ittf|world|olympic)/)
+  kleague: kambi('soccer', 'football/south_korea/k-league_1', '韓K聯', 'K League 1')
 };
-// The set sports (won in sets: its score the sets each side has won).
-export const SET_SPORTS = new Set(['tennis', 'volleyball', 'badminton', 'tabletennis']);
-export const isSetSport = league => SET_SPORTS.has(LEAGUES[league]?.sport);
 
 export const PROXY = 'https://longshot.pengzjay.workers.dev';
 const F1_LIVE = 'https://f1-live.longshot/';
@@ -159,9 +149,6 @@ export function parseEspn(data, league) {
 
 // ---- Kambi -------------------------------------------------------------------
 
-// The kit's league a Kambi match is settled as (settle.mjs decidedTeamGame):
-// its own, a set sport's by the sport.
-const kambiKey = league => (SET_SPORTS.has(LEAGUES[league]?.sport) ? LEAGUES[league].sport : league);
 // The whole match's prices, the margin out, as marketOf's: its winner (the
 // draw too, soccer's), and for a team sport its handicap (the home line) and total.
 const kOdds = o => (o?.odds > 1000 ? 1 / (o.odds / 1000) : null);
@@ -176,65 +163,36 @@ export function kambiMarket(offers, sport) {
     const fair = devig(sides.map(t => kOdds(pick(match, t))));
     if (fair) out.win = sport === 'soccer' ? { home: fair[0], draw: fair[1], away: fair[2] } : { home: fair[0], away: fair[1] };
   }
-  if (!SET_SPORTS.has(sport)) {
-    const hc = offers.find(o => whole(o, 'Handicap'));
-    const home = pick(hc, 'OT_ONE');
-    const fh = hc && devig([kOdds(home), kOdds(pick(hc, 'OT_TWO'))]);
-    if (fh && home?.line != null) out.spread = { line: home.line / 1000, home: fh[0] };
-    const ou = offers.find(o => whole(o, 'Over/Under'));
-    const over = pick(ou, 'OT_OVER');
-    const fo = ou && devig([kOdds(over), kOdds(pick(ou, 'OT_UNDER'))]);
-    if (fo && over?.line != null) out.total = { line: over.line / 1000, over: fo[0] };
-  }
+  const hc = offers.find(o => whole(o, 'Handicap'));
+  const home = pick(hc, 'OT_ONE');
+  const fh = hc && devig([kOdds(home), kOdds(pick(hc, 'OT_TWO'))]);
+  if (fh && home?.line != null) out.spread = { line: home.line / 1000, home: fh[0] };
+  const ou = offers.find(o => whole(o, 'Over/Under'));
+  const over = pick(ou, 'OT_OVER');
+  const fo = ou && devig([kOdds(over), kOdds(pick(ou, 'OT_UNDER'))]);
+  if (fo && over?.line != null) out.total = { line: over.line / 1000, over: fo[0] };
   return Object.keys(out).length ? out : null;
 }
 // A Kambi match as it stands from its live data (parseKambiLiveData's):
-// a set sport's score its sets won (each set's games or points its
-// periods), a team sport's its score; over once the kit's decidedTeamGame
+// its score; over once the kit's decidedTeamGame
 // says so (`ended`: Kambi has dropped it, the last copy kept).
 export function kambiState(g, live, now = Date.now(), ended = false) {
   if (!live) return g;
-  const done = decidedTeamGame(live, kambiKey(g.league), g.start, new Date(now), { ended });
+  const done = decidedTeamGame(live, g.league, g.start, new Date(now), { ended });
   if (done) return { ...g, state: 'post', score: { home: done.homeScore, away: done.awayScore }, periods: { home: done.homeInnings, away: done.awayInnings } };
-  if (SET_SPORTS.has(LEAGUES[g.league].sport)) {
-    const sets = kambiSets(live);
-    if (!sets) return { ...g, state: 'in' };
-    let home = 0;
-    let away = 0;
-    sets.home.forEach((h, i) => {
-      const a = sets.away[i];
-      if ((i < sets.home.length - 1 || setOver(LEAGUES[g.league].sport, i, sets.bestOf, h, a)) && h !== a) h > a ? home++ : away++;
-    });
-    return { ...g, state: 'in', score: { home, away }, periods: { home: sets.home, away: sets.away }, period: sets.home.length };
-  }
   return { ...g, state: 'in', score: live.score, periods: live.periods, period: live.periods.home.length };
 }
-// A player (a pair) short: the surname, each partner's ("Diaz Acosta/Tirante" as Acosta/Tirante).
-const surnames = name =>
-  String(name)
-    .split('/')
-    .map(p => p.trim().split(/\s+/).at(-1))
-    .join('/');
 // Kambi's list as games: its matches to come and on (one over leaves it
-// soon after), those of the competitions 運彩 sells (`only`).
+// soon after).
 export function parseKambi(data, league, now = Date.now()) {
   const l = LEAGUES[league];
-  const set = SET_SPORTS.has(l.sport);
   return (data?.events || [])
     .flatMap(({ event: e, betOffers = [], liveData }) => {
       if (!e?.homeName || !e?.awayName || !['NOT_STARTED', 'STARTED'].includes(e.state)) return [];
-      if (l.only && !l.only.test((e.path || []).slice(1).map(p => p.termKey).join('/'))) return [];
       const start = isoOf(e.start);
       if (!start) return [];
-      // (A player's short name their surname; a volleyball club's, its whole name.)
-      const side = name => ({ ...team(league, l.sport, name), ...(set ? { short: l.sport === 'volleyball' ? name : surnames(name) } : {}) });
-      // Its event (the tour and city, the open and its draw: zh.mjs's
-      // eventZh), and whether its sides are players (a woman's, for
-      // reading her name) rather than clubs.
-      const names = (e.path || []).slice(1).map(p => p.englishName || p.name).filter(Boolean);
-      const players = set && l.sport !== 'volleyball';
-      const women = /\b(wta|women|ladies)\b|\(w\)/i.test(names.join(' '));
-      const g = { id: `${league}:k${e.id}`, league, kambiId: String(e.id), start, home: side(e.homeName), away: side(e.awayName), state: 'pre', score: null, period: 0, clock: '', detail: '', market: kambiMarket(betOffers, l.sport), ...(set && names.length ? { event: names } : {}), ...(players ? { players: true } : {}), ...(women ? { women: true } : {}) };
+      const side = name => team(league, l.sport, name);
+      const g = { id: `${league}:k${e.id}`, league, kambiId: String(e.id), start, home: side(e.homeName), away: side(e.awayName), state: 'pre', score: null, period: 0, clock: '', detail: '', market: kambiMarket(betOffers, l.sport) };
       return e.state === 'STARTED' ? kambiState(g, parseKambiLiveData({ liveData }) ?? null, now) : g;
     })
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -267,7 +225,7 @@ async function refreshKambi(legs, out, now) {
     kept ??= kit?.fetchKeptKambi ? await kit.fetchKeptKambi(gone.map(x => x.kambiId)).catch(() => null) : null;
     const entry = kept?.get?.(g.kambiId) ?? null;
     const was = entry?.live ? kambiState(g, parseKambiLiveData({ liveData: entry.live }) ?? null, now, Boolean(entry.gone)) : g;
-    out[g.id] = was.state === 'post' ? was : kambiUnresolvable({ sport: kambiKey(g.league), start: g.start }, entry, new Date(now), kept != null) ? { ...was, state: 'void' } : was;
+    out[g.id] = was.state === 'post' ? was : kambiUnresolvable({ sport: g.league, start: g.start }, entry, new Date(now), kept != null) ? { ...was, state: 'void' } : was;
   }
 }
 
@@ -353,6 +311,12 @@ export async function gamesOn(league, day, { fresh = 10_000 } = {}) {
   return (await asiaMonth(league, day.slice(0, 7))).filter(inDay);
 }
 
+// The months (YYYY-MM) from one day to another, both kept.
+const monthsOf = (from, to) => {
+  const out = [];
+  for (let [y, m] = from.slice(0, 7).split('-').map(Number); `${y}-${String(m).padStart(2, '0')}` <= to.slice(0, 7); m === 12 ? ((m = 1), y++) : m++) out.push(`${y}-${String(m).padStart(2, '0')}`);
+  return out;
+};
 // Every game of a league from `from` to `to` (Taipei days, both kept), by
 // start: the picker's days around today in a read or two (ESPN's month
 // boards, as Sports reads a cup's; Kambi's list is
@@ -372,51 +336,15 @@ export async function gamesAround(league, from, to, { fresh = 60_000 } = {}) {
   }
   if (l.data === 'kambi') return byStart((await getJson(kambiList(l.kambi), Math.max(fresh, 30_000)).then(x => parseKambi(x, league))).filter(within));
   if (l.data === 'espn') {
-    const months = [...new Set([shiftDay(from, -1), to].map(d => compact(d).slice(0, 6)))];
-    const lists = await Promise.all(months.map(m => getJson(`${ESPN}/${l.path}/scoreboard?dates=${m}&limit=500`, fresh).then(x => parseEspn(x, league))));
+    // (Every month of it; one wholly gone kept a day, as it won't change.)
+    const thisMonth = compact(twDay(Date.now())).slice(0, 6);
+    const lists = await Promise.all(monthsOf(shiftDay(from, -1), to).map(m => getJson(`${ESPN}/${l.path}/scoreboard?dates=${m.replace('-', '')}&limit=1000`, m.replace('-', '') < thisMonth ? Math.max(fresh, 86_400_000) : fresh).then(x => parseEspn(x, league)).catch(() => [])));
     const seen = new Set();
     return byStart(lists.flat().filter(g => within(g) && !seen.has(g.id) && seen.add(g.id)));
   }
-  const months = [...new Set([from.slice(0, 7), to.slice(0, 7)])];
-  return byStart((await Promise.all(months.map(m => asiaMonth(league, m).catch(() => [])))).flat().filter(within));
+  return byStart((await Promise.all(monthsOf(from, to).map(m => asiaMonth(league, m).catch(() => [])))).flat().filter(within));
 }
 
-// The tennis players' flags (ESPN's tours, this week's draws): by surname
-// and initial, as Kambi writes them ("C. Bucsa", "Tereza Valentova", Asian
-// names either way round). Read an hour at a time.
-const plainName = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ł/g, 'l');
-const nameWords = s => plainName(s).split(/[\s.]+/).filter(Boolean);
-let flagsKept = null;
-export async function tennisFlags() {
-  if (flagsKept && Date.now() - flagsKept.at < 3_600_000) return flagsKept.map;
-  const map = new Map();
-  const twice = new Set();
-  const put = (k, v) => (map.has(k) && map.get(k) !== v ? twice.add(k) : map.set(k, v));
-  const boards = await Promise.all(['atp', 'wta'].map(t => getJson(`${ESPN}/tennis/${t}/scoreboard`, 3_600_000).catch(() => null)));
-  for (const b of boards)
-    for (const e of b?.events || [])
-      for (const gr of e.groupings || [])
-        for (const c of gr.competitions || [])
-          for (const p of c.competitors || [])
-            for (const a of p.athlete ? [p.athlete] : p.roster?.athletes || []) {
-              const href = a.flag?.href;
-              const w = nameWords(a.displayName);
-              if (!href || !w.length) continue;
-              put(`${w.at(-1)}|${w[0][0]}`, href);
-              put(`${w[0]}|${w.at(-1)[0]}`, href);
-              put(`w:${[...w].sort().join(' ')}`, href);
-              put(`s:${w.at(-1)}`, href);
-            }
-  for (const k of twice) map.delete(k);
-  flagsKept = { at: Date.now(), map };
-  return map;
-}
-// One player's flag from that list, or ''.
-export function flagOf(map, name) {
-  const w = nameWords(name);
-  if (!map || !w.length) return '';
-  return map.get(`w:${[...w].sort().join(' ')}`) || map.get(`${w.at(-1)}|${w[0][0]}`) || map.get(`s:${w.at(-1)}`) || '';
-}
 
 // An Asian league's month: the kit's (catalog.mjs asiaMonth: the proxy's
 // copy, CPBL from TheSportsDB on the device when the proxy can't, a game the

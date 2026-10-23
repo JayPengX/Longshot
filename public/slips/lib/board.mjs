@@ -5,13 +5,12 @@
 // settles them. The four 不讓分, 讓分, 大小 and 單雙 stay slip.mjs's. No DOM,
 // so it's tested.
 import { legResult, decidedSoFar } from '../../kit/settle.mjs';
-import { LEAGUES, isSetSport, SUMMARY_KINDS } from './feed.mjs';
+import { LEAGUES, SUMMARY_KINDS } from './feed.mjs';
 import { W } from './lang.mjs';
 
 // Slips' own kinds (slip.mjs grade, f1.mjs); every other kind is the kit's.
 export const BASE_KINDS = new Set(['ml', 'spread', 'total', 'oddeven', 'f1']);
-// (A set sport's every pick, its winner too: settled on its sets.)
-export const isExtra = leg => !BASE_KINDS.has(leg.kind) || isSetSport(leg.game?.league);
+export const isExtra = leg => !BASE_KINDS.has(leg.kind);
 
 // The kit's league for a Slips game: its own where Play sells it, else one
 // of its kind (a cup's soccer as the Premier League's).
@@ -78,13 +77,7 @@ const SECTIONS = [
   ['topperiod', '得分最高單節', 'Highest-scoring period'],
   ['raceto', '先得分', 'Race to'],
   ['hits', '安打數大小', 'Total hits'],
-  ['teamhits', '主(客)隊安打數大小', 'Team hits'],
-  // The set sports' (tennis, volleyball, badminton, table tennis).
-  ['sethcap', '讓盤', 'Set handicap'],
-  ['gamehcap', '讓局', 'Game handicap'],
-  ['gametotal', '大小', 'Total games'],
-  ['set1', '第一盤不讓分', 'First set'],
-  ['setscore', '正確比數', 'Correct score (sets)']
+  ['teamhits', '主(客)隊安打數大小', 'Team hits']
 ];
 const SECTION = Object.fromEntries(SECTIONS.map(([k, zh, en]) => [k, { zh, en }]));
 // A kind's name (the ticket's, the stats'), or undefined for one not here.
@@ -158,7 +151,7 @@ function periodsFor(leg) {
   const k = leg.kind;
   if (k === 'half' || k === 'hrunline' || k === 'htotal' || k === 'hdc' || k === 'hscore') return halfOf(leg.game.league);
   if (k === 'qrunline' || k === 'qtotal') return leg.period ?? 1;
-  if (k === 'q1' || k === 'firstinning' || k === 'set1') return 1;
+  if (k === 'q1' || k === 'firstinning') return 1;
   if (k === 'f5' || k === 'f5total' || k === 'f5runline') return 5;
   if (k === 'inningml' || k === 'inningtotal') return leg.period ?? 1;
   return null;

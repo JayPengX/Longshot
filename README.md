@@ -84,10 +84,13 @@ Live: https://jaypengx.github.io/Longshot/
   scratch sheet shows the whole ticket (never cut at a side), a
   fingertip-wide coin, and a tap on a small scratch-off opens it whole.
 - **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
-- **注單** (`slips/`, was Orbit Slips): the real 台灣運彩 tickets you bought,
+- **注單** (`slips/`): the real 台灣運彩 tickets you bought,
   read from a photo (Gemini, through the Worker's `/slip-scan`, 30 a day)
   or picked by hand, followed live: what each is worth now, every pick as
-  it happens, 戰績 of the settled ones. Every 運彩 market, graded by the
+  it happens, 戰績 of the settled ones. Only what Longshot follows well:
+  the board's leagues and the ESPN cups (英格蘭社區盾 and the like), no set
+  sports. The match picker's days are only days with games (a soccer
+  league's a year back, the rest two months). Every 運彩 market, graded by the
   same `kit/settle.mjs`; F1 is 冠軍 only. Names all in Chinese
   (`slips/lib/zh.mjs`). Odds left blank (估) are priced again from the
   closing lines once the games are over. 用模擬金下注 puts a ticket's picks

@@ -233,7 +233,7 @@ function extraLeg(pick, leg, p, sideOf) {
   const line = pick.line == null || pick.line === '' ? NaN : Number(pick.line);
   const k = pick.kind;
   const side = name => (DRAWN.test(name) ? 'draw' : sideOf(name));
-  if (['htotal', 'f5total', 'corners', 'tdtotal', 'inningtotal', 'gametotal', 'qtotal', 'hits'].includes(k)) {
+  if (['htotal', 'f5total', 'corners', 'tdtotal', 'inningtotal', 'qtotal', 'hits'].includes(k)) {
     leg.side = OU(p);
     leg.line = Math.abs(line);
     if (!leg.side || !leg.line) return null;
@@ -242,11 +242,11 @@ function extraLeg(pick, leg, p, sideOf) {
     leg.team = sideOf(pick.team || '');
     leg.line = Math.abs(line);
     if (!leg.side || !leg.team || !leg.line) return null;
-  } else if (['hrunline', 'f5runline', 'sethcap', 'gamehcap', 'qrunline'].includes(k)) {
+  } else if (['hrunline', 'f5runline', 'qrunline'].includes(k)) {
     leg.side = sideOf(p);
     leg.line = line;
     if (!leg.side || !Number.isFinite(line)) return null;
-  } else if (['half', 'f5', 'q1', 'regulation', 'inningml', 'set1'].includes(k)) {
+  } else if (['half', 'f5', 'q1', 'regulation', 'inningml'].includes(k)) {
     leg.side = side(p);
     if (!leg.side) return null;
   } else if (k === 'btts' || k === 'firstinning') {

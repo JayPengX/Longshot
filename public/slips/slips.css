@@ -1742,109 +1742,6 @@ html.q-kb .sl-app .add .save-bar {
   white-space: nowrap;
 }
 
-/* One-on-one (tennis, badminton, table tennis): a compact row, the time
-   and event at the left, each side's flag and name on its own line. */
-.sl-app .games .duo .q-ritem,
-.games.sl-app .duo .q-ritem {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 14px;
-  text-align: left;
-}
-.sl-app .duo-when,
-.duo-when.sl-app {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.sl-app .duo-when b,
-.duo-when.sl-app b {
-  font: 600 15px/20px var(--q-font);
-}
-.sl-app .duo-when b.live,
-.duo-when.sl-app b.live {
-  color: var(--q-red, #ff3b30);
-}
-.sl-app .duo-when small,
-.duo-when.sl-app small {
-  overflow: hidden;
-  color: var(--q-label-2);
-  font: 12px/15px var(--q-font);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.sl-app .duo-sides,
-.duo-sides.sl-app {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-.sl-app .duo-side,
-.duo-side.sl-app {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  font: 600 15px/19px var(--q-font);
-}
-.sl-app .duo-side.lost,
-.duo-side.lost.sl-app {
-  color: var(--q-label-2);
-  font-weight: 500;
-}
-.sl-app .duo-pic,
-.duo-pic.sl-app {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sl-app .duo-pic:empty,
-.duo-pic:empty.sl-app {
-  display: none;
-}
-.sl-app .duo-pic img,
-.duo-pic.sl-app img {
-  width: 20px;
-  height: 14px;
-  border-radius: 3px;
-  object-fit: cover;
-}
-.sl-app .duo-pic img:only-child,
-.duo-pic.sl-app img:only-child {
-  height: 15px;
-}
-.sl-app .duo-pic img:not(:only-child),
-.duo-pic.sl-app img:not(:only-child) {
-  width: 16px;
-  height: 11px;
-}
-.sl-app .duo-n,
-.duo-n.sl-app {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.sl-app .duo-side b,
-.duo-side.sl-app b {
-  font: 700 16px/1 var(--q-font);
-}
-@media (max-width: 359px) {
-  .sl-app .games .duo .q-ritem,
-.games.sl-app .duo .q-ritem {
-    grid-template-columns: 62px minmax(0, 1fr);
-    gap: 10px;
-    padding-inline: 12px;
-  }
-  .sl-app .duo-side,
-.duo-side.sl-app {
-    font-size: 14px;
-  }
-}
 /* No white plates in dark mode: the league logos on glass. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .sl-app .lg-chip .lg-logo,
@@ -1907,33 +1804,9 @@ html.q-kb .sl-app .add .save-bar {
   box-shadow: none;
 }
 
-/* Players (tennis, badminton, table tennis): their flags, a pair's two
-   stacked; none known, no picture at all (never a stand-in shield). */
-.sl-app .pflags,
-.pflags.sl-app {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 2px;
-}
-.sl-app .pflags img,
-.pflags.sl-app img {
-  width: 22px;
-  height: 15px;
-  border-radius: 3px;
-  object-fit: cover;
-}
-.sl-app .pflags img:not(:only-child),
-.pflags.sl-app img:not(:only-child) {
-  width: 18px;
-  height: 12px;
-}
-/* A player's or pair's name: apart only at the slash, smaller when long. */
+/* A side's name: never broken inside a word. */
 .sl-app .tn,
 .tn.sl-app,
-.sl-app .duo-n,
-.duo-n.sl-app,
 .sl-app .matchup b,
 .matchup.sl-app b {
   word-break: keep-all;
@@ -1944,33 +1817,6 @@ html.q-kb .sl-app .add .save-bar {
   font-size: 13px;
   line-height: 17px;
 }
-.sl-app .duo-n.long,
-.duo-n.long.sl-app {
-  font-size: 14px;
-  line-height: 18px;
-}
-.sl-app .board:has(.nopic),
-.board:has(.nopic).sl-app {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.sl-app .nopic,
-.nopic.sl-app {
-  display: none !important;
-}
-.sl-app .matchup .big.pflags,
-.matchup.sl-app .big.pflags {
-  width: 52px;
-  height: 40px;
-}
-.sl-app .matchup .big.pflags img,
-.matchup.sl-app .big.pflags img {
-  width: 44px;
-  max-height: none;
-}
-.sl-app .matchup .big.pflags img:not(:only-child),
-.matchup.sl-app .big.pflags img:not(:only-child) {
-  width: 32px;
-}
 .sl-app .matchup b,
 .matchup.sl-app b {
   overflow-wrap: anywhere;
@@ -1980,67 +1826,7 @@ html.q-kb .sl-app .add .save-bar {
 .pass-top:has(.pips).sl-app .bar {
   display: none;
 }
-/* A player's photo (TheSportsDB's cutout): a round tile, their flag until it comes. */
-.sl-app .pface,
-.pface.sl-app {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-.sl-app .pface .pphoto,
-.pface.sl-app .pphoto {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: var(--q-fill-3);
-  object-fit: cover;
-  object-position: 50% 0;
-}
-.sl-app .board img.pphoto,
-.board.sl-app img.pphoto {
-  padding: 0;
-}
-.sl-app .duo-pic,
-.duo-pic.sl-app {
-  width: 28px;
-  align-items: center;
-}
-.sl-app .duo-pic .pface,
-.duo-pic.sl-app .pface {
-  width: 28px;
-  min-height: 15px;
-}
-.sl-app .duo-pic .pface:has(.pphoto),
-.duo-pic.sl-app .pface:has(.pphoto) {
-  height: 28px;
-}
-.sl-app .duo-pic .pface .pphoto,
-.duo-pic.sl-app .pface .pphoto {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-}
-.sl-app .duo-when small span,
-.duo-when.sl-app small span {
-  white-space: nowrap;
-}
-/* A lone player's flag the size of their photo, round (ESPN's flags sit in a square: filled to its edge). */
-.sl-app .duo-pic .pface:has(> img:only-child:not(.pphoto)),
-.duo-pic.sl-app .pface:has(> img:only-child:not(.pphoto)) {
-  height: 28px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--q-fill-3);
-}
-.sl-app .duo-pic .pface img:only-child:not(.pphoto),
-.duo-pic.sl-app .pface img:only-child:not(.pphoto) {
-  width: 28px;
-  height: 28px;
-  border-radius: 0;
-  object-fit: cover;
-  transform: scale(1.7);
-}
+
 /* Found across leagues: each league's head (its logo, its name) over its games. */
 .sl-app .games .lg-head,
 .games.sl-app .lg-head {

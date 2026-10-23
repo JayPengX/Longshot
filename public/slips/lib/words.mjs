@@ -1,13 +1,13 @@
 // The page's words for games, picks and tickets, in the reader's language
 // (lang.mjs W: Chinese first). Times are Taiwan's. No DOM, so it's tested.
 import { W, en } from './lang.mjs';
-import { LEAGUES, twDay, isSetSport } from './feed.mjs';
+import { LEAGUES, twDay } from './feed.mjs';
 import { KINDS, KINDS_EN, modeName } from './slip.mjs';
 import { specOf } from './ticket.mjs';
 import { isF1, isChamp, F1_KINDS, F1_KINDS_EN, gpName, sessionName, surname } from './f1.mjs';
 import { extraKindName } from './board.mjs';
 import { money } from '../../kit/core.mjs';
-import { nameZh, hasZh, playersOf, driverZh } from './zh.mjs';
+import { nameZh, hasZh, driverZh } from './zh.mjs';
 
 export { money };
 export const pct = (p, d = 0) => `${(p * 100).toFixed(d)}%`;
@@ -19,8 +19,8 @@ export const signed = x => (x > 0 ? `+${x}` : `${x}`);
 // Names in the reader's language.
 // Chinese as 運彩 prints it (zh.mjs): a name Taiwan has none for yet in
 // its reading, English only until that comes.
-const zhOf = (t, kind) => (hasZh(t.zh) ? t.zh : nameZh(t.en, kind) ?? t.zh);
-export const nm = (t, g = null) => (en ? t.en || t.zh : zhOf(t, g && playersOf(g) ? 'p' : 'team'));
+const zhOf = t => (hasZh(t.zh) ? t.zh : nameZh(t.en) ?? t.zh);
+export const nm = t => (en ? t.en || t.zh : zhOf(t));
 export const lg = league => (en ? LEAGUES[league]?.en : LEAGUES[league]?.zh) || '';
 export const kindName = k => (en ? KINDS_EN[k] ?? F1_KINDS_EN[k] : KINDS[k] ?? F1_KINDS[k]) ?? extraKindName(k) ?? '';
 // An F1 race in words: 美國站 正賽 / United States GP Race.
@@ -30,8 +30,7 @@ export const matchText = g => (isF1(g) ? raceText(g) : `${nm(g.away, g)} @ ${nm(
 export const sideName = (g, side) => {
   const t = g[side];
   if (en) return t.abbr || t.en || t.short;
-  // (A club Kambi names, until read: its whole name, never a word of it.)
-  return hasZh(t.short) ? t.short : (nameZh(t.en, playersOf(g) ? 'p' : 'team') ?? (isSetSport(g.league) && !playersOf(g) ? t.en : t.short));
+  return hasZh(t.short) ? t.short : (nameZh(t.en) ?? t.short);
 };
 // A driver: their surname, Chinese as Taiwan says it (羅素) in Chinese.
 export const driverName = name => (en ? surname(name) : driverZh(name) ?? surname(name));
@@ -68,8 +67,6 @@ export function statusOf(g, now = Date.now()) {
     const w = when(g.start, now);
     return { text: `${w.day} ${w.time}`, live: false };
   }
-  // A set sport: the set it's in (tennis' 盤, the others' 局).
-  if (isSetSport(g.league)) return { text: g.period ? (LEAGUES[g.league].sport === 'tennis' ? W(`第${g.period}盤`, `Set ${g.period}`) : W(`第${g.period}局`, `Game ${g.period}`)) : W('進行中', 'Live'), live: true };
   const d = g.detail || '';
   const spec = specOf(g.league);
   if (/^(HT\b|Halftime)/i.test(d)) return { text: W('中場休息', 'Halftime'), live: true, ht: LEAGUES[g.league]?.data === 'espn' ? g.id : null };
@@ -157,19 +154,15 @@ export function extraText(leg) {
     case 'corners':
     case 'tdtotal':
     case 'inningtotal':
-    case 'gametotal':
       return `${inning}${ou(leg.side)} ${leg.line}`;
     case 'hrunline':
     case 'f5runline':
-    case 'sethcap':
-    case 'gamehcap':
       return `${sideName(g, leg.side)} ${signed(leg.line)}`;
     case 'half':
     case 'f5':
     case 'q1':
     case 'regulation':
     case 'inningml':
-    case 'set1':
       return `${inning}${result(leg.side)}`;
     case 'btts':
     case 'firstinning':
@@ -184,7 +177,6 @@ export function extraText(leg) {
     case 'htft':
       return `${W(RESULT[leg.ht]?.[0], RESULT[leg.ht]?.[1])}/${W(RESULT[leg.ft]?.[0], RESULT[leg.ft]?.[1])}`;
     case 'score':
-    case 'setscore':
       return leg.score === 'other' ? W('其他比分', 'Any other') : String(leg.score).replace('-', ':');
     case 'margin':
       return leg.side === 'draw' ? W('和局', 'Draw') : `${sideName(g, leg.team)} ${range(leg.lo, leg.hi)}`;
@@ -217,7 +209,7 @@ export function shareText(slip, v) {
 // 讓分後領先 2.5, 已 149 分 · 還差 72, 落後 1 局. With `p` (how far a total
 // has come, 0–1) for its bar, and `tone` ahead / behind. Null when there's
 // nothing to tell (not started, over, or a bet the score doesn't show).
-const UNIT = { soccer: ['球', 'goals'], hockey: ['球', 'goals'], tennis: ['盤', 'sets'], volleyball: ['局', 'sets'], badminton: ['局', 'games'], tabletennis: ['局', 'games'] };
+const UNIT = { soccer: ['球', 'goals'], hockey: ['球', 'goals'] };
 const fmtN = n => String(Math.round(Math.abs(n) * 10) / 10);
 export function standOf(leg) {
   const g = leg.game;

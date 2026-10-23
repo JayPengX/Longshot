@@ -1,7 +1,7 @@
 // A ticket as the page shows it: each pick's chance before its game and now,
 // whether it's decided, and the ticket's payout, state and worth. No DOM, so
 // it's tested.
-import { LEAGUES, voidAtOf, isSetSport } from './feed.mjs';
+import { LEAGUES, voidAtOf } from './feed.mjs';
 import { lateOutcome, decidedSoFar } from '../../kit/settle.mjs';
 import { evaluate, settle, grade, canPay, decidedEarly } from './slip.mjs';
 import { fitGame, pickChance, marketChance, leftOf, sportOf, chanceFromOdds, lotteryOdds } from './model.mjs';
@@ -190,7 +190,7 @@ export const optionOf = (leg, sections) => sections.flatMap(s => s.options).find
 // `sectionsOf(game)`: its board's sections (for 更多 picks). True when
 // anything changed. (F1's are priced on their grid: applyGames.)
 export async function repriceBlank(slips, { closing, sectionsOf }) {
-  const legs = slips.flatMap(s => s.legs).filter(l => l.est && !l.closing && l.game?.state === 'post' && !isF1(l.game) && !isSetSport(l.game.league));
+  const legs = slips.flatMap(s => s.legs).filter(l => l.est && !l.closing && l.game?.state === 'post' && !isF1(l.game));
   let changed = false;
   await Promise.all(
     legs.map(async l => {
