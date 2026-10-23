@@ -19,10 +19,10 @@
     <button id="out" class="ad-link" type="button" hidden>登出</button>
   </header>
 
-  <section id="gate" class="ad-card ad-gate" hidden>
-    <h2 id="gate-title">管理員登入</h2>
-    <p id="gate-text" class="ad-muted">用你的 Longshot Pass 登入。</p>
-    <form id="gate-form">
+  <section id="gate" class="ad-card ad-gate">
+    <h2 id="gate-title">冷門 管理</h2>
+    <p id="gate-text" class="ad-muted">載入中…</p>
+    <form id="gate-form" hidden>
       <input id="gate-pass" class="ad-input mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
       <button class="q-btn primary block" type="submit">登入</button>
     </form>
@@ -90,6 +90,11 @@
     </section>
   </div>
 </main>
+<script>
+  // A page that can't start says why (on the card, never a blank page).
+  addEventListener('error', e => { const t = document.getElementById('gate-text'); if (t && t.textContent === '載入中…') t.textContent = `打不開：${e.message || e.target?.src || '檔案載入失敗'}`; }, true);
+  setTimeout(() => { const t = document.getElementById('gate-text'); if (t && t.textContent === '載入中…') t.textContent = '還在載入，請重新整理一次。'; }, 8000);
+</script>
 <script type="module" src="./admin.js"></script>
 </body>
 </html>

@@ -1,9 +1,8 @@
 // An app's payload on the Longshot Pass, kept in step with the phone's own
 // copy: the Pass's copy is read and merged in before anything is written
 // over it, every time it may have changed since (never an older copy over a
-// newer one; a copy that can't be read is never written over). One for
-// every app with a payload (Orbit Words, Orbit Weather, Orbit Slips); the
-// app brings only its own decode, merge and encode.
+// newer one; a copy that can't be read is never written over).
+// Used by the 注單 tab, which brings only its own decode, merge and encode.
 //
 // Only one app on one device is live on a Pass at a time (the Worker refuses
 // a write from any other), but an app sent to the background isn't told when
