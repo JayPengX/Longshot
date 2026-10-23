@@ -312,6 +312,16 @@ export function renderHome(ctx) {
   // ---- 8 最近的投注: the newest slips and tickets as rows.
   const recentRows = () => {
     const tag = (cls, text) => el('span', { class: `q-tag ${cls}`, text });
+    // When it was bought, short enough for one line beside its tag: 16:14 today, else 10/23 16:14.
+    const when = iso => {
+      const d = new Date(iso);
+      const hm = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Taipei' });
+      const day = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Taipei' });
+      return day === new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Taipei' }) ? hm : `${day} ${hm}`;
+    };
+    // (A scratch card's price is its name's: only when it was bought.)
+    const meta = (cost, iso) => el('small', { class: 'num q-fit', text: [cost == null ? '' : money(cost), when(iso)].filter(Boolean).join(' · ') });
+    const big = v => (v >= 10_000 ? compactMoney(v, lang) : money(v));
     const slipRow = s => {
       const settled = s.status === 'settled';
       const profit = settled ? s.payout - s.cost : 0;
@@ -319,7 +329,7 @@ export function renderHome(ctx) {
       const title = s.legs.length > 1 ? f('parlayN', { n: s.legs.length }) : ctx.shortPick(first);
       return { at: s.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTab('history') }, [
         ctx.legIcon(first, 'logo-md'),
-        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: title }), el('small', { text: [money(s.cost), ctx.fmtTime(s.t)].join(' · ') })]),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: title }), meta(s.cost, s.t)]),
         settled ? (profit > 0 ? tag('green', f('won', { v: money(s.payout) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
       ]) };
     };
@@ -327,9 +337,9 @@ export function renderHome(ctx) {
     const ticketName = x => (x.card ? CARDS[x.card]?.[lang] : GAMES[x.game]?.[lang]) || (x.card ? T.scratchT : T.ticket);
     const ticketColor = x => (x.card ? CARDS[x.card]?.color : GAMES[x.game]?.color) || 'var(--q-orange)';
     const ticketRow = x => ({ at: x.t, node: el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => ctx.showTickets?.() }, [
-      x.card ? cardArt(x.card, ticketName(x), ticketColor(x), 'sc-thumb') : gameLogo(x.game, ticketName(x), ticketColor(x), 'lt-mark-row'),
-      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: ticketName(x) }), el('small', { text: [money(x.cost), ctx.fmtTime(x.t)].join(' · ') })]),
-      x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: money(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
+      x.card ? cardArt(x.card, ticketName(x), ticketColor(x), 'sc-thumb', true) : gameLogo(x.game, ticketName(x), ticketColor(x), 'lt-mark-row'),
+      el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: ticketName(x) }), meta(x.card ? null : x.cost, x.t)]),
+      x.status === 'settled' ? (x.prize > 0 ? tag('green', f('won', { v: big(x.prize) })) : tag('gray', T.lost)) : tag('tint', T.openTag)
     ]) });
     const slips = (state.account?.slips || []).filter(s => !s.recovered && s.legs?.length).map(slipRow);
     const tickets = (state.account?.tickets || []).map(ticketRow);

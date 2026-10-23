@@ -129,7 +129,7 @@ export function mountStats(ctx) {
     const momentArt = w =>
       w.kind === 'lotto'
         ? w.card
-          ? cardArt(w.card, w.title, CARDS[w.card]?.color, 'sc-thumb st-art')
+          ? cardArt(w.card, w.title, CARDS[w.card]?.color, 'sc-thumb st-art', true)
           : gameLogo(w.game, w.title, GAMES[w.game]?.color, 'lt-mark-row st-art')
         : el('span', { class: 'st-logo', 'aria-hidden': 'true' }, [w.lead ? legIcon(w.lead, 'logo-md') : leagueIcon(w.sport)]);
     const moment = w =>

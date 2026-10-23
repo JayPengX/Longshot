@@ -79,14 +79,16 @@ export function gameLogo(id, name, color, cls = '') {
   s.append(img, dk);
   return s;
 }
-export function cardArt(id, name, color, cls = '') {
+// (`whole`: the whole ticket, small and uncut at its own shape, in a list
+// row's box; a retired card without one falls back to its art.)
+export function cardArt(id, name, color, cls = '', whole = false) {
   const img = new Image();
-  img.className = `sc-art${cls ? ` ${cls}` : ''}`;
+  img.className = `sc-art${cls ? ` ${cls}` : ''}${whole ? ' sc-whole' : ''}`;
   img.alt = name;
   img.loading = 'lazy';
   img.decoding = 'async';
-  img.onerror = () => img.replaceWith(initialTile(name, color, cls));
-  img.src = `art/scratch/${id}.webp`;
+  img.onerror = () => (whole && img.src.includes('/ticket/') ? ((img.className = img.className.replace(' sc-whole', '')), (img.src = `art/scratch/${id}.webp`)) : img.replaceWith(initialTile(name, color, cls)));
+  img.src = whole ? `art/ticket/s/${id}.webp` : `art/scratch/${id}.webp`;
   return img;
 }
 // ask()/tell() take a kit glyph's name as `icon`; given a node (a tile of its own) instead, the node goes in the icon's place.

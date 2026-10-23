@@ -504,6 +504,8 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 }
 .sc-art { display: block; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; background: color-mix(in srgb, var(--lotto, #888) 25%, var(--q-fill-3)); }
 .sc-thumb { flex: none; width: 53px; height: 40px; border-radius: 8px; }
+/* The whole ticket in a row: uncut, its own shape inside the same box (a wide 大麻將 short, a tall one narrow). */
+.sc-art.sc-whole { aspect-ratio: auto; object-fit: contain; object-position: center; background: none; border-radius: 3px; }
 .sc-ask { width: 160px; border-radius: 14px; }
 .q-ask-icon:has(> .sc-ask, > .lt-mark-ask) { width: auto; height: auto; background: none; }
 .lt-hero-big { overflow: hidden; white-space: nowrap; }

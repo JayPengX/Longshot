@@ -225,7 +225,7 @@ export function mountLottery(ctx) {
       section(t('draws'), drawGames(leadId)),
       section(t('scratch'), el('div', {}, [
         // Not scratched yet: a row a kind (twelve bought at once, one row ×12), the next one a tap away.
-        open.length ? el('div', { class: 'q-rowcard lt-open' }, [...new Set(open.map(x => x.card))].map(card => { const mine = open.filter(x => x.card === card); return el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(mine[0].id) }, [cardArt(card, CARDS[card][lang], CARDS[card].color, 'sc-thumb'), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: CARDS[card][lang] })]), el('span', { class: 'q-tag orange', text: mine.length > 1 ? `${t('unscratched')} ×${mine.length}` : t('unscratched') })]); })) : null,
+        open.length ? el('div', { class: 'q-rowcard lt-open' }, [...new Set(open.map(x => x.card))].map(card => { const mine = open.filter(x => x.card === card); return el('button', { class: 'q-ritem chevron', type: 'button', onclick: () => openScratch(mine[0].id) }, [cardArt(card, CARDS[card][lang], CARDS[card].color, 'sc-thumb', true), el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: CARDS[card][lang] })]), el('span', { class: 'q-tag orange', text: mine.length > 1 ? `${t('unscratched')} ×${mine.length}` : t('unscratched') })]); })) : null,
         scratchCards()
       ])),
       el('div', { class: 'q-rowcard lt-mine' }, [
@@ -1267,7 +1267,7 @@ export function mountLottery(ctx) {
     const cost = costOf(list);
     // Not scratched yet: what they cost, a tile each to scratch.
     return el('div', { class: 'lt-group', style: `--lotto:${c.color}` }, [
-      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-who' }, [cardArt(list[0].card, c[lang], c.color, 'sc-thumb'), el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: open ? `${t('scratch')} · ${t('unscratched')}` : t('scratch') })])]), open ? el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) })]) : netChip(list)]),
+      el('div', { class: 'lt-head' }, [el('div', { class: 'lt-who' }, [cardArt(list[0].card, c[lang], c.color, 'sc-thumb', true), el('div', { class: 'lt-title' }, [el('strong', { text: `${c[lang]}${list.length > 1 ? ` ×${list.length}` : ''}` }), el('small', { class: 'num', text: open ? `${t('scratch')} · ${t('unscratched')}` : t('scratch') })])]), open ? el('span', { class: 'lt-sum' }, [el('strong', { class: 'num', text: money(cost) })]) : netChip(list)]),
       // Even rows: at most four a row, the rows as full as each other.
       el('div', { class: 'lt-cards', style: `--n:${Math.ceil(list.length / Math.ceil(list.length / 4))}` }, list.map(x => el('button', { type: 'button', class: `lt-card${!open && x.prize > 0 ? ' won out-up' : ''}${open ? ' unscratched' : ''}`, onclick: () => openScratch(x.id), text: open ? t('toScratch') : x.prize > 0 ? compactMoney(x.prize, lang) : t('outNone') })))
     ]);
