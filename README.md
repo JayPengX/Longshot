@@ -5,8 +5,7 @@ A Taiwan sportsbook and Taiwan Lottery's games on play money, and the real
 real sportsbook: the house never loses on its own prices. Its own account
 (the Longshot Pass) and its own Worker; it shares nothing with any other app.
 
-Live: https://jaypengx.github.io/Longshot/ (https://jaypengx.github.io/Quadra-Play/
-until the repo is renamed).
+Live: https://jaypengx.github.io/Longshot/
 
 ## How it works
 
