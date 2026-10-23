@@ -3938,18 +3938,6 @@ function openGame(id) {
   openGameSheet(id);
 }
 
-// Redraw only when the width changes: phones fire resize when the address bar
-// slides away, and that shouldn't reset the chart.
-let resizeTimer;
-let lastWidth = window.innerWidth;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (window.innerWidth === lastWidth) return;
-    lastWidth = window.innerWidth;
-  }, 150);
-});
-
 // Top right: refresh, then the account.
 actions = topActions(q, { refresh: () => (state.tab === 'slips' ? slipsMod?.then(m => m.refreshSlips()) : load()) });
 

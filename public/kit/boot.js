@@ -15,8 +15,8 @@
 //   finish, with reload (mends again) or open anyway. The app says it started
 //   with window.__fxStarted and hides #loading itself (core.mjs does).
 (function () {
-  // A phone or a tablet (an iPad says Macintosh, with touch): the phone's
-  // frame, set before the first paint (core.css .q-touch).
+  // A phone or a tablet (an iPad says Macintosh, with touch), set before the
+  // first paint (core.mjs reads html.q-touch).
   var ua = navigator.userAgent || '';
   if (/iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) document.documentElement.classList.add('q-touch');
   // The Worker's connection (DNS, TCP, TLS: two or three round trips on a

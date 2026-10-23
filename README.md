@@ -130,6 +130,9 @@ account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
 - 為你推薦 picks are on the team cared about, never against it.
 - Only what Taiwan can watch. No edit-slip.
 - No promotions on the ticket: no boosts, free bets or cash out (2026-10-21).
+- Phones only (2026-10-23): one layout, 320 px to 440; anything wider shows it
+  in a centred 440 px column (`--q-vw`, `--q-side` in `kit/core.css`; fixed bars
+  and sheets sit inside it). No tablet or wide layouts.
 - Empty passive document-wide touch listeners fix iOS's double-tap. Don't
   remove them.
 - Not betting advice; real lottery tickets are 18+, and overseas betting

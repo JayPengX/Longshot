@@ -19,7 +19,7 @@
 /* 注單 and 戰績 inside the tab (the page's column already sets the width and gutters). */
 .sl-app .sl-panel,
 .sl-panel.sl-app {
-  --q-margin: var(--q-gutter, 16px);
+  --q-margin: 16px;
   box-sizing: border-box;
   padding-bottom: 32px;
 }
@@ -1999,84 +1999,3 @@ html.q-kb .sl-app .add .save-bar {
   cursor: pointer;
 }
 
-/* ---- iPad and wider: tickets two a row, sections side by side ---- */
-@media (min-width: 700px) {
-  .sl-app .tks,
-.tks.sl-app {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-  .sl-app .tks > :last-child:nth-child(odd),
-.tks.sl-app > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-  /* 注單: this month beside the settled ones, when both show. */
-  .sl-app #panel-open:has(> #sec-month:not([hidden])):has(> #sec-done:not([hidden])),
-#panel-open:has(.sl-app> #sec-month:not([hidden])):has(> #sec-done:not([hidden])) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 28px;
-    align-items: start;
-  }
-  .sl-app #panel-open > *,
-#panel-open.sl-app > * {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-  .sl-app #panel-open > #sec-month,
-#panel-open.sl-app > #sec-month,
-.sl-app #panel-open > #sec-done,
-#panel-open.sl-app > #sec-done {
-    grid-column: auto;
-  }
-  /* 戰績: the figure beside the months, the highlights beside the breakdown. */
-  .sl-app .st-body,
-.st-body.sl-app {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 28px;
-    align-items: start;
-  }
-  .sl-app .st-body > *,
-.st-body.sl-app > * {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-  .sl-app .st-body > section.q-section:nth-last-child(-n + 2):nth-child(n + 2),
-.st-body.sl-app > section.q-section:nth-last-child(-n + 2):nth-child(n + 2) {
-    grid-column: auto;
-  }
-  .sl-app .st-body:has(> section.q-section:nth-of-type(3)) > .sl-hero,
-.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > .sl-hero,
-.sl-app .st-body:has(> section.q-section:nth-of-type(3)) > section.q-section:first-of-type,
-.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > section.q-section:first-of-type {
-    grid-column: auto;
-  }
-  .sl-app .st-body:has(> section.q-section:nth-of-type(3)) > section.q-section:first-of-type,
-.st-body:has(.sl-app> section.q-section:nth-of-type(3)) > section.q-section:first-of-type {
-    margin-top: 0;
-  }
-}
-/* On its side: tickets three a row, a short last row shared out. */
-@media (min-width: 1100px) {
-  .sl-app .tks,
-.tks.sl-app {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  .sl-app .tks > *,
-.tks.sl-app > *,
-.sl-app .tks > :last-child:nth-child(odd),
-.tks.sl-app > :last-child:nth-child(odd) {
-    grid-column: span 2;
-  }
-  .sl-app .tks > :last-child:nth-child(3n + 1),
-.tks.sl-app > :last-child:nth-child(3n + 1) {
-    grid-column: 1 / -1;
-  }
-  .sl-app .tks > :nth-last-child(2):nth-child(3n + 1),
-.tks.sl-app > :nth-last-child(2):nth-child(3n + 1),
-.sl-app .tks > :last-child:nth-child(3n + 2),
-.tks.sl-app > :last-child:nth-child(3n + 2) {
-    grid-column: span 3;
-  }
-}
