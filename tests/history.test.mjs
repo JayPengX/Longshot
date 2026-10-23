@@ -21,8 +21,8 @@ const recovered = { id: 'r', t: '2026-10-01T00:00:00.000Z', status: 'settled', m
 
 test('an account with nothing, or only a slip with no picks, never breaks the account card', () => {
   // The account card: a slip settled, lost, net as it is.
-  assert.deepEqual(accountRecord({ slips: [recovered] }), { open: 0, openCount: 0, won: 0, decided: 1, net: -300, back: 0 });
-  assert.deepEqual(accountRecord(null), { open: 0, openCount: 0, won: 0, decided: 0, net: null, back: null });
+  assert.deepEqual(accountRecord({ slips: [recovered] }), { open: 0, openCount: 0, spent: 300, won: 0, decided: 1, net: -300, back: 0 });
+  assert.deepEqual(accountRecord(null), { open: 0, openCount: 0, spent: 0, won: 0, decided: 0, net: null, back: null });
 });
 
 test('recommendations: a small or locked lot gets none; each tag by its rule', () => {

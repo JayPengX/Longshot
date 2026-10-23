@@ -31,7 +31,7 @@ test('the owner is made once: the first claim answers a pass and a token, every 
   assert.equal((await t.admin({ action: 'claim' })).data.error.code, 'CLAIMED');
   // The owner's pass signs in on a phone too, with the opening money.
   const phone = await t.pass({ op: 'login', passcode: first.data.passcode, app: 'slip' });
-  assert.equal(phone.data.pool, 200_000);
+  assert.equal(phone.data.pool, 10_000);
 });
 
 test("the panel signs in with the owner's pass only, and its token opens the tools", async () => {

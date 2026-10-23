@@ -11,7 +11,7 @@ test("the account card counts bets and lottery tickets together; nothing decided
     tickets: [ticket('t1', 'settled', 50, 148), ticket('t2', 'settled', 50), ticket('t3', 'open', 50)],
     ledger: [{ kind: 'prize', amount: 148 }]
   };
-  assert.deepEqual(accountRecord(a), { open: 850, openCount: 2, won: 148, decided: 2, net: 48, back: 148 });
+  assert.deepEqual(accountRecord(a), { open: 850, openCount: 2, spent: 100, won: 148, decided: 2, net: 48, back: 148 });
   // Losses shown as they are.
   const b = { slips: [slip('s1', 'settled', 200, 0), slip('s2', 'settled', 100, 150)], tickets: [], ledger: [{ kind: 'payout', amount: 150 }] };
   assert.deepEqual([accountRecord(b).net, accountRecord(b).back], [-150, 50]);
@@ -20,14 +20,14 @@ test("the account card counts bets and lottery tickets together; nothing decided
   assert.deepEqual([accountRecord(c).net, accountRecord(c).back, accountRecord(c).decided], [null, null, 0]);
 });
 
-test('投注單 card: the bets alone, every figure over the same set (50 open tickets never make it 「51 張」)', () => {
+test('紀錄 is the true record: every bet and every ticket in one set, no part left out', () => {
   const slip = (id, status, cost, payout = 0) => ({ id, status, cost, payout, legs: [] });
   const ticket = (id, status, cost, prize = 0) => ({ id, status, cost, prize });
   const a = {
     slips: [slip('s1', 'open', 500), slip('s2', 'settled', 200, 500), slip('s3', 'settled', 300)],
-    tickets: [...Array.from({ length: 50 }, (_, i) => ticket(`o${i}`, 'open', 50)), ticket('d', 'settled', 100, 2000)],
-    ledger: [{ kind: 'payout', amount: 500 }, { kind: 'prize', amount: 2000 }]
+    tickets: [...Array.from({ length: 50 }, (_, i) => ticket(`o${i}`, 'open', 50)), ticket('d', 'settled', 100), ticket('e', 'settled', 2000)],
+    ledger: []
   };
-  assert.deepEqual(accountRecord(a, { tickets: false }), { open: 500, openCount: 1, won: 500, decided: 2, net: 0, back: 100 });
-  assert.equal(accountRecord(a).openCount, 51);
+  const r = accountRecord(a);
+  assert.deepEqual([r.open, r.openCount, r.spent, r.won, r.decided, r.net], [3000, 51, 2600, 500, 4, -2100]);
 });

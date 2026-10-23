@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { handlePassRequest, openAccount, mergeWallet, poolBalance, cleanPatch, emptyWallet, paydayEntries, PAY, WALLET_COLLECTION, PASS_COLLECTION, APPS, foldWallet, FOLD_AT, updateWallet, weekStart, mondayId } from '../worker/pass.js';
+import { handlePassRequest, openAccount, mergeWallet, poolBalance, cleanPatch, emptyWallet, paydayEntries, PAY, WALLET_COLLECTION, PASS_COLLECTION, APPS, foldWallet, FOLD_AT, updateWallet, monthStart, monthId, nextMonth } from '../worker/pass.js';
 import { signToken, readToken, tokenSecret, READ_GRACE_MS } from '../worker/token.js';
 import { fakeD1 } from './fixtures/worker/fake-d1.mjs';
 
@@ -60,14 +60,14 @@ async function newPass(t, app = 'odds') {
 }
 const claimsOf = token => JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString());
 
-test('a handed-out pass: signed in and live, with NT$200,000 and nothing else', async () => {
+test('a handed-out pass: signed in and live, with NT$10,000 and nothing else', async () => {
   const t = setup();
   const acct = await newPass(t);
   assert.match(acct.passcode, /^[2-9A-HJ-NP-Z]{10}$/);
   assert.ok(acct.token && acct.refresh);
   assert.equal(acct.active, true);
   assert.equal(acct.pool, PAY.start);
-  assert.deepEqual(acct.wallet.entries.map(e => [e.id, e.app, e.amount]), [['pass:start', 'pass', 200_000]]);
+  assert.deepEqual(acct.wallet.entries.map(e => [e.id, e.app, e.amount]), [['pass:start', 'pass', 10_000]]);
   assert.equal(acct.wallet.sec, undefined);
   // The pass itself is never stored: only its hash, which names the account.
   assert.ok(![...t.store.keys()].some(k => k.includes(acct.passcode)));
@@ -203,33 +203,42 @@ test('sign out everywhere: every earlier token stops working', async () => {
   assert.equal((await t.call('POST', '', { op: 'login', passcode: acct.passcode, app: 'odds' })).status, 200);
 });
 
-test('payday: NT$10,000 each Monday (Taiwan) after the week the pass was made, back pay included', () => {
+test('payday: NT$5,000 on the 1st of each Taiwan month after the month the pass was made, back pay included', () => {
   const pays = (w, now) => paydayEntries(w, now).filter(e => e.kind === 'pay').map(e => e.id);
-  // Made on a Wednesday: its own week is the opening money's.
+  // Made on 10/21: its own month is the opening money's.
   const made = Date.UTC(2026, 9, 21, 3);
   assert.deepEqual(pays({ created: made, entries: [] }, made), []);
-  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 9, 27, 3)), ['pass:pay:2026-10-26']);
-  assert.equal(paydayEntries({ created: made, entries: [] }, Date.UTC(2026, 9, 27, 3)).find(e => e.kind === 'pay').amount, 10_000);
-  // Back pay: every Monday nobody opened the app, paid the next time.
-  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 10, 10, 3)), ['pass:pay:2026-10-26', 'pass:pay:2026-11-02', 'pass:pay:2026-11-09']);
-  // Sunday 23:30 Taipei is still last week; Monday 00:00 is payday.
-  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 9, 25, 15, 30)), []);
-  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 9, 25, 16, 0)), ['pass:pay:2026-10-26']);
+  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 10, 3, 3)), ['pass:pay:2026-11']);
+  assert.equal(paydayEntries({ created: made, entries: [] }, Date.UTC(2026, 10, 3, 3)).find(e => e.kind === 'pay').amount, 5_000);
+  // Back pay: every month nobody opened the app, paid the next time (no
+  // reward for coming back, no loss for staying away).
+  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2027, 0, 10, 3)), ['pass:pay:2026-11', 'pass:pay:2026-12', 'pass:pay:2027-01']);
+  // 10/31 23:30 Taipei is still October; 11/1 00:00 is payday.
+  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 9, 31, 15, 30)), []);
+  assert.deepEqual(pays({ created: made, entries: [] }, Date.UTC(2026, 9, 31, 16, 0)), ['pass:pay:2026-11']);
   // Paid once: an id the wallet has isn't due again; the start is due once.
-  const paid = { created: made, entries: [{ id: 'pass:start' }, { id: 'pass:pay:2026-10-26' }] };
-  assert.deepEqual(paydayEntries(paid, Date.UTC(2026, 9, 27, 3)), []);
-  assert.equal(mondayId(Date.UTC(2026, 9, 25, 16, 0)), '2026-10-26');
-  assert.equal(weekStart(Date.UTC(2026, 9, 25, 16, 0)), Date.UTC(2026, 9, 25, 16, 0));
+  const paid = { created: made, entries: [{ id: 'pass:start' }, { id: 'pass:pay:2026-11' }] };
+  assert.deepEqual(paydayEntries(paid, Date.UTC(2026, 10, 3, 3)), []);
+  assert.equal(monthId(Date.UTC(2026, 9, 31, 16, 0)), '2026-11');
+  assert.equal(monthStart(Date.UTC(2026, 9, 31, 17, 0)), Date.UTC(2026, 9, 31, 16, 0));
+  // December rolls into January.
+  assert.equal(nextMonth(Date.UTC(2026, 11, 15)), Date.UTC(2026, 11, 31, 16, 0));
 });
 
-test('the pay comes with the next read, sign-in or save of the week, once', async () => {
+test('broke is broke until the 1st: a balance at zero brings no money in the month', () => {
+  const made = Date.UTC(2026, 9, 21, 3);
+  const w = { created: made, entries: [{ id: 'pass:start', amount: PAY.start }, { id: 'odds:stake-1', amount: -PAY.start }] };
+  assert.deepEqual(paydayEntries(w, Date.UTC(2026, 9, 31, 15, 59)), []);
+});
+
+test('the pay comes with the next read, sign-in or save of the month, once', async () => {
   const t = setup({ start: Date.UTC(2026, 9, 21, 3) });
   const acct = await newPass(t);
-  t.advance(7 * 86_400_000);
+  t.advance(14 * 86_400_000);
   const read = await t.call('GET', t.qt((await t.call('POST', '', { op: 'refresh', refresh: acct.refresh, app: 'odds', claim: true })).data.token));
-  assert.equal(read.data.pool, PAY.start + PAY.week);
+  assert.equal(read.data.pool, PAY.start + PAY.month);
   const again = await t.call('GET', t.qt(read.data.token));
-  assert.equal(again.data.pool, PAY.start + PAY.week);
+  assert.equal(again.data.pool, PAY.start + PAY.month);
 });
 
 test('rotate: a new pass for the same account, the old one dead, every other device out', async () => {

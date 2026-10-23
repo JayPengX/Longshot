@@ -30,8 +30,9 @@ The jobs run on one Durable Object, `Clock` (clock.js), with a minute alarm. Any
 
 Only the Worker adds money:
 
-- NT$200,000 at sign-up (entry `pass:start`).
-- NT$10,000 every Monday, Taiwan time (entry `pass:pay:<Monday>`), from the first Monday after sign-up.
+- NT$10,000 at sign-up (entry `pass:start`).
+- NT$5,000 on the 1st of each month, Taiwan time (entry `pass:pay:<YYYY-MM>`), from the month after sign-up; missed months are paid on the next visit.
+- Nothing else: no relief or top-up when a balance hits zero.
 
 ## Storage and secrets
 

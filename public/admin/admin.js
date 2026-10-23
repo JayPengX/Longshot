@@ -118,7 +118,7 @@ async function overview() {
     ['流通的錢', money(o.money.total), `最多 ${money(o.money.top)}`],
     ['今天拍注單', `${fmt(o.today.scans)} / ${fmt(o.guards.scanCap)}`, o.guards.scans ? '開著' : '已暫停'],
     ['下注與彩券', o.guards.play ? '開著' : '已暫停', '在「防護」切換'],
-    ['錢快用完', fmt(o.money.under), '餘額不到 NT$10,000']
+    ['錢快用完', fmt(o.money.under), '餘額不到 NT$1,000']
   ];
   $('ov-tiles').innerHTML = tiles.map(([k, v, s]) => `<div class="ad-tile"><small>${k}</small><b>${esc(v)}</b><span>${esc(s)}</span></div>`).join('');
   const top = Math.max(1, ...o.starts, ...o.lastSeen);

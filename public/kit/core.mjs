@@ -1338,7 +1338,7 @@ function makeSession(app, { lang, heartbeat }) {
 // ---- The balance -----------------------------------------------------------------------
 
 // The balance: the sum of the wallet's entries, the Worker's (the opening
-// money, the pay) and the app's (stakes, payouts, tickets, prizes), each
+// money, the monthly deposit) and the app's (stakes, payouts, tickets, prizes), each
 // with a fixed id.
 export function poolBalance(wallet) {
   if (!wallet) return 0;
@@ -1353,7 +1353,7 @@ export function othersBalance(wallet, app) {
 
 const KIND = {
   start: ['開戶金', 'Opening money'],
-  pay: ['每週零用金', 'Weekly money'],
+  pay: ['每月存入', 'Monthly deposit'],
   stake: ['下注', 'Bet'],
   payout: ['彩金', 'Winnings'],
   refund: ['退款', 'Refund'],
@@ -1377,11 +1377,12 @@ export function money(x, { sign = false, cents = false } = {}) {
 
 const TPE = 8 * 3_600_000;
 export const taipeiDay = (t = Date.now()) => twDay(t);
-// The weekly money's next day: next Monday 00:00 Taiwan time (the Worker pays it).
+// The monthly deposit (NT$5,000, the Worker pays it): its amount and next day,
+// the 1st of next month at 00:00 Taiwan time.
+export const MONTHLY = 5_000;
 export function nextPayday(now = Date.now()) {
   const day = new Date(now + TPE);
-  const monday = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()) - ((day.getUTCDay() + 6) % 7) * 86_400_000;
-  return monday + 7 * 86_400_000 - TPE;
+  return Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 1, 1) - TPE;
 }
 
 // ---- Recommendations ----------------------------------------------------------------------
@@ -1631,13 +1632,28 @@ function hideMoved() {
   movedEl = null;
 }
 
-// The account button: a person, never the balance (the balance lives inside
-// the sheet).
+// The account button: a capsule with the person and the money left
+// (`balance()`, the app's own figure, which may be ahead of the wallet's;
+// the wallet's when the app gives none). Repainted on every wallet change
+// and whenever the app calls the returned paint().
 const PERSON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-4 4.2-6 7.5-6s6.3 2 7.5 6"/></svg>';
-export function accountButton(s) {
-  const btn = node('button', { class: 'q-account', type: 'button', 'aria-label': s.lang === 'en' ? 'Account' : '帳戶', title: 'Longshot Pass' });
-  btn.innerHTML = PERSON_SVG;
+export function accountButton(s, { balance = () => s.pool } = {}) {
+  const label = s.lang === 'en' ? 'Account' : '帳戶';
+  const amount = node('span', { class: 'q-account-amount num' });
+  const face = node('span', { class: 'q-account-face', 'aria-hidden': 'true' });
+  face.innerHTML = PERSON_SVG;
+  const btn = node('button', { class: 'q-account', type: 'button', title: 'Longshot Pass' }, [face, amount]);
+  const paint = () => {
+    const v = Math.max(0, Math.floor(Number(balance()) || 0));
+    const text = money(v);
+    if (amount.textContent !== text) amount.textContent = text;
+    btn.classList.toggle('empty', v < 100);
+    btn.setAttribute('aria-label', `${label} ${text}`);
+  };
+  paint();
+  s.on?.('wallet', paint);
   btn.addEventListener('click', () => accountSheet(s));
+  btn.paint = paint;
   return btn;
 }
 // The account sheet (pass.mjs, loaded when first opened); tab: 'pass' | 'truth'.
@@ -3110,9 +3126,11 @@ export function tabBar({ tabs, onSelect, hash = id => `#${id}`, nav = document.g
 //     in the result has a `disabled` an app sets while it loads: on a phone
 //     it holds off a pull, on a computer it spins the button.
 //   help(): a 說明 button.
-// Returns { help, refresh } (the buttons, or null, or refresh's stand-in).
+//   balance(): the money left, shown on the account button.
+// Returns { help, refresh, balance } (the buttons, or null, or refresh's
+// stand-in; balance() repaints the money left).
 let stopPull = null;
-export function topActions(s, { help = null, refresh = null, into = document.getElementById('top-actions') } = {}) {
+export function topActions(s, { help = null, refresh = null, balance, into = document.getElementById('top-actions') } = {}) {
   const en = s.lang === 'en';
   let helpBtn = null;
   if (help) {
@@ -3144,8 +3162,9 @@ export function topActions(s, { help = null, refresh = null, into = document.get
   }
   if (pull) stopPull = pullToRefresh(() => refresh(), { disabled: () => refreshButton.disabled });
   into.classList.add('q-actions');
-  into.replaceChildren(...[helpBtn, pull ? null : refreshButton, accountButton(s)].filter(Boolean));
-  return { help: helpBtn, refresh: refreshBtn };
+  const account = accountButton(s, balance ? { balance } : {});
+  into.replaceChildren(...[helpBtn, pull ? null : refreshButton, account].filter(Boolean));
+  return { help: helpBtn, refresh: refreshBtn, balance: account.paint };
 }
 
 // Big numbers never wrap: they shrink (to 60% at most) to fit their box.

@@ -1,5 +1,5 @@
 // Play's account: play money only, on the Longshot Pass (its money is the
-// pass's wallet: the Worker pays the opening money and every Monday's). It
+// pass's wallet: the Worker pays the opening money and each month's deposit). It
 // buys slips and lottery tickets through the Worker (settled.mjs), which
 // settles them and pays into the wallet; this keeps them and their ledger.
 //
@@ -36,7 +36,7 @@ export function compactLeg(leg) {
 
 // Buys a slip: { id, mode, sizes, stake, cost, legs }. The cost comes off the
 // balance at once. `extra`: the wallet's money beyond this account's own
-// ledger (the opening money and the Monday money), spendable here too.
+// ledger (the opening money and the monthly deposits), spendable here too.
 // Returns { account } or { error: 'funds' }.
 export function placeSlip(account, slip, now = new Date(), { extra = 0 } = {}) {
   if (!(slip.cost > 0) || slip.cost > balance(account) + extra) return { error: 'funds' };

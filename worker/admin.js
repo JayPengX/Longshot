@@ -117,7 +117,7 @@ const TOOLS = {
       accounts: used.length,
       waiting: list.length - used.length,
       active: { day: active(DAY), week: active(7 * DAY), month: active(30 * DAY) },
-      money: { total: Math.round(balances.reduce((a, b) => a + b, 0)), top: Math.round(Math.max(0, ...balances)), under: balances.filter(b => b < 10_000).length },
+      money: { total: Math.round(balances.reduce((a, b) => a + b, 0)), top: Math.round(Math.max(0, ...balances)), under: balances.filter(b => b < 1_000).length },
       days,
       starts: byDay(w => w.created),
       lastSeen: byDay(lastUsed),

@@ -2290,31 +2290,51 @@ dialog.q-moved::backdrop {
   line-height: 1.55;
 }
 
-/* ---- The account button: the pass's badge (a person), never the balance ---- */
+/* ---- The account button: the person and the money left, one capsule ---- */
 .q-account {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   height: 36px;
   flex: none;
-  padding: 0;
+  max-width: 60vw;
+  padding: 0 13px 0 4px;
   border: 1px solid var(--q-border);
-  border-radius: 50%;
+  border-radius: 999px;
   background: var(--q-surface);
-  color: var(--q-accent);
+  color: var(--q-text);
   box-shadow: var(--q-shadow-sm);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+.q-account-face {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--q-accent);
+  color: #fff;
+}
 .q-account svg {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.q-account-amount {
+  font: 700 15px/1 var(--q-font-rounded);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* Nothing left to play with: the figure goes quiet, no alarm. */
+.q-account.empty .q-account-amount {
+  color: var(--q-muted);
 }
 /* Frames: a ring around the account button (and their previews in Orbit Words). */
 @property --q-spin {

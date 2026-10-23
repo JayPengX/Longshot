@@ -35,7 +35,6 @@ const emptyK = o => kitUI.empty(o);
 
 const ACCOUNT_KEY = 'oddsStudy.account';
 // Saved slips shown before the rest fold away.
-const SAVED_SHOWN = 10;
 
 const state = {
   locale: kit.detectLang(),
@@ -85,7 +84,7 @@ const state = {
   // Resolves once the account is read and merged with the pass (boot).
   accountIn: null,
   sync: { busy: false, error: '', at: null },
-  // The Longshot Pass's wallet (the money: opening, Mondays', every bet).
+  // The Longshot Pass's wallet (the money: opening, the monthly deposits, every bet).
   wallet: null,
   // Slips saved or settled since the page opened, highlighted.
   freshSlips: new Set(),
@@ -97,7 +96,6 @@ const state = {
   legLive: new Map(),
   // Open picks' games past their start but not on: called off (status 'void') or not begun ('pre').
   legOutcome: new Map(),
-  showAllSaved: false,
   historyFilter: 'all',
   // 紀錄's month chosen on its bars ('YYYY-MM'), or null for every month.
   historyMonth: null,
@@ -2221,7 +2219,7 @@ function payLine(label, value, cls = '') {
 // Signing in is required (core.mjs's sign-in screen). The account is the
 // app's data on the pass (a copy on the device under the pass, so it opens
 // at once); its ledger's entries go to the pass's wallet, and the rest of the
-// wallet (the opening money, the Mondays') is money to bet with too.
+// wallet (the opening money, the monthly deposits) is money to bet with too.
 
 
 let lotteryUi = null;
@@ -2266,6 +2264,7 @@ function commitAccount(next) {
   noticeSettled(state.account, next);
   state.account = next;
   saveAccountLocal();
+  actions?.balance();
   renderAccount();
   renderSaved();
   pushSoon();
@@ -2364,6 +2363,7 @@ async function mergeRemote(remote, applied = () => {}) {
   if (JSON.stringify(merged) !== JSON.stringify(state.account)) {
     state.account = merged;
     saveAccountLocal();
+    actions?.balance();
     renderSaved();
   }
   applied();
@@ -2658,12 +2658,10 @@ function renderAccount() {
   if (!state.accountReady || !state.account) return;
   const t = state.t;
   const account = state.account;
-  // No slips yet: no zero figures (the empty state below says it).
-  if (!account.slips.length) return void $('account-body').replaceChildren();
-  // The bets alone, every figure (the list under it is bets; the lottery's
-  // tickets and prizes are in 我的彩券): 50 open tickets once made
-  // 進行中投注 「51 張」 beside a 全中最多可拿 of the one bet.
-  const r = accountRecord(account, { tickets: false });
+  // Nothing played yet: no zero figures (the empty state below says it).
+  if (!account.slips.length && !account.tickets?.length) return void $('account-body').replaceChildren();
+  // The true record: every bet and every lottery ticket, win or lose.
+  const r = accountRecord(account);
   const most = slipsMost(account.slips.filter(x => x.status === 'open'));
   // One hero: the net so far, big; 回收率 and the tax withheld (to 政府, the
   // Pass's 真相 a tap away) under it; then the record as an even 2×2 of
@@ -2679,7 +2677,7 @@ function renderAccount() {
       el('button', { class: 'pl-rec-fig', type: 'button', onclick: () => kit.accountSheet(q, { tab: 'truth' }) }, [el('small', { text: `${t('accountTax')} ›` }), el('strong', { class: 'num', text: fmtMoney(taxed, { sign: false }) })])
     ]),
     el('div', { class: 'pl-hc-stats pl-record' }, [
-      cell(t('accountSettled'), t('sumSlips', { n: r.decided })),
+      cell(t('accountSpent'), fmtMoney(r.spent, { sign: false }), t('sumSlips', { n: r.decided })),
       cell(t('accountWon'), fmtMoney(r.won, { sign: false })),
       cell(t('accountAtStake'), fmtMoney(r.open, { sign: false }), t('sumSlips', { n: r.openCount })),
       cell(t('sumMost'), fmtMoney(most, { sign: false }))
@@ -2688,19 +2686,19 @@ function renderAccount() {
   $('account-body').replaceChildren(hero, monthsCard(account));
 }
 
-// 每月: a bar a month (green up, red down, from the middle line), the
-// month chosen (or this one) in figures under it. A tap on a month shows
-// its slips only; again, all of them.
+// 每月: a bar a month (green up, red down, from the middle line), bets and
+// tickets alike, the month chosen (or this one) in figures under it. A tap
+// on a month shows its slips only; again, all of them.
 function monthsCard(account) {
   const t = state.t;
-  const months = monthsOf({ slips: account.slips });
+  const months = monthsOf(account);
   if (!months.length) return null;
   const chosen = months.find(m => m.key === state.historyMonth) ?? null;
   const focus = chosen ?? months.at(-1);
   const max = Math.max(1, ...months.map(m => Math.abs(m.net)));
   const name = key => monthName(key);
   const bar = m =>
-    el('button', { class: `pl-mo-bar${m.net > 0 ? ' up' : m.net < 0 ? ' down' : ''}${m === focus ? ' on' : ''}`, type: 'button', 'aria-pressed': String(m === chosen), 'aria-label': `${name(m.key)} ${fmtMoney(m.net)}`, onclick: () => ((state.historyMonth = m === chosen ? null : m.key), (state.showAllSaved = false), renderAccount(), renderSaved()) }, [
+    el('button', { class: `pl-mo-bar${m.net > 0 ? ' up' : m.net < 0 ? ' down' : ''}${m === focus ? ' on' : ''}`, type: 'button', 'aria-pressed': String(m === chosen), 'aria-label': `${name(m.key)} ${fmtMoney(m.net)}`, onclick: () => ((state.historyMonth = m === chosen ? null : m.key), renderAccount(), renderSaved()) }, [
       el('span', { class: 'pl-mo-track' }, [el('i', { style: `--h:${m.net ? Math.max(6, Math.round((Math.abs(m.net) / max) * 100)) : 0}%` })]),
       el('small', { text: name(m.key) })
     ]);
@@ -2979,7 +2977,8 @@ function slipPass(slip) {
 const HISTORY_FILTERS = {
   all: () => true,
   open: s => s.status === 'open',
-  won: s => s.status === 'settled' && s.payout > 0
+  won: s => s.status === 'settled' && s.payout > s.cost,
+  lost: s => s.status === 'settled' && s.payout < s.cost
 };
 
 // Groups for the slip list (lib/slip.mjs slipGroupKey): games on now,
@@ -3076,18 +3075,15 @@ function drawSaved() {
   const month = state.historyMonth;
   const inMonth = s => !month || slipMonth(s) === month;
   const filtered = slips.filter(s => inMonth(s) && (HISTORY_FILTERS[state.historyFilter] ?? HISTORY_FILTERS.all)(s));
-  // Open slips all show; settled ones fold after SAVED_SHOWN.
-  let settledShown = 0;
+  // Every slip, none folded away.
   const groups = new Map();
   for (const slip of filtered) {
     const key = slipGroupKey(slip, now, id => state.legOutcome.get(id));
-    if ((key.startsWith('day|') || key === 'recovered') && !state.showAllSaved && settledShown++ >= SAVED_SHOWN) continue;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(slip);
   }
   const rank = key => ({ live: 0, waiting: 1, dead: 2, recovered: 4 })[key] ?? 3;
   const order = [...groups.keys()].sort((a, b) => rank(a) - rank(b) || b.localeCompare(a));
-  const hidden = filtered.filter(s => s.status === 'settled').length - Math.min(settledShown, SAVED_SHOWN);
   // Right after a bet: the way straight back to the board.
   const placed = state.justPlaced && Date.now() - state.justPlaced.at < 5 * 60_000 ? state.justPlaced : null;
   $('saved-body').replaceChildren(
@@ -3107,7 +3103,6 @@ function drawSaved() {
             count: String(slips.filter(s => inMonth(s) && HISTORY_FILTERS[key](s)).length),
             onclick: () => {
               state.historyFilter = key;
-              state.showAllSaved = false;
               renderSaved();
             }
           })
@@ -3121,8 +3116,7 @@ function drawSaved() {
             el('div', { class: 'pl-slips' }, groups.get(key).map(slip => (slip.status === 'settled' && !slip.recovered && slip.legs.length && !state.openPasses.has(slip.id) ? slipPass(slip) : savedSlipCard(slip))))
           ])
         )
-      : [kitUI.empty({ title: t('filterEmpty') })]),
-    hidden > 0 && !state.showAllSaved ? el('button', { class: 'pl-fold q-press', type: 'button', onclick: () => ((state.showAllSaved = true), renderSaved()) }, [el('span', { class: 'pl-fold-text', text: t('savedMore', { n: hidden }) }), el('i', { class: 'pl-chev', 'aria-hidden': 'true' })]) : null].filter(Boolean)
+      : [kitUI.empty({ title: t('filterEmpty') })])].filter(Boolean)
   );
 }
 
@@ -3957,8 +3951,8 @@ function openGame(id) {
   openGameSheet(id);
 }
 
-// Top right: refresh, then the account.
-actions = topActions(q, { refresh: () => (state.tab === 'slips' ? slipsMod?.then(m => m.refreshSlips()) : load()) });
+// Top right: refresh, then the account with the money left.
+actions = topActions(q, { refresh: () => (state.tab === 'slips' ? slipsMod?.then(m => m.refreshSlips()) : load()), balance: () => (state.account ? funds() : q.pool) });
 
 // Big numbers on one line: each of these shrinks its font (down to 60%) to
 // fit its box (the kit's fitNumbers), instead of wrapping onto a second row
@@ -3978,6 +3972,7 @@ renderTabs();
 let tasteWas = '';
 q.on('wallet', wallet => {
   state.wallet = wallet;
+  actions?.balance();
   renderAccount();
   renderParlay();
   // What 為你推薦 comes from changed (the pass's affinity came in): home again.
@@ -4194,6 +4189,7 @@ async function boot() {
     state.account = newAccount();
     saveAccountLocal();
   }
+  actions?.balance();
   renderAccount();
   // The slip bar waits for the account (a slip kept on the device shows now).
   renderSlipBar();

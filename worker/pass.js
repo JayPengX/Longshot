@@ -55,7 +55,7 @@ export const APPS = {
   slip: { collection: 'slips', maxPayload: 300_000 }
 };
 // Who can write entries: Play (what it spends), and this Worker itself
-// ('pass': the opening money and the weekly pay). An app can't write 'pass'
+// ('pass': the opening money and the monthly deposit). An app can't write 'pass'
 // entries.
 const ENTRY_APPS = new Set(['odds']);
 
@@ -75,24 +75,29 @@ export function emptyWallet(now = Date.now()) {
   return { v: 1, created: now, entries: [], snap: {}, settings: {} };
 }
 
-// ---- The money: an opening and a weekly pay -----------------------------------------
+// ---- The money: an opening and a monthly deposit --------------------------------------
 //
-// A new pass opens with NT$200,000 (`pass:start`), and the Worker pays
-// NT$10,000 each Taiwan week (from Monday 00:00, `pass:pay:<Monday>`): on
-// the first sign-in, refresh or save that week; a week nobody opened the app
-// is paid the next time (back pay). The week the pass was made pays nothing
-// more: its opening is that week's money.
-export const PAY = { start: 200_000, week: 10_000 };
+// Sized like a real 運彩 customer's budget, not a jackpot: a new pass opens
+// with NT$10,000 (`pass:start`), and the Worker deposits NT$5,000 on the 1st
+// of each Taiwan month (`pass:pay:<YYYY-MM>`): on the first sign-in, refresh
+// or save that month; a month nobody opened the app is paid the next time
+// (so staying away costs nothing and coming back earns nothing). The month
+// the pass was made pays nothing more: its opening is that month's money.
+// Broke is broke until the 1st: no relief, no top-up.
+export const PAY = { start: 10_000, month: 5_000 };
 const TPE = 8 * 3_600_000;
-export const WEEK = 7 * 86_400_000;
-// Monday 00:00 (Taiwan) of the week of `t`.
-export function weekStart(t) {
+// The 1st 00:00 (Taiwan) of the month of `t`.
+export function monthStart(t) {
   const d = new Date(t + TPE);
-  const day = (d.getUTCDay() + 6) % 7;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day) - TPE;
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - TPE;
 }
-// That Monday as YYYY-MM-DD (Taiwan).
-export const mondayId = t => new Date(weekStart(t) + TPE).toISOString().slice(0, 10);
+// The 1st 00:00 (Taiwan) of the month after the one of `t`.
+export function nextMonth(t) {
+  const d = new Date(monthStart(t) + TPE);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - TPE;
+}
+// That month as YYYY-MM (Taiwan).
+export const monthId = t => new Date(monthStart(t) + TPE).toISOString().slice(0, 7);
 
 // The pay entries due now that the wallet doesn't have yet.
 export function paydayEntries(wallet, now) {
@@ -100,9 +105,9 @@ export function paydayEntries(wallet, now) {
   const out = [];
   if (!have.has('pass:start')) out.push({ id: 'pass:start', t: now, app: 'pass', kind: 'start', amount: PAY.start });
   const created = Number.isFinite(wallet.created) ? Math.min(wallet.created, now) : now;
-  for (let w = weekStart(created) + WEEK, n = 0; w <= now && n < 520; w += WEEK, n++) {
-    const id = `pass:pay:${mondayId(w)}`;
-    if (!have.has(id)) out.push({ id, t: now, app: 'pass', kind: 'pay', amount: PAY.week });
+  for (let m = nextMonth(created), n = 0; m <= now && n < 240; m = nextMonth(m), n++) {
+    const id = `pass:pay:${monthId(m)}`;
+    if (!have.has(id)) out.push({ id, t: now, app: 'pass', kind: 'pay', amount: PAY.month });
   }
   return out;
 }
@@ -145,7 +150,7 @@ function cleanStamped(map, maxKeys, maxValue) {
   return out;
 }
 
-// No app adds money: this Worker does (the opening and the pay here,
+// No app adds money: this Worker does (the opening and the monthly deposit here,
 // Play's payouts and prizes in settle.js and lotto.js). An app's entries are
 // what it spends (0 or less).
 export const appEntries = entries => entries.filter(e => e.amount <= 0);

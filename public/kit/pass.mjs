@@ -1,10 +1,10 @@
 // The account sheet (the account button; accountSheet in core.mjs opens it,
 // loaded the first time). Two tabs:
-//   帳戶   the Longshot Pass: the balance and its latest entries, the weekly
-//          money, security, the debug log
+//   帳戶   the Longshot Pass: the balance and its latest entries, the monthly
+//          deposit, security, the debug log
 //   真相   how the house earns, in real numbers, and this account's own
 //          record (truth.mjs)
-import { money, describeEntry, nextPayday, showNewPass, recRows, ask, errorText, el } from './core.mjs';
+import { money, describeEntry, nextPayday, MONTHLY, showNewPass, recRows, ask, errorText, el } from './core.mjs';
 import { PLAY, houseKeep, scratchBacks, record } from './truth.mjs';
 import { sheet, section, segmented } from './ui.mjs';
 
@@ -14,7 +14,7 @@ export const STRINGS = {
     tab_truth: '真相',
     balance: '餘額',
     since: '{date} 開戶 · 第 {n} 天',
-    weekly: '每週一發 {v} 零用金，下次 {date}（一）',
+    monthly: '每月 1 日存入 {v}，下次 {date}',
     latest: '最近明細',
     noEntries: '還沒有明細',
     security: '帳戶安全',
@@ -58,7 +58,7 @@ export const STRINGS = {
     tab_truth: 'Truth',
     balance: 'Balance',
     since: 'Opened {date} · day {n}',
-    weekly: '{v} every Monday; next on Mon {date}',
+    monthly: '{v} on the 1st of each month; next on {date}',
     latest: 'Latest entries',
     noEntries: 'No entries yet',
     security: 'Security',
@@ -146,7 +146,7 @@ export function openPass(s, { tab = 'pass' } = {}) {
         el('strong', { class: 'q-hero-balance num', text: money(s.pool) }),
         el('span', { class: 'q-hero-sub', text: days ? t('since', { date: date(w.created), n: days }) : '' })
       ]),
-      el('p', { class: 'q-payday', text: t('weekly', { v: money(10_000), date: short(nextPayday()) }) }),
+      el('p', { class: 'q-payday', text: t('monthly', { v: money(MONTHLY), date: short(nextPayday()) }) }),
       section(
         t('latest'),
         recent.length

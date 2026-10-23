@@ -83,7 +83,8 @@ Live: https://jaypengx.github.io/Longshot/
   steps, every prize with its odds (1/N of 發行張數) and buys 1 to 10. The
   scratch sheet shows the whole ticket (never cut at a side), a
   fingertip-wide coin, and a tap on a small scratch-off opens it whole.
-- **紀錄:** 投注單 opens on one hero (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, the record as a 2×2), 每月損益 bars (a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and filter chips; open slips are whole tickets (live progress), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (draws and scratch cards) and 戰績 (wins only).
+- **紀錄:** a true record, plain figures, no lessons (those are 真相's): every bet and ticket stays listed, win or lose, nothing folded or filtered out by default. 投注單 opens on one hero over bets and lottery alike (the net, 回收率, the tax withheld with the Pass's 真相 a tap away, 投入 · 拿回 · 進行中 · 全中最多可拿), 每月損益 bars (bets and tickets; a tap shows that month's slips, `monthsOf` in `lib/history.mjs`) and chips 全部 · 進行中 · 贏 · 輸; open slips are whole tickets (live progress), settled ones passes (sport colour, each pick's logo marked right or wrong, the net) that open to the ticket. Then 我的彩券 (投入 · 中獎 · 淨損益, every day and every 注 with its net) and 戰績 (wins only).
+- **Top right:** the account capsule shows the money left (`accountButton`'s `balance`, the app's own figure).
 - **注單** (`slips/`): the real 台灣運彩 tickets you bought,
   read from a photo (Gemini, through the Worker's `/slip-scan`, 30 a day)
   or picked by hand, followed live: what each is worth now, every pick as
@@ -103,7 +104,7 @@ Live: https://jaypengx.github.io/Longshot/
 - **Offline:** covered (`onlineOnly`); never old odds.
 - **Saved:** on the Longshot Pass, one session for both: Play's ledger under
   app `odds` (`gz1:`), the tickets under `slip` (`slips/lib/sync.mjs`). The
-  balance is the wallet's entries (the Worker's `pass:start`, `pass:pay:<Monday>`,
+  balance is the wallet's entries (the Worker's `pass:start`, `pass:pay:<YYYY-MM>`,
   and the account's `odds:<id>`), so copies merge by union.
 
 ## The Longshot Pass
@@ -113,8 +114,10 @@ account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
 
 - Open sign-up (開新帳號, rate-limited); a 10-character 通行碼 is the only key,
   shown once. Sign out others, a new 通行碼, sign out here.
-- Money: NT$200,000 to open, NT$10,000 every Monday (Taiwan time), paid by
-  the Worker. Only the Worker adds money.
+- Money, sized like a real 運彩 customer's budget so a loss is felt and
+  nothing invites chasing it: NT$10,000 to open, NT$5,000 on the 1st of each
+  month (Taiwan time), paid by the Worker. Broke waits for the 1st (no relief
+  or top-up); a ticket is still 台灣運彩's NT$100–100,000. Only the Worker adds money.
 - 真相: the house's edge for 1 to 7 legs, your bets' and tickets' payback,
   the lottery's and scratch cards'.
 - One device live at a time; the other says 已在其他裝置使用.
