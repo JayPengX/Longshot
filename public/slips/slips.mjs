@@ -1143,6 +1143,8 @@ const dayName = (day, today) => {
   if (off === -1) return W('昨天', 'Yesterday');
   return WEEKDAY[new Date(`${day}T12:00:00Z`).getUTCDay()];
 };
+// A race on the day strip: its place alone (巴林, not 巴林站（馬來西亞）), on one line.
+const stripGp = g => gpName(g, en).replace(/\s*[（(].*?[）)]/g, '').replace(/站$|\s+GP$/, '');
 const md = day => `${Number(day.slice(5, 7))}/${Number(day.slice(8))}`;
 // A name searched: Chinese or English, whole or short, any case.
 const norm = x => String(x || '').toLowerCase().replace(/\s+/g, '');
@@ -1201,7 +1203,7 @@ function addSheet({ scan = false, game = null } = {}) {
   const drawStrip = games => {
     const f1 = isF1({ league: draft.league });
     const seen = new Map();
-    for (const g of games) if (!isChamp(g)) seen.set(twDay(Date.parse(g.start)), f1 ? gpName(g, en) : null);
+    for (const g of games) if (!isChamp(g)) seen.set(twDay(Date.parse(g.start)), f1 ? stripGp(g) : null);
     // The day first shown: today's games, else the next day with any (else the last).
     const keys = [...seen.keys()].sort();
     draft.day ||= keys.find(d => d >= today) ?? keys.at(-1) ?? today;
@@ -1215,6 +1217,8 @@ function addSheet({ scan = false, game = null } = {}) {
       label: d => seen.get(d) ?? dayName(d, today),
       clamp: v => v,
       bounds: f1 ? { from: `${year}-01-01`, to: `${year}-12-31` } : null,
+      // (Wide enough for 拉斯維加斯 whole, or Emilia-Romagna.)
+      chipMin: f1 ? (en ? 100 : 72) : 56,
       onPick: pickDay
     });
     if (bar.parentElement !== $('.pk-days', el)) $('.pk-days', el).replaceChildren(bar);

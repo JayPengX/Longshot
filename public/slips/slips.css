@@ -1713,10 +1713,10 @@
   width: 15px;
   height: 15px;
 }
-/* The days: the kit's strip (ui.mjs dayBar); F1's each race by its Grand Prix (義大利站 over 9/6). */
+/* The days: the kit's strip (ui.mjs dayBar); F1's each race by its place (義大利 over 9/6), its chips as wide as the longest. */
 .sl-app .pk-days .q-chip.day > span,
 .pk-days.sl-app .q-chip.day > span {
-  max-width: 6.5em;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

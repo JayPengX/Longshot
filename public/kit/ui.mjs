@@ -97,7 +97,7 @@ export function dayBar(s, { flat = false, ...opts } = {}) {
   return s.bar;
 }
 const CAL_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>';
-export function dayStrip(s, { days = [], current = null, onPick = () => {}, label = null, sub = null, today = dayToday(), cls = null, clamp = null, bounds, follow = false, pickLabel = '', lang } = {}) {
+export function dayStrip(s, { days = [], current = null, onPick = () => {}, label = null, sub = null, today = dayToday(), cls = null, clamp = null, bounds, follow = false, pickLabel = '', lang, chipMin = 56 } = {}) {
   label ??= d => dayTop(d, { today, lang });
   sub ??= d => dayNum(d, { today });
   cls ??= d => (d.endsWith('-01') ? 'month-start' : '');
@@ -129,14 +129,15 @@ export function dayStrip(s, { days = [], current = null, onPick = () => {}, labe
       r.classList.toggle('q-more-after', r.scrollLeft + r.clientWidth < r.scrollWidth - 1);
     };
     // Whole days only: as many chips as fit, sharing the row's width (never one
-    // cut in half beside the 📅); the row comes to rest on a chip's edge.
+    // cut in half beside the 📅); the row comes to rest on a chip's edge. Each
+    // at least chipMin wide (a strip of longer names asks for more).
     s.fit = () => {
       const r = s.row;
       if (!r.clientWidth) return;
       const cs = getComputedStyle(r);
       const room = r.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const gap = parseFloat(cs.columnGap) || 0;
-      const n = Math.max(1, Math.floor((room + gap) / (56 + gap)));
+      const n = Math.max(1, Math.floor((room + gap) / (s.chipMin + gap)));
       const w = `${Math.floor(((room - gap * (n - 1)) / n) * 10) / 10}px`;
       if (r.style.getPropertyValue('--q-day-w') !== w) r.style.setProperty('--q-day-w', w);
       s.edges();
@@ -145,7 +146,9 @@ export function dayStrip(s, { days = [], current = null, onPick = () => {}, labe
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(s.fit).observe(s.row);
     s.wrap = h('div', { class: 'q-day-strip-wrap day-strip-wrap' }, [s.row, h('label', { class: 'q-chip q-day-pick day-pick', title: pickLabel }, [h('span', { class: 'day-pick-icon', 'aria-hidden': 'true', html: CAL_ICON }), s.input])]);
   }
-  Object.assign(s, { onPick, bounds, clamp });
+  const refit = s.chipMin !== chipMin;
+  Object.assign(s, { onPick, bounds, clamp, chipMin });
+  if (refit) s.fit();
   // Back on the page after another view: on its day at once.
   if (!s.row.isConnected) (s.shown = false), (s.reveal = 'center');
   // Other days (a sport picked, midnight, the language): the chips made again
