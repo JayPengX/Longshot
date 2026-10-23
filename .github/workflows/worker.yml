@@ -1,5 +1,5 @@
-# Deploys Longshot's Workers (worker/): the Gemini relay longshot-gemini,
-# then longshot itself (longshot.pengzjay.workers.dev), on every push to main
+# Deploys Longshot's Worker (worker/, longshot.pengzjay.workers.dev), then
+# puts Gemini's key on it when the repo has one, on every push to main
 # that touches what they run. The tests run first; a failing test deploys
 # nothing.
 name: Deploy Longshot Worker
@@ -82,16 +82,12 @@ jobs:
           [ -n "$id" ] || { echo "no longshot-store"; exit 1; }
           printf '\n[[d1_databases]]\nbinding = "STORE"\ndatabase_name = "longshot-store"\ndatabase_id = "%s"\n' "$id" >> wrangler.toml
           echo "longshot-store bound as STORE ($id)"
-      # The relay first: longshot binds it.
-      - name: Deploy longshot-gemini
-        working-directory: worker
-        run: npx --yes wrangler@4 deploy --config wrangler.gemini.toml
-      - name: Gemini's key on the relay
-        if: ${{ env.HAS_GEMINI_KEY == 'true' }}
-        working-directory: worker
-        run: printf '%s' "$GEMINI_API_KEY" | npx --yes wrangler@4 secret put GEMINI_API_KEY --config wrangler.gemini.toml
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - name: Deploy longshot
         working-directory: worker
         run: npx --yes wrangler@4 deploy
+      - name: Gemini's key
+        if: ${{ env.HAS_GEMINI_KEY == 'true' }}
+        working-directory: worker
+        run: printf '%s' "$GEMINI_API_KEY" | npx --yes wrangler@4 secret put GEMINI_API_KEY
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

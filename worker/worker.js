@@ -6,8 +6,7 @@
 //   /play           Play's slips placed and settled, the lottery (settle.js,
 //                   price.js, lotto.js)
 //   /kambi          Kambi matches watched for settling (kambi.js)
-//   /slip-scan      a 台灣運彩 ticket's photo read by Gemini (slip.js,
-//                   through the relay in Taiwan, gemini.js)
+//   /slip-scan      a 台灣運彩 ticket's photo read by Gemini (slip.js)
 //   /sports-proxy   the data proxy (sports.js)
 //   /data/<path>    what the Worker builds, from R2 (data.js)
 //
@@ -34,13 +33,15 @@ async function sessionOf(request, env) {
   return qt ? readToken(await tokenSecret(env), qt, 'ses') : null;
 }
 
-// Gemini through the relay (the service binding GEMINI): `generateContent`
-// with the schema as the answer's shape. The relay's answer as is.
-function geminiVia(env, headers) {
+// Gemini (`generateContent`) with the schema as the answer's shape, called
+// from here: the Worker runs in Taiwan (wrangler.toml's [placement]), never
+// Hong Kong, which Gemini refuses. Gemini's answer as is.
+const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/';
+export function geminiVia(env, headers, fetchFn = fetch) {
   return async (model, parts, schema) => {
-    const res = await env.GEMINI.fetch(`https://longshot-gemini/?model=${encodeURIComponent(model)}`, {
+    const res = await fetchFn(`${GEMINI}${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: { response_mime_type: 'application/json', response_schema: schema, temperature: 0, maxOutputTokens: 24576, thinkingConfig: { thinkingLevel: 'low' } }

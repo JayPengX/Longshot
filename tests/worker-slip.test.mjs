@@ -1,9 +1,7 @@
-// The ticket scan (/slip-scan, worker/slip.js) and the relay in Taiwan
-// (worker/gemini.js): its origin, its limits, and a clear 503 when Gemini
-// isn't set up.
+// The ticket scan (/slip-scan, worker/slip.js, Gemini asked by worker.js):
+// its origin, its limits, and a clear 503 when Gemini isn't set up.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { relay } from '../worker/gemini.js';
 import { SCAN_LIMITS, SCAN_MODELS, forgetScans } from '../worker/slip.js';
 import { signToken } from '../worker/token.js';
 
@@ -16,13 +14,14 @@ const google = async (url, init) => {
   gemini.push({ url: String(url), key: init.headers['x-goog-api-key'], body: JSON.parse(await new Response(init.body).text()) });
   return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"isSlip":true,"picks":[],"combos":[]}' }] } }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
-// The service binding: the relay, with or without its key.
-const binding = (key = 'k') => ({ fetch: (url, init) => relay(new Request(url, init), key ? { GEMINI_API_KEY: key } : {}, google) });
+// The Worker's own fetch, Google's answered by the fake.
+const realFetch = globalThis.fetch;
+globalThis.fetch = (url, init) => (String(url).startsWith('https://generativelanguage.googleapis.com/') ? google(url, init) : realFetch(url, init));
 
-const scan = ({ origin = 'https://jaypengx.github.io', ip = '203.0.113.1', image = { mime_type: 'image/jpeg', data: 'AAAA' }, env = { GEMINI: binding() }, qt } = {}) =>
+const scan = ({ origin = 'https://jaypengx.github.io', ip = '203.0.113.1', image = { mime_type: 'image/jpeg', data: 'AAAA' }, env = { GEMINI_API_KEY: 'k' }, qt } = {}) =>
   worker.fetch(new Request('https://longshot.test/slip-scan', { method: 'POST', headers: { Origin: origin, 'CF-Connecting-IP': ip, 'Content-Type': 'application/json' }, body: JSON.stringify({ image, qt }) }), env, ctx);
 
-test('a ticket photo goes to Gemini through the relay with the fixed prompt, from the page only', async () => {
+test('a ticket photo goes to Gemini with the fixed prompt, from the page only', async () => {
   const before = gemini.length;
   assert.equal((await scan({ origin: 'https://evil.example', ip: '203.0.113.2' })).status, 403);
   assert.equal((await scan({ ip: '203.0.113.3', image: { mime_type: 'application/pdf', data: 'AAAA' } })).status, 400);
@@ -39,18 +38,12 @@ test('a ticket photo goes to Gemini through the relay with the fixed prompt, fro
   assert.equal(sent.body.generationConfig.response_mime_type, 'application/json');
 });
 
-test('not set up: no relay bound is 503 NOT_SET_UP; a relay without its key is 503 MISSING_API_KEY', async () => {
+test('not set up: no key is 503 MISSING_API_KEY, and Gemini is never asked', async () => {
+  const before = gemini.length;
   const none = await scan({ ip: '203.0.113.30', env: {} });
   assert.equal(none.status, 503);
-  assert.equal((await none.json()).error.code, 'NOT_SET_UP');
-  const keyless = await scan({ ip: '203.0.113.31', env: { GEMINI: binding('') } });
-  assert.equal(keyless.status, 503);
-  assert.equal((await keyless.json()).error.code, 'MISSING_API_KEY');
-});
-
-test('the relay: POST only, a known model only', async () => {
-  assert.equal((await relay(new Request('https://r/?model=gemini-3.5-flash-lite'), { GEMINI_API_KEY: 'k' }, google)).status, 405);
-  assert.equal((await relay(new Request('https://r/?model=gemini-ultra', { method: 'POST', body: '{}' }), { GEMINI_API_KEY: 'k' }, google)).status, 400);
+  assert.equal((await none.json()).error.code, 'MISSING_API_KEY');
+  assert.equal(gemini.length, before);
 });
 
 test('an address gets 2 scans a minute', async () => {
@@ -60,7 +53,7 @@ test('an address gets 2 scans a minute', async () => {
 });
 
 test('with a Longshot Pass, scans count per account (3 a minute), whatever the address; a bad pass is PASS_REQUIRED', async () => {
-  const env = { GEMINI: binding(), TOKEN_SECRET: 'test-secret' };
+  const env = { GEMINI_API_KEY: 'k', TOKEN_SECRET: 'test-secret' };
   const qt = await signToken('test-secret', { k: 'ses', s: 'sess1', d: 'ACCTSCAN23456789', e: Date.now() + 60_000 });
   const forged = await scan({ ip: '203.0.113.20', env, qt: 'forged.token' });
   assert.equal(forged.status, 401);
@@ -72,9 +65,9 @@ test('with a Longshot Pass, scans count per account (3 a minute), whatever the a
 
 test('past the day’s scans in all, nobody scans until tomorrow; a failed count turns the ask away', async () => {
   forgetScans();
-  const full = { GEMINI: binding(), STORE: { prepare: () => ({ run: async () => ({}), bind: () => ({ first: async () => ({ n: SCAN_LIMITS.dayCap + 1 }) }) }) } };
+  const full = { GEMINI_API_KEY: 'k', STORE: { prepare: () => ({ run: async () => ({}), bind: () => ({ first: async () => ({ n: SCAN_LIMITS.dayCap + 1 }) }) }) } };
   assert.equal((await scan({ ip: '203.0.113.7', env: full })).status, 503);
-  const broken = { GEMINI: binding(), STORE: { prepare: () => ({ run: async () => { throw new Error('down'); } }) } };
+  const broken = { GEMINI_API_KEY: 'k', STORE: { prepare: () => ({ run: async () => { throw new Error('down'); } }) } };
   assert.equal((await scan({ ip: '203.0.113.8', env: broken })).status, 503);
   forgetScans();
 });

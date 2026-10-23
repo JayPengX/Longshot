@@ -7,8 +7,8 @@ import { countDay, forgetDays, twDay } from './doc-store.js';
 // ---- /slip-scan: a photo of a ticket read by Gemini --------------------------
 // The prompt and schema are fixed here, one picture an ask (a JPEG the page
 // has already shrunk, at most 1.5 MB), only the cheapest model then one
-// stronger if Google is busy. Gemini is asked through the relay in Taiwan
-// (gemini.js, the service binding GEMINI), which holds the key.
+// stronger if Google is busy. Gemini is asked from the Worker itself, in
+// Taiwan, with its key (the secret GEMINI_API_KEY).
 // Scans: with a Longshot Pass (qt) counted per account, 3 a minute and 30 a
 // day; without one, per address: 2 a minute, 6 an hour and 12 a day. 400 a
 // day in all (Gemini's flash-lite: well under a dollar), counted in D1 every
@@ -83,13 +83,13 @@ const SCAN_SCHEMA = {
 const countScan = (env, now = Date.now()) => countDay(env, `scan:${twDay(now)}`);
 export const forgetScans = forgetDays;
 
-// gemini(model, parts, schema) -> the upstream Response (worker.js asks the relay).
+// gemini(model, parts, schema) -> the upstream Response (worker.js's geminiVia).
 export async function handleSlipScan(request, env, headers, ip, gemini) {
   if (request.method !== 'POST') return json({ error: { message: 'POST only' } }, 405, headers);
   const origin = request.headers.get('Origin') || '';
   if (!ALLOWED_ORIGINS.includes(origin) && !LOCAL_ORIGIN.test(origin)) return json({ error: { message: 'Forbidden' } }, 403, headers);
-  // No relay bound: nobody has set Gemini up (the relay itself says so when it has no key).
-  if (!env.GEMINI) return json({ error: { code: 'NOT_SET_UP', message: 'Not set up' } }, 503, headers);
+  // No key: nobody has set Gemini up.
+  if (!env.GEMINI_API_KEY) return json({ error: { code: 'MISSING_API_KEY', message: 'Not set up' } }, 503, headers);
   // (Read only up to what a picture can be, Content-Length or not.)
   const text = await bodyText(request, SCAN.maxBase64 + 1000);
   if (text == null) return json({ error: { message: 'Too large' } }, 413, headers);

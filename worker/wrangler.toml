@@ -15,13 +15,12 @@ name = "longshot"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
-# No [placement]: the Worker runs at the colo each request comes in through,
-# near the caller. Gemini alone goes through a relay pinned to Taiwan
-# (gemini.js, wrangler.gemini.toml), as Cloudflare advises for one part that
-# must run somewhere.
-[[services]]
-binding = "GEMINI"
-service = "longshot-gemini"
+# Taiwan (Changhua): Gemini (/slip-scan) refuses Hong Kong, where a
+# caller's colo can be. Everything else it reads (ESPN, Kambi, the leagues'
+# own sites) answers from Taiwan. Its one secret, GEMINI_API_KEY, is put by
+# worker.yml when the repo has it; a deploy never removes it.
+[placement]
+region = "gcp:asia-east1"
 
 # The clock (clock.js): a Durable Object whose alarm runs each minute's jobs.
 [[durable_objects.bindings]]
