@@ -1,7 +1,8 @@
 // ---- pass.js ----
 // /pass: the Longshot Pass, the one account behind Longshot. Play money only.
 //
-// The pass is a 10-character code, stored only as its SHA-256 (a document
+// Passes are handed out by the owner (the admin page, admin.js): there's
+// no sign-up. The pass is a 10-character code, stored only as its SHA-256 (a document
 // in `passes` naming the account), and typed only to sign in. Signing in
 // gives the device a refresh token and a short session token; everything
 // else is done with the session. Devices never keep the pass itself. Behind
@@ -32,13 +33,12 @@
 //          (also POST /pass?app=A { op: 'write', qt, payload?, wallet?, w? }:
 //          a POST of plain text is one request, a PATCH two)
 //   DELETE /pass?qt=T[&app=A]   the account (or A's data)
-//   POST   /pass { op: 'create', app }                 a new pass, signed in
 //   POST   /pass { op: 'login', passcode, app }        sign in on this device
 //   POST   /pass { op: 'refresh', refresh, app, claim?, data?, w?, since? }
 //   POST   /pass { op: 'signout-all', qt }             every other device out
 //   POST   /pass { op: 'rotate', qt }                  a new pass, same account
 
-import { storeReady, twDay } from './doc-store.js';
+import { storeReady } from './doc-store.js';
 import { tokenSecret, signToken, readToken, sessionLimited, SESSION_MS, REFRESH_MS } from './token.js';
 
 export const PASSCODE_LENGTH = 10;
@@ -66,11 +66,9 @@ export const FOLD_AT = 600_000;
 const MAX_ENTRIES_PER_WRITE = 1000;
 const MAX_AMOUNT = 1_000_000_000;
 
-// Sign-ups are open: per address, CREATE_PER_HOUR an hour (in memory), and
-// CREATE_PER_DAY a Taiwan day in all (counted in D1). Sign-ins per address,
-// LOGIN_PER_HOUR. Calls with a session are counted per session in memory
-// (TOKEN_LIMIT a minute).
-export const LIMITS = { createPerHour: 5, createPerDay: 500, loginPerHour: 30 };
+// Sign-ins per address, LOGIN_PER_HOUR. Calls with a session are counted
+// per session in memory (TOKEN_LIMIT a minute).
+export const LIMITS = { loginPerHour: 30 };
 export const TOKEN_LIMIT = 90;
 
 export function emptyWallet(now = Date.now()) {
@@ -237,13 +235,12 @@ const liveOf = wallet => (wallet?.live ? { t: wallet.live.t } : null);
 // deps: the Worker's own plumbing, passed in so this file stays testable:
 // { json, errorJson, upstreamFailed, readJsonBody, INVALID_BODY,
 //   fsGet(env, collection, id), fsWrite(env, collection, id, payload,
-//   precondition), fsDelete(env, collection, id), countDay(env, key),
+//   precondition), fsDelete(env, collection, id),
 //   sha256Hex, generateCode(length), now() }.
 //   fsWrite's precondition is { updateTime } or { exists: false }, and a
 //   failed one throws an error with `precondition: true`.
 
 const OPS = {
-  create: passCreate,
   login: passLogin,
   refresh: passRefresh,
   'signout-all': passSignOutAll,
@@ -369,7 +366,9 @@ async function signIn(ctx, docId, { passcode = null } = {}) {
   if (!APPS[app]) return deps.errorJson('UNKNOWN_APP', 400, headers, ctx.request);
   const now = deps.now();
   const sid = deps.generateCode(12);
-  const result = await updateWallet(env, deps, docId, w => ({ ...mergeWallet(w, { entries: paydayEntries(w, now) }), live: { sid, t: now } }));
+  // (A handed-out pass's account starts at its first sign-in: no pay for the weeks it waited.)
+  const fresh = w => (w.entries.some(e => e.id === 'pass:start') ? w : { ...w, created: now });
+  const result = await updateWallet(env, deps, docId, w => ({ ...mergeWallet(fresh(w), { entries: paydayEntries(fresh(w), now) }), live: { sid, t: now } }));
   if (!result) return null;
   const c = { d: docId, s: sid, g: gen(result.wallet) };
   const out = await sessionReply(env, deps, secret, result, c, now, { app });
@@ -410,18 +409,14 @@ async function sessionReply(env, deps, secret, result, c, now, { app, since = ''
   return out;
 }
 
-// A new pass for anyone who asks: a few an hour from one address, and
-// LIMITS.createPerDay a Taiwan day in all.
-async function passCreate(ctx) {
-  const { env, deps, headers, request, app, ip } = ctx;
-  if (!APPS[app]) return deps.errorJson('UNKNOWN_APP', 400, headers, request);
-  if (sessionLimited(`create:${ip}`, LIMITS.createPerHour, 3_600_000, deps.now())) return deps.errorJson('RATE_LIMITED', 429, headers, request);
-  if ((await deps.countDay(env, `signup:${twDay(deps.now())}`)) > LIMITS.createPerDay) return deps.errorJson('CREATE_CLOSED', 403, headers, request);
+// A new account and its pass, for the owner to hand out (admin.js): its
+// opening money comes with its first sign-in.
+export async function openAccount(env, deps) {
   const now = deps.now();
   const docId = await newAccountId(env, deps);
   const { passcode, hash } = await newPasscode(env, deps, docId);
   await updateWallet(env, deps, docId, w => ({ ...w, created: now, sec: { gen: 0, pass: hash } }), { create: true });
-  return signIn(ctx, docId, { passcode });
+  return { docId, passcode };
 }
 
 // The account a pass opens, or null.

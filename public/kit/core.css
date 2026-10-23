@@ -2454,6 +2454,13 @@ dialog.q-moved::backdrop {
   line-height: 1.55;
   font-size: 15px;
 }
+.q-gate-note {
+  margin: 2px 0 0;
+  color: var(--q-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
 .q-gate-form {
   display: grid;
   gap: 10px;

@@ -187,6 +187,9 @@ export async function handlePlay(request, env, headers, session, deps) {
     const body = await deps.readJsonBody(request);
     if (body === deps.INVALID_BODY || !body || typeof body !== 'object') return errorJson('INVALID_JSON', 400, headers, request);
     const now = deps.now();
+    // The owner's guard (admin.js): Play paused, nothing new bought or bet
+    // (what's already placed still settles and pays).
+    if (deps.guards && !deps.guards.play && ['place', 'tickets', 'scratch'].includes(body.op)) return errorJson('PAUSED', 503, headers, request);
     // The lottery and scratch cards (lotto.js).
     const lotto = await handleLotto(body, env, account, deps, now);
     if (lotto) return json(lotto, 200, headers);

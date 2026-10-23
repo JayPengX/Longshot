@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+<title>冷門 管理</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../kit/core.css" />
+<link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+<main class="ad">
+  <header class="ad-head">
+    <img src="../favicon.svg" alt="" width="36" height="36" />
+    <h1>冷門 管理</h1>
+    <button id="out" class="ad-link" type="button" hidden>登出</button>
+  </header>
+
+  <section id="gate" class="ad-card ad-gate" hidden>
+    <h2 id="gate-title">管理員登入</h2>
+    <p id="gate-text" class="ad-muted">用你的 Longshot Pass 登入。</p>
+    <form id="gate-form">
+      <input id="gate-pass" class="ad-input mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
+      <button class="q-btn primary block" type="submit">登入</button>
+    </form>
+    <button id="claim" class="q-btn primary block" type="button" hidden>建立管理員通行碼</button>
+    <p id="gate-error" class="ad-error" role="alert"></p>
+  </section>
+
+  <section id="born" class="ad-card" hidden>
+    <h2>你的管理員通行碼</h2>
+    <p class="ad-muted">只顯示這一次。記下來，用它登入冷門和這個頁面。</p>
+    <p id="born-code" class="ad-code mono"></p>
+    <button id="born-ok" class="q-btn primary block" type="button">我記下來了</button>
+  </section>
+
+  <div id="app" hidden>
+    <nav class="ad-tabs" role="tablist">
+      <button type="button" data-tab="ov" aria-pressed="true">總覽</button>
+      <button type="button" data-tab="pass" aria-pressed="false">通行碼</button>
+      <button type="button" data-tab="guard" aria-pressed="false">防護</button>
+    </nav>
+
+    <section data-pane="ov">
+      <div id="ov-tiles" class="ad-tiles"></div>
+      <div class="ad-card">
+        <div class="ad-card-head"><h2>最近 14 天</h2><span class="ad-legend"><i class="a"></i>開始使用<i class="b"></i>最後使用</span></div>
+        <div id="ov-days" class="ad-bars"></div>
+        <div id="ov-foot" class="ad-bars-foot"></div>
+      </div>
+      <div class="ad-card">
+        <div class="ad-card-head"><h2>錢最多</h2></div>
+        <div id="ov-rich" class="ad-list"></div>
+      </div>
+    </section>
+
+    <section data-pane="pass" hidden>
+      <div class="ad-card">
+        <div class="ad-card-head"><h2>發放通行碼</h2></div>
+        <p class="ad-muted">每張一個新帳戶，各有 NT$200,000。</p>
+        <div class="ad-issue">
+          <div class="ad-stepper"><button id="n-down" type="button" aria-label="少一張">−</button><b id="n" class="num">1</b><button id="n-up" type="button" aria-label="多一張">＋</button></div>
+          <button id="issue" class="q-btn primary" type="button">發放</button>
+        </div>
+        <div id="issued" class="ad-issued" hidden>
+          <p class="ad-muted">只顯示這一次。</p>
+          <div id="issued-list" class="ad-list"></div>
+          <button id="copy" class="q-btn tinted block" type="button">全部複製</button>
+        </div>
+      </div>
+      <div class="ad-card">
+        <div class="ad-card-head"><h2>帳戶</h2><span id="acct-n" class="ad-muted"></span></div>
+        <div id="acct-list" class="ad-list"></div>
+      </div>
+    </section>
+
+    <section data-pane="guard" hidden>
+      <div class="ad-card">
+        <div class="ad-card-head"><h2>防護</h2></div>
+        <p class="ad-muted">一分鐘內生效。已經下的注照常結算。</p>
+        <label class="ad-row"><span><b>拍注單</b><small>用 Gemini 讀注單照片</small></span><input id="g-scans" type="checkbox" class="ad-switch" /></label>
+        <label class="ad-row"><span><b>每天拍注單上限</b><small id="g-today">所有帳戶合計</small></span><input id="g-cap" class="ad-input ad-num num" type="number" min="0" max="5000" inputmode="numeric" /></label>
+        <label class="ad-row"><span><b>下注與彩券</b><small>關掉就不能下新注、買彩券</small></span><input id="g-play" type="checkbox" class="ad-switch" /></label>
+        <button id="g-save" class="q-btn primary block" type="button">儲存</button>
+        <p id="g-note" class="ad-muted ad-center" role="status"></p>
+      </div>
+    </section>
+  </div>
+</main>
+<script type="module" src="./admin.js"></script>
+</body>
+</html>

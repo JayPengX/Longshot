@@ -1134,7 +1134,6 @@ function makeSession(app, { lang, heartbeat }) {
   // Every way of signing in ends here: a refresh token for this device.
   const signIn = body => claimed(call('POST', '', { ...body, app }).then(res => absorb({ ...res, active: true })));
   const login = code => signIn({ op: 'login', passcode: cleanCode(code) });
-  const create = () => signIn({ op: 'create' });
   // A session from the device's refresh token (claim: make this app live).
   // One at a time: a data fetch that needs a token while the start's sign-in
   // is on its way waits for that one (not a second call to the Worker).
@@ -1225,7 +1224,6 @@ function makeSession(app, { lang, heartbeat }) {
   }
 
   s.login = login;
-  s.create = create;
   // ({ data, since }: the app's data in the same request, as for read.)
   s.claim = ({ data = false, since = '' } = {}) => refresh({ claim: true, data, since });
   s.signOut = () => signedOut();
@@ -1504,7 +1502,7 @@ function passInput(label) {
 }
 const ERR = {
   PASSCODE_NOT_FOUND: ['找不到這組通行碼。', 'No Longshot Pass has this code.'],
-  CREATE_CLOSED: ['今天開新帳號的名額滿了，明天再試。', 'No more new accounts today. Try again tomorrow.'],
+  PAUSED: ['暫停中，稍後再試。', 'Paused for now. Try again later.'],
   RATE_LIMITED: ['嘗試太多次，請稍後再試。', 'Too many tries. Please wait a little.'],
   SESSION_MOVED: ['帳戶正在另一台裝置使用中，回到這裡後再試一次。', 'Your account is in use on another device. Come back here and try again.'],
   INVALID_PASSCODE: ['請輸入 10 碼通行碼（例如 ABCDE-23456）。', 'Enter your 10-character pass (like ABCDE-23456).']
@@ -1551,8 +1549,8 @@ function dropFromTop(dialog) {
   dialog.remove();
 }
 
-// The sign-in screen: nothing of the app shows until there's a pass. A new
-// account is one tap (its pass is shown once, to keep).
+// The sign-in screen: nothing of the app shows until there's a pass (handed
+// out by the owner, admin.js: there's no sign-up).
 function signInGate(s) {
   const en = s.lang === 'en';
   document.getElementById('loading')?.setAttribute('hidden', '');
@@ -1560,8 +1558,8 @@ function signInGate(s) {
     const input = passInput('Longshot Pass');
     const error = node('p', { class: 'q-gate-error', role: 'alert' });
     const enter = node('button', { class: 'q-btn primary block', type: 'submit', text: en ? 'Sign in' : '登入' });
-    const fresh = node('button', { class: 'q-btn plain block', type: 'button', text: en ? 'New here? Open an account' : '第一次使用？開新帳號' });
-    const busy = on => [enter, fresh, input].forEach(b => (b.disabled = on));
+    const note = node('p', { class: 'q-gate-note', text: en ? 'Passes are handed out by Longshot. Ask the person who invited you.' : '通行碼由 Longshot 發放，請向邀請你的人索取。' });
+    const busy = on => [enter, input].forEach(b => (b.disabled = on));
     const done = async (task, after = () => {}) => {
       busy(true);
       error.textContent = '';
@@ -1576,7 +1574,6 @@ function signInGate(s) {
         busy(false);
       }
     };
-    fresh.addEventListener('click', () => done(() => s.create(), res => showNewPass(s, res.passcode, { first: true })));
     const form = node(
       'form',
       {
@@ -1588,7 +1585,7 @@ function signInGate(s) {
           done(() => s.login(code));
         }
       },
-      [node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), input, error, enter, fresh]
+      [node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), input, error, enter, note]
     );
     const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true' }, [
       node('div', { class: 'q-gate-box' }, [
@@ -1708,8 +1705,8 @@ export function ask({ title, body = '', points = [], ok = '', cancel = '', dange
 export const tell = (opts = {}) => ask({ ...opts, alertOnly: true }).then(() => undefined);
 
 // A new pass, shown once: kept only after its last 5 characters are typed
-// back. `first`: the account was just opened.
-export function showNewPass(s, passcode, { first = false } = {}) {
+// back.
+export function showNewPass(s, passcode) {
   const en = s.lang === 'en';
   const T = (zh, e) => (en ? e : zh);
   const shown = formatPass(passcode);
@@ -1733,7 +1730,7 @@ export function showNewPass(s, passcode, { first = false } = {}) {
     const box = node('dialog', { class: 'q-gate q-newpass' }, [
       node('div', { class: 'q-gate-box' }, [
         node('p', { class: 'q-gate-brand', text: 'LONGSHOT PASS' }),
-        node('h1', { class: 'q-gate-title', text: first ? T('這是你的通行碼', 'This is your pass') : T('這是你的新通行碼', 'This is your new pass') }),
+        node('h1', { class: 'q-gate-title', text: T('這是你的新通行碼', 'This is your new pass') }),
         node('div', { class: 'q-pass-code' }, [node('strong', { class: 'num', text: shown }), copy]),
         node('p', { class: 'q-gate-lede', text: T('只會顯示這一次，請記在安全的地方：換手機或清除資料時，要用它登入。', 'Shown only once: keep it somewhere safe. You sign in with it on a new phone.') }),
         node('label', { class: 'q-newpass-label', text: T('記好以後，輸入通行碼的最後 5 個字確認：', 'Once it’s saved, type its last 5 characters to confirm:') }),

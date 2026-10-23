@@ -1,8 +1,9 @@
 // ---- worker.js ----
 // Longshot's Worker (longshot.pengzjay.workers.dev): every route, by path.
 //
-//   /pass           the Longshot Pass: sign-up, sign-in, the wallet and the
-//                   app's data (pass.js)
+//   /pass           the Longshot Pass: sign-in, the wallet and the app's
+//                   data (pass.js)
+//   /admin          the owner's panel: passes handed out, the guards (admin.js)
 //   /play           Play's slips placed and settled, the lottery (settle.js,
 //                   price.js, lotto.js)
 //   /kambi          Kambi matches watched for settling (kambi.js)
@@ -17,6 +18,7 @@
 import { corsHeaders, errorJson, LOCAL_ORIGIN } from './http.js';
 import { readToken, tokenSecret, sessionLimited } from './token.js';
 import { handlePassRequest } from './pass.js';
+import { handleAdmin, guardsOf } from './admin.js';
 import { handlePlay } from './settle.js';
 import { handleKambiRequest } from './kambi.js';
 import { handleSlipScan } from './slip.js';
@@ -57,10 +59,11 @@ async function route(request, env, ctx, headers, origin) {
   const path = new URL(request.url).pathname.replace(/\/+$/, '');
 
   if (path === '/pass') return handlePassRequest(request, env, headers, ip, BASE_DEPS);
+  if (path === '/admin') return handleAdmin(request, env, headers, ip, BASE_DEPS);
   // The data proxy (sports.js): its own session gate and limits.
   if (path === '/sports-proxy') return handleSports(request, env, ctx, headers, ip);
   if (path.startsWith('/data/')) return handleData(request, env, ctx, headers, ip, path);
-  if (path === '/slip-scan') return handleSlipScan(request, env, headers, ip, geminiVia(env, headers));
+  if (path === '/slip-scan') return handleSlipScan(request, env, headers, ip, geminiVia(env, headers), await guardsOf(env, BASE_DEPS));
   if (path === '/kambi') {
     // A session only, counted per session in memory.
     const session = await sessionOf(request, env);
@@ -74,7 +77,7 @@ async function route(request, env, ctx, headers, origin) {
     // The dev door: a localhost page may have a slip's prices checked (nothing placed), 10 a minute an address.
     const dev = !session && LOCAL_ORIGIN.test(origin);
     if (dev && sessionLimited(`pl:dev:${ip}`, 10)) return errorJson('RATE_LIMITED', 429, headers, request);
-    return handlePlay(request, env, headers, session, { ...playDeps(env), dev });
+    return handlePlay(request, env, headers, session, { ...playDeps(env), dev, guards: await guardsOf(env, BASE_DEPS) });
   }
   return errorJson('NOT_FOUND', 404, headers, request);
 }

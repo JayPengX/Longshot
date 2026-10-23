@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { handlePassRequest, mergeWallet, poolBalance, cleanPatch, emptyWallet, paydayEntries, PAY, LIMITS, WALLET_COLLECTION, PASS_COLLECTION, APPS, foldWallet, FOLD_AT, updateWallet, weekStart, mondayId } from '../worker/pass.js';
+import { handlePassRequest, openAccount, mergeWallet, poolBalance, cleanPatch, emptyWallet, paydayEntries, PAY, WALLET_COLLECTION, PASS_COLLECTION, APPS, foldWallet, FOLD_AT, updateWallet, weekStart, mondayId } from '../worker/pass.js';
 import { signToken, readToken, tokenSecret, READ_GRACE_MS } from '../worker/token.js';
 import { fakeD1 } from './fixtures/worker/fake-d1.mjs';
 
@@ -51,14 +51,16 @@ function setup({ start = 1_700_000_000_000 } = {}) {
   return { store, deps, env, call, qt, days, accountOf, advance: ms => (clock += ms) };
 }
 
+// A pass handed out (admin.js), then signed in with.
 async function newPass(t, app = 'odds') {
-  const made = await t.call('POST', '', { op: 'create', app });
+  const { passcode } = await openAccount(t.env, t.deps);
+  const made = await t.call('POST', '', { op: 'login', passcode, app });
   assert.equal(made.status, 200, JSON.stringify(made.data));
-  return made.data;
+  return { ...made.data, passcode };
 }
 const claimsOf = token => JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString());
 
-test('create: a new pass, signed in and live, with NT$200,000 and nothing else', async () => {
+test('a handed-out pass: signed in and live, with NT$200,000 and nothing else', async () => {
   const t = setup();
   const acct = await newPass(t);
   assert.match(acct.passcode, /^[2-9A-HJ-NP-Z]{10}$/);
@@ -77,16 +79,19 @@ test('create: a new pass, signed in and live, with NT$200,000 and nothing else',
   assert.equal('a' in claimsOf(acct.token), false);
 });
 
-test('sign-ups: a few an hour from one address, and a cap a day in all', async () => {
+test('no sign-up: passes are only handed out', async () => {
   const t = setup();
-  const from = '10.9.9.9';
-  for (let i = 0; i < LIMITS.createPerHour; i++) assert.equal((await t.call('POST', '', { op: 'create', app: 'odds' }, from)).status, 200);
-  assert.equal((await t.call('POST', '', { op: 'create', app: 'odds' }, from)).data.error.code, 'RATE_LIMITED');
-  // The day's cap reached: closed for everyone until tomorrow (Taiwan's day).
-  for (const k of t.days.keys()) t.days.set(k, LIMITS.createPerDay);
-  const closed = await t.call('POST', '', { op: 'create', app: 'odds' });
-  assert.equal(closed.status, 403);
-  assert.equal(closed.data.error.code, 'CREATE_CLOSED');
+  const r = await t.call('POST', '', { op: 'create', app: 'odds' });
+  assert.equal(r.status, 400);
+  assert.equal(r.data.error.code, 'UNKNOWN_OP');
+});
+
+test('a handed-out pass waiting weeks starts at its first sign-in: no pay for the weeks it waited', async () => {
+  const t = setup();
+  const { passcode } = await openAccount(t.env, t.deps);
+  t.advance(30 * 86_400_000);
+  const made = await t.call('POST', '', { op: 'login', passcode, app: 'odds' });
+  assert.equal(made.data.pool, PAY.start);
 });
 
 test('one session works for both apps: Play (odds) and the tickets followed (slip)', async () => {

@@ -84,7 +84,7 @@ const countScan = (env, now = Date.now()) => countDay(env, `scan:${twDay(now)}`)
 export const forgetScans = forgetDays;
 
 // gemini(model, parts, schema) -> the upstream Response (worker.js's geminiVia).
-export async function handleSlipScan(request, env, headers, ip, gemini) {
+export async function handleSlipScan(request, env, headers, ip, gemini, guards = { scans: true, scanCap: SCAN.dayCap }) {
   if (request.method !== 'POST') return json({ error: { message: 'POST only' } }, 405, headers);
   const origin = request.headers.get('Origin') || '';
   if (!ALLOWED_ORIGINS.includes(origin) && !LOCAL_ORIGIN.test(origin)) return json({ error: { message: 'Forbidden' } }, 403, headers);
@@ -108,7 +108,9 @@ export async function handleSlipScan(request, env, headers, ip, gemini) {
     if (!claims) return json({ error: { code: 'PASS_REQUIRED', message: 'Sign in with your Longshot Pass.' } }, 401, headers);
     if (sessionLimited(`scan:pm:${claims.d}`, SCAN.passPerMinute) || sessionLimited(`scan:pd:${claims.d}`, SCAN.passPerDay, 86_400_000)) return json({ error: { message: 'Too many requests' } }, 429, headers);
   } else if (sessionLimited(`scan:m:${ip}`, SCAN.perMinute) || sessionLimited(`scan:h:${ip}`, SCAN.perHour, 3_600_000) || sessionLimited(`scan:d:${ip}`, SCAN.perDay, 86_400_000)) return json({ error: { message: 'Too many requests' } }, 429, headers);
-  if ((await countScan(env)) > SCAN.dayCap) return json({ error: { message: 'Busy today' } }, 503, headers);
+  // The owner's guards (admin.js): scans off, or the day's cap reached.
+  if (!guards.scans) return json({ error: { code: 'PAUSED', message: 'Paused' } }, 503, headers);
+  if ((await countScan(env)) > guards.scanCap) return json({ error: { message: 'Busy today' } }, 503, headers);
   const parts = [{ text: scanPrompt(twDay()) }, { inline_data: { mime_type: image.mime_type, data: image.data } }];
   let res;
   for (const model of SCAN_MODELS) {
