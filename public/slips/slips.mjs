@@ -722,9 +722,9 @@ function drawHow(show) {
   sec.hidden = !show;
   if (!show || sec.firstChild) return;
   const rows = [
-    [icon('camera'), '#ff8d28', W('拍下注單', 'Snap your ticket'), W('拍照或截圖，玩法、賠率、金額自動填好', 'A photo or screenshot fills in every pick')],
-    [icon('live'), '#ff383c', W('即時比分與機率', 'Live scores and chances'), W('每場比分、還有多少機會中、現在值多少', 'Each score, its chance and what it is worth now')],
-    [icon('chart'), '#3478f6', W('看清運彩抽多少', 'See the lottery’s cut'), W('公平賠率、抽成、稅後實拿，一目了然', 'Fair odds, the cut and what you take home')]
+    [icon('camera'), '#ff8d28', W('拍下注單', 'Snap your ticket'), W('拍照或截圖，玩法賠率自動填', 'A photo or screenshot fills in every pick')],
+    [icon('live'), '#ff383c', W('即時比分與機率', 'Live scores and chances'), W('比分、中的機會、現在值多少', 'Each score, its chance and what it is worth now')],
+    [icon('chart'), '#3478f6', W('看清運彩抽多少', 'See the lottery’s cut'), W('公平賠率、抽成、稅後實拿', 'Fair odds, the cut and what you take home')]
   ];
   sec.innerHTML = `<div class="sl-box"><div class="sl-box-head"><h2>${W('怎麼用', 'How it works')}</h2></div>${rows.map(([svg, c, t, sub]) => `<div class="q-ritem">${tile(svg, c)}<span class="q-ritem-text"><span class="q-ritem-title">${t}</span><small>${sub}</small></span></div>`).join('')}</div>`;
 }
