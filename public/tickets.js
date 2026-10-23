@@ -7,7 +7,7 @@
 // Rects are [x, y, w, h] in the picture's own pixels (`size`). A card's
 // `lay(f, k)` returns its parts:
 //   k.zone(rect, o)        a scratch-off (o.shape 'round'; o.r its corner)
-//   k.at(rect, v, o)       something printed there (o.win lit once revealed);
+//   k.at(rect, v, o)       something printed there (o.win lit once revealed; o.rot degrees it leans);
 //                          under a zone it's under the scratch-off
 //   k.spot(rect, v, o)     a scratch-off with one thing under it
 // and the things: k.num(n) (two digits), k.digit(n) (one), k.amt(a), k.sym(s), k.die(n), k.tile(x), k.free(),
@@ -550,7 +550,16 @@ export const TICKETS = {
       }));
       const pool = f.pool.map((x, j) => k.spot([50 + j * 40.6, 297, 34, 55], k.tile(x), { win: won.has(x), fs: 0.62, rad: 5 }));
       const pair = g2.cells[0] === g2.cells[1];
-      const two = [[330, 62, 50, 58], [386, 64, 46, 58]].map((r, j) => k.spot(r, k.tile(g2.cells[j]), { win: pair, fs: 0.72, rad: 4 }));
+      // (The 中中 pair is printed tilted: each scratch-off is its tile's face, and the tile under it leans the same way.)
+      const two = [
+        [[[325, 67], [363, 52], [382, 110], [348, 126]], [354.5, 88.75], 40, 60, -21.5],
+        [[[390, 59], [430, 70], [419, 128], [380, 114]], [404.75, 92.75], 40, 55, 13]
+      ].map(([poly, [cx, cy], w, h, rot], j) => {
+        const xs = poly.map(q => q[0]);
+        const ys = poly.map(q => q[1]);
+        const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+        return [k.zone(box, { poly }), k.at([cx - w / 2, cy - h / 2, w, h], k.tile(g2.cells[j]), { win: pair, fs: 0.72, rot })];
+      });
       return [rounds, pool, two];
     }
   }

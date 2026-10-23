@@ -35,7 +35,7 @@ const T = {
     seriesN: '多期 {k}/{n}', betsN: '{n} 注', winsN: '中 {n} 注', foldMore: '再看 {n} 注', foldLess: '收起', toScratch: '刮開', seriesLeft: '連續 {n} 期，還有 {k} 期待開獎', tooMany: '一次最多 {n} 注，請分次購買', comboNote: '每期獎金以台灣彩券公告為準',
     strongman: '大力士分數', yourScores: '您的分數', yourDice: '您的骰子', theirDice: '對手的骰子', threeOf: '3個{s}', roundN: '第{n}局', pickNow: '去選號', inMinShort: '{n} 分後截止', inHourShort: '{h} 小時後截止',
     gameN: '遊戲{n}', thanks: '謝謝', zoneX: '獎金{x}倍區', countN: '{n}個', xN: '{x}倍', sumTo: '兩數相加為 {n}', luckyCode: '幸運密碼', yourCode: '您的密碼', hitsN: '對中{n}個', hitsSp: '{n}個＋特別號', linesN: '{n}條連線', goldNums: '金樂透號碼 ＋ 特別號', onePt: '1分區', tenPt: '10分區', ptsTotal: '對中總分數', ptsN: '{n}分', soldUntil: '{d}停售', allPrices: '全部',
-    kindsN: '{n} 款', winRate: '中獎率', everyN: '每 {n} 張中 1', topN: '共 {n} 張', price1: '售價', oddsTab: '獎金與機率', tapHint: '用手指刮，或點一下小格', partN: '第 {i}/{n} 區 · 刮完自動到下一區', nextCard: '下一張 · 剩 {n}', againCard: '再買 {v}', howShort: '玩法'
+    kindsN: '{n} 款', winRate: '中獎率', everyN: '每 {n} 張中 1', topN: '共 {n} 張', price1: '售價', oddsTab: '獎金與機率', tapHint: '用手指慢慢用力刮', partN: '第 {i}/{n} 區 · 刮完自動到下一區', nextCard: '下一張 · 剩 {n}', againCard: '再買 {v}', howShort: '玩法'
   },
   en: {
     draws: 'Draw games', scratch: 'Scratch cards', mine: 'My tickets', nextDraw: 'Next draw', closeInMin: 'Closes in {n} min', closeInHour: 'Closes in {h}h {m}m', closeAt: 'Closes {when}', jackpot: 'Jackpot', price: 'A bet', buy: 'Buy', cancel: 'Cancel', buyAsk: 'Buy {n} for {v}?', buyAskBody: '{name}; checked by itself after the draw.', scratchAsk: 'Buy a {name} card?', scratchAskBody: '{v}; scratch it straight away.', cost: 'Total', bets: 'bets', multiple: 'Multiple',
@@ -51,7 +51,7 @@ const T = {
     seriesN: 'Multi-draw {k}/{n}', betsN: '{n} bets', winsN: '{n} won', foldMore: '{n} more bets', foldLess: 'Show fewer', toScratch: 'Scratch', seriesLeft: '{n} draws in a row, {k} still to come', tooMany: 'At most {n} bets at once: buy the rest after', comboNote: 'Each draw pays as Taiwan Lottery announces',
     strongman: 'Strongman', yourScores: 'Your scores', yourDice: 'Your die', theirDice: 'Their die', threeOf: '3 × {s}', roundN: 'Round {n}', pickNow: 'Pick numbers', inMinShort: '{n} min left', inHourShort: '{h}h left',
     gameN: 'Game {n}', thanks: 'ZERO', zoneX: '{x}× zone', countN: '{n}', xN: '{x}×', sumTo: 'Two that add up to {n}', luckyCode: 'Lucky code', yourCode: 'Your code', hitsN: '{n} match', hitsSp: '{n} + special', linesN: '{n} lines', goldNums: 'Gold lotto + special', onePt: '1-point zone', tenPt: '10-point zone', ptsTotal: 'Points', ptsN: '{n} pts', soldUntil: 'Ends {d}', allPrices: 'All',
-    kindsN: '{n} cards', winRate: 'Win rate', everyN: '1 in {n}', topN: '{n} printed', price1: 'Price', oddsTab: 'Prizes and odds', tapHint: 'Scratch, or tap a box', partN: 'Part {i} of {n} · on to the next when it’s off', nextCard: 'Next · {n} left', againCard: 'Again {v}', howShort: 'How to play'
+    kindsN: '{n} cards', winRate: 'Win rate', everyN: '1 in {n}', topN: '{n} printed', price1: 'Price', oddsTab: 'Prizes and odds', tapHint: 'Scratch slow and firm', partN: 'Part {i} of {n} · on to the next when it’s off', nextCard: 'Next · {n} left', againCard: 'Again {v}', howShort: 'How to play'
   }
 };
 const COMBO_NAME = { zh: { 2: '二合', 3: '三合', 4: '四合', 5: '五合' }, en: { 2: '2 numbers', 3: '3 numbers', 4: '4 numbers', 5: '5 numbers' } };

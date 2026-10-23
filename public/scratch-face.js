@@ -168,7 +168,7 @@ export function faceDrawer({ el, t, lang, money }) {
     // (A picture off the ticket itself, k.pic: its own symbol from its prize table.)
     const pic = ([x, y, w, h], scale = 1) => el('span', { class: 'tk-pic', style: `width:${((w / h) * scale).toFixed(3)}em;height:${scale}em;background-image:url(art/ticket/${id}.webp);background-size:${(W / w) * 100}% ${(H / h) * 100}%;background-position:${W === w ? 0 : (x / (W - w)) * 100}% ${H === h ? 0 : (y / (H - h)) * 100}%` });
     const draw = (v, h, w) => (v.t === 'pic' ? [pic(v.r, v.scale)] : v.t === 'cell' && v.top.t === 'pic' ? [el('span', { class: 'tk-cell' }, [pic(v.top.r, v.top.scale)]), el('b', { class: 'tk-ca num', text: v.a ? tkMoney(v.a) : t('thanks') })] : thing(v, h, w));
-    const items = tk.parts.filter(p => !p.zone).map(p => ({ ...p, el: el('span', { class: `tk-i${p.under ? ' under' : ''}${p.win ? ' win' : ''}${p.v.t === 'serial' ? ' tk-serial' : ''}${p.cls ? ` ${p.cls}` : ''}`, style: `${box(p.r)};font-size:${((p.r[3] * (p.fs || 0.5)) / W) * 100}cqw${p.ink ? `;color:${p.ink}` : ''}` }, draw(p.v, p.r[3], p.r[2]).filter(Boolean)) }));
+    const items = tk.parts.filter(p => !p.zone).map(p => ({ ...p, el: el('span', { class: `tk-i${p.under ? ' under' : ''}${p.win ? ' win' : ''}${p.v.t === 'serial' ? ' tk-serial' : ''}${p.cls ? ` ${p.cls}` : ''}`, style: `${box(p.r)};font-size:${((p.r[3] * (p.fs || 0.5)) / W) * 100}cqw${p.ink ? `;color:${p.ink}` : ''}${p.rot ? `;rotate:${p.rot}deg` : ''}` }, draw(p.v, p.r[3], p.r[2]).filter(Boolean)) }));
     const zones = tk.parts.filter(p => p.zone);
     const node = el('div', { class: 'tk', style: `aspect-ratio:${W}/${H};--tint:${ticketLook(id)['--panel']}` }, [
       el('img', { class: 'tk-art', src, alt: CARDS[id][lang], decoding: 'async' }),
