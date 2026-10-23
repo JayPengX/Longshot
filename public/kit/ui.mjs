@@ -1051,7 +1051,8 @@ export function logoTile(src, { size = 40, alt = '', fallbackText = '', tint = '
 
 // A match: its league and time, two sides, the prices in one equal row.
 // matchCard({ league, leagueLogo, when, live, tag, wide, sides: [{ logo, name,
-// score }], prices: [{ label, odds, onTap, selected, locked }], onOpen }).
+// score }], prices: [{ label, odds, onTap, selected, locked, bet }], onOpen }).
+// (`bet`: the pick's id as data-bet, so the app can show it picked or not as its slip changes.)
 // Scores show as "2 : 1", else "VS". wide = a full-width card for a list.
 export function matchCard({ league = '', leagueLogo = '', when = '', live = false, tag = null, wide = false, sides = [], prices = [], onOpen = null } = {}) {
   const [a = {}, b = {}] = sides;
@@ -1077,7 +1078,7 @@ export function matchCard({ league = '', leagueLogo = '', when = '', live = fals
         : h(
             'div',
             { class: 'q-match-prices' },
-            prices.map(p => h('button', { class: 'q-price', type: 'button', 'aria-pressed': String(Boolean(p.selected)), onclick: e => (e.stopPropagation(), p.onTap?.(e)) }, [h('small', { text: p.label || '' }), h('b', { class: 'num', text: p.odds == null ? '' : String(p.odds) })]))
+            prices.map(p => h('button', { class: 'q-price', type: 'button', ...(p.bet ? { 'data-bet': p.bet } : {}), 'aria-pressed': String(Boolean(p.selected)), onclick: e => (e.stopPropagation(), p.onTap?.(e)) }, [h('small', { text: p.label || '' }), h('b', { class: 'num', text: p.odds == null ? '' : String(p.odds) })]))
           )
       : null
   ]);

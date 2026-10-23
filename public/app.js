@@ -1808,11 +1808,21 @@ function slipChanged() {
 }
 function syncPicks() {
   const on = new Set(state.parlay);
+  // 首頁's 投注單 tile: its count as the slip is now, none when it's empty.
+  const n = slipLegs().legs.length;
+  for (const tile of document.querySelectorAll('[data-slipcount]')) {
+    const badge = tile.querySelector('.q-badge');
+    if (!n) badge?.remove();
+    else if (badge) badge.textContent = String(n);
+    else tile.append(el('span', { class: 'q-badge', text: String(n) }));
+  }
   for (const node of document.querySelectorAll('[data-bet]')) {
     const inSlip = on.has(node.dataset.bet);
-    if (node.classList.contains('in-slip') === inSlip) continue;
+    // (Whichever way it shows picked: the class, or a kit price's aria-pressed.)
+    const button = node.tagName === 'BUTTON';
+    if (node.classList.contains('in-slip') === inSlip && (!button || node.getAttribute('aria-pressed') === String(inSlip))) continue;
     node.classList.toggle('in-slip', inSlip);
-    if (node.tagName !== 'BUTTON') continue;
+    if (!button) continue;
     node.setAttribute('aria-pressed', String(inSlip));
     // Its spoken label ends with what a tap does (pickButton, entryRow).
     const label = node.getAttribute('aria-label') || '';
@@ -1998,7 +2008,7 @@ function renderParlay() {
     },
     onchange: event => {
       clearTimeout(stakeTimer);
-      const value = roundStake(Number(event.target.value) || 0);
+      const value = Math.min(SLIP_RULES.maxTicket, roundStake(Number(event.target.value) || 0));
       event.target.value = String(value);
       if (value === state.slipStake) return;
       setStake(value);
@@ -2007,7 +2017,8 @@ function renderParlay() {
       setTimeout(rerender);
     }
   });
-  numberField(stakeInput, { digits: 6 });
+  // (Never past a ticket's most, NT$100,000: Jay 2026-10-23, typing went on into the millions.)
+  numberField(stakeInput, { digits: 6, max: SLIP_RULES.maxTicket });
   // (A tap on the panel's buttons keeps the keys up: the field stays focused.)
   const keep = { onmousedown: event => event.preventDefault() };
   const stakeLabel = mode === 'single' && n > 1 ? t('slipStakeEach') : mode === 'system' ? t('slipStakeCombo') : t('slipStakeOne');
@@ -2085,6 +2096,8 @@ function setStake(v) {
 // The slip, always at hand: a bar above the tab bar while it has picks
 // (not on the slip itself): how many, what they pay together, and the way in.
 function renderSlipBar() {
+  // (Every price and the 投注單 tile follow the slip as it is now, whatever changed it.)
+  syncPicks();
   let bar = $('slip-bar');
   if (!bar) {
     bar = el('button', { id: 'slip-bar', class: 'q-accessory slip-bar', type: 'button', hidden: '', onclick: () => openSlip() });
@@ -3139,17 +3152,23 @@ function hideLoading() {
 // ---- Number fields ---------------------------------------------------------------------
 
 // Numbers are typed on the phone's own number keyboard (inputmode numeric,
-// no autocomplete), not a pad of the page's own: digits only, at most `digits` of them; Enter (the keyboard's Go/Done)
-// runs `onEnter`, and leaving the field commits it (its change event).
-function numberField(input, { digits = 7, onEnter = null } = {}) {
+// no autocomplete), not a pad of the page's own: digits only, at most
+// `digits` of them and never past `max` (a digit that would go past it isn't
+// taken: the field keeps what it had); Enter (the keyboard's Go/Done) runs
+// `onEnter`, and leaving the field commits it (its change event). (Cleaned
+// first, before the field's own oninput sees it.)
+function numberField(input, { digits = 7, max = Infinity, onEnter = null } = {}) {
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('autocomplete', 'off');
   input.setAttribute('enterkeyhint', onEnter ? 'go' : 'done');
   input.setAttribute('pattern', '[0-9]*');
+  let kept = input.value.replace(/\D/g, '');
   input.addEventListener('input', () => {
-    const clean = input.value.replace(/\D/g, '').slice(0, digits);
+    let clean = input.value.replace(/\D/g, '').slice(0, digits);
+    if (Number(clean) > max) clean = Number(kept) <= max ? kept : String(max);
     if (clean !== input.value) input.value = clean;
-  });
+    kept = clean;
+  }, true);
   input.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();

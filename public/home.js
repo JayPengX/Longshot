@@ -196,7 +196,7 @@ export function renderHome(ctx) {
   const matchCard = (g, bets, o = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const mark = { home: lang === 'zh' ? '主' : 'H', away: lang === 'zh' ? '客' : 'A', draw: T.draw };
-    const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), onTap: () => ctx.toggleLeg(b) });
+    const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => ctx.toggleLeg(b) });
     const prices = ctx.winnerSides(g, ml).map(side => ml.find(b => b.side === side) && price(ml.find(b => b.side === side), mark[side])).filter(Boolean);
     const open = () => (o.live ? ctx.openLive(g.id) : ctx.openGame(g.id));
     return kitUI.matchCard({
@@ -281,7 +281,7 @@ export function renderHome(ctx) {
     const b = topBets.find(x => x.side === side);
     if (!b) return null;
     const on = state.parlay?.includes(b.id);
-    return el('button', { class: 'pl-hero-odd q-press', type: 'button', 'aria-pressed': String(Boolean(on)), ...(b.lock ? { disabled: true } : {}), onclick: () => ctx.toggleLeg(b) }, [el('small', { text: mark[side] }), el('strong', { class: 'num', text: b.lock ? '—' : ctx.fmtOdds(ctx.effectiveOdds(b)) })]);
+    return el('button', { class: 'pl-hero-odd q-press', type: 'button', 'data-bet': b.id, 'aria-pressed': String(Boolean(on)), ...(b.lock ? { disabled: true } : {}), onclick: () => ctx.toggleLeg(b) }, [el('small', { text: mark[side] }), el('strong', { class: 'num', text: b.lock ? '—' : ctx.fmtOdds(ctx.effectiveOdds(b)) })]);
   };
   const sides = top ? ctx.winnerSides(top, topBets) : [];
   const teams = sides.filter(x => x !== 'draw');
@@ -301,7 +301,7 @@ export function renderHome(ctx) {
       { icon: 'live', tint: 'var(--q-red)', label: T.actLive, badge: onNow.length, go: () => ctx.openLive(null) },
       { icon: 'calendar', tint: 'var(--q-blue)', label: T.actGames, badge: 0, go: () => ctx.showTab('games') },
       { icon: 'ticket', tint: 'var(--q-orange)', label: T.actLottery, badge: 0, go: () => ctx.showTab('lottery') },
-      { icon: 'list', tint: 'var(--q-indigo)', label: T.actSlip, badge: slipN, go: () => ctx.openSlip() }
+      { icon: 'list', tint: 'var(--q-indigo)', label: T.actSlip, badge: slipN, data: { slipcount: true }, go: () => ctx.openSlip() }
     ];
   const actions = () => kitUI.actionGrid(actionItems.map(a => ({ ...a, onTap: a.go })));
 
