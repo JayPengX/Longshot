@@ -42,3 +42,20 @@ test('read again: placeholders left out, a club knocked out is lost early, the w
   assert.equal(gradeChamp({ team: 'Fulham', game: done }), 'won');
   assert.equal(gradeChamp({ team: 'Arsenal', game: done }), 'lost');
 });
+
+test('a 冠軍 pick read from a ticket photo: its club in its league’s championship, MLB’s by the event', async () => {
+  const { champPickLeg } = await import('../public/slips/lib/champ.mjs');
+  const epl = champGame(market);
+  const mk = (key, en, zh) => champGame({ key, sport: 'mlb', slug: key, season: '2026', teams: [{ name: { en, zh }, fair: 0.5 }, { name: { en: 'Seattle Mariners', zh: '西雅圖水手' }, fair: 0.5 }] });
+  const games = [epl, mk('ws', 'Los Angeles Dodgers', '洛杉磯道奇'), mk('al', 'Toronto Blue Jays', '多倫多藍鳥'), mk('nl', 'Los Angeles Dodgers', '洛杉磯道奇')];
+  const id = () => 'l1';
+  const leg = champPickLeg({ kind: 'future', league: 'epl', teams: ['兵工廠'], teamsEn: ['Arsenal FC'], pick: '兵工廠', odds: 2.1 }, games, id);
+  assert.deepEqual([leg.team, leg.teamZh, leg.odds, leg.game.id, leg.est], ['Arsenal', '兵工廠', 2.1, epl.id, undefined]);
+  assert.equal(champPickLeg({ kind: 'future', league: 'mlb', teams: ['道奇'], teamsEn: [''], pick: '道奇', odds: 3 }, games, id).game.market, 'ws', 'a short Chinese name; the World Series by default');
+  assert.equal(champPickLeg({ kind: 'future', league: 'mlb', event: '國聯冠軍', teams: ['道奇'], teamsEn: ['Los Angeles Dodgers'], pick: '道奇', odds: 2 }, games, id).game.market, 'nl');
+  assert.equal(champPickLeg({ kind: 'future', league: 'mlb', event: 'American League', teams: ['水手'], teamsEn: ['Seattle Mariners'], pick: '水手', odds: 2 }, games, id).game.market, 'al');
+  const guessed = champPickLeg({ kind: 'future', league: 'epl', teams: ['切爾西'], teamsEn: ['Chelsea'], pick: '切爾西', odds: null }, games, id);
+  assert.equal(guessed.est, true, 'no odds printed: Play’s estimate, marked');
+  assert.equal(champPickLeg({ kind: 'future', league: 'nba', teams: ['兵工廠'], teamsEn: ['Arsenal'], pick: '兵工廠', odds: 2 }, games, id), null, 'another league’s championship never');
+  assert.equal(champPickLeg({ kind: 'ml', league: 'epl', teams: ['兵工廠'], pick: '兵工廠', odds: 2 }, games, id), null);
+});

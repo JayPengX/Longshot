@@ -7,6 +7,7 @@ import { normalizeTeamName } from '../../kit/logos.mjs';
 import { choose, newId } from './slip.mjs';
 import { isF1, isF1Pick, f1Fit } from './f1.mjs';
 import { EXTRA_KINDS } from './board.mjs';
+import { champPickLeg } from './champ.mjs';
 
 // Orbit Class's import shrinks to 1280 px; a slip's small print wants a little more.
 const MAX_SIDE = 1600;
@@ -348,9 +349,10 @@ function leaguesFor(pick) {
 }
 
 // Every pick matched: { legs, missed: [pick…] }. `games(league, day)` lists a
-// day's games (feed.mjs's gamesOn); `bought` the day the ticket was bought;
+// day's games (feed.mjs's gamesOn); `champs()` the championships on sale
+// (a team 冠軍 pick's); `bought` the day the ticket was bought;
 // `progress(done, all)` as it goes.
-export async function matchPicks(picks, { now = Date.now(), bought = null, games = (l, d) => gamesOn(l, d, { fresh: 60_000 }), progress = () => {} } = {}) {
+export async function matchPicks(picks, { now = Date.now(), bought = null, games = (l, d) => gamesOn(l, d, { fresh: 60_000 }), champs = async () => [], progress = () => {} } = {}) {
   const cache = new Map();
   const list = (league, day) => {
     const k = `${league}|${day}`;
@@ -361,6 +363,14 @@ export async function matchPicks(picks, { now = Date.now(), bought = null, games
   const missed = [];
   let done = 0;
   for (const pick of picks) {
+    // A team's 冠軍: on its championship, not a game.
+    if (pick.kind === 'future' && !isF1Pick(pick)) {
+      const leg = champPickLeg(pick, await champs().catch(() => []), () => newId('l'));
+      if (leg) legs.push(leg);
+      else missed.push(pick);
+      progress(++done, picks.length);
+      continue;
+    }
     let best = null;
     const days = daysFor(pick, now, bought);
     const leagues = leaguesFor(pick);

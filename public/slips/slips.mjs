@@ -1693,7 +1693,7 @@ function addSheet({ scan = false, game = null } = {}) {
     if (!read.isSlip || !picks.length) return scanLine(W('看不出是運彩注單，換一張試試', 'That doesn’t look like a ticket; try another'), 'bad');
     scanLine(W(`對比賽中 0/${picks.length}`, `Matching games 0/${picks.length}`), 'busy');
     draft.bought = read.bought;
-    const { legs, missed } = await matchPicks(picks, { bought: read.bought, progress: (d, n) => scanLine(W(`對比賽中 ${d}/${n}`, `Matching games ${d}/${n}`), 'busy') });
+    const { legs, missed } = await matchPicks(picks, { bought: read.bought, champs: () => champsOn(twDay(Date.now())), progress: (d, n) => scanLine(W(`對比賽中 ${d}/${n}`, `Matching games ${d}/${n}`), 'busy') });
     draft.legs = legs;
     const c = combosOf(read.combos, legs.length);
     if (c && legs.length) {

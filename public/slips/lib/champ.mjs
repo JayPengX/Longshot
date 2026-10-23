@@ -102,3 +102,47 @@ export function champLegView(leg) {
   const now = result === 'won' ? { win: 1, push: 0 } : result || early ? { win: 0, push: 0 } : me ? { win: me.fair, push: 0 } : pre;
   return { result, early, pre, now, live: false, held: null, ahead: null, estimated: !(leg.fair > 0) };
 }
+
+// ---- A 冠軍 pick read from a ticket photo (scan.mjs) ----------------------------
+
+// Which market a pick is in: its league's, MLB's 美聯/國聯 by the event printed.
+const plainZh = s => String(s || '').replaceAll('臺', '台').replace(/[\s·．.()（）]/g, '').replace(/(足球俱樂部|俱樂部|隊)$/, '');
+function marketOf(pick) {
+  if (pick.league !== 'mlb') return null;
+  const e = String(pick.event || '');
+  return /american|美聯|美國聯盟/i.test(e) ? 'al' : /national|國聯|國家聯盟/i.test(e) ? 'nl' : 'ws';
+}
+// The printed club among a championship's contenders, or null.
+function clubIn(g, printed, printedEn) {
+  const zh = plainZh(printed);
+  const en = normalizeTeamName(printedEn || printed);
+  const field = (g.field || []).filter(t => !t.out);
+  return (
+    field.find(t => (en && normalizeTeamName(t.name) === en) || (zh && plainZh(t.zh) === zh)) ||
+    field.find(t => {
+      const z = plainZh(t.zh);
+      return zh.length >= 2 && z.length >= 2 && (z.includes(zh) || zh.includes(z));
+    }) ||
+    null
+  );
+}
+// A team 冠軍 pick (kind 'future') as a leg on one of `games` (the
+// championships on sale: champsOn), or null. The ticket's odds when printed,
+// else Play's estimate marked 估.
+export function champPickLeg(pick, games, newId = () => `l${Math.random().toString(36).slice(2, 9)}`) {
+  if (pick?.kind !== 'future') return null;
+  const market = marketOf(pick);
+  const [zh = pick.pick, en] = [pick.teams?.[0], pick.teamsEn?.[0]];
+  const known = pick.league && pick.league !== 'other';
+  for (const g of games.filter(isTeamChamp)) {
+    if (known && g.league !== pick.league) continue;
+    if (market && g.market !== market) continue;
+    const t = clubIn(g, pick.pick, en) || clubIn(g, zh, en);
+    if (!t) continue;
+    const printed = Math.round(Number(pick.odds) * 100) / 100;
+    const odds = printed > 1 ? printed : champGuess(g, t.name);
+    if (!(odds > 1)) return null;
+    return { id: newId(), kind: 'future', team: t.name, teamZh: t.zh, fair: t.fair, game: g, odds, ...(printed > 1 ? {} : { est: true }) };
+  }
+  return null;
+}
