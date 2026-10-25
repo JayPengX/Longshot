@@ -309,8 +309,37 @@ export function renderHome(ctx) {
   const actions = () => kitUI.actionGrid(actionItems.map(a => ({ ...a, onTap: a.go })));
 
   // ---- 3 場中焦點: a compact strip, 28px logos, the minute in red.
-  const liveStrip = list =>
-    kitUI.liveStrip(list.map(x => ({ min: ctx.liveStateText(x.game.live), onOpen: () => ctx.openLive(x.game.id), rows: ['away', 'home'].map(side => ({ logo: ctx.logoUrl(x.game.sport, x.game[side].en), name: ctx.shortTeam(x.game.sport, x.game[side]), score: x.game.live?.[`${side}Score`] ?? '' })) })));
+  const liveStrip = list => {
+    const strip = kitUI.liveStrip(list.map(x => ({ min: ctx.liveStateText(x.game.live), onOpen: () => ctx.openLive(x.game.id), rows: ['away', 'home'].map(side => ({ logo: ctx.logoUrl(x.game.sport, x.game[side].en), name: ctx.shortTeam(x.game.sport, x.game[side]), score: x.game.live?.[`${side}Score`] ?? '' })) })));
+    [...strip.children].forEach((card, i) => (card.dataset.game = list[i].game.id));
+    return strip;
+  };
+  // A live update changes the strip on screen in place (its scores, clocks,
+  // games ended or begun), never a new strip: a new one flickered, lost its
+  // place (the kit finds it again by the first card's text, its score now
+  // another) and stopped a swipe under the finger. The cards keep their
+  // order; a game that began joins at the end.
+  const keepLive = next => {
+    const old = root.querySelector('.pl-panel .q-live-strip')?.closest('section');
+    if (!old || !next) return next;
+    const strip = old.querySelector('.q-live-strip');
+    const was = new Map([...strip.children].map(c => [c.dataset.game, c]));
+    const now = new Map([...next.querySelector('.q-live-strip').children].map(c => [c.dataset.game, c]));
+    for (const [id, card] of was) if (!now.has(id)) card.remove();
+    for (const [id, card] of now) {
+      const keep = was.get(id);
+      if (!keep) { strip.append(card); continue; }
+      keep.onclick = card.onclick;
+      [...card.children].forEach((part, i) => {
+        const at = keep.children[i];
+        const src = n => n?.querySelector?.('img')?.getAttribute('src') ?? null;
+        if (!at || at.className !== part.className || (part.classList.contains('q-logo') && src(at) !== src(part))) at ? at.replaceWith(part) : keep.append(part);
+        else if (!part.classList.contains('q-logo') && at.textContent !== part.textContent) at.textContent = part.textContent;
+      });
+    }
+    old.querySelector('.q-section-head').replaceWith(next.querySelector('.q-section-head'));
+    return old;
+  };
 
   // ---- 8 最近的投注: the newest slips and tickets as rows.
   const recentRows = () => {
@@ -382,11 +411,13 @@ export function renderHome(ctx) {
   const recent = recentRows();
   const recentBody = recent.length ? el('div', { class: 'q-rowcard' }, recent) : kitUI.empty({ icon: 'ticket', tint: 'var(--q-indigo)', title: T.none2, action: { label: lang === 'zh' ? '去選比賽' : 'Pick a game', onTap: () => ctx.showTab('games') } });
 
-  root.replaceChildren(
-    ...[
+  const live = keepLive(liveTop.length ? section(T.liveTitle, liveStrip(liveTop), () => ctx.openLive(null), onNow.length, true) : null);
+  putKeeping(
+    root,
+    [
       hero,
       actions(),
-      liveTop.length ? section(T.liveTitle, liveStrip(liveTop), () => ctx.openLive(null), onNow.length, true) : null,
+      live,
       forYou.length ? section(T.forYou, el('div', { class: 'q-rail pl-mcards' }, forYou), () => ctx.showTab('games')) : null,
       section(T.featured, wide.length ? el('div', { class: 'pl-wide' }, wide) : emptyGames(), () => ctx.showTab('games'), null, true),
       combos.length ? section(T.combos, el('div', { class: 'q-rail pl-combos' }, combos)) : null,
@@ -394,4 +425,16 @@ export function renderHome(ctx) {
       section(T.recent, recentBody, () => ctx.showTab('history'), null, true)
     ].filter(Boolean)
   );
+}
+
+// root's children made `nodes`, a node already there left in place (taken
+// out and put back, a scrolled strip went back to its start).
+function putKeeping(root, nodes) {
+  const keep = new Set(nodes);
+  for (const c of [...root.children]) if (!keep.has(c)) c.remove();
+  let at = root.firstElementChild;
+  for (const n of nodes) {
+    if (n === at) at = at.nextElementSibling;
+    else root.insertBefore(n, at);
+  }
 }
