@@ -141,6 +141,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   // Sized to its frame (the sheet laid out, a phone turned): the whole ticket,
   // as wide as the sheet, or as tall as the room the sheet leaves it (its CSS
   // max-height), centred. Never cut off at a side: pinch or a double tap zooms.
+  let laid = false;
   const resize = () => {
     const w = frame.clientWidth;
     const room = parseFloat(getComputedStyle(frame).maxHeight) || Infinity;
@@ -148,12 +149,17 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     if (w && frame.style.height !== tall) frame.style.height = tall;
     const h = frame.clientHeight;
     if (!w || !h || (w === fw && h === fh)) return;
+    // (Laid out before and zoomed in: the frame changing size, the sheet
+    // laid out again round it, keeps where the ticket is and how close.)
+    const was = laid && fw && s > whole() * 1.02 ? [s / whole(), x + fw / (2 * s), y + fh / (2 * s)] : null;
     [fw, fh] = [w, h];
     party.width = Math.round(w * Math.min(2, devicePixelRatio || 1));
     party.height = Math.round(h * Math.min(2, devicePixelRatio || 1));
     plan();
     const i = fill ? stepAt() : -1;
-    [s, x, y] = i >= 0 ? stepView(i) : [whole(), 0, 0];
+    [s, x, y] = was ? [was[0] * whole(), 0, 0] : i >= 0 ? stepView(i) : [whole(), 0, 0];
+    if (was) (x = was[1] - fw / (2 * s)), (y = was[2] - fh / (2 * s));
+    laid = true;
     commit();
     if (i >= 0) (shownStep = i), onStep(i, steps.length);
   };
@@ -286,9 +292,13 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const allPts = spots.flatMap(z => z.list);
   // The win items under the latex, each with its points (shown when most are off).
   const watch = items.filter(it => it.under).map(it => {
-    const [ix, iy, iw, ih] = it.r;
-    return { it, pts: allPts.filter(p => p.x >= ix && p.x <= ix + iw && p.y >= iy && p.y <= iy + ih), shown: false };
+    // (Its middle, where it's printed: its box less 15% a side.)
+    const [ix, iy, iw, ih] = [it.r[0] + it.r[2] * 0.15, it.r[1] + it.r[3] * 0.15, it.r[2] * 0.7, it.r[3] * 0.7];
+    const pts = allPts.filter(p => p.x >= ix && p.x <= ix + iw && p.y >= iy && p.y <= iy + ih);
+    return { it, pts: pts.length ? pts : allPts.filter(p => p.x >= it.r[0] && p.x <= it.r[0] + it.r[2] && p.y >= it.r[1] && p.y <= it.r[1] + it.r[3]), shown: false };
   });
+  // (Each scratch-off's things.)
+  for (const z of spots) z.watch = watch.filter(w => w.pts.length && w.pts.some(p => spots[p.zi] === z));
   let silver = null;
   let cmap = null;
   const colorAt = (px, py) => {
@@ -417,7 +427,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     const [c0, c1, r0, r1] = [Math.floor((px - r) / sp), Math.floor((px + r) / sp), Math.floor((py - r) / sp), Math.floor((py + r) / sp)];
     for (let cy = r0; cy <= r1; cy++)
       for (let cx = c0; cx <= c1; cx++)
-        for (const p of grid.get(`${cx},${cy}`) || []) if (!p.off && (p.x - px) ** 2 + (p.y - py) ** 2 <= r * r && (p.hits += bite) >= 10) (p.off = true), spots[p.zi].off++;
+        for (const p of grid.get(`${cx},${cy}`) || []) if (!p.off && (p.x - px) ** 2 + (p.y - py) ** 2 <= r * r && (p.hits += bite) >= 6) (p.off = true), spots[p.zi].off++;
   };
   // A scratch-off taken off whole (its last bits): the latex fades off it.
   const lift = (z, dir = [0, 1]) => {
@@ -475,12 +485,15 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     if (finished || !g) return;
     for (const w of watch) {
       if (w.shown || !w.pts.length) continue;
-      if (w.pts.filter(p => p.off).length / w.pts.length >= 0.6) {
-        w.shown = true;
-        if (w.it.win) pop(w.it);
-      }
+      // (Read, not celebrated: a win shows only at 兌獎, reveal().)
+      if (w.pts.filter(p => p.off).length / w.pts.length >= 0.6) w.shown = true;
     }
-    for (const z of spots) if (!z.gone && z.off / z.list.length >= (z.big ? 0.9 : 0.72)) lift(z);
+    // The standard: a scratch-off comes off whole once everything under it
+    // can be read (each thing on it 60% scraped) or most of it is scraped;
+    // once everything on the card can be read, the rest lifts by itself
+    // (no scratching to the last speck).
+    for (const z of spots) if (!z.gone && ((z.watch.length && z.watch.every(w => w.shown)) || z.off / z.list.length >= (z.big ? 0.9 : 0.72))) lift(z);
+    if (watch.some(w => w.pts.length) && watch.every(w => w.shown || !w.pts.length)) for (const z of spots) lift(z);
     mirror();
     if (spots.every(z => z.gone)) return void setTimeout(doneOnce, 260);
     // (A part all off: on to the next, after a moment to see it.)
@@ -516,6 +529,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   let last = null;
   let tapAt = 0;
   let tapAtXY = [0, 0];
+  let down = null;
   const local = e => {
     const r = frame.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
@@ -532,6 +546,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       frame.setPointerCapture(e.pointerId);
     } catch {}
     if (pts.size === 2) {
+      down = null;
       if (mode === 'scratch') look();
       const [a, b] = [...pts.values()];
       mode = 'pinch';
@@ -545,12 +560,16 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     // (Till it's all off, one finger scratches when it starts on or near the
     // latex, as a coin would; well away from it, it moves the ticket.)
     const onLatex = !finished && g && nearest(q, spots)[0] <= Math.max(R() * 2.5, 36 / s);
+    // (Only after a real tap, one finger down and up in place: a pinch's
+    // fingers landing again soon after, as when zooming in in steps, never
+    // counts, which had thrown the camera back to the whole ticket.)
     if (!onLatex && now - tapAt < 320 && Math.hypot(p[0] - tapAtXY[0], p[1] - tapAtXY[1]) < 30) {
       tapAt = 0;
       mode = null;
       return void go(s > (whole() + play()) / 2 && play() > whole() * 1.05 ? [whole(), 0, 0] : playView());
     }
-    [tapAt, tapAtXY] = [now, p];
+    tapAt = 0;
+    down = { at: now, p };
     if (onLatex) {
       wake();
       mode = 'scratch';
@@ -605,6 +624,9 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   frame.addEventListener('touchmove', e => e.cancelable && e.preventDefault(), { passive: false });
   const up = e => {
     if (!pts.delete(e.pointerId)) return;
+    const p = local(e);
+    if (down && !pts.size && mode !== 'pinch' && mode !== 'gesture' && Date.now() - down.at < 300 && Math.hypot(p[0] - down.p[0], p[1] - down.p[1]) < 12) [tapAt, tapAtXY] = [Date.now(), p];
+    down = null;
     // (iOS opens audio only from a touch that ends: woken again here.)
     if (mode === 'scratch') clearTimeout(from?.still), rub(0), wake();
     if (mode === 'scratch') look();
@@ -625,6 +647,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     if (mode === 'pinch') return;
     if (mode === 'scratch') clearTimeout(from?.still), rub(0), look();
     mode = 'gesture';
+    down = null;
     gesture = { s, at: pic(local(e)) };
   });
   frame.addEventListener('gesturechange', e => {
@@ -819,7 +842,6 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
         cover.style.opacity = '0';
         cover.style.pointerEvents = 'none';
         setTimeout(() => (cover.style.display = 'none'), 500);
-        for (const w of watch) if (!w.shown && w.it.win) w.it.el.classList.add('shown');
       }
       if (stay) {
         // (Played a part at a time: after a moment the overview fades and the
@@ -844,7 +866,12 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
       ov = ovBox = null;
       frame.classList.remove('fill');
       fw = 0;
+      laid = false;
       resize();
+    },
+    // 兌獎: each win on the ticket pops, one after another.
+    reveal() {
+      watch.filter(w => w.it.win).forEach((w, i) => setTimeout(() => pop(w.it), i * 140));
     },
     // The card's prize: coins and confetti (big: more).
     celebrate(won, big) {

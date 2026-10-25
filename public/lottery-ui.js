@@ -26,7 +26,7 @@ const T = {
     quick: '電腦選號', clear: '清除', pickN: '選 {n} 個號碼', zone2: '第二區', straight: '正彩', box: '組彩', pair: '對彩', size: '玩法', combos: '{n} 組',
     stars: '星數', sizeTitle: '猜大小', parityTitle: '猜單雙', big: '大', small: '小', odd: '單', even: '雙', bullseye: '超級獎號', latest: '最近開獎', open: '待開獎', won: '中獎', lost: '未中獎',
     today: '今天', yesterday: '昨天', daySum: '花 {spent}', dayNone: '沒中獎', outNone: '沒中獎', dayNet: '淨 {v}', groupWon: '{n} 張中 {k} 張，共 {v}', groupLost: '{n} 注都沒中', cardsLost: '{n} 張都沒中',
-    drawAt: '{when} 開獎', noTickets: '還沒有彩券', buyCard: '購買 {price}', scratchAll: '一次刮開', scratchHint: '刮開刮膜', youWon: '恭喜中獎！', noWin: '沒有中獎', wonV: '中了 {v}', carryOn: '繼續', soundOff: '關掉刮的聲音', soundOn: '打開刮的聲音',
+    drawAt: '{when} 開獎', noTickets: '還沒有彩券', buyCard: '購買 {price}', scratchAll: '一次刮開', claim: '兌獎', allOff: '刮完了，按兌獎', scratchHint: '刮開刮膜', youWon: '恭喜中獎！', noWin: '沒有中獎', wonV: '中了 {v}', carryOn: '繼續', soundOff: '關掉刮的聲音', soundOn: '打開刮的聲音',
     top: '最高 {v}', winRateShort: '中獎率 {p}%', bought: '已購買', funds: '餘額不足', fundsBody: '需要 {v}', closed: '本期已截止', failed: '現在無法購買，稍後再試', retired: '已停售，本金退回', perBet: '{v} / 注', how: '玩法', winNumbers: '幸運號碼', yourNumbers: '您的號碼', dealer: '對手', you: '您', prizeCol: '獎金',
     called: '開出號碼', prizes: '獎項', unscratched: '未刮開', every5: '每 5 分鐘開獎', mult: '倍數 ×{m}', settled: '已開獎',
     quick1: '快選 1 注', quickN: '快選 {n} 注', addLine: '加入這注', lines: '已選 {n} 注', remove: '移除', buyAll: '購買 {n} 注 · {v}', boughtN: '已買 {n} 注，共 {v}', seeTickets: '看我的彩券', again: '再買', inMin: '{n} 分鐘後開獎', inHour: '{h} 小時 {m} 分後開獎', picked: '已選 {k}/{n}', starsN: '{n} 星', pickHint: '點下面的號碼，或用快選', slipN: '第 {n} 注', topPrize: '最高獎金', fillRest: '隨機補滿', addNext: '加入，選下一注', quickLines: '快選整注', clearAll: '全部清除', zone1: '第一區', bingoHint: '點 1–10 個號碼，或下面選大小單雙', lastLegend: '上期開出', anyPrize: '任一獎 1/{n}', odds: '機率', oneIn: '1/{n}', yourPick: '你的號碼', waiting: '等待開獎', drawnList: '已開獎', openSum: '{n} 張待開獎', paidSum: '投入', wonTotal: '中獎', netSum: '淨損益', basketHint: '可以一次買好幾注', sureTitle: '確定購買？', sureBody: '{what} · {v}', sureOk: '購買 {v}', special: '特',
@@ -42,7 +42,7 @@ const T = {
     quick: 'Quick pick', clear: 'Clear', pickN: 'Pick {n} numbers', zone2: 'Zone 2', straight: 'Straight', box: 'Box', pair: 'Pair', size: 'Play', combos: '{n} combinations',
     stars: 'Stars', sizeTitle: 'Big/Small', parityTitle: 'Odd/Even', big: 'Big', small: 'Small', odd: 'Odd', even: 'Even', bullseye: 'Super number', latest: 'Latest draw', open: 'Awaiting draw', won: 'Won', lost: 'No win',
     today: 'Today', yesterday: 'Yesterday', daySum: 'Spent {spent}', dayNone: 'No wins', outNone: 'No prize', dayNet: 'Net {v}', groupWon: '{k} of {n} won, {v}', groupLost: 'No win on {n} bets', cardsLost: 'No win on {n} cards',
-    drawAt: 'Draw {when}', noTickets: 'No tickets yet', buyCard: 'Buy {price}', scratchAll: 'Scratch all', scratchHint: 'Scratch the latex', youWon: 'You won!', noWin: 'No win this time', wonV: 'Won {v}', carryOn: 'Continue', soundOff: 'Scratch sound off', soundOn: 'Scratch sound on',
+    drawAt: 'Draw {when}', noTickets: 'No tickets yet', buyCard: 'Buy {price}', scratchAll: 'Scratch all', claim: 'Claim', allOff: 'All scratched: tap Claim', scratchHint: 'Scratch the latex', youWon: 'You won!', noWin: 'No win this time', wonV: 'Won {v}', carryOn: 'Continue', soundOff: 'Scratch sound off', soundOn: 'Scratch sound on',
     top: 'Top {v}', winRateShort: 'Wins {p}%', bought: 'Bought', funds: 'Not enough money', fundsBody: 'Needs {v}', closed: 'Sales closed', failed: 'Can’t buy right now. Try again soon.', retired: 'No longer sold: stake refunded', perBet: '{v} a bet', how: 'How to play', winNumbers: 'Lucky numbers', yourNumbers: 'Your numbers', dealer: 'Opponent', you: 'You', prizeCol: 'Prize',
     called: 'Called', prizes: 'Prizes', unscratched: 'Not scratched', every5: 'Every 5 minutes', mult: 'Multiplier ×{m}', settled: 'Drawn',
     quick1: 'Quick pick 1', quickN: 'Quick pick {n}', addLine: 'Add this bet', lines: '{n} bets chosen', remove: 'Remove', buyAll: 'Buy {n} · {v}', boughtN: 'Bought {n} bets, {v}', seeTickets: 'My tickets', again: 'Buy more', inMin: 'Draw in {n} min', inHour: 'Draw in {h}h {m}m', picked: '{k}/{n} picked', starsN: '{n} stars', pickHint: 'Tap numbers below, or quick pick', slipN: 'Bet {n}', topPrize: 'Top prize', fillRest: 'Fill the rest', addNext: 'Add, next bet', quickLines: 'Quick-pick bets', clearAll: 'Clear all', zone1: 'Zone 1', bingoHint: 'Tap 1–10 numbers, or pick big/small/odd/even below', lastLegend: 'In the last draw', anyPrize: 'Any prize 1 in {n}', odds: 'Odds', oneIn: '1 in {n}', yourPick: 'Your numbers', waiting: 'Awaiting the draw', drawnList: 'Drawn', openSum: '{n} awaiting a draw', paidSum: 'Paid', wonTotal: 'Won', netSum: 'Net', basketHint: 'Buy several at once', sureTitle: 'Buy this?', sureBody: '{what} · {v}', sureOk: 'Buy for {v}', special: 'SP',
@@ -814,6 +814,7 @@ export function mountLottery(ctx) {
       // quiet line under it, and 繼續 when they're ready (then its numbers).
       if (fresh && player && dialog?.classList.contains('sc-playing')) {
         player.clear(true);
+        player.reveal();
         player.celebrate(pays > 0, pays >= c.price * 10);
         sound?.remove();
         stepHint?.replaceChildren(el('span', { class: `sc-step-text sc-step-result${pays ? ' won' : ''}`, text: pays ? t('wonV', { v: money(pays) }) : t('noWin') }));
@@ -868,7 +869,18 @@ export function mountLottery(ctx) {
     let prizes = null;
     if (real) {
       player = scratchTicket({ el, label: t('scratchHint') }, real, { open: fresh, colors: [ticketLook(ticket.card)['--panel'], ticketLook(ticket.card)['--frame'], '#fbbf24', '#ffffff'] });
-      player.onDone(done);
+      // All scratched (or 一次刮開): the rest of the latex lifts and the
+      // numbers are there to read, but what it won waits for 兌獎.
+      player.onDone(() => {
+        player.clear(true);
+        stepHint?.firstElementChild && (stepHint.firstElementChild.textContent = t('allOff'));
+        if (stepHint) stepHint.onclick = null;
+        if (!allBtn) return done();
+        allBtn.disabled = false;
+        allBtn.textContent = t('claim');
+        allBtn.classList.add('primary');
+        allBtn.onclick = () => (allBtn.classList.remove('primary'), done());
+      });
       // (The coin's sound: on or off for good, a small speaker in the bar while it's played.)
       if (fresh) {
         const paintSound = () => {
