@@ -596,7 +596,8 @@ export function parseEspnResults(data, sport) {
       // Abandoned part way: the score so far still decides what it already has.
       ...(status === 'void' && /ABANDONED/.test(name) && type.state !== 'pre' ? { sofar: { awayScore: Number(away.score), homeScore: Number(home.score) } } : {}),
       detail: type.shortDetail || type.detail || '',
-      period: Number(comp.status?.period) || 0
+      period: Number(comp.status?.period) || 0,
+      clock: comp.status?.displayClock || ''
     });
   }
   return games;

@@ -2758,8 +2758,9 @@ function legStanding(leg) {
   return legResult(leg, { ...live, status: 'final' });
 }
 
-// ESPN's short detail in the page's language: baseball's half-innings and
-// half-time translated, the rest ("Q3 5:21", "67'") as it is.
+// ESPN's short detail in the page's language: baseball's half-innings,
+// half-time and a clocked game's period ("第1節 2:01", never ESPN's "2:01 - 1st")
+// translated; the rest ("67'") as it is.
 function liveDetail(live, sport) {
   const t = state.t;
   if (!live.detail) return t('liveInPlay');
@@ -2768,6 +2769,11 @@ function liveDetail(live, sport) {
     if (inning) return t(`liveHalf_${inning.half}`, { n: inning.inning });
   }
   if (atHalftime(live)) return halftimeText(live, sport);
+  const regulation = PERIODS[sport]?.[0];
+  if (regulation && live.period > 0 && !live.delayed) {
+    if (/^End/i.test(live.detail)) return live.period > regulation ? t('liveOT', { clock: '' }).trim() : t('livePeriodEnd', { n: live.period });
+    if (live.clock) return live.period > regulation ? t('liveOT', { clock: live.clock }).trim() : t('livePeriodN', { n: live.period, clock: live.clock }).trim();
+  }
   return live.detail;
 }
 
