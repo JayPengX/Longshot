@@ -5,7 +5,9 @@ A Taiwan sportsbook and Taiwan Lottery's games on play money, and the real
 real sportsbook: the house never loses on its own prices. Its own account
 (the Longshot Pass) and its own Worker; it shares nothing with any other app.
 
-Live: https://jaypengx.github.io/Longshot/
+Live: https://jaypengx.github.io/Longshot/ · the owner's panel:
+https://jaypengx.github.io/Longshot/admin/ (the first visit makes the
+admin pass, once; after that it signs in with it).
 
 ## How it works
 

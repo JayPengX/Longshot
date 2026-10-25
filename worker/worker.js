@@ -3,7 +3,8 @@
 //
 //   /pass           the Longshot Pass: sign-in, the wallet and the app's
 //                   data (pass.js)
-//   /admin          the owner's panel: passes handed out, the guards (admin.js)
+//   /admin          the owner's panel: passes handed out, the guards (admin.js);
+//                   opened in a browser, it goes on to the panel's page
 //   /play           Play's slips placed and settled, the lottery (settle.js,
 //                   price.js, lotto.js)
 //   /kambi          Kambi matches watched for settling (kambi.js)
@@ -28,6 +29,8 @@ import { BASE_DEPS, KAMBI_DEPS, playDeps } from './deps.js';
 import { wake, tick } from './clock.js';
 
 export { Clock } from './clock.js';
+
+const ADMIN_PAGE = 'https://jaypengx.github.io/Longshot/admin/';
 
 // The session a request carries (`qt=`), or null.
 async function sessionOf(request, env) {
@@ -59,6 +62,8 @@ async function route(request, env, ctx, headers, origin) {
   const path = new URL(request.url).pathname.replace(/\/+$/, '');
 
   if (path === '/pass') return handlePassRequest(request, env, headers, ip, BASE_DEPS);
+  // (Typed into Safari, the Worker's address answered a line of JSON: a black page.)
+  if (path === '/admin' && request.method === 'GET') return Response.redirect(ADMIN_PAGE, 302);
   if (path === '/admin') return handleAdmin(request, env, headers, ip, BASE_DEPS);
   // The data proxy (sports.js): its own session gate and limits.
   if (path === '/sports-proxy') return handleSports(request, env, ctx, headers, ip);
