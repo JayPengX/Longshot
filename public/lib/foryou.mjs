@@ -5,15 +5,17 @@
 // - the affinity map (what they open and bet on).
 //
 // Then each upcoming pick is scored: how much they care about its game's
-// teams and league, how good a price it is (recommend.mjs's tag), and how
+// teams and league, how good a bet it is (its return against the board's),
+// how big its league is and how
 // soon it starts. Games they already hold a bet on are left out (those are
 // in 你的投注): what they've backed points at the next games instead, the
 // same teams' and the same leagues'. One pick a game; picks on the team they
 // care about, never against it.
 import { normalizeTeamName } from '../kit/logos.mjs';
 import { familyOf } from './teams.mjs';
+import { backOf } from './recommend.mjs';
 
-const FOR_YOU = { n: 8, horizonH: 72, backedH: 5 * 24, perSport: 2, backed: 0.6, league: 0.35, sport: 0.12 };
+const FOR_YOU = { n: 12, horizonH: 72, backedH: 5 * 24, perSport: 4, backed: 0.6, league: 0.35, sport: 0.12, merit: 0.6, size: 0.3, odds: [1.35, 4], kinds: new Set(['ml', 'spread', 'runline', 'dnb', 'total']) };
 
 const teamKey = (sport, name) => `team:${sport}:${normalizeTeamName(name)}`;
 // { teams: Map key -> { w, why }, leagues: Map sport -> w, sports: Map family -> w, held: Set gameId }
@@ -68,16 +70,42 @@ export function gameInterest(game, taste) {
   return { ...best, score: best.score + league + sport };
 }
 
-// The picks: [{ bet, game, why, side, score }], best first, one a game.
-// `bets`: the board's picks; `recs`: recommend()'s map; `games`: the board's games.
-export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, now = Date.now(), n = FOR_YOU.n, exclude = new Set() } = {}) {
+// The picks: [{ bet, game, why, side, tag, merit, score }], best first, one a game.
+// `bets`: the board's picks; `recs`: recommend()'s map; `games`: the board's
+// games; `weightOf(sport)`: how big a league is (0-1, a major one most).
+//
+// Each game's pick is its best bet, judged the way recommend.mjs judges
+// every pick: its average back per NT$100 against the rest of the board
+// (`merit`, the share of the board it beats). No pick wins on average (the
+// house takes its cut); the best ones lose least, at a chance a person can
+// follow (a 1.10 sure thing or a 6.00 long shot is never the pick). On the
+// person's own team when they have one, never against it.
+export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, now = Date.now(), n = FOR_YOU.n, exclude = new Set(), weightOf = () => 0 } = {}) {
   const byGame = new Map();
+  const backs = [];
   for (const b of bets) {
     // Capped picks (a house-priced game's) only for the person's own teams below.
     if (!b.gameId || b.lock || b.cap === 'prop' || !(b.estOdds > 1) || exclude.has(b.id)) continue;
     if (!byGame.has(b.gameId)) byGame.set(b.gameId, []);
     byGame.get(b.gameId).push(b);
+    if (!b.cap && b.fairChance >= 0.05 && b.fairChance <= 0.85) backs.push(backOf(b));
   }
+  backs.sort((a, b) => a - b);
+  const merit = b => {
+    if (recs.get(b.id)?.beats != null) return recs.get(b.id).beats;
+    let lo = 0;
+    for (let hi = backs.length, v = backOf(b); lo < hi; ) {
+      const mid = (lo + hi) >> 1;
+      if (backs[mid] < v) lo = mid + 1;
+      else hi = mid;
+    }
+    return backs.length ? lo / backs.length : 0;
+  };
+  // A pick worth showing: a plain market, a chance a person can follow.
+  const plain = b => FOR_YOU.kinds.has(b.kind) && b.side !== 'draw' && b.estOdds >= FOR_YOU.odds[0] && b.estOdds <= FOR_YOU.odds[1];
+  // Its worth within the game: its return, the winner a little ahead (the
+  // market everyone reads), a line only our model draws a little behind.
+  const worth = b => merit(b) + (b.kind === 'ml' ? 0.08 : 0) - (b.posted === false ? 0.1 : 0);
   const out = [];
   for (const g of games) {
     const start = Date.parse(g.startUtc);
@@ -89,59 +117,46 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     const horizon = interest.why === 'backed' ? FOR_YOU.backedH : FOR_YOU.horizonH;
     if (start - now > horizon * 3_600_000) continue;
     const soon = start - now < 12 * 3_600_000 ? 0.12 : start - now < 30 * 3_600_000 ? 0.06 : start - now > 72 * 3_600_000 ? -0.1 : 0;
-    // The pick: on their team when they have one (its win, else its handicap),
-    // else the game's best-tagged pick, else its favourite's win.
-    const tagValue = b => ({ value: 0.3, shot: 0.2, steady: 0.18 }[recs.get(b.id)?.tag] || 0);
-    const onSide = b => (b.kind === 'ml' || b.kind === 'spread' || b.kind === 'runline' || b.kind === 'dnb') && b.side === interest.side;
+    const onSide = b => ['ml', 'spread', 'runline', 'dnb'].includes(b.kind) && b.side === interest.side;
+    const best = list => list.sort((a, b) => worth(b) - worth(a))[0];
     let choice;
-    if (interest.side) {
-      const mine = picks.filter(b => onSide(b) && b.fairChance >= 0.12 && (!b.cap || interest.why === 'backed'));
-      choice = mine.sort((a, b) => (a.kind === 'ml' ? 0 : 1) - (b.kind === 'ml' ? 0 : 1) || tagValue(b) - tagValue(a))[0];
-    }
-    if (!choice) {
-      // A price worth a look: no 1.10 sure things, no lottery tickets.
-      const tagged = picks.filter(b => !b.cap && recs.has(b.id) && b.estOdds >= 1.4 && b.estOdds <= 5 && (!interest.side || !['away', 'home'].includes(b.side) || b.side === interest.side || b.kind === 'total'));
-      choice = tagged.sort((a, b) => tagValue(b) - tagValue(a) || b.fairChance - a.fairChance)[0];
-    }
-    if (!choice) choice = picks.filter(b => !b.cap && b.kind === 'ml' && b.side !== 'draw' && b.estOdds >= 1.25).sort((a, b) => b.fairChance - a.fairChance)[0];
+    // Their team's win or handicap (a backed team's even at the house's own price).
+    if (interest.side) choice = best(picks.filter(b => onSide(b) && b.fairChance >= 0.12 && b.estOdds <= FOR_YOU.odds[1] * 1.5 && (!b.cap || interest.why === 'backed')));
+    // Else the game's best bet (a total, or their team's side).
+    if (!choice) choice = best(picks.filter(b => !b.cap && plain(b) && (!interest.side || b.kind === 'total' || b.side === interest.side)));
     if (!choice) continue;
-    const why = interest.why && interest.score >= 0.1 ? interest.why : recs.has(choice.id) ? recs.get(choice.id).tag : null;
-    if (!why) continue;
-    // A price alone counts for less than the person's own teams and leagues.
     const own = interest.why && interest.score >= 0.1;
-    out.push({ bet: choice, game: g, why, side: interest.side, tag: recs.get(choice.id)?.tag ?? null, score: interest.score + (own ? 1 : 0.4) * (tagValue(choice) + soon) });
+    const m = merit(choice);
+    const tag = recs.get(choice.id)?.tag ?? null;
+    // Why it's here, in a word: their team or league, else what the price is.
+    const why = own ? interest.why : tag || (m >= 0.75 ? 'value' : m >= 0.5 ? 'fair' : null);
+    if (!why) continue;
+    out.push({ bet: choice, game: g, why, side: interest.side, tag, merit: m, score: interest.score + FOR_YOU.merit * m + soon + FOR_YOU.size * weightOf(g.sport) });
   }
-  // Best first. A league the person shows no interest in gets one card at
-  // most (two such cards in all), a league they like two, backed teams
-  // all theirs: a night of many games in one league doesn't fill the row.
+  // Best first. A league the person shows no interest in gets two cards at
+  // most, a league they like three, backed teams all theirs: a night of
+  // many games in one league doesn't fill the row.
   out.sort((a, b) => b.score - a.score);
-  // One backed team's game first per team (its next one), then the caps.
   const perLeague = new Map();
   const perFamily = new Map();
   const teamsShown = new Set();
-  let strangers = 0;
   const kept = out.filter(x => {
     const k = perLeague.get(x.game.sport) || 0;
     const fam = familyOf(x.game.sport) || x.game.sport;
     const f = perFamily.get(fam) || 0;
     const known = leagueTaste(x.game.sport, taste) >= 0.2;
-    const mine = x.why === 'backed';
-    if (mine) {
-      const team = `${x.game.sport}:${x.game[x.side]?.en ?? x.game[x.side]}`;
-      if (teamsShown.has(team)) return false;
-      teamsShown.add(team);
-    } else {
-      if (k >= (known ? 2 : 1) || f >= FOR_YOU.perSport) return false;
-      if (!known && !x.side) {
-        if (strangers >= 2) return false;
-        strangers++;
-      }
-    }
+    // A team once (a series' next games are the same bet again): a backed team's next game.
+    const teams = x.why === 'backed' ? [x.side] : ['home', 'away'];
+    const keys = teams.map(side => `${x.game.sport}:${x.game[side]?.en ?? x.game[side]}`);
+    if (keys.some(t => teamsShown.has(t))) return false;
+    if (x.why !== 'backed' && (k >= (known ? 3 : 2) || f >= FOR_YOU.perSport)) return false;
+    keys.forEach(t => teamsShown.add(t));
     perLeague.set(x.game.sport, k + 1);
     perFamily.set(fam, f + 1);
     return true;
-  });
-  return interleave(kept, x => familyOf(x.game.sport) || x.game.sport).slice(0, n);
+  }).slice(0, n);
+  // The strongest stays first (it leads the row and the page); the rest take turns by sport.
+  return kept.length ? [kept[0], ...interleave(kept.slice(1), x => familyOf(x.game.sport) || x.game.sport)] : [];
 }
 
 // Best first, but never two of a sport in a row while another sport waits

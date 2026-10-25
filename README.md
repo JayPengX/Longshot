@@ -11,7 +11,7 @@ admin pass, once; after that it signs in with it).
 
 ## How it works
 
-- **Tabs:** 首頁 (balance, 場中焦點, 為你推薦, 焦點賽事, open bets, jackpots) ·
+- **Tabs:** 首頁 (the strongest pick for you, 場中焦點, 為你推薦, 焦點賽事, open bets, jackpots) ·
   賽事 (sport tiles, league chips, day strip, search) · 彩券 · 注單 (your real
   運彩 tickets) · 紀錄. 投注單 (the play-money slip) is a sheet over any tab.
 - **What's sold:** every catalogue league with a `bet` key, games within
@@ -132,7 +132,7 @@ account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
   prizes; the house's edge is one tap away in the Pass's 真相, never pushed.
 - No hooks (2026-10-22, the owner found Play addictive): no push notices,
   loans, relief, levels, streak rewards or anything that calls people back.
-- 為你推薦 picks are on the team cared about, never against it.
+- 為你推薦 picks are on the team cared about, never against it. Each game's pick is its best return against the whole board at 1.35-4.00 (no pick wins on average; the best lose least), up to 12, one card a team; the strongest leads 首頁 as the hero, with its chance and how its return ranks.
 - Only what Taiwan can watch. No edit-slip.
 - No promotions on the ticket: no boosts, free bets or cash out (2026-10-21).
 - Phones only (2026-10-23): one layout, 320 px to 440; anything wider shows it

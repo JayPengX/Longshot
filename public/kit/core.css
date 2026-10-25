@@ -3410,6 +3410,47 @@ div.q-ritem {
 .q-price:disabled {
   opacity: 0.4;
 }
+.q-match-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--q-fill);
+  color: var(--q-label);
+  font-family: var(--q-font);
+  text-align: left;
+}
+.q-match-pick-l {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.q-match-pick-l > b {
+  overflow: hidden;
+  font: 600 15px/1.25 var(--q-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.q-match-pick-l > small {
+  color: var(--q-label-2);
+  font: 500 12px/1.2 var(--q-font);
+}
+.q-match-pick > strong {
+  flex: none;
+  font: 700 19px/1 var(--q-font);
+  font-variant-numeric: tabular-nums;
+}
+.q-match-pick[aria-pressed='true'] {
+  background: var(--q-accent);
+  color: #ffffff;
+}
+.q-match-pick[aria-pressed='true'] small {
+  color: rgba(255, 255, 255, 0.8);
+}
 
 /* -- Games on now (liveStrip) -- */
 .q-live-strip {

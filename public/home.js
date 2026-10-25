@@ -1,5 +1,5 @@
 // The home tab asks one thing: what to bet on now. Eight sections, in order:
-//  1 headline game hero (its win prices + search) · 2 quick actions · 3 場中焦點 ·
+//  1 hero: the strongest pick for you (its bet, why, + search) · 2 quick actions · 3 場中焦點 ·
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below, on the kit's components.
 import { rank, affinity } from './kit/core.mjs';
@@ -21,17 +21,17 @@ const glyph = name => {
 
 const TXT = {
   zh: {
-    headline: '焦點大戰', whyBackedHero: '你押過的球隊', whyLevel: '勢均力敵', balance: '餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
+    headline: '焦點大戰', whyBackedHero: '你押過的球隊', pick: '推薦', mlPick: '{t} 勝', chance: '勝率約 {p}%', beats: '回收優於 {p}% 的投注', balance: '餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
-    why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博',
+    why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博', why_fair: '合理',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
-    headline: 'Big game', whyBackedHero: 'You backed them', whyLevel: 'Too close to call', balance: 'Balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
+    headline: 'Big game', whyBackedHero: 'You backed them', pick: 'Pick', mlPick: '{t} win', chance: '~{p}% to win', beats: 'Returns more than {p}% of bets', balance: 'Balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
-    why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot',
+    why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot', why_fair: 'Fair',
     combos: 'Parlays of the day', comboMine: 'Your treble', comboSafe: 'Safe double', comboEven: 'Balanced 3', comboBold: 'Long shot 4', comboTotals: 'Totals 3', comboSpread: 'Handicap 3', comboLeague: '{league} 3', comboStake: 'Stake {v}', comboGo: 'Add to slip', openN: 'Open bets', most: 'Up to', unit: '', actLive: 'Live', actGames: 'Games', actLottery: 'Lottery', actSlip: 'Slip', lottery: 'Lottery', jackpot: 'Jackpot', pickNow: 'Pick numbers', recent: 'Recent bets', none2: 'No bets yet', won: 'Won {v}', lost: 'Lost', openTag: 'Open', ticket: 'Ticket', scratchT: 'Scratch', parlayN: '{n}-leg parlay'
   }
 };
@@ -135,7 +135,7 @@ export function renderHome(ctx) {
   const betsOf = groupOnce(state.bets);
 
   // ---- 為你推薦, then 焦點賽事 (other games, other teams, none already bet on).
-  const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now });
+  const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now, weightOf: sport => TIER_WEIGHT[ctx.leagueTier(sport)] / TIER_WEIGHT.major });
   const betById = new Map((state.bets || []).map(b => [b.id, b]));
   const gameById = new Map((state.data?.games || []).map(g => [g.id, g]));
   const kept = mineKept
@@ -154,34 +154,12 @@ export function renderHome(ctx) {
   // One game a league (two of a league the person likes).
   const featured = spreadLeagues(rank(items, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 5 });
 
-  // 首頁's headline game, by a rule it says on its card (Jay 2026-10-21: why
-  // is this the big game?): a team the person has backed, a
-  // derby or a famous rivalry, two sides priced level; a top league and an
-  // early start break ties. Within three days.
-  const headlineOf = () => {
-    const winPrices = g => (betsOf.get(g.id) || []).filter(b => b.kind === 'ml' && b.side !== 'draw' && !b.lock).map(b => ctx.effectiveOdds(b));
-    const scored = later
-      .filter(g => Date.parse(g.startUtc) - now < 72 * 3_600_000)
-      .map(g => {
-        const like = gameInterest(g, taste);
-        const derby = rivalryOf(g, lang);
-        const p = winPrices(g);
-        const level = p.length === 2 && Math.max(...p) / Math.min(...p) < 1.3;
-        const reasons = [
-          like.why === 'backed' && [3, T.whyBackedHero],
-          derby && [3, derby],
-          level && [1.5, T.whyLevel]
-        ].filter(Boolean);
-        const tier = ctx.leagueTier(g.sport);
-        if (!reasons.length || (tier !== 'major' && !like.side)) return null;
-        const score = reasons.reduce((n, [w]) => n + w, 0) + TIER_WEIGHT[tier] + ((Date.parse(g.startUtc) - now) / 3_600_000 < 24 ? 0.3 : 0);
-        return { game: g, score, tag: reasons.sort((a, b) => b[0] - a[0])[0][1] };
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score || a.game.startUtc.localeCompare(b.game.startUtc));
-    return scored[0] ?? (featured[0] ? { game: featured[0].game, tag: null } : null);
-  };
-  const headline = headlineOf();
+  // 首頁's hero is 為你推薦's strongest pick (Jay 2026-10-25: "no single bet
+  // really deserved"): its bet, and why, in numbers. Its tag says why it's
+  // the one: a derby by name, the person's team, else the price's word.
+  // With no pick, 焦點賽事's first game and its win prices.
+  const best = mine[0] ?? null;
+  const headline = best ? { game: best.game, pick: best, tag: rivalryOf(best.game, lang) ?? (best.why === 'backed' ? T.whyBackedHero : T[`why_${best.why}`]) } : featured[0] ? { game: featured[0].game, tag: rivalryOf(featured[0].game, lang) } : null;
 
   // ---- 場中焦點: games on now with a live win price, ranked the same way.
   // (Every game on now: the strip is scores, and a held game's sheet says so.)
@@ -196,6 +174,10 @@ export function renderHome(ctx) {
   // logo, (score) and win price (the kit's matchCard: logos 48/40, a price row
   // 主/和/客), a 為你推薦 card's reason as a tag. It keeps to the win prices: 2 for
   // basketball/baseball, 3 for soccer.
+  const pct = x => Math.round(x * 100);
+  // A pick's name: a winner's says so (海鷹 勝), the rest are the app's own (讓分 雪崩 −1.5).
+  const pickName = b => (b.kind === 'ml' ? f('mlPick', { t: ctx.shortPick(b) }) : ctx.shortPick(b));
+  const pickOf = b => ({ label: pickName(b), note: f('chance', { p: pct(b.fairChance) }), odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => ctx.toggleLeg(b) });
   const matchCard = (g, bets, o = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const mark = { home: lang === 'zh' ? '主' : 'H', away: lang === 'zh' ? '客' : 'A', draw: T.draw };
@@ -207,7 +189,7 @@ export function renderHome(ctx) {
       when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
       tag: o.why && T[`why_${o.why}`] ? { text: T[`why_${o.why}`], tone: ['backed', 'like', 'league', 'sport'].includes(o.why) ? 'tint' : 'orange' } : null,
       sides: ctx.winnerSides(g, ml).filter(x => x !== 'draw').map(side => ({ logo: ctx.logoUrl(g.sport, g[side].en), name: ctx.shortTeam(g.sport, g[side]), score: o.live ? g.live?.[`${side}Score`] : null })),
-      prices, onOpen: open
+      prices: o.pick ? [] : prices, pick: o.pick ? pickOf(o.pick) : null, onOpen: open
     });
   };
 
@@ -288,12 +270,25 @@ export function renderHome(ctx) {
   };
   const sides = top ? ctx.winnerSides(top, topBets) : [];
   const teams = sides.filter(x => x !== 'draw');
+  // The pick: one wide button (the bet, its price), then why in numbers:
+  // its chance, and how its return ranks on the board (the house keeps a cut
+  // of every bet; this one gives back more than most).
+  const hp = headline?.pick;
+  const heroPick = hp
+    ? el('div', { class: 'pl-hero-rec' }, [
+        el('button', { class: 'pl-hero-odd pl-hero-pick q-press', type: 'button', 'data-bet': hp.bet.id, 'aria-pressed': String(Boolean(state.parlay?.includes(hp.bet.id))), ...(hp.bet.lock ? { disabled: true } : {}), onclick: () => ctx.toggleLeg(hp.bet) }, [
+          el('span', { class: 'pl-hero-pick-l' }, [el('small', { text: T.pick }), el('b', { class: 'q-fit', text: pickName(hp.bet) })]),
+          el('strong', { class: 'num', text: hp.bet.lock ? '—' : ctx.fmtOdds(ctx.effectiveOdds(hp.bet)) })
+        ]),
+        el('small', { class: 'pl-hero-why q-fit', text: [f('chance', { p: pct(hp.bet.fairChance) }), hp.merit >= 0.5 ? f('beats', { p: pct(hp.merit) }) : null].filter(Boolean).join(' · ') })
+      ])
+    : null;
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [
     el('span', { class: 'q-hc-eyebrow' }, top ? [kitUI.logoTile(ctx.leagueUrl(top.sport), { size: 18, alt: '' }), el('span', { class: 'q-fit', text: `${state.t(`sport_${top.sport}`)} · ${top.timeTbd ? gameTime(top) : ctx.legWhen(top.startUtc)}` }), headline.tag ? el('span', { class: 'pl-hero-tag', text: headline.tag }) : null] : [glyph('spark'), el('span', { text: T.headline })]),
     top
       ? el('button', { class: 'pl-hero-match', type: 'button', onclick: () => ctx.openGame(top.id) }, [heroSide(teams[0]), el('span', { class: 'pl-hero-vs', text: 'VS' }), heroSide(teams[1])])
       : null,
-    top && topBets.length ? el('div', { class: `pl-hero-odds n${sides.length}` }, sides.map(heroPrice).filter(Boolean)) : null,
+    heroPick ?? (top && topBets.length ? el('div', { class: `pl-hero-odds n${sides.length}` }, sides.map(heroPrice).filter(Boolean)) : null),
     el('button', { class: 'q-hc-pill pl-hero-search', type: 'button', onclick: () => ctx.openSearch() }, [el('span', { text: T.search }), el('i', { 'aria-hidden': 'true' })])
   ]);
   hero.querySelector('.pl-hero-search i').innerHTML = kitUI.icons.search || '';
@@ -383,8 +378,8 @@ export function renderHome(ctx) {
     kitUI.section(title, body, { shd: true, more: more ? T.seeAll : '', onMore: more, count, cls: panel ? 'pl-panel' : '' });
 
   // 4 為你推薦: a rail of cards.
-  // (A price reason, 划算/穩/值博, about a total or spread pick isn't shown over the win row.)
-  const forYou = mine.map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.bet.kind === 'ml' || !['value', 'steady', 'shot'].includes(x.why) ? x.why : null }));
+  // Each card its pick, its reason as a tag (the first is the hero's).
+  const forYou = mine.slice(1).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { why: x.why, pick: x.bet }));
   // 5 今日焦點賽事: a vertical list (up to 4), so the page is full (the card's `wide` variant).
   const wide = featured.filter(x => x.game.id !== top?.id).slice(0, 4).map(x => matchCard(x.game, betsOf.get(x.game.id) || [], { wide: true }));
   const emptyGames = () => kitUI.empty({ icon: 'calendar', tint: 'var(--q-blue)', title: T.none, action: { label: lang === 'zh' ? '看賽事' : 'See games', onTap: () => ctx.showTab('games') } });

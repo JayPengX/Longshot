@@ -131,9 +131,9 @@ span.pick.locked:not(.sl-app *) { pointer-events: none; }
 .pl-hero-search > i svg { width: 18px; height: 18px; }
 /* A match card in a rail. */
 .pl-mcards { --q-rail-w: min(80%, 290px); }
-/* A 為你推薦 card with its reason: in English the league's name goes (its logo
-   stays), or "NBA" was squeezed onto three lines beside "Value" and the time. */
-:lang(en) .q-match-top:has(.q-tag) .q-match-lg { display: none; }
+/* A 為你推薦 card with its reason: the league's name goes (its logo stays), or
+   "NBA" or 歐洲籃球聯賽 was squeezed onto lines beside the tag and the time. */
+.q-match-top:has(.q-tag) .q-match-lg { display: none; }
 /* 精選串關: three picks and what they pay together. */
 .pl-combos { --q-rail-w: min(84%, 300px); }
 .pl-combo { gap: 10px; grid-template-rows: auto 1fr auto; align-content: stretch; }
@@ -962,6 +962,13 @@ html .q-logo img { width: 88%; height: 88%; }
 .pl-hero-odd > strong { font: 700 18px/22px var(--q-font); font-variant-numeric: tabular-nums; }
 .pl-hero-odd[aria-pressed='true'] { border-color: #fff; background: rgba(255, 255, 255, 0.3); }
 .pl-hero-odd:disabled { opacity: 0.5; }
+.pl-hero-rec { display: grid; gap: 6px; margin-top: 6px; }
+.pl-hero-pick { display: flex; align-items: center; justify-items: initial; gap: 10px; padding: 6px 16px; text-align: left; }
+.pl-hero-pick-l { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.pl-hero-pick-l > small { color: rgba(255, 255, 255, 0.8); font: 500 12px/16px var(--q-font); }
+.pl-hero-pick-l > b { overflow: hidden; font: 700 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-hero-pick > strong { flex: none; font-size: 20px; }
+.pl-hero-why { color: rgba(255, 255, 255, 0.85); font: 500 13px/18px var(--q-font); text-align: center; }
 
 /* ---- The 投注單 sheet (Jay 2026-10-22, "redesign") ----
    The ways to buy in the sheet's head under its title; the picks and the
