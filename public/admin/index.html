@@ -12,80 +12,80 @@
 <link rel="stylesheet" href="./admin.css" />
 </head>
 <body>
-<main class="ad">
-  <header class="ad-head">
+<main class="own">
+  <header class="own-head">
     <img src="../favicon.svg" alt="" width="36" height="36" />
     <h1>Longshot 管理</h1>
-    <button id="out" class="ad-link" type="button" hidden>登出</button>
+    <button id="out" class="own-link" type="button" hidden>登出</button>
   </header>
 
-  <section id="gate" class="ad-card ad-gate">
+  <section id="gate" class="own-card own-gate">
     <h2 id="gate-title">Longshot 管理</h2>
-    <p id="gate-text" class="ad-muted">載入中…</p>
+    <p id="gate-text" class="own-muted">載入中…</p>
     <form id="gate-form" hidden>
-      <input id="gate-pass" class="ad-input mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
+      <input id="gate-pass" class="own-input mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
       <button class="q-btn primary block" type="submit">登入</button>
     </form>
     <button id="claim" class="q-btn primary block" type="button" hidden>建立管理員通行碼</button>
-    <p id="gate-error" class="ad-error" role="alert"></p>
+    <p id="gate-error" class="own-error" role="alert"></p>
   </section>
 
-  <section id="born" class="ad-card" hidden>
+  <section id="born" class="own-card" hidden>
     <h2>你的管理員通行碼</h2>
-    <p class="ad-muted">只顯示這一次。記下來，用它登入 Longshot 和這個頁面。</p>
-    <p id="born-code" class="ad-code mono"></p>
+    <p class="own-muted">只顯示這一次。記下來，用它登入 Longshot 和這個頁面。</p>
+    <p id="born-code" class="own-code mono"></p>
     <button id="born-ok" class="q-btn primary block" type="button">我記下來了</button>
   </section>
 
   <div id="app" hidden>
-    <nav class="ad-tabs" role="tablist">
+    <nav class="own-tabs" role="tablist">
       <button type="button" data-tab="ov" aria-pressed="true">總覽</button>
       <button type="button" data-tab="pass" aria-pressed="false">通行碼</button>
       <button type="button" data-tab="guard" aria-pressed="false">防護</button>
     </nav>
 
     <section data-pane="ov">
-      <div id="ov-tiles" class="ad-tiles"></div>
-      <div class="ad-card">
-        <div class="ad-card-head"><h2>最近 14 天</h2><span class="ad-legend"><i class="a"></i>開始使用<i class="b"></i>最後使用</span></div>
-        <div id="ov-days" class="ad-bars"></div>
-        <div id="ov-foot" class="ad-bars-foot"></div>
+      <div id="ov-tiles" class="own-tiles"></div>
+      <div class="own-card">
+        <div class="own-card-head"><h2>最近 14 天</h2><span class="own-legend"><i class="a"></i>開始使用<i class="b"></i>最後使用</span></div>
+        <div id="ov-days" class="own-bars"></div>
+        <div id="ov-foot" class="own-bars-foot"></div>
       </div>
-      <div class="ad-card">
-        <div class="ad-card-head"><h2>錢最多</h2></div>
-        <div id="ov-rich" class="ad-list"></div>
+      <div class="own-card">
+        <div class="own-card-head"><h2>錢最多</h2></div>
+        <div id="ov-rich" class="own-list"></div>
       </div>
     </section>
 
     <section data-pane="pass" hidden>
-      <div class="ad-card">
-        <div class="ad-card-head"><h2>發放通行碼</h2></div>
-        <p class="ad-muted">每張一個新帳戶，各有 NT$30,000 開戶金，之後每月 1 日 NT$10,000。</p>
-        <div class="ad-issue">
-          <div class="ad-stepper"><button id="n-down" type="button" aria-label="少一張">−</button><b id="n" class="num">1</b><button id="n-up" type="button" aria-label="多一張">＋</button></div>
+      <div class="own-card">
+        <div class="own-card-head"><h2>發放通行碼</h2></div>
+        <p class="own-muted">每張一個新帳戶，各有 NT$30,000 開戶金，之後每月 1 日 NT$10,000。</p>
+        <div class="own-issue">
+          <div class="own-stepper"><button id="n-down" type="button" aria-label="少一張">−</button><b id="n" class="num">1</b><button id="n-up" type="button" aria-label="多一張">＋</button></div>
           <button id="issue" class="q-btn primary" type="button">發放</button>
         </div>
-        <div id="issued" class="ad-issued" hidden>
-          <p class="ad-muted">只顯示這一次。</p>
-          <div id="issued-list" class="ad-list"></div>
+        <div id="issued" class="own-issued" hidden>
+          <p class="own-muted">只顯示這一次。</p>
+          <div id="issued-list" class="own-list"></div>
           <button id="copy" class="q-btn tinted block" type="button">全部複製</button>
         </div>
       </div>
-      <div class="ad-card">
-        <div class="ad-card-head"><h2>帳戶</h2><span id="acct-n" class="ad-muted"></span></div>
-        <div id="acct-list" class="ad-list"></div>
+      <div class="own-card">
+        <div class="own-card-head"><h2>帳戶</h2><span id="acct-n" class="own-muted"></span></div>
+        <div id="acct-list" class="own-list"></div>
       </div>
     </section>
 
     <section data-pane="guard" hidden>
-      <div class="ad-card">
-        <div class="ad-card-head"><h2>防護</h2></div>
-        <p class="ad-muted">一分鐘內生效。已經下的注照常結算。</p>
-        <label class="ad-row"><span><b>拍注單</b><small>用 Gemini 讀注單照片</small></span><input id="g-scans" type="checkbox" class="ad-switch" /></label>
-        <label class="ad-row"><span><b>每天拍注單上限</b><small id="g-today">所有帳戶合計</small></span><input id="g-cap" class="ad-input ad-num num" type="number" min="0" max="5000" inputmode="numeric" /></label>
-        <label class="ad-row"><span><b>下注與彩券</b><small>關掉就不能下新注、買彩券</small></span><input id="g-play" type="checkbox" class="ad-switch" /></label>
+      <div class="own-card">
+        <div class="own-card-head"><h2>防護</h2></div>
+        <p class="own-muted">一分鐘內生效。已經下的注照常結算。</p>
+        <label class="own-row"><span><b>拍注單</b><small>用 Gemini 讀注單照片</small></span><input id="g-scans" type="checkbox" class="own-switch" /></label>
+        <label class="own-row"><span><b>每天拍注單上限</b><small id="g-today">所有帳戶合計</small></span><input id="g-cap" class="own-input own-num num" type="number" min="0" max="5000" inputmode="numeric" /></label>
+        <label class="own-row"><span><b>下注與彩券</b><small>關掉就不能下新注、買彩券</small></span><input id="g-play" type="checkbox" class="own-switch" /></label>
         <button id="g-save" class="q-btn primary block" type="button">儲存</button>
-        <p id="g-note" class="ad-muted ad-center" role="status"></p>
+        <p id="g-note" class="own-muted own-center" role="status"></p>
       </div>
     </section>
   </div>

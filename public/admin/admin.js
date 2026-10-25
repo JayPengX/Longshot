@@ -42,7 +42,7 @@ const money = n => `NT$${fmt(Math.round(n))}`;
 // A tile's money in its half of the row: NT$123萬 (NT$1,234,567 was cut to NT$1,23…).
 const short = n => `NT$${compact(Math.round(n || 0))}`;
 // Each tile's figure shrinks to its box rather than being cut.
-watchFit('.ad-tile b', { roots: [document.getElementById('ov-tiles')] });
+watchFit('.own-tile b', { roots: [document.getElementById('ov-tiles')] });
 const when = t => {
   if (!t) return '還沒用過';
   const m = Math.round((Date.now() - t) / 60_000);
@@ -127,12 +127,12 @@ async function overview() {
     ['下注與彩券', o.guards.play ? '開著' : '已暫停', '在「防護」切換'],
     ['錢快用完', fmt(o.money.under), '餘額不到 NT$1,000']
   ];
-  $('ov-tiles').innerHTML = tiles.map(([k, v, s]) => `<div class="ad-tile"><small>${k}</small><b>${esc(v)}</b><span>${esc(s)}</span></div>`).join('');
+  $('ov-tiles').innerHTML = tiles.map(([k, v, s]) => `<div class="own-tile"><small>${k}</small><b>${esc(v)}</b><span>${esc(s)}</span></div>`).join('');
   const top = Math.max(1, ...o.starts, ...o.lastSeen);
   const h = n => `${Math.round((n / top) * 100)}%`;
   $('ov-days').innerHTML = o.days.map((d, i) => `<div title="${d}"><i class="a" style="height:${h(o.starts[i])}"></i><i class="b" style="height:${h(o.lastSeen[i])}"></i></div>`).join('');
   $('ov-foot').innerHTML = `<span>${o.days[0].slice(5).replace('-', '/')}</span><span>今天</span>`;
-  $('ov-rich').innerHTML = o.richest.length ? o.richest.map(r => `<div class="ad-item"><span><b class="mono">${r.ref}</b>${r.owner ? '<span class="ad-tag">管理員</span>' : ''}<small>${when(r.last)}</small></span><b class="num">${money(r.balance)}</b></div>`).join('') : '<p class="ad-muted">還沒有人用過。</p>';
+  $('ov-rich').innerHTML = o.richest.length ? o.richest.map(r => `<div class="own-item"><span><b class="mono">${r.ref}</b>${r.owner ? '<span class="own-tag">管理員</span>' : ''}<small>${when(r.last)}</small></span><b class="num">${money(r.balance)}</b></div>`).join('') : '<p class="own-muted">還沒有人用過。</p>';
 }
 
 let count = 1;
@@ -146,7 +146,7 @@ $('issue').addEventListener('click', async e => {
   try {
     const { passes } = await call('issue', { count });
     issuedCodes = passes.map(p => pass(p.passcode));
-    $('issued-list').innerHTML = passes.map(p => `<div class="ad-item"><b class="mono">${pass(p.passcode)}</b><small class="mono">${p.ref}</small></div>`).join('');
+    $('issued-list').innerHTML = passes.map(p => `<div class="own-item"><b class="mono">${pass(p.passcode)}</b><small class="mono">${p.ref}</small></div>`).join('');
     $('issued').hidden = false;
     await accounts();
   } catch (err) {
@@ -168,11 +168,11 @@ async function accounts() {
   $('acct-n').textContent = `${list.length} 個`;
   $('acct-list').innerHTML = list
     .map(
-      a => `<div class="ad-item" data-ref="${a.ref}">
-        <span><b class="mono">${a.ref}</b>${a.owner ? '<span class="ad-tag">管理員</span>' : ''}${a.unused ? '<span class="ad-tag gray">還沒用</span>' : ''}
+      a => `<div class="own-item" data-ref="${a.ref}">
+        <span><b class="mono">${a.ref}</b>${a.owner ? '<span class="own-tag">管理員</span>' : ''}${a.unused ? '<span class="own-tag gray">還沒用</span>' : ''}
         <small>${a.unused ? `${day(a.created)} 發放` : `${day(a.created)} 開始・${when(a.last)}`}</small></span>
         <b class="num">${a.unused ? '' : money(a.balance)}</b>
-        <div class="ad-acts"><button type="button" data-do="signout">登出所有裝置</button><button type="button" data-do="repass">換通行碼</button>${a.owner ? '' : '<button type="button" class="danger" data-do="delete">刪除</button>'}</div>
+        <div class="own-acts"><button type="button" data-do="signout">登出所有裝置</button><button type="button" data-do="repass">換通行碼</button>${a.owner ? '' : '<button type="button" class="danger" data-do="delete">刪除</button>'}</div>
       </div>`
     )
     .join('');

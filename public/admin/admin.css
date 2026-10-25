@@ -1,4 +1,7 @@
-/* The owner's panel (admin.js): the kit's colours and type, one column. */
+/* The owner's panel (admin.js): the kit's colours and type, one column.
+   Its names start own- (the owner's): they were ad-, and every ad blocker
+   hides elements named ad-card, ad-head, ad-tabs… as ads: Safari with one showed a
+   black page (tests/no-ad-names.test.mjs). */
 [hidden] {
   display: none !important;
 }
@@ -9,70 +12,70 @@ body {
   color: var(--q-label);
   font-family: var(--q-font);
 }
-.ad {
+.own {
   box-sizing: border-box;
   max-width: 560px;
   margin: 0 auto;
   padding: max(env(safe-area-inset-top), 16px) 16px max(env(safe-area-inset-bottom), 24px);
 }
-.ad-head {
+.own-head {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 0 16px;
 }
-.ad-head img {
+.own-head img {
   border-radius: 9px;
 }
-.ad-head h1 {
+.own-head h1 {
   flex: 1;
   margin: 0;
   font: 800 24px/1.2 var(--q-font);
 }
-.ad-link {
+.own-link {
   border: 0;
   background: none;
   color: var(--q-accent);
   font: 600 15px/1 var(--q-font);
 }
-.ad-card {
+.own-card {
   margin-bottom: 14px;
   padding: 16px;
   border-radius: 20px;
   background: var(--q-grouped-2);
 }
-.ad-card h2 {
+.own-card h2 {
   margin: 0;
   font: 700 18px/1.3 var(--q-font);
 }
-.ad-card-head {
+.own-card-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
 }
-.ad-muted {
+.own-muted {
   margin: 6px 0 12px;
   color: var(--q-label-2);
   font-size: 14px;
   line-height: 1.5;
 }
-.ad-center {
+.own-center {
   margin: 10px 0 0;
   text-align: center;
 }
-.ad-error {
+.own-error {
   min-height: 1em;
   margin: 10px 0 0;
   color: var(--q-red);
   font-size: 14px;
 }
-.ad-gate form {
+.own-gate form {
   display: grid;
   gap: 10px;
 }
-.ad-input {
+.own-input {
   box-sizing: border-box;
   width: 100%;
   min-height: 50px;
@@ -87,7 +90,7 @@ body {
   font-family: var(--q-font-mono);
   letter-spacing: 0.08em;
 }
-.ad-code {
+.own-code {
   margin: 4px 0 16px;
   padding: 18px 8px;
   border-radius: 14px;
@@ -97,7 +100,7 @@ body {
   text-align: center;
   user-select: all;
 }
-.ad-tabs {
+.own-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
@@ -106,7 +109,7 @@ body {
   border-radius: 14px;
   background: var(--q-fill);
 }
-.ad-tabs button {
+.own-tabs button {
   min-height: 36px;
   border: 0;
   border-radius: 10px;
@@ -114,28 +117,28 @@ body {
   color: var(--q-label);
   font: 600 15px/1 var(--q-font);
 }
-.ad-tabs button[aria-pressed='true'] {
+.own-tabs button[aria-pressed='true'] {
   background: var(--q-grouped-2);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
-.ad-tiles {
+.own-tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
-.ad-tile {
+.own-tile {
   min-width: 0;
   padding: 14px;
   border-radius: 18px;
   background: var(--q-grouped-2);
 }
-.ad-tile small {
+.own-tile small {
   display: block;
   color: var(--q-label-2);
   font: 600 13px/1.2 var(--q-font);
 }
-.ad-tile b {
+.own-tile b {
   display: block;
   margin-top: 6px;
   overflow: hidden;
@@ -143,14 +146,14 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.ad-tile span {
+.own-tile span {
   display: block;
   margin-top: 4px;
   color: var(--q-label-2);
   font-size: 12px;
   white-space: nowrap;
 }
-.ad-legend {
+.own-legend {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -158,51 +161,51 @@ body {
   font-size: 12px;
   white-space: nowrap;
 }
-.ad-legend i {
+.own-legend i {
   display: inline-block;
   width: 8px;
   height: 8px;
   margin-left: 6px;
   border-radius: 2px;
 }
-.ad-legend i.a,
-.ad-bars i.a {
+.own-legend i.a,
+.own-bars i.a {
   background: var(--q-accent);
 }
-.ad-legend i.b,
-.ad-bars i.b {
+.own-legend i.b,
+.own-bars i.b {
   background: var(--q-gray-2);
 }
-.ad-bars {
+.own-bars {
   display: grid;
   grid-template-columns: repeat(14, minmax(0, 1fr));
   align-items: end;
   gap: 4px;
   height: 96px;
 }
-.ad-bars > div {
+.own-bars > div {
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: end;
   gap: 1px;
   height: 100%;
 }
-.ad-bars i {
+.own-bars i {
   display: block;
   min-height: 2px;
   border-radius: 2px 2px 0 0;
 }
-.ad-bars-foot {
+.own-bars-foot {
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
   color: var(--q-label-2);
   font-size: 11px;
 }
-.ad-list {
+.own-list {
   display: grid;
 }
-.ad-item {
+.own-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -211,22 +214,22 @@ body {
   padding: 8px 0;
   border-top: 0.5px solid var(--q-sep);
 }
-.ad-item:first-child {
+.own-item:first-child {
   border-top: 0;
 }
-.ad-item b {
+.own-item b {
   font: 600 16px/1.3 var(--q-font);
 }
-.ad-item small {
+.own-item small {
   display: block;
   color: var(--q-label-2);
   font-size: 13px;
   line-height: 1.35;
 }
-.ad-item .num {
+.own-item .num {
   font-variant-numeric: tabular-nums;
 }
-.ad-tag {
+.own-tag {
   margin-left: 6px;
   padding: 2px 6px;
   border-radius: 6px;
@@ -236,17 +239,17 @@ body {
   font-weight: 700;
   vertical-align: 2px;
 }
-.ad-tag.gray {
+.own-tag.gray {
   background: var(--q-fill);
   color: var(--q-label-2);
 }
-.ad-acts {
+.own-acts {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   grid-column: 1 / -1;
 }
-.ad-acts button {
+.own-acts button {
   min-height: 32px;
   padding: 0 12px;
   border: 0;
@@ -255,16 +258,16 @@ body {
   color: var(--q-label);
   font: 600 13px/1 var(--q-font);
 }
-.ad-acts button.danger {
+.own-acts button.danger {
   color: var(--q-red);
 }
-.ad-issue {
+.own-issue {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.ad-stepper {
+.own-stepper {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -272,7 +275,7 @@ body {
   border-radius: 14px;
   background: var(--q-fill);
 }
-.ad-stepper button {
+.own-stepper button {
   width: 40px;
   height: 36px;
   border: 0;
@@ -281,18 +284,18 @@ body {
   color: var(--q-label);
   font: 600 20px/1 var(--q-font);
 }
-.ad-stepper b {
+.own-stepper b {
   min-width: 36px;
   font: 700 18px/1 var(--q-font-rounded);
   text-align: center;
 }
-.ad-issue .q-btn {
+.own-issue .q-btn {
   min-width: 110px;
 }
-.ad-issued {
+.own-issued {
   margin-top: 14px;
 }
-.ad-row {
+.own-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -300,22 +303,22 @@ body {
   min-height: 60px;
   border-top: 0.5px solid var(--q-sep);
 }
-.ad-row b {
+.own-row b {
   display: block;
   font: 600 16px/1.3 var(--q-font);
 }
-.ad-row small {
+.own-row small {
   display: block;
   color: var(--q-label-2);
   font-size: 13px;
 }
-.ad-num {
+.own-num {
   appearance: textfield;
   width: 96px;
   min-height: 40px;
   text-align: right;
 }
-.ad-switch {
+.own-switch {
   appearance: none;
   position: relative;
   flex: none;
@@ -326,7 +329,7 @@ body {
   background: var(--q-fill);
   transition: background 0.2s;
 }
-.ad-switch::after {
+.own-switch::after {
   content: '';
   position: absolute;
   top: 2px;
@@ -338,17 +341,17 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
 }
-.ad-switch:checked {
+.own-switch:checked {
   background: var(--q-green);
 }
-.ad-switch:checked::after {
+.own-switch:checked::after {
   transform: translateX(20px);
 }
-.ad-card > .q-btn.block {
+.own-card > .q-btn.block {
   margin-top: 14px;
 }
-.ad-num::-webkit-inner-spin-button,
-.ad-num::-webkit-outer-spin-button {
+.own-num::-webkit-inner-spin-button,
+.own-num::-webkit-outer-spin-button {
   margin: 0;
   -webkit-appearance: none;
 }
