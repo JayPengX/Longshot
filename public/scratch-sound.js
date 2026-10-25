@@ -1,5 +1,5 @@
-// The scratch's sound (scratch-ticket.js): a coin on latex, louder and
-// brighter the faster the finger goes, silent when it stops; a tick as a
+// The scratch's sound (scratch-ticket.js): a coin on latex, soft (a gentle
+// rustle well under the phone's other sounds, never a hiss), a little louder the faster the finger goes, silent when it stops; a tick as a
 // scratch-off comes off; a soft chime as a win shows. Made here (Web Audio),
 // no files. On an iPhone it plays with the silent switch on too (a
 // `playback` audio session while a card is scratched, back to `auto` when
@@ -55,14 +55,18 @@ export function wake() {
     grit.loop = true;
     tone = ac.createBiquadFilter();
     tone.type = 'bandpass';
-    tone.frequency.value = 2600;
-    tone.Q.value = 0.9;
+    tone.frequency.value = 1400;
+    tone.Q.value = 0.7;
+    // (Its top cut: the shrill part is what hurt.)
+    const soft = ac.createBiquadFilter();
+    soft.type = 'lowpass';
+    soft.frequency.value = 3200;
     const air = ac.createBiquadFilter();
     air.type = 'highpass';
-    air.frequency.value = 700;
+    air.frequency.value = 400;
     level = ac.createGain();
     level.gain.value = 0;
-    grit.connect(tone).connect(air).connect(level).connect(ac.destination);
+    grit.connect(tone).connect(soft).connect(air).connect(level).connect(ac.destination);
     grit.start();
   }
   if (ac.state !== 'running') {
@@ -82,8 +86,8 @@ export function rub(speed) {
   if (!ac || !level) return;
   const now = ac.currentTime;
   const v = on ? Math.min(1, speed / 1.6) : 0;
-  level.gain.setTargetAtTime(v * 0.75, now, v ? 0.015 : 0.04);
-  tone.frequency.setTargetAtTime(1900 + v * 2600, now, 0.03);
+  level.gain.setTargetAtTime(v * 0.1, now, v ? 0.03 : 0.05);
+  tone.frequency.setTargetAtTime(1200 + v * 700, now, 0.05);
   grit.playbackRate.setTargetAtTime(0.85 + v * 0.4 + Math.random() * 0.08, now, 0.05);
 }
 
@@ -99,9 +103,9 @@ export function tick() {
   src.buffer = buf;
   const hp = ac.createBiquadFilter();
   hp.type = 'highpass';
-  hp.frequency.value = 2400;
+  hp.frequency.value = 1200;
   const g = ac.createGain();
-  g.gain.value = 0.32;
+  g.gain.value = 0.06;
   src.connect(hp).connect(g).connect(ac.destination);
   src.start(now);
 }
@@ -118,7 +122,7 @@ export function chime(big = false) {
     o.frequency.value = f;
     const g = ac.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(big ? 0.16 : 0.12, t + 0.01);
+    g.gain.linearRampToValueAtTime(big ? 0.06 : 0.04, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + (big ? 0.9 : 0.45));
     o.connect(g).connect(ac.destination);
     o.start(t);

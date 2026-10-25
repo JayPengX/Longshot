@@ -23,6 +23,8 @@ export const grid = ([x, y, w, h], cols, rows = 1, [gx, gy] = [0, 0]) => {
   return out;
 };
 const inset = ([x, y, w, h], d) => [x + d, y + d, w - 2 * d, h - 2 * d];
+// An octagon in a rect, its corners cut `c` in.
+const octagon = ([x, y, w, h], c) => [[x + c, y], [x + w - c, y], [x + w, y + c], [x + w, y + h - c], [x + w - c, y + h], [x + c, y + h], [x, y + h - c], [x, y + c]];
 
 export const TICKETS = {
   // <cards> (each card's entry; kept in CARD_ORDER's order)
@@ -278,19 +280,21 @@ export const TICKETS = {
       const label = (r, t) => k.at(r, k.sym(t), { fs: 0.7 });
       const mine = g1.yours.map(y => y.n);
       const one = [
-        k.zone([28, 212, 386, 482], { rad: 34 }),
+        k.zone([28, 201, 434, 485], { poly: [[28, 250], [236, 230], [250, 218], [314, 201], [389, 222], [402, 262], [400, 282], [436, 374], [452, 404], [432, 596], [458, 612], [462, 650], [440, 680], [300, 682], [180, 686], [60, 676], [44, 640], [44, 545], [46, 500], [30, 300]] }),
         label([50, 222, 150, 36], '幸運號碼'),
         grid([45, 255, 350, 105], 2, 1, [20, 0]).map((r, i) => k.at(r, k.num(g1.winning[i]), { win: mine.includes(g1.winning[i]), fs: 0.62 })),
         label([50, 372, 150, 36], '您的號碼'),
         grid([42, 410, 360, 270], 2, 2, [16, 14]).map((r, i) => k.at(r, k.cell(k.num(g1.yours[i].n), g1.yours[i].a), { win: g1.winning.includes(g1.yours[i].n), fs: 0.56 }))
       ];
       const eights = g2.cells.filter(x => x === g2.need).length >= g2.table[0][0];
-      const two = [k.zone([562, 204, 266, 152], { rad: 18 }), grid([580, 214, 230, 132], 2, 1, [20, 0]).map((r, i) => k.at(r, k.sym(g2.cells[i]), { win: eights && g2.cells[i] === g2.need, fs: 0.7 }))];
+      const two = [k.zone([505, 206, 309, 154], { poly: [[578, 207], [700, 206], [805, 214], [814, 242], [806, 268], [818, 290], [812, 330], [760, 346], [695, 360], [637, 352], [520, 336], [505, 318], [552, 272], [548, 246]] }), grid([580, 214, 230, 132], 2, 1, [20, 0]).map((r, i) => k.at(r, k.sym(g2.cells[i]), { win: eights && g2.cells[i] === g2.need, fs: 0.7 }))];
       const counts = new Map();
       g3.cells.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
-      const three = [k.zone([485, 375, 572, 292], { rad: 44 }), grid([510, 392, 522, 258], 3, 2, [14, 14]).map((r, i) => k.at(r, k.amt(g3.cells[i]), { win: counts.get(g3.cells[i]) >= g3.k, fs: 0.62 }))];
+      // (Each 8 two loops: a top amount and a bottom one.)
+    const LOOPS = [[503, 401, 154, 125], [666, 370, 175, 143], [853, 398, 184, 128], [488, 509, 178, 154], [653, 497, 200, 171], [845, 509, 212, 154]];
+    const three = LOOPS.map((r, i) => [k.zone(r, { shape: 'round' }), k.at(inset(r, Math.min(r[2], r[3]) * 0.16), k.amt(g3.cells[i]), { win: counts.get(g3.cells[i]) >= g3.k, fs: 0.62 })]);
       const sp = g4.spots[0];
-      const four = [k.zone([858, 90, 186, 228], { rad: 60 }), k.at([868, 150, 166, 120], k.amt(sp.a), { win: !!g4.win[sp.s] && sp.a > 0, fs: 0.62 })];
+      const four = [k.zone([842, 76, 194, 239], { poly: [[954, 76], [900, 87], [882, 100], [882, 117], [907, 137], [881, 158], [871, 171], [858, 205], [861, 222], [856, 259], [842, 282], [846, 292], [886, 299], [945, 315], [980, 309], [1020, 290], [1036, 262], [1035, 191], [1027, 171], [989, 134], [1008, 117], [1010, 100], [990, 83]] }), k.at([868, 150, 166, 120], k.amt(sp.a), { win: !!g4.win[sp.s] && sp.a > 0, fs: 0.62 })];
       return [one, two, three, four];
     }
   },
@@ -331,7 +335,7 @@ export const TICKETS = {
     lay(f, k) {
       const [g] = f.games;
       const mine = g.yours.map(y => y.n);
-      const lucky = [155, 410, 668, 925].map((cx, i) => k.spot([cx - 82, 408, 164, 168], k.num(g.winning[i]), { win: mine.includes(g.winning[i]), rad: 44, fs: 0.42 }));
+      const lucky = [155, 410, 668, 925].map((cx, i) => k.spot([cx - 84, 408, 168, 168], k.num(g.winning[i]), { win: mine.includes(g.winning[i]), poly: octagon([cx - 84, 408, 168, 168], 48), fs: 0.42 }));
       const panels = { 1: [130, 670, 825, 200], 2: [275, 885, 545, 195], 5: [328, 1095, 442, 195], 10: [355, 1310, 390, 196] };
       const zones = Object.entries(panels).map(([x, r]) => {
         const ys = g.yours.filter(y => y.x === +x);
@@ -361,8 +365,8 @@ export const TICKETS = {
         label([440, 610, 200, 50], '幸運號碼'),
         label([60, 735, 200, 44], '您的號碼'),
         lucky, yours,
-        k.zone([78, 1268, 384, 296], { rad: 44 }),
-        k.at([110, 1330, 320, 170], k.amt(sp.a), { win: !!g2.win[sp.s] && sp.a > 0, fs: 0.5 })
+        k.zone([60, 1248, 410, 330], { poly: [[130, 1303], [343, 1248], [372, 1258], [380, 1268], [393, 1297], [423, 1350], [450, 1413], [470, 1470], [463, 1488], [183, 1578], [163, 1563], [137, 1513], [67, 1407], [60, 1374], [73, 1360], [97, 1330], [117, 1316]] }),
+        k.at([130, 1360, 290, 150], k.amt(sp.a), { win: !!g2.win[sp.s] && sp.a > 0, fs: 0.5 })
       ];
     }
   },
@@ -439,13 +443,13 @@ export const TICKETS = {
     }
   },
   super777: {
-    // Each big 7 is a latex tile: orange = game 1 (2 幸運號碼 + 8 您的號碼) over game 3, pink = game 2 (6 amounts) over game 4, teal = game 5 over game 6.
+    // Each big 7 is a latex tile (its outline traced off the picture): orange = game 1 (2 幸運號碼 + 8 您的號碼) over game 3, pink = game 2 (6 amounts) over game 4, teal = game 5 over game 6.
     size: [1080, 508],
     lay(f, k) {
       const [g1, g2, g3, g4, g5, g6] = f.games;
       const mine = g1.yours.filter(y => !y.s).map(y => y.n);
       const lucky = g1.winning.map((n, i) => k.at([240 + i * 80, 132, 72, 52], k.num(n), { win: mine.includes(n), fs: 0.7 }));
-      const yours = grid([197, 190, 232, 168], 4, 2, [2, 6]).map((r, i) => {
+      const yours = grid([207, 190, 226, 168], 4, 2, [2, 6]).map((r, i) => {
         const y = g1.yours[i];
         if (!y) return [];
         const win = y.s ? y.s === g1.bonus?.s : g1.winning.includes(y.n);
@@ -453,16 +457,16 @@ export const TICKETS = {
       });
       const counts = new Map();
       for (const v of g2.cells) counts.set(v, (counts.get(v) || 0) + 1);
-      const match = grid([460, 172, 236, 180], 2, 3, [10, 6]).map((r, i) => k.at(r, k.amt(g2.cells[i]), { win: counts.get(g2.cells[i]) >= g2.k, fs: 0.62 }));
+      const match = grid([462, 172, 196, 180], 2, 3, [10, 6]).map((r, i) => k.at(r, k.amt(g2.cells[i]), { win: counts.get(g2.cells[i]) >= g2.k, fs: 0.62 }));
       const tally = (g, box) => {
         const won = g.cells.filter(x => x === g.need).length >= g.table[0][0];
         return grid(box, 3, 1, [8, 0]).map((r, i) => k.at(r, k.sym(g.cells[i]), { win: won && g.cells[i] === g.need, fs: 0.75 }));
       };
       const one = (g, r) => { const s = g.spots[0]; return k.at(r, k.amt(s.a), { win: !!g.win[s.s] && s.a > 0, fs: 0.42 }); };
       return [
-        k.zone([193, 124, 240, 316], { rad: 14 }), lucky, yours, tally(g3, [215, 368, 196, 62]),
-        k.zone([452, 162, 252, 280], { rad: 14 }), match, tally(g4, [478, 366, 200, 64]),
-        k.zone([686, 178, 262, 258], { rad: 14 }), one(g5, [702, 192, 230, 108]), one(g6, [702, 314, 230, 108])
+        k.zone([178, 115, 304, 337], { poly: [[178, 117], [459, 115], [482, 133], [440, 405], [400, 452], [200, 432], [184, 404], [205, 292], [178, 240]] }), lucky, yours, tally(g3, [215, 368, 196, 62]),
+        k.zone([434, 152, 250, 300], { poly: [[434, 152], [684, 160], [668, 300], [662, 420], [640, 450], [470, 452], [440, 420], [455, 300], [434, 256]] }), match, tally(g4, [470, 366, 190, 64]),
+        k.zone([666, 158, 284, 292], { poly: [[666, 163], [913, 158], [948, 180], [950, 420], [922, 450], [690, 436], [666, 406], [680, 300], [666, 250]] }), one(g5, [702, 192, 230, 108]), one(g6, [702, 314, 230, 108])
       ];
     }
   },
@@ -488,15 +492,22 @@ export const TICKETS = {
     }
   },
   ten: {
-    // Game 1's 8 spots: 4 round spots on the roulette ring + 4 under the card fan; game 2 the 3×3 slot boxes + 獎金 tabs;
-    // game 3 the gold coin; game 4 the $+$=cash rows; game 5 the six chips + the 獎金 circle.
+    // Game 1's 8 spots: 4 under the roulette wheel (one latex, the wheel inside its gold rim) + 4 under the card fan (one latex, the 4 cards);
+    // game 2 the 3×3 slot boxes + 獎金 tabs; game 3 the gold coin; game 4 the $+$=cash rows; game 5 the six chips + the 獎金 circle.
     size: [1080, 1080],
     lay(f, k) {
       const [g1, g2, g3, g4, g5] = f.games;
-      const spot = (x, r, o = {}) => k.spot(r, k.cell(k.sym(x.s), x.a), { win: !!g1.win[x.s] && x.a > 0, fs: 0.5, ...o });
-      const wheel = [-50, -17, 17, 50].map(d => { const t = (d * Math.PI) / 180; return [12 + 166 * Math.cos(t) - 47, 360 + 166 * Math.sin(t) - 47, 94, 94]; });
-      const cards = grid([762, 224, 268, 168], 2, 2, [8, 8]);
-      const one = g1.spots.map((x, i) => (i < 4 ? spot(x, wheel[i], { shape: 'round' }) : spot(x, cards[i - 4])));
+      const spot = (x, r, o = {}) => k.at(r, k.cell(k.sym(x.s), x.a), { win: !!g1.win[x.s] && x.a > 0, fs: 0.56, ...o });
+      // The wheel's edge (its gold rim's outside, traced off the picture) and the cards' corners.
+      const WHEEL = [[16, 62], [60, 80], [112, 100], [146, 120], [174, 140], [194, 160], [212, 180], [226, 200], [238, 220], [248, 240], [256, 260], [262, 280], [268, 300], [272, 320], [274, 340], [276, 360], [276, 380], [274, 400], [270, 420], [266, 440], [260, 460], [252, 480], [242, 500], [232, 520], [216, 540], [202, 560], [182, 580], [158, 600], [126, 620], [88, 640], [50, 656], [16, 676]];
+      const FAN = [[730, 270], [767, 249], [771, 222], [861, 206], [907, 208], [942, 223], [1031, 229], [1028, 391], [911, 376], [863, 374], [815, 397], [777, 397]];
+      const wheel = [-50, -17, 17, 50].map(d => { const t = (d * Math.PI) / 180; return [12 + 166 * Math.cos(t) - 60, 360 + 166 * Math.sin(t) - 55, 120, 110]; });
+      const cards = grid([772, 234, 250, 150], 2, 2, [8, 8]);
+      const one = [
+        k.zone([16, 62, 260, 614], { poly: WHEEL }),
+        k.zone([730, 206, 301, 191], { poly: FAN }),
+        g1.spots.map((x, i) => spot(x, i < 4 ? wheel[i] : cards[i - 4]))
+      ];
       const rows = g2.rows.flatMap((r, i) => {
         const y = 367 + i * 100;
         const win = r.s.every(s => s === r.s[0]) && r.s[0] === g2.need;
@@ -511,7 +522,9 @@ export const TICKETS = {
       const [need, prize] = g5.table[0];
       const won = g5.cells.filter(x => x === g5.need).length >= need;
       const chips = [[1000, 617], [915, 663], [865, 747], [858, 845], [912, 927], [1000, 977]].map(([x, y], i) => k.spot([x - 43, y - 43, 86, 86], k.sym(g5.cells[i]), { win: won && g5.cells[i] === g5.need, fs: 0.42, shape: 'round' }));
-      return [one, rows, coin, sums, chips, k.spot([930, 742, 118, 116], k.amt(prize), { win: won, fs: 0.5, shape: 'round' })];
+      // (The 獎金 circle: inside its ring, cut by the ticket's edge.)
+      const RING = [[1050, 690], ...[...Array(13)].map((_, i) => { const t = ((90 + i * 15) * Math.PI) / 180; return [Math.round(1035 + 108 * Math.cos(t)), Math.round(797 - 108 * Math.sin(t))]; }), [1050, 904]];
+      return [one, rows, coin, sums, chips, k.zone([927, 689, 123, 216], { poly: RING }), k.at([935, 752, 110, 90], k.amt(prize), { win: won, fs: 0.5 })];
     }
   },
   million: {
@@ -607,7 +620,7 @@ export function ticketParts(id, f, has) {
     same: s => s.every(x => x === s[0]),
     zone: (r, o = {}) => ({ zone: true, r, ...o }),
     at: (r, v, o = {}) => ({ r, v, ...o }),
-    spot: (r, v, o = {}) => [{ zone: true, r, shape: o.shape, rad: o.rad }, { r, v, under: true, ...o }],
+    spot: (r, v, o = {}) => [{ zone: true, r, shape: o.shape, rad: o.rad, poly: o.poly }, { r, v, under: true, ...o, poly: undefined }],
     num: n => ({ t: 'num', n }),
     digit: n => ({ t: 'num', n, one: true }),
     pic: (r, scale = 1) => ({ t: 'pic', r, scale }),

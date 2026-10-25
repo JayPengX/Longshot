@@ -90,7 +90,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   const whole = () => fitOf([0, 0, W, H]);
   const play = () => Math.max(whole(), Math.min(fitOf(view), (fw / W) * 4));
   const clamp = () => {
-    s = Math.min(Math.max(play() * 2.5, whole() * 3, sT * 1.6), Math.max(whole(), s));
+    s = Math.min(Math.max(play() * 3, whole() * 4, sT * 2), Math.max(whole(), s));
     const bound = (v, size, room) => (size * s <= room ? -(room / s - size) / 2 : Math.min(size - room / s, Math.max(0, v)));
     x = bound(x, W, fw);
     y = bound(y, H, fh);
@@ -444,9 +444,10 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     step();
     setTimeout(() => !finished && (g.save(), (g.globalCompositeOperation = 'destination-out'), g.fill(path), g.restore()), 200);
   };
-  // The coin's size on the screen stays a coin edge's (narrower than a
-  // fingertip: a scratch-off takes a few strokes), however zoomed.
-  const R = () => Math.max(11, Math.min(16, fw * 0.04)) / s;
+  // The coin: a coin edge's size on the screen where it's played (narrower
+  // than a fingertip: a scratch-off takes a few strokes); zoomed in further
+  // it stays that size on the ticket, so a pinch never makes it more work.
+  const R = () => Math.max(11, Math.min(16, fw * 0.04)) / Math.min(s, sT || play());
   let travel = 0;
   // How hard the coin bites (1: a slow, firm stroke; a fast flick only scuffs
   // the latex): the finger's speed, CSS px a millisecond.
@@ -523,6 +524,9 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   frame.addEventListener('pointerdown', e => {
     cancelAnimationFrame(glide);
     const p = local(e);
+    // (A first finger down starts afresh: a finger whose lift never came, as
+    // iOS can after a pinch, would make every touch after it a pinch.)
+    if (e.isPrimary) pts.clear();
     pts.set(e.pointerId, p);
     try {
       frame.setPointerCapture(e.pointerId);
@@ -613,6 +617,34 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   };
   frame.addEventListener('pointerup', up);
   frame.addEventListener('pointercancel', up);
+  frame.addEventListener('lostpointercapture', up);
+  // (Safari's own pinch, for when its second finger never comes as a pointer.)
+  let gesture = null;
+  frame.addEventListener('gesturestart', e => {
+    e.preventDefault();
+    if (mode === 'pinch') return;
+    if (mode === 'scratch') clearTimeout(from?.still), rub(0), look();
+    mode = 'gesture';
+    gesture = { s, at: pic(local(e)) };
+  });
+  frame.addEventListener('gesturechange', e => {
+    e.preventDefault();
+    if (mode !== 'gesture' || !gesture) return;
+    const p = local(e);
+    s = gesture.s * e.scale;
+    clamp();
+    x = gesture.at[0] - p[0] / s;
+    y = gesture.at[1] - p[1] / s;
+    draw();
+  });
+  frame.addEventListener('gestureend', e => {
+    e.preventDefault();
+    if (!gesture) return;
+    gesture = null;
+    commit();
+    if (mode === 'gesture') mode = pts.size ? 'pan' : null;
+    if (mode === 'pan') from = { p: [...pts.values()][0], x, y };
+  });
   frame.addEventListener(
     'wheel',
     e => {
