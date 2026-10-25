@@ -1796,10 +1796,15 @@ function toggleLeg(bet) {
     // The odds when it was picked: the slip shows if they move after.
     state.pickedOdds[bet.id] = slipOdds(bet);
     if (state.parlay.length > SLIP_RULES.maxLegs) state.parlay.shift();
-    // Two picks or more make a parlay unless another way was chosen.
-    if (!state.modeChosen && state.parlay.length >= 2) state.slipMode = 'parlay';
   }
   slipChanged();
+}
+// The way to buy follows the picks unless one was chosen: one pick (or none)
+// is a single, two or more a parlay. An emptied slip forgets the choice (a
+// cleared parlay opened the next lone pick on 全部過關, 「至少要選 2 場」, Jay 2026-10-26).
+function fitSlipMode() {
+  if (!state.parlay.length) state.modeChosen = false;
+  if (!state.modeChosen) state.slipMode = state.parlay.length >= 2 ? (state.slipMode === 'single' ? 'parlay' : state.slipMode) : 'single';
 }
 // The slip changed (a pick added or taken off, the slip cleared or placed):
 // every pick button anywhere on the page (an open game's sheet too) shows it
@@ -1808,6 +1813,7 @@ function toggleLeg(bet) {
 let slipShown = new Set();
 function slipChanged() {
   state.slipNote = null;
+  fitSlipMode();
   for (const id of Object.keys(state.houseOdds)) if (!state.parlay.includes(id)) delete state.houseOdds[id];
   saveSlip();
   const now = new Set(state.parlay);
@@ -4137,6 +4143,7 @@ function restoreSlip() {
     if (['single', 'parlay', 'system'].includes(saved.mode)) state.slipMode = saved.mode;
     state.modeChosen = saved.modeChosen === true;
     if (Array.isArray(saved.sizes) && saved.sizes.length) state.slipSizes = new Set(saved.sizes.filter(k => k === 'all' || Number.isInteger(k)));
+    fitSlipMode();
   } catch {}
 }
 function saveSlip() {
