@@ -481,6 +481,32 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
   };
   // What's showing: a win popped as it shows; a scratch-off half scraped
   // comes off whole; every one off, the card is done (only then its result).
+  // Read off the latex itself as a finger lifts (never mid-stroke: that
+  // stalled a phone): a thing whose middle is see-through enough to read is read,
+  // however lightly it was scraped. (The points above count the coin's
+  // bites; a fast, light stroke leaves a haze the eye reads through while
+  // they're still short.)
+  const seen = () => {
+    if (finished || !g) return;
+    for (const w of watch) {
+      if (w.shown || !w.pts.length || !w.pts.some(p => p.hits > 0)) continue;
+      const [ix, iy, iw, ih] = w.it.r;
+      const [x0, y0] = [Math.floor((ix + iw * 0.15) * k), Math.floor((iy + ih * 0.15) * k)];
+      const [rw, rh] = [Math.max(1, Math.floor(iw * 0.7 * k)), Math.max(1, Math.floor(ih * 0.7 * k))];
+      let d;
+      try {
+        d = g.getImageData(x0, y0, rw, rh).data;
+      } catch {
+        return;
+      }
+      // (Every few pixels: enough to tell. The haze a quick stroke leaves,
+      // the print read through it, is about half see-through.)
+      let sum = 0;
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4 * 5) n++, (sum += d[i]);
+      if (n && sum / n <= 165) w.shown = true;
+    }
+  };
   const look = () => {
     if (finished || !g) return;
     for (const w of watch) {
@@ -629,7 +655,7 @@ export function scratchTicket({ el, label }, real, { open, colors = [] }) {
     down = null;
     // (iOS opens audio only from a touch that ends: woken again here.)
     if (mode === 'scratch') clearTimeout(from?.still), rub(0), wake();
-    if (mode === 'scratch') look();
+    if (mode === 'scratch') (seen(), look());
     if (mode === 'pinch') commit();
     if (pts.size === 1) {
       // (One finger left after a pinch: it moves the ticket, never scratches.)

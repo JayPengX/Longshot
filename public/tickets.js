@@ -23,6 +23,20 @@ export const grid = ([x, y, w, h], cols, rows = 1, [gx, gy] = [0, 0]) => {
   return out;
 };
 const inset = ([x, y, w, h], d) => [x + d, y + d, w - 2 * d, h - 2 * d];
+// Where a band y0–y1 is inside a polygon all the way across: [left, right].
+const across = (poly, y0, y1) => {
+  let [l, r] = [-Infinity, Infinity];
+  for (const y of [y0, (y0 + y1) / 2, y1]) {
+    const xs = [];
+    poly.forEach(([x1, ya], i) => {
+      const [x2, yb] = poly[(i + 1) % poly.length];
+      if ((ya <= y && y < yb) || (yb <= y && y < ya)) xs.push(x1 + ((y - ya) * (x2 - x1)) / (yb - ya));
+    });
+    xs.sort((a, b) => a - b);
+    if (xs.length) (l = Math.max(l, xs[0])), (r = Math.min(r, xs.at(-1)));
+  }
+  return [l, r];
+};
 // An octagon in a rect, its corners cut `c` in.
 const octagon = ([x, y, w, h], c) => [[x + c, y], [x + w - c, y], [x + w, y + c], [x + w, y + h - c], [x + w - c, y + h], [x + c, y + h], [x, y + h - c], [x, y + c]];
 
@@ -447,9 +461,18 @@ export const TICKETS = {
     size: [1080, 508],
     lay(f, k) {
       const [g1, g2, g3, g4, g5, g6] = f.games;
+      // Each 7's outline to its gold rim's outside (the one in front wins where they overlap), traced off the picture.
+      const A7 = [[214,109],[178,111],[170,120],[171,242],[207,280],[224,296],[234,300],[241,307],[174,395],[172,408],[224,460],[233,465],[394,465],[405,458],[430,420],[428,408],[431,402],[488,318],[434,264],[426,251],[407,249],[432,208],[432,159],[426,152],[488,150],[500,138],[470,111],[230,109]];
+      const B7 = [[498,140],[496,142],[432,144],[425,151],[432,158],[432,209],[398,263],[389,272],[381,274],[377,279],[375,284],[377,295],[372,302],[378,308],[482,310],[488,317],[485,324],[433,398],[426,414],[479,464],[576,465],[629,465],[641,454],[665,418],[666,407],[722,326],[669,274],[666,252],[668,245],[668,178],[666,173],[672,166],[706,164],[713,158],[698,144],[503,142],[501,140]];
+      const C7 = [[713,159],[709,163],[673,165],[666,172],[668,177],[668,244],[666,251],[668,273],[722,325],[668,404],[665,417],[710,462],[722,465],[855,465],[867,453],[968,296],[969,210],[963,201],[920,161],[764,159]];
+      // A row inside a 7 (its band y0–y1, `n` across, a margin in from its edges): the 7s slant, so each row sits where its band is.
+      const row = (poly, y0, y1, n, m = 10) => {
+        const [l, r] = across(poly, y0, y1);
+        return grid([l + m, y0, r - l - 2 * m, y1 - y0], n, 1, [6, 0]);
+      };
       const mine = g1.yours.filter(y => !y.s).map(y => y.n);
-      const lucky = g1.winning.map((n, i) => k.at([240 + i * 80, 132, 72, 52], k.num(n), { win: mine.includes(n), fs: 0.7 }));
-      const yours = grid([207, 190, 226, 168], 4, 2, [2, 6]).map((r, i) => {
+      const lucky = row(A7, 122, 176, 2, 60).map((r, i) => k.at(r, k.num(g1.winning[i]), { win: mine.includes(g1.winning[i]), fs: 0.7 }));
+      const yours = [...row(A7, 186, 244, 4), ...row(A7, 254, 312, 4)].map((r, i) => {
         const y = g1.yours[i];
         if (!y) return [];
         const win = y.s ? y.s === g1.bonus?.s : g1.winning.includes(y.n);
@@ -457,16 +480,16 @@ export const TICKETS = {
       });
       const counts = new Map();
       for (const v of g2.cells) counts.set(v, (counts.get(v) || 0) + 1);
-      const match = grid([462, 172, 196, 180], 2, 3, [10, 6]).map((r, i) => k.at(r, k.amt(g2.cells[i]), { win: counts.get(g2.cells[i]) >= g2.k, fs: 0.62 }));
-      const tally = (g, box) => {
+      const match = [...row(B7, 166, 220, 2, 14), ...row(B7, 228, 282, 2, 14), ...row(B7, 290, 340, 2, 14)].map((r, i) => k.at(r, k.amt(g2.cells[i]), { win: counts.get(g2.cells[i]) >= g2.k, fs: 0.62 }));
+      const tally = (g, cells) => {
         const won = g.cells.filter(x => x === g.need).length >= g.table[0][0];
-        return grid(box, 3, 1, [8, 0]).map((r, i) => k.at(r, k.sym(g.cells[i]), { win: won && g.cells[i] === g.need, fs: 0.75 }));
+        return cells.map((r, i) => k.at(r, k.sym(g.cells[i]), { win: won && g.cells[i] === g.need, fs: 0.75 }));
       };
       const one = (g, r) => { const s = g.spots[0]; return k.at(r, k.amt(s.a), { win: !!g.win[s.s] && s.a > 0, fs: 0.42 }); };
       return [
-        k.zone([178, 115, 304, 337], { poly: [[178, 117], [459, 115], [482, 133], [440, 405], [400, 452], [200, 432], [184, 404], [205, 292], [178, 240]] }), lucky, yours, tally(g3, [215, 368, 196, 62]),
-        k.zone([434, 152, 250, 300], { poly: [[434, 152], [684, 160], [668, 300], [662, 420], [640, 450], [470, 452], [440, 420], [455, 300], [434, 256]] }), match, tally(g4, [470, 366, 190, 64]),
-        k.zone([666, 158, 284, 292], { poly: [[666, 163], [913, 158], [948, 180], [950, 420], [922, 450], [690, 436], [666, 406], [680, 300], [666, 250]] }), one(g5, [702, 192, 230, 108]), one(g6, [702, 314, 230, 108])
+        k.zone([170, 109, 330, 356], { poly: A7 }), lucky, yours, tally(g3, row(A7, 340, 400, 3, 16)),
+        k.zone([372, 140, 350, 325], { poly: B7 }), match, tally(g4, row(B7, 352, 412, 3, 16)),
+        k.zone([665, 159, 304, 306], { poly: C7 }), one(g5, row(C7, 180, 286, 1, 16)[0]), one(g6, row(C7, 306, 412, 1, 16)[0])
       ];
     }
   },
