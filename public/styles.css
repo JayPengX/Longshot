@@ -826,8 +826,17 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
 .q-section { margin-top: 28px; }
 .pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); overflow: hidden; }
-/* 場中焦點's strip bleeds to the panel's edges, not the page's (it stuck out past the panel by the gap between the two). */
-.pl-panel .q-live-strip { margin-inline: -12px; padding-inline: 12px; scroll-padding-inline: 12px; }
+/* 場中焦點: the top games on now as whole cards that fit the panel, never a
+   sideways row with a card cut at the edge (全部 has the rest): two a row, an
+   odd last one the row's width; one a row, two at most, on a phone too narrow
+   for two side by side. */
+.pl-panel .q-live-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
+.pl-panel .q-live-card { width: auto; min-width: 0; }
+.pl-panel .q-live-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 359px) {
+  .pl-panel .q-live-strip { grid-template-columns: minmax(0, 1fr); }
+  .pl-panel .q-live-card:nth-child(n + 3) { display: none; }
+}
 .pl-panel .q-section-head { padding: 0 8px 12px; }
 .pl-panel .q-match, .pl-panel .q-live-card, .pl-panel .q-rowcard { background: var(--q-page, var(--q-fill-3)); }
 .pl-panel .q-rowcard { background: none; }
@@ -840,12 +849,6 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* Team logos fill their tile on white, no dark frame around the crest (as Securities' stock logos; html: over the kit's .q-logo, loaded later). */
 html .q-logo:not(.text) { background: #ffffff; }
 html .q-logo img { width: 88%; height: 88%; }
-/* 場中焦點 with one or two games: the cards share the row's width (one game
-   alone was a half-width card beside an empty space). */
-.q-live-strip > .q-live-card:only-child { flex: 1 1 auto; width: auto; }
-@media (min-width: 360px) {
-  .q-live-strip > .q-live-card:first-child:nth-last-child(2), .q-live-strip > .q-live-card:first-child:nth-last-child(2) + .q-live-card { flex: 1 1 0; width: auto; min-width: 0; }
-}
 /* A team's name shrinks to fit its line (the kit's .q-fit) from Play's 16px. */
 .pl-team-name.q-fit { display: block; font-size: calc(16px * var(--q-fit, 1)); text-overflow: clip; }
 .logo-fallback svg { width: 62%; height: 62%; }
