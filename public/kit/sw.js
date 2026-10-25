@@ -23,7 +23,7 @@
 // is never kept: it's asked again past the browser's cache, and while the
 // CDN still has the old one the page gets a 503 (boot.js then waits for the
 // update to finish, and loads it).
-const CACHE = self.LONGSHOT_SW?.cache || 'longshot-v1';
+const CACHE = self.LONGSHOT_SW?.cache || 'longshot-v2';
 const PREFIX = CACHE.replace(/v\d+$/, '');
 
 self.addEventListener('install', event => {
@@ -151,6 +151,9 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/version.json')) return;
+  // The owner's panel (admin/) is never kept: always the network's, as any
+  // website. (A kept copy answered Safari at once with a black page.)
+  if (url.href.startsWith(new URL('./admin', self.registration.scope).href)) return;
   // What runs on after the answer: the event is kept alive until it's all done
   // (a save started while another was awaited is waited for too).
   const tail = [];
