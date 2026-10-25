@@ -612,10 +612,20 @@ function renderSportFilter() {
 // lead league's logo (MLB for 棒球, NBA for 籃球), never one ball for every sport.
 // Each kind's own ball, never one league's logo standing in for the sport.
 const groupIcon = g => icon(`sport_${g}`, 'chip-glyph');
-// A sideways row keeps its chosen chip in view.
+// A sideways row brings a newly chosen chip into view, nudged only as far as
+// it needs (a half-shown chip tapped at the edge was thrown to the far left,
+// the whole row jumping forward); a redraw with the same chip chosen leaves
+// the row where the person scrolled it.
+const chosenIn = new WeakMap();
 function keepInView(row) {
   const on = row?.querySelector('[aria-pressed="true"]');
-  if (on && (on.offsetLeft < row.scrollLeft || on.offsetLeft + on.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = on.offsetLeft - 16;
+  if (!on || !row.clientWidth || chosenIn.get(row) === on.textContent) return;
+  chosenIn.set(row, on.textContent);
+  const r = row.getBoundingClientRect();
+  const c = on.getBoundingClientRect();
+  const pad = 16;
+  const by = c.left < r.left + pad ? c.left - r.left - pad : c.right > r.right - pad ? c.right - r.right + pad : 0;
+  if (by) row.scrollBy({ left: by, behavior: 'smooth' });
 }
 
 // 今天 / 明天 / the weekday, in Taiwan time.

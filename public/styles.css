@@ -825,7 +825,9 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .slip-leg-game { white-space: normal; overflow: visible; text-overflow: clip; }
 /* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
 .q-section { margin-top: 28px; }
-.pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); }
+.pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); overflow: hidden; }
+/* 場中焦點's strip bleeds to the panel's edges, not the page's (it stuck out past the panel by the gap between the two). */
+.pl-panel .q-live-strip { margin-inline: -12px; padding-inline: 12px; scroll-padding-inline: 12px; }
 .pl-panel .q-section-head { padding: 0 8px 12px; }
 .pl-panel .q-match, .pl-panel .q-live-card, .pl-panel .q-rowcard { background: var(--q-page, var(--q-fill-3)); }
 .pl-panel .q-rowcard { background: none; }
