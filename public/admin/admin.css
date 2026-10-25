@@ -142,7 +142,6 @@ body {
   font: 700 24px/1.1 var(--q-font-rounded);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .ad-tile span {
   display: block;

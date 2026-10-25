@@ -1,5 +1,8 @@
 // The owner's panel (worker/admin.js's /admin): signed in with the owner's
 // pass, the admin token kept for this tab only (12 hours at most).
+import { compact } from '../kit/format.mjs';
+import { watchFit } from '../kit/fit.mjs';
+
 const asked = new URLSearchParams(location.search).get('worker') || '';
 // (A Worker on this computer for a local check; never any other address.)
 const WORKER = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(asked) ? asked : 'https://longshot.pengzjay.workers.dev';
@@ -36,6 +39,10 @@ async function call(action, body = {}) {
 
 const fmt = n => Number(n || 0).toLocaleString('en-US');
 const money = n => `NT$${fmt(Math.round(n))}`;
+// A tile's money in its half of the row: NT$123萬 (NT$1,234,567 was cut to NT$1,23…).
+const short = n => `NT$${compact(Math.round(n || 0))}`;
+// Each tile's figure shrinks to its box rather than being cut.
+watchFit('.ad-tile b', { roots: [document.getElementById('ov-tiles')] });
 const when = t => {
   if (!t) return '還沒用過';
   const m = Math.round((Date.now() - t) / 60_000);
@@ -115,7 +122,7 @@ async function overview() {
   const tiles = [
     ['帳戶', fmt(o.accounts), o.waiting ? `${o.waiting} 張還沒用` : '全部用過了'],
     ['本週活躍', fmt(o.active.week), `今天 ${o.active.day}・本月 ${o.active.month}`],
-    ['流通的錢', money(o.money.total), `最多 ${money(o.money.top)}`],
+    ['流通的錢', short(o.money.total), `最多 ${short(o.money.top)}`],
     ['今天拍注單', `${fmt(o.today.scans)} / ${fmt(o.guards.scanCap)}`, o.guards.scans ? '開著' : '已暫停'],
     ['下注與彩券', o.guards.play ? '開著' : '已暫停', '在「防護」切換'],
     ['錢快用完', fmt(o.money.under), '餘額不到 NT$1,000']
