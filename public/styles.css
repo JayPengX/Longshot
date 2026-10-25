@@ -826,15 +826,15 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* Beats calm: a few big rounded panels; the cards inside sit on the panel's own tone. */
 .q-section { margin-top: 28px; }
 .pl-panel { padding: 16px 12px 12px; border-radius: 28px; background: var(--q-surface); overflow: hidden; }
-/* 場中焦點: the top two games on now as whole cards side by side in the panel
-   (one row, so the home page stays balanced; 全部 has the rest), one alone the
-   row's width; on a phone too narrow for two, the top one. */
-.pl-panel .q-live-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
-.pl-panel .q-live-card { width: auto; min-width: 0; }
-.pl-panel .q-live-card:only-child { grid-column: 1 / -1; }
+/* 場中焦點: every game on now, a sideways row inside the panel (clipped at its
+   content edge, nothing poking past the panel), two whole cards at a time,
+   snapping card by card; one alone the row's width; on a phone too narrow
+   for two, one whole card at a time. */
+.pl-panel .q-live-strip { margin: 0; padding: 0; scroll-padding-inline: 0; overscroll-behavior-x: contain; }
+.pl-panel .q-live-card { width: calc((100% - 8px) / 2); min-width: 0; }
+.pl-panel .q-live-card:only-child { width: 100%; }
 @media (max-width: 359px) {
-  .pl-panel .q-live-strip { grid-template-columns: minmax(0, 1fr); }
-  .pl-panel .q-live-card:nth-child(n + 2) { display: none; }
+  .pl-panel .q-live-card { width: 100%; }
 }
 /* A sideways rail of cards (為你推薦, 組合) stays inside the page's column,
    its edges lined up with the panels', never bleeding past them. */

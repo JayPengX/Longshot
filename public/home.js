@@ -187,7 +187,10 @@ export function renderHome(ctx) {
   // (Every game on now: the strip is scores, and a held game's sheet says so.)
   const onNow = state.liveGames || [];
   const liveItems = onNow.map(g => ({ id: `live:${g.id}`, game: g, keys: gameKeys(g), quality: TIER_WEIGHT[ctx.leagueTier(g.sport)] + 0.3 + gameInterest(g, taste).score * 0.6 + (taste.held.has(g.id) ? 0.4 : 0), group: g.sport }));
-  const liveTop = spreadLeagues(rank(liveItems, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 }), taste, { n: 2 });
+  // 場中焦點: every game on, the best of different leagues first, then the rest by rank.
+  const liveRanked = rank(liveItems, { wallet: state.wallet, n: 40, aff, now, diversity: 0.2, explore: 0 });
+  const liveLead = spreadLeagues(liveRanked, taste, { n: 4 });
+  const liveTop = [...liveLead, ...liveRanked.filter(x => !liveLead.includes(x))];
 
   // A match card: its league and time (or live state) on top, each side with its
   // logo, (score) and win price (the kit's matchCard: logos 48/40, a price row
