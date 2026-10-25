@@ -10,6 +10,8 @@ import { f1Outcome } from './f1live.mjs';
 import { settleSlip } from './play-odds.mjs';
 import { propResult, propOutcome } from './play-props.mjs';
 import { overByRule, parseStatus } from './sports-espn.mjs';
+import { mlbPostseasonUrl } from './postseason.mjs';
+import { isSeriesKey, seriesSeason, seriesOutcome } from './play-series.mjs';
 
 // Every league Play has priced (the catalogue's, catalog.mjs playLeagues): those
 // no longer sold too, for their older slips.
@@ -877,6 +879,12 @@ export async function readOutcomes(legs, { read, keptKambi = async () => null, n
   await Promise.all(
     legs.map(async leg => {
       if (leg.kind === 'future') {
+        // A play-off series' exact result: from MLB's own postseason list.
+        if (isSeriesKey(leg.market)) {
+          const schedule = await page(mlbPostseasonUrl(seriesSeason(leg.market)));
+          if (schedule) out.set(leg.id, seriesOutcome(schedule, leg.market));
+          return;
+        }
         if (!leg.eventSlug) return;
         const events = await page(`${GAMMA}/events?slug=${encodeURIComponent(leg.eventSlug)}`);
         if (events) out.set(leg.id, parseFutureResult(events));

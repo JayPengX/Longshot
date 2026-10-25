@@ -33,7 +33,13 @@ admin pass, once; after that it signs in with it).
 - **冠軍 boards** list only who can still win (kit `play-alive.mjs`): ESPN's
   'e' (out of the play-offs), a lost play-off series (MLB's list), a soccer
   club that can't catch the leader on points, an F1 driver or team that
-  can't with every race left won.
+  can't with every race left won. Leagues and their conferences, as 運彩
+  sells them: NBA/NHL 西區・東區, NFL AFC/NFC beside each league's title.
+- **系列賽正確結果** (kit `play-series.mjs`): every MLB play-off series
+  (wild card to World Series) once MLB lists both clubs, each result still
+  possible. Priced from one game's chance (the pennant/World Series market,
+  else the next game's moneyline); off sale from 10 minutes before a game
+  until it's final; settled from MLB's postseason list.
 - **Live** (`lib/live.mjs`): modelled from the pregame lines and the live
   state, blended with Polymarket where liquid. One 5 s beat (`playLive`).
 - **Pricing:** fair chances from the sources with margins removed, then one

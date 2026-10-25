@@ -519,6 +519,9 @@ function futureName(market, team) {
   return teamName(team.name);
 }
 
+// A market's words: a series' exact result shares one set (its two clubs in it).
+const futureKey = market => (market.kind === 'series' ? 'series' : market.key);
+
 // One bet per team of every championship market (play-bets.mjs), named here.
 function buildFutures(data) {
   const t = state.t;
@@ -528,10 +531,16 @@ function buildFutures(data) {
   const all = futureBets(data.futures);
   const decided = new Set(all.filter(b => b.lock === 'low').map(b => b.market));
   return all.filter(b => !decided.has(b.market)).map(b => {
-    const title = t(`future_${b.futureMarket.key}`, { season: b.futureMarket.season });
-    const cardTitle = t(`future_${b.futureMarket.key}`, { season: '' }).trim();
+    const key = futureKey(b.futureMarket);
+    // (A series by its clubs' short names, 釀酒人-光芒: the full ones wrap on a phone.)
+    const sides = (b.futureMarket.sides || []).map(x => shortTeamName(b.sport, x.en, teamName(x))).join('-');
+    const title = t(`future_${key}`, { season: b.futureMarket.season, sides });
+    const cardTitle = t(`future_${key}`, { season: '', sides }).trim();
     const name = futureName(b.futureMarket, b.futureTeam);
-    return { ...b, matchup: cardTitle, label: `${title} ${name}`, shortLabel: name };
+    // (A series' result in a list row: 釀酒人4比0勝出, the club by its short name.)
+    const won = b.futureTeam.won;
+    const rowLabel = won ? `${shortTeamName(b.sport, b.futureTeam.side.en, teamName(b.futureTeam.side))}${state.locale === 'zh' ? '' : ' '}${t('seriesScore', b.futureTeam)}` : undefined;
+    return { ...b, matchup: cardTitle, label: `${title} ${name}`, shortLabel: name, rowLabel };
   });
 }
 
@@ -841,7 +850,7 @@ function renderStatus(kind) {
 function betIcon(bet) {
   if (bet.kind === 'f1team') return constructorBadge(bet.team, 'logo-sm');
   if (bet.kind?.startsWith('f1') && bet.driver) return driverBadge(bet, 'logo-sm');
-  if (bet.kind === 'future') return logoImg(bet.sport, bet.teamEn, bet.shortLabel, 'logo-sm');
+  if (bet.kind === 'future') return logoImg(bet.sport, bet.clubEn ?? bet.teamEn, bet.shortLabel, 'logo-sm');
   // Totals' side is over/under: they show the league, team totals the team.
   const side = bet.kind === 'teamtotal' ? bet.team : ['away', 'home'].includes(bet.side) ? bet.side : null;
   if (bet.game && side) return logoImg(bet.sport, bet.game[side].en, teamName(bet.game[side]), 'logo-sm');
@@ -1692,10 +1701,11 @@ function entryRow(bet, i, picture, sub, name = bet.shortLabel) {
 }
 
 // A board of prices (F1, a championship) in the game sheet: its emblem, name
-// and when it settles, its market tabs, then every entry.
+// and when it settles, its market tabs, then every entry. The name breaks
+// only between its words (釀酒人-光芒 / 系列賽正確結果, never 系 / 列賽).
 function boardBody({ emblem, title, sub, tabs = null, lead = null, entries }) {
   return el('div', { class: 'gs' }, [
-    el('div', { class: 'gs-boardhead' }, [leagueImg(emblem, 'logo-lg'), el('div', {}, [el('p', { class: 'gs-btitle', text: title }), el('p', { class: 'gs-bsub', text: sub })])]),
+    el('div', { class: 'gs-boardhead' }, [leagueImg(emblem, 'logo-lg'), el('div', {}, [el('p', { class: 'gs-btitle' }, String(title).split(' ').flatMap((w, i) => [i ? ' ' : null, el('span', { text: w })])), el('p', { class: 'gs-bsub', text: sub })])]),
     tabs,
     lead ? el('p', { class: 'gs-lead', text: lead }) : null,
     el('div', { class: 'q-rowcard pl-entries' }, entries)
@@ -1719,7 +1729,7 @@ function renderFutures() {
       const top = (clubs.length ? clubs : [...bets].filter(b => !b.lock).sort((a, b) => effectiveOdds(a) - effectiveOdds(b))).slice(0, 1);
       return el('button', { class: 'q-ritem chevron pl-fut', type: 'button', onclick: () => openBoard(`fut|${market}`) }, [
         el('span', { class: 'pl-fut-logo' }, leagueImg(bets[0].sport, 'logo-sm')),
-        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
+        el('span', { class: 'q-ritem-text' }, [el('span', { class: 'q-ritem-title q-fit-wrap', text: bets[0].matchup }), el('small', { text: top.map(b => `${b.rowLabel ?? b.shortLabel} ${fmtOdds(effectiveOdds(b))}`).join(' · ') })]),
         el('span', { class: 'q-ritem-value', text: String(bets.length) })
       ]);
     })
@@ -1730,10 +1740,11 @@ function futuresBoard(market) {
   const bets = state.futures.filter(b => b.market === market);
   if (!bets.length) return null;
   const { matchup, sport } = bets[0];
-  const picture = b => (market === 'f1drivers' ? driverBadge(b.teamEn) : market === 'f1constructors' ? constructorBadge(b.teamEn) : logoImg(b.sport, b.teamEn, b.shortLabel));
+  // (A series' result: its score over the club, so 4比1 is never what's cut.)
+  const picture = b => (market === 'f1drivers' ? driverBadge(b.teamEn) : market === 'f1constructors' ? constructorBadge(b.teamEn) : logoImg(b.sport, b.clubEn, b.shortLabel));
   return {
     title: [leagueImg(sport, 'logo-xs'), el('span', { text: t(`sport_${sport}`) })],
-    body: boardBody({ emblem: sport, title: matchup, sub: `${t('futureSettles')} ${t(`futureSettle_${market}`)}`, entries: bets.map((b, i) => entryRow(b, i, picture(b))) })
+    body: boardBody({ emblem: sport, title: matchup, sub: `${t('futureSettles')} ${t(`futureSettle_${futureKey(bets[0].futureMarket)}`)}`, entries: bets.map((b, i) => (b.futureTeam.won ? entryRow(b, i, picture(b), teamName(b.futureTeam.side), t('seriesScore', b.futureTeam)) : entryRow(b, i, picture(b)))) })
   };
 }
 
@@ -2415,7 +2426,7 @@ function betKeys(bet) {
 // The logo of the team a pick is on (saved with the pick, so history shows
 // it whatever the board holds later), or null for picks on no one team.
 function legLogo(bet) {
-  if (bet.kind === 'future') return teamLogo(bet.sport, bet.teamEn) ?? findTeamLogo(futureTeamLeagues(bet.sport), bet.teamEn);
+  if (bet.kind === 'future') return teamLogo(bet.sport, bet.clubEn ?? bet.teamEn) ?? findTeamLogo(futureTeamLeagues(bet.sport), bet.clubEn ?? bet.teamEn);
   const side = bet.kind === 'teamtotal' ? bet.team : bet.settle?.team ?? (['away', 'home'].includes(bet.side) ? bet.side : null);
   return side && bet.game ? teamLogo(bet.sport, bet.game[side].en) : null;
 }

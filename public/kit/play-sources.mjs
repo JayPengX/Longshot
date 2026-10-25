@@ -18,11 +18,14 @@ import { SOLD_DAYS, ASIA_URL, asiaMonth, asiaMonthOf, ESPN_SITE } from './catalo
 import { parseAsiaSchedule } from './play-schedules.mjs';
 import { offersUrl, parseOffers } from './play-offers.mjs';
 import { loadGamePlayers } from './play-players.mjs';
+import { mlbPostseasonUrl } from './postseason.mjs';
+import { SERIES_BASE, isSeriesKey, seriesRound, seriesMarkets } from './play-series.mjs';
+import { boardBets } from './play-bets.mjs';
 
 export const PROXY_URL = 'https://longshot.pengzjay.workers.dev';
 // Reading results and the parsers both the phone and the Worker's settling
 // use: the shared kit's (settle.mjs), one copy.
-import { yyyymmdd, parseJsonArray, futureTeamName, sameGame, sidesMatch, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, readOutcomes, F1_FLAG_KINDS } from './settle.mjs';
+import { yyyymmdd, parseJsonArray, futureTeamName, sameGame, sidesMatch, sideScore, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, readOutcomes, F1_FLAG_KINDS } from './settle.mjs';
 export { futureTeamName, parseOpenF1Flags, parseEspnResults, parseEspnRace, parseEspnPole, parseFutureResult, teamCorners, asiaResult, kambiUnresolvable, kambiInPlay, F1_FLAG_KINDS };
 const ESPN = ESPN_SITE;
 const GAMMA = 'https://gamma-api.polymarket.com';
@@ -112,8 +115,15 @@ export const FUTURES = [
 // More championships, found with Polymarket's search after the page opens
 // (they aren't under the tags the page already reads).
 export const EXTRA_FUTURES = [
+  // The conference champions 台灣運彩 sells beside the league's (美國職籃西區冠軍, 國家冰球聯盟東區冠軍).
+  { key: 'nbaw', sport: 'nba', query: 'NBA Western Conference Champion', title: /^NBA: \d{4} Western Conference Champion\s*$/i },
+  { key: 'nbae', sport: 'nba', query: 'NBA Eastern Conference Champion', title: /^NBA: \d{4} Eastern Conference Champion\s*$/i },
   { key: 'nfl', sport: 'nfl', query: 'Pro Football Champion', title: /^Pro Football: \d{4} Champion$/i },
+  { key: 'afc', sport: 'nfl', query: 'Pro Football AFC Champion', title: /^Pro Football: \d{4} AFC Champion\s*$/i },
+  { key: 'nfc', sport: 'nfl', query: 'Pro Football NFC Champion', title: /^Pro Football: \d{4} NFC Champion\s*$/i },
   { key: 'nhl', sport: 'nhl', query: 'NHL Champion', title: /^NHL: \d{4} Champion$/i },
+  { key: 'nhlw', sport: 'nhl', query: 'NHL Western Conference Champion', title: /^NHL: \d{4} Western Conference Champion\s*$/i },
+  { key: 'nhle', sport: 'nhl', query: 'NHL Eastern Conference Champion', title: /^NHL: \d{4} Eastern Conference Champion\s*$/i },
   { key: 'wnba', sport: 'wnba', query: 'WNBA Champion', title: /^WNBA: \d{4} Champion$/i },
   { key: 'ucl', sport: 'ucl', query: 'UEFA Champions League Champion', title: /^UEFA Champions League: \d{4} Champion$/i },
   { key: 'uel', sport: 'uel', query: 'UEFA Europa League Champion', title: /^UEFA Europa League: \d{4} Champion$/i },
@@ -798,7 +808,7 @@ export async function pruneFutures(futures, now = new Date(), f1Season = null) {
     } else if (TITLE_BY_TABLE.has(sport)) verdict = k.leagueTitleOut(await table(sport));
     else if (PLAYOFF_BY_TABLE.has(sport)) {
       const clinch = k.clinchedOut(await table(sport));
-      const post = sport === 'mlb' ? await getJson(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&gameType=F,D,L,W&season=${now.getUTCFullYear()}`).catch(() => null) : null;
+      const post = sport === 'mlb' ? await getJson(mlbPostseasonUrl(now.getUTCFullYear())).catch(() => null) : null;
       verdict = k.joinOut(clinch, post ? k.mlbSeriesOut(post) : null);
     }
     known.set(market.key, verdict);
@@ -806,6 +816,27 @@ export async function pruneFutures(futures, now = new Date(), f1Season = null) {
   };
   const pruned = await Promise.all(futures.map(async m => k.withoutOut(m, await of(m).catch(() => null))));
   return pruned.filter(Boolean);
+}
+
+// The MLB play-off series' exact results (play-series.mjs), from MLB's
+// postseason list (the read pruneFutures made), priced by the championships
+// or the board's MLB games (their moneylines). Only in October: the list is
+// empty the rest of the year (the wild card starts at September's end).
+const POSTSEASON_MONTHS = [8, 9, 10];
+async function withSeries(futures, now, games = []) {
+  if (!POSTSEASON_MONTHS.includes(now.getUTCMonth())) return futures;
+  const schedule = await getJson(mlbPostseasonUrl(now.getUTCFullYear())).catch(() => null);
+  if (!schedule) return futures;
+  const mlb = (games || []).filter(g => g.sport === 'mlb');
+  const ml = mlb.length ? boardBets({ games: mlb, f1: null, loadedAt: now.toISOString() }, { now }).filter(b => b.kind === 'ml' && b.fairChance > 0) : [];
+  // a's chance in its next game against b, from that game's fair moneyline.
+  const nextGame = (a, b) => {
+    const bet = ml
+      .filter(x => sideScore(x.game.away.en, a) >= 2 && sideScore(x.game.home.en, b) >= 2 ? x.side === 'away' : sideScore(x.game.home.en, a) >= 2 && sideScore(x.game.away.en, b) >= 2 && x.side === 'home')
+      .sort((x, y) => String(x.start).localeCompare(String(y.start)))[0];
+    return bet?.fairChance ?? null;
+  };
+  return [...futures, ...seriesMarkets(schedule, futures, now, { zh: en => teamZh('mlb', en), nextGame })];
 }
 
 // ---- Merge --------------------------------------------------------------------
@@ -875,11 +906,12 @@ export async function loadOdds(now = new Date(), onProgress) {
   if (results.every(r => r.status === 'rejected')) throw results[0].reason;
   const [mlbDk, mlbPm, eplDk, eplPm, f1, nbaPm, f1Espn, f1Kambi] = results.map(r => (r.status === 'fulfilled' ? r.value : []));
   const race = await f1Race(f1, f1Espn, f1Kambi, now);
+  const games = await onSale(mergeGames([...mlbDk, ...eplDk], [...parsePolymarketMlb(mlbPm, now), ...parsePolymarketEpl(eplPm, now)], { scheduled: new Set([results[0].status === 'fulfilled' && 'mlb', results[2].status === 'fulfilled' && 'epl'].filter(Boolean)) }), now);
   return {
     loadedAt: now.toISOString(),
-    games: await onSale(mergeGames([...mlbDk, ...eplDk], [...parsePolymarketMlb(mlbPm, now), ...parsePolymarketEpl(eplPm, now)], { scheduled: new Set([results[0].status === 'fulfilled' && 'mlb', results[2].status === 'fulfilled' && 'epl'].filter(Boolean)) }), now),
+    games,
     f1: race,
-    futures: await pruneFutures([...parseFutures(mlbPm, 'mlb'), ...parseFutures(eplPm, 'epl'), ...(nbaInSeason(now) ? parseFutures(nbaPm, 'nba') : [])], now, f1Espn)
+    futures: await withSeries(await pruneFutures([...parseFutures(mlbPm, 'mlb'), ...parseFutures(eplPm, 'epl'), ...(nbaInSeason(now) ? parseFutures(nbaPm, 'nba') : [])], now, f1Espn), now, games)
   };
 }
 
@@ -1212,6 +1244,11 @@ export async function loadLeague(key, now = new Date()) {
 // One championship market (a pick's `market`), as loadOdds and
 // loadExtraFutures read it; null when it isn't on sale.
 export async function loadFuture(key, now = new Date()) {
+  if (isSeriesKey(key)) {
+    const baseKey = SERIES_BASE[seriesRound(key)];
+    const [base, games] = await Promise.all([baseKey ? loadFuture(baseKey, now).catch(() => null) : null, loadLeague('mlb', now).catch(() => [])]);
+    return (await withSeries(base ? [base] : [], now, games)).find(f => f.key === key) ?? null;
+  }
   const tagged = FUTURES.find(f => f.key === key);
   if (tagged) {
     if (tagged.sport === 'nba' && !nbaInSeason(now)) return null;

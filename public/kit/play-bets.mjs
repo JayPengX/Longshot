@@ -80,7 +80,7 @@ export function boardBets(data, { optionsOf = gameOptions, name = (game, o) => o
 export function futureBets(futures) {
   return withHouseRules(
     (futures || []).flatMap(market => {
-      const odds = estimateFuturesOdds(market.teams.map(team => team.fair), FUTURES_OVERROUND[market.key] ?? FUTURES_OVERROUND[market.sport] ?? FUTURES_OVERROUND.other);
+      const odds = estimateFuturesOdds(market.teams.map(team => team.fair), FUTURES_OVERROUND[market.kind] ?? FUTURES_OVERROUND[market.key] ?? FUTURES_OVERROUND[market.sport] ?? FUTURES_OVERROUND.other);
       return market.teams.map((team, i) => ({
         id: `fut|${market.key}|${team.name.en}`,
         // One sport's championships are one game: a pennant and the World
@@ -93,10 +93,12 @@ export function futureBets(futures) {
         futureMarket: market,
         futureTeam: team,
         teamEn: team.name.en,
+        // The club a pick is on, for its logo (a series result's: 'Milwaukee Brewers 4-1' is the Brewers').
+        clubEn: team.side?.en ?? team.name.en,
         eventSlug: market.slug,
         fairChance: team.fair,
         fairMargin: null,
-        errKey: ODDS_ERROR[`future_${market.key}`] ? (team.fair < 0.004 && market.sport !== 'nba' ? 'futureLongshot' : `future_${market.key}`) : 'futureOther',
+        errKey: market.kind === 'series' ? 'futureSeries' : ODDS_ERROR[`future_${market.key}`] ? (team.fair < 0.004 && market.sport !== 'nba' ? 'futureLongshot' : `future_${market.key}`) : 'futureOther',
         estOdds: odds[i]
       }));
     })

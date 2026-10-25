@@ -107,7 +107,12 @@ export function estimateLotteryOdds(fairChance, k) {
 // and lean on longshots: each team's implied chance is fair^FUTURES_EXPONENT,
 // scaled so the market adds up to that total. MLB markets fit within ~5-15%.
 export const FUTURES_EXPONENT = 0.7;
-export const FUTURES_OVERROUND = { mlb: 2.0, epl: 1.6, nba: 2.0, other: 1.8 };
+// The owner's 運彩 screenshots of 2026-10-26 (implied chances added up):
+// 美國職籃西區冠軍 1.75 (all 15 clubs), 美國職籃總冠軍 about 1.75 (its top
+// 15 already 1.6), 國家冰球聯盟西區冠軍 about 1.9 (its top 10 already 1.81),
+// 國家冰球聯盟總冠軍 about 2.0, and a World Series' 系列賽正確結果 (6
+// results) 1.39.
+export const FUTURES_OVERROUND = { mlb: 2.0, epl: 1.6, nba: 1.75, nbaw: 1.75, nbae: 1.75, nhl: 2.0, nhlw: 1.9, nhle: 1.9, series: 1.39, other: 1.8 };
 // Below 0.4% Polymarket's 0.1-cent price step can't tell teams apart. The
 // lottery priced 0.2-0.4% clubs at 133 and those below at 159-500.
 export const FUTURES_LONGSHOT_STEPS = [
@@ -178,6 +183,7 @@ export const ODDS_ERROR = {
   future_ws: { rel: 0.15, checked: true },
   future_epl: { rel: 0.16, checked: true },
   futureLongshot: { rel: 0.5, checked: true }, // 133-500 from one rough step
+  futureSeries: { rel: 0.12, checked: true }, // a World Series' 6 results, one snapshot (2026-10-26)
   future_nba: { rel: 0.15, checked: false }, // not on the lottery
   // The other championships: never compared with the lottery, at a cut between its measured ones.
   futureOther: { rel: 0.2, checked: false }

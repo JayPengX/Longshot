@@ -43,6 +43,7 @@
 import { storeReady, parseDoc, changeDoc } from './doc-store.js';
 import { readOutcomes, legResult, applyResults, finalOf, familyOf, LEAGUES, voidAt, NOT_STARTED_MS } from '#kit/settle.mjs';
 import { SHORTEST_MIN } from '#kit/sports-espn.mjs';
+import { isSeriesKey } from '#kit/play-series.mjs';
 import { updateWallet, WALLET_COLLECTION, parseWallet, poolBalance } from './pass.js';
 import { checkSlip, useReads } from './price.js';
 import { handleLotto } from './lotto.js';
@@ -61,8 +62,10 @@ const HOUR = 60 * MIN;
 const AGAIN = 2 * MIN;
 const LATE_AGAIN = 15 * MIN;
 const LATE_AFTER = 6 * HOUR;
-// A championship (future) is looked at every 6 hours.
+// A championship (future) is looked at every 6 hours; a play-off series'
+// exact result (a game every day or two) every 20 minutes.
 const FUTURE_AGAIN = 6 * HOUR;
+const SERIES_AGAIN = 20 * MIN;
 // How long a live pick waits before it's priced again and placed.
 export const LIVE_DELAY_MS = 5_000;
 // A run (on the $5 plan 10,000 fetches and 30 s of CPU): this many slips
@@ -109,7 +112,7 @@ export function nextLook(slip, now, again = AGAIN) {
     if (leg.result) continue;
     const start = Date.parse(leg.start);
     if (leg.kind === 'future' || !Number.isFinite(start)) {
-      next = Math.min(next, now + FUTURE_AGAIN);
+      next = Math.min(next, now + (isSeriesKey(leg.market) ? SERIES_AGAIN : FUTURE_AGAIN));
       continue;
     }
     const end = start + (SHORTEST_MIN[familyOf(leg.sport)] ?? 100) * MIN;

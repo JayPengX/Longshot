@@ -235,6 +235,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .gs-boardhead { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .gs-boardhead > div { min-width: 0; }
 .gs-btitle { font: 700 20px/1.25 var(--q-font); }
+.gs-btitle > span { white-space: nowrap; }
 .gs-bsub, .gs-lead { color: var(--q-label-2); font: var(--q-t-footnote); }
 .pl-entries { gap: 0; }
 .pl-entry { position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; }
