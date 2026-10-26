@@ -70,29 +70,33 @@ export function withRules(o) {
   return Object.assign(o, { estOdds }, houseRule(o.kind, estOdds, { event: event ?? guess }), guess ? { minLegsEst: true } : {});
 }
 // 運彩's usual 限關 where a game's own isn't known: an estimate, read off
-// 運彩's own boards (2026-10-20 and 2026-10-26, 10:47). The badge by a game's
-// number is the fewest games a parlay holding it may have, the same for every
-// market of the game, and a ticket's is its largest (minLegsProblem; 1 sells
-// as a single). What decided it on those boards:
-// - a second division (英冠): 3, whatever the price or the day;
+// 運彩's own boards (2026-10-20, and every game on it 2026-10-26). The badge
+// by a game's number is the fewest games a parlay holding it may have, the
+// same for every market of the game, and a ticket's is its largest
+// (minLegsProblem; 1 sells as a single). What decided it on those boards:
+// - the league first: each has its own (英冠 3; 義乙, 西乙, 土超, 葡超, 美職足
+//   2; the minor ones Longshot doesn't sell, Indonesia's, Bulgaria's,
+//   Poland's, 3), whatever the day: a soccer game is no single on its day;
 // - a play-off game (MLB's World Series, 中職's 台灣大賽): 1;
-// - a top European league (義甲 8 of 8, 西甲, 法甲): its favourite's price,
-//   2 under SHORT_FAVOURITE (1.55, 1.50, 1.26, 1.25, 1.24), else 1 (1.60 and
-//   up), however many days away;
-// - everything else (NBA, NHL, MLS, the J-League…): 2 until its Taipei day
-//   comes, then 1. (Each board had a game or two 運彩 opened as a single by
-//   hand: NBA's Warriors at Nuggets; no rule tells those.)
-// Championships, F1 and games in play are singles. null: no minimum.
+// - a top European league (義甲 16 of 16 over two boards, 西甲, 法甲): its
+//   favourite's price, 2 under SHORT_FAVOURITE (1.55 and shorter), else 1
+//   (1.60 and up), however many days away;
+// - other sports (NBA, NHL): 2 until its Taipei day comes, then 1.
+// (A few games 運彩 opens as singles by hand, no rule tells them: NBA's
+// Warriors at Nuggets, two of nine MLS games.) Championships, F1 and games
+// in play are singles. null: no minimum.
 export const SHORT_FAVOURITE = 1.58;
-const SECOND_DIVISION = new Set(['championship']);
+const LEAGUE_MIN = { championship: 3 };
 const BY_FAVOURITE = new Set(['epl', 'laliga', 'seriea', 'bundesliga', 'ligue1']);
 const DAY_MS = 86_400_000;
 const TW_MS = 8 * 3_600_000;
 export function estimatedMinLegs(o, now = Date.now()) {
   if (OUTRIGHT.has(o?.kind) || /^live\|/.test(String(o?.id || '')) || o?.live) return null;
-  if (SECOND_DIVISION.has(o?.sport ?? o?.game?.sport)) return 3;
+  const sport = o?.sport ?? o?.game?.sport;
+  if (LEAGUE_MIN[sport]) return LEAGUE_MIN[sport];
   if (o?.game?.postseason) return null;
-  if (BY_FAVOURITE.has(o?.sport ?? o?.game?.sport) && o?.favOdds > 0) return o.favOdds < SHORT_FAVOURITE ? 2 : null;
+  if (BY_FAVOURITE.has(sport) && o?.favOdds > 0) return o.favOdds < SHORT_FAVOURITE ? 2 : null;
+  if (familyOf(sport) === 'soccer') return 2;
   const start = Date.parse(o?.start ?? o?.game?.startUtc ?? '');
   // On a later Taipei day: from the next Taipei midnight on (arithmetic, no
   // date text: a board asks it of every one of its tens of thousands of options).

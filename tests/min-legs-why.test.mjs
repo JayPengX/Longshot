@@ -62,3 +62,17 @@ test("a play-off game read off ESPN keeps its flag through the merge, so its win
   assert.equal(rules.estimatedMinLegs({ kind: 'ml', sport: 'mlb', start: g.startUtc, game: g }), null);
   assert.equal(rules.estimatedMinLegs({ kind: 'ml', sport: 'mlb', start: g.startUtc, game: { ...g, postseason: undefined } }), 2);
 });
+
+// Every game on 運彩 at 11:05 Taipei 2026-10-26 (the owner's screenshots), the leagues Longshot sells.
+test("the second board agrees: 義甲 by its favourite on other days, MLS 2, and a soccer game is no single on its own day", () => {
+  const now = Date.parse('2026-10-26T03:05:00Z');
+  const est = o => rules.estimatedMinLegs({ kind: 'ml', ...o }, now) ?? 1;
+  const serieA = [['2026-10-27T17:30:00Z', 1.95, 1], ['2026-10-27T19:45:00Z', 1.6, 1], ['2026-10-27T19:45:00Z', 1.26, 2], ['2026-10-28T17:30:00Z', 1.24, 2], ['2026-10-28T17:30:00Z', 1.5, 2], ['2026-10-28T17:30:00Z', 2.2, 1], ['2026-10-28T19:45:00Z', 1.65, 1], ['2026-10-28T19:45:00Z', 1.55, 2]];
+  for (const [start, fav, n] of serieA) assert.equal(est({ sport: 'seriea', favOdds: fav, start }), n, `義甲 ${fav}`);
+  assert.equal(est({ sport: 'ligue1', favOdds: 1.26, start: '2026-10-26T19:30:00Z' }), 2);
+  for (const fav of [1.4, 1.8, 1.45, 1.75, 1.65, 1.5]) assert.equal(est({ sport: 'mls', favOdds: fav, start: '2026-10-28T23:30:00Z' }), 2);
+  // On its own day (Taipei) a soccer game keeps its 限關 (an MLS game tonight: 2, not a single).
+  assert.equal(est({ sport: 'mls', favOdds: 1.7, start: '2026-10-26T12:00:00Z' }), 2);
+  assert.equal(est({ sport: 'championship', favOdds: 2.1, start: '2026-10-26T12:00:00Z' }), 3);
+  assert.equal(est({ sport: 'nhl', start: '2026-10-26T12:00:00Z' }), 1);
+});
