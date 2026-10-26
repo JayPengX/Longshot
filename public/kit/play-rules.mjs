@@ -85,7 +85,7 @@ export function withRules(o) {
 // (A few games 運彩 opens as singles by hand, no rule tells them: NBA's
 // Warriors at Nuggets, two of nine MLS games.) Championships, F1 and games
 // in play are singles. null: no minimum.
-export const SHORT_FAVOURITE = 1.58;
+export const SHORT_FAVOURITE = 1.6;
 const LEAGUE_MIN = { championship: 3 };
 const BY_FAVOURITE = new Set(['epl', 'laliga', 'seriea', 'bundesliga', 'ligue1']);
 const DAY_MS = 86_400_000;
