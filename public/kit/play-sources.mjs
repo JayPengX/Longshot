@@ -878,6 +878,8 @@ export function mergeGames(dkGames, pmGames, { scheduled = new Set() } = {}) {
       // Settled from a final score alone (schedules.mjs): no markets on parts of it.
       scoreOnly: dk?.scoreOnly || undefined,
       ...(base.timeTbd ? { timeTbd: true } : {}),
+      // A play-off game: 運彩 sells it as a single (play-rules estimatedMinLegs).
+      ...(dk?.postseason ? { postseason: true } : {}),
       ...(dk?.teamIds?.home && dk?.teamIds?.away ? { espnTeams: dk.teamIds } : {})
     }))
     .filter(g => g.draftKings || g.polymarket || g.kambi || g.house)

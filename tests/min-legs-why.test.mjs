@@ -53,3 +53,12 @@ test("運彩's usual 限關 is read off its boards: second division 3, play-offs
   assert.equal(est({ sport: 'nba', start: '2026-10-26T09:00:00Z' }), 1);
   assert.equal(est({ id: 'live|x', sport: 'mls', start: '2026-10-26T01:00:00Z' }), 1);
 });
+
+test("a play-off game read off ESPN keeps its flag through the merge, so its win bets sell as singles", async () => {
+  const { mergeGames } = await import('../public/kit/play-sources.mjs');
+  const espn = { sport: 'mlb', startUtc: '2099-10-27T00:00:00.000Z', away: 'Milwaukee Brewers', home: 'Tampa Bay Rays', outcomes: { away: 0.45, home: 0.55 }, total: null, spread: null, postseason: true };
+  const [g] = mergeGames([espn], []);
+  assert.equal(g.postseason, true);
+  assert.equal(rules.estimatedMinLegs({ kind: 'ml', sport: 'mlb', start: g.startUtc, game: g }), null);
+  assert.equal(rules.estimatedMinLegs({ kind: 'ml', sport: 'mlb', start: g.startUtc, game: { ...g, postseason: undefined } }), 2);
+});
