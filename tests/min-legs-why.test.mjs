@@ -38,3 +38,18 @@ test('every minimum message is in both languages and says 關 in Chinese', () =>
   }
   assert.doesNotMatch(STRINGS.zh.minLegsNoteEvent, /賠率/);
 });
+
+// 運彩's boards on 2026-10-26 at 10:47 Taipei (the owner's screenshots): each game's badge.
+test("運彩's usual 限關 is read off its boards: second division 3, play-offs 1, top leagues by the favourite, the rest by the day", () => {
+  const now = Date.parse('2026-10-26T02:47:00Z');
+  const est = o => rules.estimatedMinLegs({ kind: 'ml', ...o }, now) ?? 1;
+  const serieA = [[1.95, 1], [1.6, 1], [1.25, 2], [1.5, 2], [1.24, 2], [2.2, 1], [1.65, 1], [1.55, 2]];
+  for (const [fav, n] of serieA) assert.equal(est({ sport: 'seriea', favOdds: fav, start: '2026-10-28T19:30:00Z' }), n, `義甲 ${fav}`);
+  assert.equal(est({ sport: 'laliga', favOdds: 1.75, start: '2026-10-26T20:00:00Z' }), 1);
+  assert.equal(est({ sport: 'ligue1', favOdds: 1.26, start: '2026-10-26T19:30:00Z' }), 2);
+  assert.equal(est({ sport: 'championship', favOdds: 1.85, start: '2026-10-26T20:00:00Z' }), 3);
+  assert.equal(est({ sport: 'mlb', start: '2026-10-27T00:00:00Z', game: { postseason: true } }), 1);
+  assert.equal(est({ sport: 'nba', start: '2026-10-26T23:00:00Z' }), 2);
+  assert.equal(est({ sport: 'nba', start: '2026-10-26T09:00:00Z' }), 1);
+  assert.equal(est({ id: 'live|x', sport: 'mls', start: '2026-10-26T01:00:00Z' }), 1);
+});

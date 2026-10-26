@@ -332,6 +332,10 @@ export function gameOptions(game) {
     estOdds: estimateLotteryOdds(chances[side], mlCut),
     ...(hockey ? { settle: { threeWay: true } } : {})
   }));
+  // The favourite's price, which every market of the game carries: 運彩
+  // limits a top soccer league's game by it (play-rules estimatedMinLegs).
+  base.favOdds = Math.min(...out.map(o => o.estOdds));
+  for (const o of out) o.favOdds = base.favOdds;
   const family = familyOf(game.sport);
   if (family === 'baseball' || family === 'soccer') out.push(...lineOptions(game, base, blend.probs));
   out.push(...sideOptions(game, base, blend.probs));

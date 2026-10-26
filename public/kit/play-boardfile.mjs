@@ -37,7 +37,7 @@ export const boardUsable = (file, now = Date.now()) => file?.v === BOARD_V && Ar
 // The kinds named from the pick alone (Play's `named`: no market object).
 const NAMEABLE = new Set(['ml', 'total', 'runline', 'teamtotal']);
 // What a pick on the file leaves to its game or to the phone.
-const LEFT = new Set(['id', 'gameId', 'sport', 'start', 'game', 'cut', 'fairMargin', 'errKey', 'typicalMargin', 'm', 'pick']);
+const LEFT = new Set(['id', 'gameId', 'sport', 'start', 'game', 'cut', 'fairMargin', 'errKey', 'typicalMargin', 'm', 'pick', 'favOdds']);
 const round4 = x => Math.round(x * 1e4) / 1e4;
 
 // The picks of a game the home keeps: every winner, the posted handicaps (what

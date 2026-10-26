@@ -273,7 +273,7 @@ export function parseEspnScoreboard(data, sport, post = null) {
     // sold until then, its time shown as 待定.
     const timeTbd = (mlb ? mlb.timeTbd : comp.timeValid === false) || undefined;
     const start = mlb ? (timeTbd ? Date.parse(`${mlb.day}T16:00:00Z`) : Date.parse(mlb.start)) : timeTbd && ET_MIDNIGHT.test(event.date) ? Date.parse(event.date) + 12 * 3_600_000 : Date.parse(event.date);
-    games.push({ sport, startUtc: new Date(start).toISOString(), away: teams.away, home: teams.home, teamIds, neutral: Boolean(comp.neutralSite), preseason: event.season?.type === 1, outcomes, total, spread, ...(timeTbd ? { timeTbd } : {}) });
+    games.push({ sport, startUtc: new Date(start).toISOString(), away: teams.away, home: teams.home, teamIds, neutral: Boolean(comp.neutralSite), preseason: event.season?.type === 1, ...(event.season?.type === 3 ? { postseason: true } : {}), outcomes, total, spread, ...(timeTbd ? { timeTbd } : {}) });
   }
   return games;
 }
