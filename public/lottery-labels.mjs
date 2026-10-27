@@ -60,7 +60,7 @@ export const digitRule = (x, lang = 'zh') => (lang === 'en' ? `last ${x.hits} di
 // 今彩539, up to 10 on 樂合彩, 50 on 3星彩, 4星彩 and BINGO.
 export const gameLimits = gameId => kit.limits(gameId);
 // The proxy sells at most 50 selections a sale and 120 tickets with 多期
-// counted (Shared-Proxy lotto.js MAX_TICKETS, MAX_SOLD).
+// counted (Orbit-Core lotto.js MAX_TICKETS, MAX_SOLD).
 export const MAX_LINES = 50;
 export const MAX_SOLD = 120;
 // The most draws `lines` selections can be bought for in one sale.

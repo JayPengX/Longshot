@@ -116,7 +116,7 @@ export const SOLD_DAYS = 14;
 
 // ---- Asian baseball (NPB, KBO, CPBL) -------------------------------------------------
 //
-// The sports proxy gathers these from the leagues' own sites (Shared-Proxy's
+// The sports proxy gathers these from the leagues' own sites (Orbit-Core's
 // asia-baseball.js) and answers as if from this host, by month: { league,
 // month, games: [{ id, start, home: { en, zh }, away, homeScore, awayScore,
 // state: 'pre' | 'in' | 'post' | 'void', venue }] }. `getJson(url)` is the

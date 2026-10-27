@@ -567,7 +567,7 @@ export function mergeTickets(a = [], b = []) {
 // "1 in 8.5", "1 in 22,085,448".
 export const oneIn = p => (p > 0 ? (1 / p < 100 ? Math.round((1 / p) * 10) / 10 : Math.round(1 / p)) : null);
 
-// Tickets sold by the Worker (Shared-Proxy lotto.js: its draw, its cost) put
+// Tickets sold by the Worker (Orbit-Core lotto.js: its draw, its cost) put
 // on the account as buyTicket would: newest first, each with its
 // 'lotto-<id>' cost; a ticket already there is left as it is.
 export function addTickets(account, tickets, now = new Date()) {

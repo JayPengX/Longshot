@@ -3,7 +3,7 @@
 // the errors in both languages, and a request's body read safely.
 
 // The app's page: GitHub Pages, and the family's own domain (jaypengx.com/Longshot/,
-// Shared-Proxy's site.js reading Pages through).
+// Orbit-Core's site.js reading Pages through).
 export const ALLOWED_ORIGINS = ['https://jaypengx.github.io', 'https://jaypengx.com'];
 // A page served from this computer (the preview tool; over --h2 an https
 // one, as Pages serves a phone): the dev doors let it in (sports.js, worker.js).

@@ -1,7 +1,7 @@
 // Longshot's bets with their prices: everything its board sells, priced,
 // without names. One copy for Play (app.js names each bet: chip, label,
 // shortLabel, matchup) and the Worker, which prices a placed bet again with
-// it and refuses one sold better than this (Shared-Proxy settle.js).
+// it and refuses one sold better than this (Orbit-Core settle.js).
 import { gameOptions, offerOptions } from './play-board.mjs';
 import { estimateF1Odds, f1Phase, estimateFuturesOdds, FUTURES_OVERROUND, ODDS_ERROR, median } from './play-odds.mjs';
 import { withRules, houseCut } from './play-rules.mjs';

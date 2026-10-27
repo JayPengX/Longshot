@@ -190,7 +190,7 @@ export function parseKambiLive(data) {
 // regulation innings or quarters are played, the score isn't level (or
 // baseball's extra innings have run out) and it hasn't changed for a while.
 
-// Shared-Proxy's /kambi: it keeps the last live data of the matches bets are
+// Orbit-Core's /kambi: it keeps the last live data of the matches bets are
 // on after Kambi drops them (a few hours after the end). Sportsbook tells it
 // which matches to watch, and reads its copy when Kambi's is gone.
 export const KAMBI_WATCH_URL = 'https://longshot.pengzjay.workers.dev/kambi';

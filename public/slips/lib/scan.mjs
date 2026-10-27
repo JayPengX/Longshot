@@ -1,6 +1,6 @@
 // A ticket read from its photo: the picture shrunk on the phone, read by
 // Gemini through the proxy's /slip-scan door (a fixed prompt, a few a day an
-// address: Shared-Proxy/slip.js), then each pick matched to a real game
+// address: Orbit-Core/slip.js), then each pick matched to a real game
 // here. Nothing is saved until the person checks the ticket and saves it.
 import { LEAGUES, PROXY, gamesOn, twDay, shiftDay } from './feed.mjs';
 import { normalizeTeamName } from '../../kit/logos.mjs';

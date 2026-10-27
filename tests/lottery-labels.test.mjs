@@ -63,7 +63,7 @@ test('倍數 and 多期 as each game takes them, never past what the kit sells',
     // One past it is refused.
     if (multiple === 1) assert.equal(L.buyTicket(newAccount(at), { id: 'y', game: id, sel, multiple: 2 }, at, { extra: 1e9 }).error, 'multiple');
   }
-  // One sale is 120 tickets at most (Shared-Proxy lotto.js MAX_SOLD).
+  // One sale is 120 tickets at most (Orbit-Core lotto.js MAX_SOLD).
   assert.ok(periodsFor('daily539', 10) * 10 <= MAX_SOLD);
   assert.equal(periodsFor('daily539', 200), 1);
 });

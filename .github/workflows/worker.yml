@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 jobs:
-  # Until the repo has CLOUDFLARE_API_TOKEN (Shared-Proxy's longshot-bridge.yml
+  # Until the repo has CLOUDFLARE_API_TOKEN (Orbit-Core's longshot-bridge.yml
   # deploys meanwhile) the run skips, rather than failing on every push.
   token:
     runs-on: ubuntu-latest

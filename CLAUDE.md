@@ -5,4 +5,4 @@ MAP.md is this repo's map (README.md is the short public front page).
 
 - `npm test`, then `git push origin HEAD:main`.
 - Prices are the phone's, but the Worker checks every bet and is the only one paying out.
-- Longshot is on its own: never import from, link to or depend on Shared-Proxy or the Quadra/Orbit apps.
+- Longshot is on its own: never import from, link to or depend on Orbit-Core or the Quadra/Orbit apps.

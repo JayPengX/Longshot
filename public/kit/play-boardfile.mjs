@@ -1,5 +1,5 @@
 // Longshot's home board as one file (/data/play/board.json): what the first
-// screen draws, built by the proxy on its cron (Shared-Proxy builders/play.js)
+// screen draws, built by the proxy on its cron (Orbit-Core builders/play.js)
 // with the same pricing the phone runs (play-sources, play-board), so a price
 // on the file is the price the phone would have worked out itself. One copy
 // of its shape for both ends: the Worker packs it, Play unpacks it.

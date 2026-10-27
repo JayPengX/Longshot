@@ -1,4 +1,4 @@
-// Slips placed and settled by the Worker (Shared-Proxy settle.js, /play):
+// Slips placed and settled by the Worker (Orbit-Core settle.js, /play):
 // each slip is placed there, the Worker reads each game once when it should be over,
 // pays the pass's wallet (the ledger's own ids, `payout-<slip>`: never twice)
 // and keeps each slip's results here for Play to apply. (No cash out since
@@ -47,7 +47,7 @@ export const slipSpec = slip => ({
 // Placed: { placed: [id…], wallet } or { refused: { problem, moved: [{ id, odds }] } }.
 export const placeSlips = slips => call('POST', { op: 'place', slips: slips.map(slipSpec) }, PLACE_WAIT_MS);
 
-// The lottery (Shared-Proxy lotto.js): tickets sold { tickets, wallet }, a
+// The lottery (Orbit-Core lotto.js): tickets sold { tickets, wallet }, a
 // scratch card bought { ticket, wallet } (its prize drawn there), scratched
 // { prize, wallet }; { refused: { problem } } when not.
 export const buyTickets = tickets => call('POST', { op: 'tickets', tickets });

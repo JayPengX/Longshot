@@ -2632,7 +2632,7 @@ function applyRecords(records) {
   ackSettled(Object.keys(records).filter(id => records[id]?.settled && account.slips.find(s => s.id === id)?.status === 'settled')).catch(() => {});
 }
 // Every slip is placed through the Worker, which watches its Kambi matches
-// (Shared-Proxy settle.js watchSlips).
+// (Orbit-Core settle.js watchSlips).
 // A check runs unseen: only a tap on 查詢結果 shows it working (`shown`), and
 // the screens are drawn again only when a score, a result or a pick's state changed.
 // (Each slip asked once a minute at most: a parlay's other games still on.)

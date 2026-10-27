@@ -11,7 +11,7 @@ import { marketOf, marketOfPickcenter, devig } from './model.mjs';
 import { parseF1Season, parseF1Standings, f1Championship, f1Live, isChamp, sameDriver } from './f1.mjs';
 import { isTeamChamp, champRead } from './champ.mjs';
 
-// The leagues the lottery sells that a slip can follow (Shared-Proxy/kit/
+// The leagues the lottery sells that a slip can follow (Orbit-Core/kit/
 // catalog.mjs's, those with live scores to read).
 const espn = (sport, path, zh, en = zh) => ({ sport, data: 'espn', path, zh, en });
 const kambi = (sport, path, zh, en) => ({ sport, data: 'kambi', kambi: path, zh, en });
