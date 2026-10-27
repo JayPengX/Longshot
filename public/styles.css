@@ -310,9 +310,11 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 /* (A game's sheet ends on the slip's row, as a kit sheet's foot does.) */
 .game-sheet[open]:has(> #game-sheet-bar:not([hidden])) { display: flex; flex-direction: column; }
 .game-sheet > #game-sheet-body { flex: none; padding-bottom: 16px; }
-/* (Docked, the slip's row is slimmer than the old floating pill.) */
-:is(.q-dock #slip-bar, .slip-bar.in-sheet) .slip-bar-count { width: 32px; height: 32px; font-size: 15px; }
-:is(.q-dock #slip-bar, .slip-bar.in-sheet) .slip-bar-go { padding: 9px 14px; }
+/* (In a sheet, the slip's row is slimmer than the floating pill.) */
+.slip-bar.in-sheet .slip-bar-count { width: 32px; height: 32px; font-size: 15px; }
+.slip-bar.in-sheet .slip-bar-go { padding: 9px 14px; }
+/* (A toast or the network note waits above the slip pill, not over it.) */
+html:has(#slip-bar:not([hidden])) :is(.q-toast, .q-net) { bottom: calc(var(--q-nav) + 76px); }
 
 /* ==== 8 紀錄 ==== */
 .pl-hist-seg { margin-bottom: 16px; }
