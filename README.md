@@ -16,7 +16,15 @@
 A sportsbook priced and settled like a real one, Taiwan Lottery's games, and the real 台灣運彩 tickets you bought, followed live. Everything you bet here is play money: the house never loses on its own prices, and the numbers show it.
 
 <p align="center">
-  <img src="docs/screenshots/home.webp" width="260" alt="Home">
+  <img src="docs/screenshots/longshot-1.webp" width="30%" alt="Tonight's games, priced">
+  <img src="docs/screenshots/longshot-2.webp" width="30%" alt="Build your slip">
+  <img src="docs/screenshots/longshot-3.webp" width="30%" alt="Every market on a game">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/longshot-4.webp" width="30%" alt="Every sport, one list">
+  <img src="docs/screenshots/longshot-5.webp" width="30%" alt="Lotto draws too">
+  <img src="docs/screenshots/longshot-6.webp" width="30%" alt="Pick your numbers">
 </p>
 
 ## Features
