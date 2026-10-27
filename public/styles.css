@@ -48,7 +48,7 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-n
 .pl-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--q-red); animation: pl-pulse 1.6s ease-in-out infinite; }
 @keyframes pl-pulse { 50% { opacity: 0.3; } }
 /* A row that folds the rest away: "其他 12 場 ›". */
-.pl-fold { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 18px; background: var(--q-surface); color: var(--q-accent); font: 600 16px/1.2 var(--q-font); text-align: left; }
+.pl-fold { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: var(--q-r-card); background: var(--q-surface); color: var(--q-accent); font: 600 16px/1.2 var(--q-font); text-align: left; }
 .pl-fold-text { flex: 1; min-width: 0; }
 .pl-fold-logos { display: flex; }
 .pl-fold-logos > * + * { margin-left: -6px; }
@@ -90,7 +90,7 @@ body:has(#slip-bar:not([hidden])) .page { padding-bottom: calc(100px + var(--q-n
 .pick:not(.sl-app *) { position: relative; flex: none; display: grid; align-content: center; justify-items: center; gap: 1px; min-width: 64px; min-height: 40px; padding: 4px 8px; border: 0; border-radius: 12px; background: var(--q-fill-3); color: var(--q-label); text-align: center; font-variant-numeric: tabular-nums; transition: background-color 0.2s, color 0.2s, transform var(--q-dur-snappy) var(--q-spring-snappy); }
 button.pick:active:not(.sl-app *) { transform: scale(0.95); }
 .pick-name { max-width: 100%; overflow: hidden; color: var(--q-label-2); font: 500 12px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.pick-odds { font: 700 17px/1.15 var(--q-font-rounded); letter-spacing: -0.01em; }
+.pick-odds { font: 600 17px/1.15 var(--q-font-rounded); letter-spacing: -0.01em; }
 .pick.in-slip:not(.sl-app *) { background: var(--accent); color: #fff; }
 .pick.in-slip:not(.sl-app *) .pick-name { color: rgba(255, 255, 255, 0.85); }
 .pick.locked:not(.sl-app *),
@@ -116,7 +116,7 @@ span.pick.locked:not(.sl-app *) { pointer-events: none; }
 .pl-team-name { flex: 1; min-width: 0; overflow: hidden; font: 500 16px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-draw-mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); font-weight: 700; }
 .pl-team.draw .pl-team-name { color: var(--q-label-2); }
-.pl-score { flex: none; min-width: 1.4em; color: var(--q-label); font: 700 20px/1 var(--q-font-rounded); text-align: right; font-variant-numeric: tabular-nums; }
+.pl-score { flex: none; min-width: 1.4em; color: var(--q-label); font: 600 20px/1 var(--q-font-rounded); text-align: right; font-variant-numeric: tabular-nums; }
 .pl-score.moved { animation: pl-moved 0.6s ease-out; color: var(--q-red); }
 @keyframes pl-moved { 0% { transform: scale(1.2); } }
 .pl-when { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -138,18 +138,18 @@ span.pick.locked:not(.sl-app *) { pointer-events: none; }
 .pl-combos { --q-rail-w: min(84%, 300px); }
 .pl-combo { gap: 10px; grid-template-rows: auto 1fr auto; align-content: stretch; }
 .pl-combo-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.pl-combo-head strong { flex: 1; min-width: 0; overflow: hidden; font: 700 17px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-combo-head strong { flex: 1; min-width: 0; overflow: hidden; font: 600 17px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-combo-legs { display: grid; align-content: start; gap: 8px; }
 .pl-combo-leg { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .pl-combo-pick { flex: 1; display: grid; min-width: 0; font: 500 15px/1.25 var(--q-font); }
 .pl-combo-pick > * { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pl-combo-pick small { color: var(--q-label-2); font: var(--q-t-caption); }
 .pl-combo-head strong.q-wrapped, .pl-combo-pick > .q-wrapped { white-space: normal; text-overflow: clip; }
-.pl-combo-leg b { flex: none; font: 700 15px/1 var(--q-font-rounded); }
+.pl-combo-leg b { flex: none; font: 500 15px/1 var(--q-font-rounded); }
 .pl-combo-foot { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pl-combo-pay { flex: 1; display: grid; min-width: 0; }
 .pl-combo-pay small { overflow: hidden; color: var(--q-label-2); font: var(--q-t-footnote); white-space: nowrap; text-overflow: ellipsis; }
-.pl-combo-pay strong { overflow: hidden; color: var(--good); font: 700 22px/1.15 var(--q-font-rounded); white-space: nowrap; }
+.pl-combo-pay strong { overflow: hidden; color: var(--good); font: 600 22px/1.15 var(--q-font-rounded); white-space: nowrap; }
 .pl-combo-go { flex: none; min-height: 38px; padding: 0 14px; font-size: 15px; }
 @media (max-width: 340px) { .pl-combo-pay small { font-size: 12px; } .pl-combo-foot { gap: 8px; } .pl-combo-go { padding: 0 8px; font-size: 14px; } }
 
@@ -205,7 +205,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-tabs .has-pick { position: relative; }
 .market-tabs .has-pick::after { content: ''; position: absolute; top: 4px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .market-panel, .market-more { display: grid; gap: 12px; }
-.line-table, .more-block { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: var(--q-surface); }
+.line-table, .more-block { display: grid; gap: 8px; padding: 12px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .line-title, .more-title { margin: 0; font: 600 15px/1.25 var(--q-font); }
 .line-head, .line-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
 .line-head span { overflow: hidden; color: var(--q-label-2); font: 600 12px/1.2 var(--q-font); text-align: center; white-space: nowrap; text-overflow: ellipsis; }
@@ -226,7 +226,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .more-shape { display: grid; gap: 12px; }
 .shape-tabs { display: flex; gap: 6px; }
 .shape-pill { width: 64px; height: 32px; border-radius: 999px; }
-.shape-rows { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: var(--q-surface); }
+.shape-rows { display: grid; gap: 8px; padding: 12px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .shape-row { display: grid; grid-template-columns: 1fr 72px 72px; gap: 8px; align-items: center; }
 .shape-line { width: 60%; height: 14px; border-radius: 7px; }
 .shape-odds { height: 40px; border-radius: 12px; }
@@ -234,7 +234,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 /* A board (F1, a championship): its head, its tabs, a row an entry. */
 .gs-boardhead { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .gs-boardhead > div { min-width: 0; }
-.gs-btitle { font: 700 20px/1.25 var(--q-font); }
+.gs-btitle { font: 600 20px/1.25 var(--q-font); }
 .gs-btitle > span { white-space: nowrap; }
 .gs-bsub, .gs-lead { color: var(--q-label-2); font: var(--q-t-footnote); }
 .pl-entries { gap: 0; }
@@ -273,7 +273,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .market-tag.tag-total, .market-tag.tag-teamtotal { background: var(--wash-good); color: var(--good); }
 .market-tag.tag-runline { background: var(--wash-bad); color: var(--bad); }
 .market-tag.tag-live { background: var(--q-red); color: #fff; }
-.leg-odds { flex: none; display: inline-flex; align-items: baseline; gap: 2px; font: 700 17px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.leg-odds { flex: none; display: inline-flex; align-items: baseline; gap: 2px; font: 600 17px/1 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .leg-odds small { color: var(--q-label-2); font: 600 11px/1 var(--q-font); }
 .leg-odds .leg-was { margin-right: 3px; }
 /* (A change: the old figure over the new, so the pick's name keeps its room.) */
@@ -297,7 +297,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pay-line span { min-width: 0; }
 .pay-line strong { flex: none; color: var(--q-label); font: 600 15px/1.3 var(--q-font-rounded); font-variant-numeric: tabular-nums; }
 /* The one button, the balance under it. */
-.place-button { width: 100%; min-height: 52px; font-size: 17px; box-shadow: 0 14px 26px -16px var(--accent); }
+.place-button { width: 100%; min-height: 52px; font-size: 17px; }
 .place-button:disabled { box-shadow: none; opacity: 0.5; }
 .sl-rules { justify-self: center; font-size: 14px; }
 /* The slip bar: above the tab bar on every tab, at a game sheet's foot. */
@@ -320,12 +320,12 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .pl-rec-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: -2px 0 4px; }
 .pl-rec-fig { display: grid; gap: 2px; min-width: 0; padding: 0 0 0 12px; border: 0; background: none; color: #fff; text-align: left; font: inherit; }
 .pl-rec-fig small { font: 600 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }
-.pl-rec-fig strong { font: 700 17px/1.2 var(--q-font-rounded); white-space: nowrap; }
+.pl-rec-fig strong { font: 600 17px/1.2 var(--q-font-rounded); white-space: nowrap; }
 button.pl-rec-fig { cursor: pointer; }
 .pl-hc-sub { font: 500 12px/1.2 var(--q-font); opacity: 0.8; white-space: nowrap; }
 /* 每月損益: a bar a month from a middle line, the month's figures under them. */
 .pl-months { margin-top: 18px; }
-.pl-mo-card { display: grid; gap: 12px; padding: 14px 14px 0; border-radius: 20px; background: var(--q-surface); overflow: hidden; }
+.pl-mo-card { display: grid; gap: 12px; padding: 14px 14px 0; border-radius: var(--q-r-card); background: var(--q-surface); overflow: hidden; }
 .pl-mo-bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
 .pl-mo-bar { display: grid; gap: 6px; justify-items: center; min-width: 0; padding: 6px 0; border: 0; border-radius: 12px; background: none; color: var(--q-label-2); font: 600 12px/1 var(--q-font); cursor: pointer; }
 .pl-mo-bar.on { background: var(--q-fill-3); color: var(--q-label); }
@@ -344,7 +344,7 @@ button.pl-rec-fig { cursor: pointer; }
 .pl-day-net { flex: none; color: var(--q-label-2); font: 600 15px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* A settled slip as a pass: the picks' logos with right/wrong marks, the result at the side.
    A day's passes sit in one card, a hairline between them. */
-.pl-pass { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 10px 16px 10px 14px; border: 0; border-radius: 18px; background: var(--q-surface); color: var(--q-label); text-align: left; overflow: hidden; cursor: pointer; }
+.pl-pass { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 10px 16px 10px 14px; border: 0; border-radius: var(--q-r-card); background: var(--q-surface); color: var(--q-label); text-align: left; overflow: hidden; cursor: pointer; }
 .pl-pass:has(+ .pl-pass) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .pl-pass + .pl-pass { margin-top: -12px; border-top-left-radius: 0; border-top-right-radius: 0; }
 .pl-pass + .pl-pass::before { content: ''; position: absolute; left: 14px; right: 0; top: 0; height: 0.5px; background: var(--q-sep); }
@@ -361,7 +361,7 @@ button.pl-rec-fig { cursor: pointer; }
 .pl-pass-text strong { overflow: hidden; font: 600 15px/1.25 var(--q-font); white-space: nowrap; }
 .pl-pass-text small { overflow: hidden; color: var(--q-label-2); font: var(--q-t-caption); white-space: nowrap; text-overflow: ellipsis; }
 .pl-pass-end { display: grid; justify-items: end; min-width: 0; }
-.pl-pass-end strong { font: 700 16px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-pass-end strong { font: 500 16px/1.2 var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pl-pass.won .pl-pass-end strong { color: var(--good); }
 .pl-pass.lost .pl-pass-end strong { color: var(--bad); }
 .pl-pass.cashed .pl-pass-end strong { color: var(--accent); }
@@ -373,10 +373,10 @@ button.pl-rec-fig { cursor: pointer; }
 .leg-mark .q-gl { display: grid; place-items: center; }
 .pl-fig { display: grid; gap: 2px; min-width: 0; padding: 10px 16px; background: var(--q-surface); }
 .pl-fig small { color: var(--q-label-2); font: 600 13px/18px var(--q-font); }
-.pl-fig strong { overflow: hidden; font: 700 18px/22px var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
+.pl-fig strong { overflow: hidden; font: 600 18px/22px var(--q-font-rounded); font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
 .pl-fig strong.green { color: var(--q-green); }
 .pl-fig strong.red { color: var(--q-red); }
-.pl-placed { width: 100%; margin-top: 16px; border-radius: 18px; background: var(--q-surface); }
+.pl-placed { width: 100%; margin-top: 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .pl-hist-bar { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .pl-hist-bar .q-chips { flex: 1; min-width: 0; margin-right: 0; }
 .pl-group .q-section-head { align-items: center; }
@@ -386,7 +386,7 @@ button.pl-rec-fig { cursor: pointer; }
 .group-live .q-section-head h2::before { content: ''; display: inline-block; width: 9px; height: 9px; margin: 0 8px 2px 0; border-radius: 50%; background: var(--q-red); animation: pl-pulse 1.6s ease-in-out infinite; }
 .pl-slips { display: grid; gap: 12px; }
 /* A slip: what it is and how it stands, its picks, its money. */
-.pl-slip { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--q-surface); }
+.pl-slip { display: grid; gap: 10px; padding: 14px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .pl-slip.fresh { animation: pl-fresh 2.4s ease-out; }
 @keyframes pl-fresh { 0%, 35% { box-shadow: 0 0 0 2px var(--accent); } }
 .pl-slip.dead { opacity: 0.75; }
@@ -444,7 +444,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .pl-slip-money { display: flex; gap: 10px; padding-top: 10px; border-top: var(--q-hairline) solid var(--q-sep); }
 .pay-cell { flex: 1 1 0; display: grid; align-content: start; gap: 2px; min-width: 0; }
 .pay-cell small { color: var(--q-label-2); font: 400 12px/1.25 var(--q-font); }
-.pay-cell strong { overflow: hidden; font: 700 18px/1.2 var(--q-font-rounded); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.pay-cell strong { overflow: hidden; font: 600 18px/1.2 var(--q-font-rounded); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .pay-cell strong.tint { color: var(--accent); }
 .pay-cell .pay-sub { color: var(--q-label-2); font-size: 11px; }
 .pl-slip.recovered .pl-slip-money { border-top: 0; padding-top: 0; }
@@ -511,12 +511,12 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .q-ask-icon:has(> .sc-ask, > .lt-mark-ask) { width: auto; height: auto; background: none; }
 .lt-hero-big { overflow: hidden; white-space: nowrap; }
 .lt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.lt-tile { --lotto: var(--accent); display: grid; align-content: start; gap: 6px; min-width: 0; padding: 14px; border: 0; border-radius: 20px; background: var(--q-surface); color: var(--q-label); text-align: left; }
+.lt-tile { --lotto: var(--accent); display: grid; align-content: start; gap: 6px; min-width: 0; padding: 14px; border: 0; border-radius: var(--q-r-card); background: var(--q-surface); color: var(--q-label); text-align: left; }
 .lt-en { margin-top: -2px; color: var(--q-label-2); font: 600 13px/1.2 var(--q-font); }
 /* Seven games under the hero: the last one takes the whole row, no hole beside it. */
 .lt-grid > .lt-tile:last-child:nth-child(odd) { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); align-content: center; align-items: center; column-gap: 14px; }
 .lt-grid > .lt-tile:last-child:nth-child(odd) > .lt-mark { grid-row: span 3; --lm: 34px; }
-.lt-big { overflow: hidden; color: var(--lotto); font: 700 24px/1.15 var(--q-font-rounded); letter-spacing: -0.02em; white-space: nowrap; text-overflow: ellipsis; }
+.lt-big { overflow: hidden; color: var(--q-label); font: 600 24px/1.15 var(--q-font-rounded); letter-spacing: -0.02em; white-space: nowrap; text-overflow: ellipsis; }
 .lt-when { color: var(--q-label-2); font: 500 13px/1.2 var(--q-font); }
 .lt-open { margin-bottom: 12px; }
 .lt-mine { margin-top: 28px; }
@@ -599,7 +599,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .ls-mult strong { font: 600 14px/1.2 var(--q-font-rounded); }
 /* Just bought: a tick, what was bought, the two ways on. */
 .lotto-bought { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 4px; text-align: center; }
-.lotto-bought-mark { display: grid; place-items: center; width: 68px; height: 68px; margin-bottom: 8px; border-radius: 50%; background: var(--lotto); box-shadow: 0 12px 30px -12px var(--lotto); animation: lt-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.lotto-bought-mark { display: grid; place-items: center; width: 68px; height: 68px; margin-bottom: 8px; border-radius: 50%; background: var(--lotto); animation: lt-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .lotto-bought-mark svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: lt-tick 0.35s 0.2s ease-out forwards; }
 @keyframes lt-pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes lt-tick { to { stroke-dashoffset: 0; } }
@@ -622,7 +622,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .balls.mini .ball { width: 22px; height: 22px; font-size: 10px; }
 
 /* A scratch card: a band in its colour, the play area under foil. */
-.sc-ticket { overflow: hidden; border-radius: 20px; background: var(--q-surface); box-shadow: 0 18px 40px -22px var(--lotto), 0 0 0 2px var(--lotto); }
+.sc-ticket { overflow: hidden; border-radius: var(--q-r-card); background: var(--q-surface); box-shadow: 0 0 0 2px var(--lotto); }
 .sc-play { position: relative; margin: 12px; border: 1.5px dashed color-mix(in srgb, var(--lotto) 45%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--lotto) 8%, var(--q-surface)); }
 .sc-how { padding: 0 16px 14px; color: var(--q-label-2); font: var(--q-t-caption); }
 .scratch-cover { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; touch-action: none; cursor: grab; }
@@ -641,7 +641,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .sc-ticket.revealed :is(.spot.win, .spot.win small, .spot.win .spot-sym, .dice-row.win, .dice-row.win small, .dice-row.win .die-pair.them b) { color: #fff; }
 .sc-ticket.revealed .slot-row.win .slot-prize { color: var(--lotto); }
 @keyframes sc-win { 50% { transform: scale(1.08); } }
-.sc-h { margin: 2px 0 0; color: var(--q-label-2); font: 800 12px/1.3 var(--q-font); letter-spacing: 0.04em; }
+.sc-h { margin: 2px 0 0; color: var(--q-label-2); font: 600 13px/1.3 var(--q-font); }
 .sc-winning { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); justify-items: center; gap: 8px; }
 .sc-win-num { display: grid; place-items: center; width: 100%; max-width: 44px; aspect-ratio: 1; border-radius: 50%; background: var(--lotto); color: #fff; font-weight: 900; }
 .bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
@@ -693,7 +693,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* A retired card (no ticket picture): its frame colour around its art, its games on its
    coloured panel, every scratched spot on the light security paper (the
    wavy TAIWAN LOTTERY print) in black ink, as the real cards are. */
-.sc-ticket { --paper: #fdf4f8; display: grid; gap: 10px; padding: 10px; background: var(--frame); box-shadow: 0 18px 40px -22px var(--frame); color: var(--frame-ink); }
+.sc-ticket { --paper: #fdf4f8; display: grid; gap: 10px; padding: 10px; background: var(--frame); color: var(--frame-ink); }
 .sc-top-art { width: 100%; aspect-ratio: 2 / 1; border-radius: 12px; }
 .sc-ticket .sc-play { margin: 0; border: 0; border-radius: 14px; background: var(--panel); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--panel) 70%, #000); }
 .sc-ticket .sc-how { padding: 0 4px 2px; color: var(--frame-ink); opacity: 0.9; }
@@ -712,22 +712,22 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .sc-ticket.tightest .sc-top-art { display: none; }
 
 /* 紀錄 › 彩券: waiting, then drawn by day and by draw. */
-.lotto-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: 18px; background: var(--q-surface); }
+.lotto-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; padding: 14px 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .lotto-fig { display: grid; gap: 3px; min-width: 0; }
 .lotto-fig small { color: var(--q-label-2); font: var(--q-t-caption); }
-.lotto-fig strong, .lotto-fig .lt-net { font: 700 16px/1.2 var(--q-font-rounded); white-space: nowrap; }
+.lotto-fig strong, .lotto-fig .lt-net { font: 600 16px/1.2 var(--q-font-rounded); white-space: nowrap; }
 .lotto-tickets, .lotto-done, .lotto-day { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .lotto-done { gap: 18px; margin-top: 8px; }
 .lotto-day-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .lotto-day-head { margin-top: 0; padding: 0 4px; }
-.lotto-day-head strong { font: 700 17px/1.2 var(--q-font); }
-.lt-group { --lotto: var(--accent); display: grid; gap: 8px; min-width: 0; padding: 14px; border: 0; border-radius: 18px; background: var(--q-surface); color: inherit; text-align: left; }
+.lotto-day-head strong { font: 600 17px/1.2 var(--q-font); }
+.lt-group { --lotto: var(--accent); display: grid; gap: 8px; min-width: 0; padding: 14px; border: 0; border-radius: var(--q-r-card); background: var(--q-surface); color: inherit; text-align: left; }
 .lt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
 .lt-head strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .lt-title { display: grid; gap: 2px; min-width: 0; }
 .lt-title small { color: var(--q-label-2); font: var(--q-t-caption); }
 /* What a day or a draw won: a plain figure (green when it won), no capsule. */
-.lt-net { flex: none; color: var(--q-label-2); font: 700 15px/1.2 var(--q-font-rounded); white-space: nowrap; }
+.lt-net { flex: none; color: var(--q-label-2); font: 500 15px/1.2 var(--q-font-rounded); white-space: nowrap; }
 .lt-net.out-up { color: var(--good); }
 .lt-net.out-down { color: var(--bad); }
 /* A group's head: the game's logo or the card's face, then its name. */
@@ -745,7 +745,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .lt-cards { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 6px; }
 .lt-card.unscratched { background: color-mix(in srgb, var(--lotto) 16%, transparent); color: var(--lotto); }
 .lt-sum { display: grid; justify-items: end; gap: 2px; flex: none; }
-.lt-sum strong { font: 700 16px/1.2 var(--q-font-rounded); }
+.lt-sum strong { font: 600 16px/1.2 var(--q-font-rounded); }
 .lt-sum small { color: var(--q-label-2); font: 600 12px/1.2 var(--q-font); }
 .lt-card { min-width: 0; min-height: 36px; padding: 4px 8px; border: 0; border-radius: 10px; background: var(--q-fill-3); color: var(--q-label-2); font: 600 13px/1 var(--q-font-rounded); }
 .lt-card.out-up { background: var(--wash-good); color: var(--good); }
@@ -811,7 +811,7 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 .pl-combo-go { min-height: 44px; }
 .pl-lottery { min-height: 132px; }
 .pl-lottery-wrap { display: grid; gap: 10px; }
-.pl-lottery-skel { height: 132px; border-radius: 20px; }
+.pl-lottery-skel { height: 132px; border-radius: var(--q-r-card); }
 .pl-lt-mini { min-height: 104px; }
 .q-ritem .logo-md, .q-ritem .q-tile { flex: none; }
 /* (.q-fit-wrap titles shrink to one line first and wrap only when 72% can't fit.) */
@@ -951,7 +951,7 @@ html .q-logo img { width: 88%; height: 88%; }
 /* 首頁's hero: the headline game (never the balance), its win prices on the card's colour. */
 .pl-hero-match { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; width: 100%; margin: 8px 0 4px; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
 .pl-hero-team { display: grid; justify-items: center; gap: 6px; min-width: 0; }
-.pl-hero-team > strong { max-width: 100%; overflow: hidden; font: 700 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-hero-team > strong { max-width: 100%; overflow: hidden; font: 600 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-hero-team .q-logo { background: none !important; box-shadow: none !important; border-radius: 0; }
 .pl-hero-team .q-logo img { width: 100%; height: 100%; object-fit: contain; }
 .pl-hero-tag { flex: none; margin-left: auto; padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); color: #fff; font: 600 12px/18px var(--q-font); white-space: nowrap; }
@@ -960,14 +960,14 @@ html .q-logo img { width: 88%; height: 88%; }
 .pl-hero-odds.n3 { grid-template-columns: repeat(3, 1fr); }
 .pl-hero-odd { display: grid; justify-items: center; gap: 2px; min-height: 52px; padding: 6px 4px; border: 2px solid transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.16); color: #fff; cursor: pointer; }
 .pl-hero-odd > small { color: rgba(255, 255, 255, 0.8); font: 500 12px/16px var(--q-font); }
-.pl-hero-odd > strong { font: 700 18px/22px var(--q-font); font-variant-numeric: tabular-nums; }
+.pl-hero-odd > strong { font: 600 18px/22px var(--q-font); font-variant-numeric: tabular-nums; }
 .pl-hero-odd[aria-pressed='true'] { border-color: #fff; background: rgba(255, 255, 255, 0.3); }
 .pl-hero-odd:disabled { opacity: 0.5; }
 .pl-hero-rec { display: grid; gap: 6px; margin-top: 6px; }
 .pl-hero-pick { display: flex; align-items: center; justify-items: initial; gap: 10px; padding: 6px 16px; text-align: left; }
 .pl-hero-pick-l { display: grid; flex: 1; gap: 2px; min-width: 0; }
 .pl-hero-pick-l > small { color: rgba(255, 255, 255, 0.8); font: 500 12px/16px var(--q-font); }
-.pl-hero-pick-l > b { overflow: hidden; font: 700 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
+.pl-hero-pick-l > b { overflow: hidden; font: 600 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-hero-pick > strong { flex: none; font-size: 20px; }
 .pl-hero-why { color: rgba(255, 255, 255, 0.85); font: 500 13px/18px var(--q-font); text-align: center; }
 
@@ -1113,3 +1113,19 @@ html.q-kb #slip-sheet .sl-sum b { color: var(--q-label); font: 700 15px/1.2 var(
 /* Just scratched: what it won, quietly, beside 繼續. */
 .sc-step-result { font: 700 16px/1.25 var(--q-font); color: var(--q-label-2); }
 .sc-step-result.won { color: var(--good); }
+
+/* ==== Design rollout (2026-10-27): one coloured surface a screen ==== */
+/* The jackpot is a fact to read, not a second hero: open on the lottery tab, a plain card on 首頁. */
+.lt-hero, .pl-lottery { background: none !important; color: var(--q-label); padding: var(--q-s-2) 4px; }
+.pl-lottery { background: var(--q-surface) !important; padding: var(--q-s-4); }
+.lt-hero .q-hc-eyebrow, .pl-lottery .q-hc-eyebrow, .lt-hero .q-hc-sub, .pl-lottery .q-hc-sub { color: var(--q-label-2); opacity: 1; }
+.pl-lottery .q-hc-big { font: 600 32px/38px var(--q-font-rounded); }
+.lt-hero .q-hc-btn, .pl-lottery .q-hc-btn, :root[data-theme='dark'] .lt-hero .q-hc-btn:not(.ghost), :root[data-theme='dark'] .pl-lottery .q-hc-btn:not(.ghost) { background: var(--q-accent); color: #fff; backdrop-filter: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) :is(.lt-hero, .pl-lottery) .q-hc-btn:not(.ghost) { background: var(--q-accent); color: #fff; backdrop-filter: none; } }
+/* Scratch shelf: the prize is plain figure text; the ticket's own art carries the colour. */
+.sc-card { border-radius: var(--q-r-card); }
+.sc-card-top, :root[data-theme='dark'] .sc-card-top { color: var(--q-label); font-weight: 600; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .sc-card-top { color: var(--q-label); } }
+.sc-shelf-h strong { font-weight: 600; }
+.sc-prize strong { font-weight: 600; }
+.sc-prizes-h { font-weight: 600; }
