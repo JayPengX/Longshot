@@ -2749,9 +2749,11 @@ html[data-q-turn] dialog[open] {
   color: var(--q-accent);
 }
 
-.q-hero-card {
-  --q-hc-a: color-mix(in srgb, var(--q-accent) 74%, #0b1020);
-  --q-hc-b: color-mix(in srgb, var(--q-accent) 86%, #0b1020);
+.q-hero-card,
+.q-focus {
+  --q-hc-a: color-mix(in srgb, var(--q-accent) 62%, #0b1020);
+  --q-hc-b: var(--q-accent);
+  --q-hc-glow: color-mix(in srgb, var(--q-accent) 45%, #ffffff);
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2760,27 +2762,29 @@ html[data-q-turn] dialog[open] {
   overflow: hidden;
   border: 0;
   border-radius: var(--q-r-card);
-  /* One deep colour, lit a shade from the top: no glow, no sweep, no coloured shadow. */
-  background: linear-gradient(180deg, var(--q-hc-b), var(--q-hc-a));
+  /* The app's colour lit from the corner: the screen's one coloured surface (Jay 2026-10-27). */
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--q-hc-glow) 55%, transparent), transparent 60%), linear-gradient(135deg, var(--q-hc-a), var(--q-hc-b));
   color: #ffffff;
   font: inherit;
   text-align: left;
   text-decoration: none;
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 36px -20px color-mix(in srgb, var(--q-hc-b) 80%, transparent);
   -webkit-tap-highlight-color: transparent;
 }
 /* In dark the accents brighten; the card keeps a deep colour so white type
    stays readable. :where() keeps this at one-class weight so an app that sets
    its own --q-hc-a/b on its hero class still wins. */
 @media (prefers-color-scheme: dark) {
-  :where(:root:not([data-theme='light'])) .q-hero-card {
+  :where(:root:not([data-theme='light'])) :is(.q-hero-card, .q-focus) {
     --q-hc-a: color-mix(in srgb, var(--q-accent) 38%, #05070d);
     --q-hc-b: color-mix(in srgb, var(--q-accent) 72%, #05070d);
+    --q-hc-glow: color-mix(in srgb, var(--q-accent) 60%, transparent);
   }
 }
-:where(:root[data-theme='dark']) .q-hero-card {
+:where(:root[data-theme='dark']) :is(.q-hero-card, .q-focus) {
   --q-hc-a: color-mix(in srgb, var(--q-accent) 38%, #05070d);
   --q-hc-b: color-mix(in srgb, var(--q-accent) 72%, #05070d);
+  --q-hc-glow: color-mix(in srgb, var(--q-accent) 60%, transparent);
 }
 .q-hc-eyebrow {
   display: flex;
@@ -4745,11 +4749,11 @@ html.q-kb .q-kb-docked {
 }
 
 /* ---- The focal point, open on the page (docs/DESIGN.md) ---- */
-.q-focus { display: grid; gap: var(--q-s-1); min-width: 0; padding: var(--q-s-4) 18px 18px; border-radius: var(--q-r-card); background: var(--q-surface); }
-.q-focus-label { color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
-.q-focus-value { display: block; max-width: 100%; color: var(--q-label); font: var(--q-t-focal); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
-.q-focus-sub { color: var(--q-label-2); font: var(--q-t-subhead); font-variant-numeric: tabular-nums; }
+.q-focus { position: relative; display: grid; gap: var(--q-s-1); min-width: 0; padding: var(--q-s-4) 18px 18px; overflow: hidden; border-radius: var(--q-r-card); background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--q-hc-glow) 55%, transparent), transparent 60%), linear-gradient(135deg, var(--q-hc-a), var(--q-hc-b)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 36px -20px color-mix(in srgb, var(--q-hc-b) 80%, transparent); color: #fff; }
+.q-focus-label { color: rgba(255, 255, 255, 0.78); font: 500 15px/20px var(--q-font); }
+.q-focus-value { display: block; max-width: 100%; color: #fff; font: var(--q-t-focal); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+.q-focus-sub { color: rgba(255, 255, 255, 0.78); font: var(--q-t-subhead); font-variant-numeric: tabular-nums; }
 .q-focus-figs { display: flex; gap: var(--q-s-5); margin-top: var(--q-s-3); }
 .q-focus-figs > div { display: grid; gap: 2px; min-width: 0; }
-.q-focus-figs small { color: var(--q-label-2); font: var(--q-t-footnote); }
+.q-focus-figs small { color: rgba(255, 255, 255, 0.78); font: var(--q-t-footnote); }
 .q-focus-figs b { font: var(--q-t-figure); font-variant-numeric: tabular-nums; white-space: nowrap; }
