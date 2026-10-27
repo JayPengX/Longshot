@@ -261,7 +261,10 @@ function named(game, o, matchup) {
       return { ...o, matchup, marketLabel: String(o.totalLine), chip: t(o.side), label: `${matchup} ${t(o.side)} ${o.totalLine}`, shortLabel: `${t(o.side)} ${o.totalLine}` };
     case 'runline': {
       const text = `${team(o.side)} ${fmtLine(o.runLine)}`;
-      return { ...o, matchup, marketLabel: `${team(o.giver)} ${fmtLine(-Math.abs(o.awayLine))}`, chip: text, label: text, shortLabel: `${t('runLine')} ${text}` };
+      // (In English by the sport: an NHL pick read "Run line Hurricanes −1.5".)
+      const family = familyOf(game.sport);
+      const word = isSoccer(game.sport) ? 'handicapLine' : family === 'hockey' ? 'puckLine' : family === 'baseball' ? 'runLine' : 'spreadLine';
+      return { ...o, matchup, marketLabel: `${team(o.giver)} ${fmtLine(-Math.abs(o.awayLine))}`, chip: text, label: text, shortLabel: `${t(word)} ${text}` };
     }
     case 'teamtotal': {
       const text = `${team(o.team)} ${t(o.side)} ${o.teamLine}`;
