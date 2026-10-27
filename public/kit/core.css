@@ -4745,7 +4745,7 @@ html.q-kb .q-kb-docked {
 }
 
 /* ---- The focal point, open on the page (docs/DESIGN.md) ---- */
-.q-focus { display: grid; gap: var(--q-s-1); min-width: 0; padding: var(--q-s-2) 4px; }
+.q-focus { display: grid; gap: var(--q-s-1); min-width: 0; padding: var(--q-s-4) 18px 18px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .q-focus-label { color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
 .q-focus-value { display: block; max-width: 100%; color: var(--q-label); font: var(--q-t-focal); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
 .q-focus-sub { color: var(--q-label-2); font: var(--q-t-subhead); font-variant-numeric: tabular-nums; }
