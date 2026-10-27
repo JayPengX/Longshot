@@ -1,6 +1,6 @@
 # Longshot's Worker
 
-One Cloudflare Worker, **longshot** (`wrangler.toml`, `worker.js`), at https://longshot.pengzjay.workers.dev, deployed by `.github/workflows/worker.yml` on a push to main that touches `worker/` or `public/kit/`. It runs in Taiwan (`[placement] region = "gcp:asia-east1"`), because Gemini refuses Hong Kong.
+One Cloudflare Worker, **longshot** (`wrangler.toml`, `worker.js`), deployed by `.github/workflows/worker.yml` on a push to main that touches `worker/` or `public/kit/`. It runs in Taiwan (`[placement] region = "gcp:asia-east1"`), because Gemini refuses Hong Kong.
 
 Kit modules are imported as `#kit/<file>`, which package.json maps to `public/kit/`.
 
