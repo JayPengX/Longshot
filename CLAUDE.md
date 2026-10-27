@@ -1,7 +1,7 @@
 # Working on Longshot
 
 Read `docs/TRUTH.md` first (one page: how the owner works and what matters).
-The README is this repo's map.
+MAP.md is this repo's map (README.md is the short public front page).
 
 - `npm test`, then `git push origin HEAD:main`.
 - Prices are the phone's, but the Worker checks every bet and is the only one paying out.

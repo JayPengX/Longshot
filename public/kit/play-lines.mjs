@@ -13,7 +13,7 @@
 //
 // LEAGUE_TOTALS: average total per game, recent full seasons (runs,
 // points, goals). Checked against the bookmakers' own totals where both
-// exist: see tests/lines.test.mjs and the README for the measured gaps.
+// exist: see tests/lines.test.mjs and MAP.md for the measured gaps.
 import { totalOverChance, MLB_TOTAL_DISPERSION, GOALS_DISPERSION } from './play-odds.mjs';
 import { normalCdf, SCORE_SPREAD } from './play-markets.mjs';
 import { fitGoals } from './play-live.mjs';

@@ -116,7 +116,8 @@ break it and say so in a line.
 ## 7. Docs
 
 - **This file**, each repo's `CLAUDE.md` (a pointer here plus what's
-  special to that repo), and each repo's README: a short map with what the
+  special to that repo), each repo's README (the short public front page: what it is, the link,
+  the stack) and its MAP.md: a short map with what the
   app is, where the code is, how to run and test it, and the decisions
   still in force.
 - Update a doc only when the change made it wrong. No handoffs, plans or
