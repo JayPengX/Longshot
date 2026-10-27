@@ -21,14 +21,14 @@ const glyph = name => {
 
 const TXT = {
   zh: {
-    headline: '焦點大戰', whyBackedHero: '你押過的球隊', pick: '推薦', mlPick: '{t} 勝', chance: '勝率約 {p}%', beats: '回收優於 {p}% 的投注', balance: '餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
+    headline: '焦點大戰', whyBackedHero: '你押過的球隊', pick: '推薦', mlPick: '{t} 勝', chance: '勝率約 {p}%', balance: '餘額', openBets: '{n} 張投注中 · 全中最多 {m}', search: '搜尋球隊、聯賽', live: '場中', liveTitle: '場中焦點',
     forYou: '為你推薦', featured: '焦點賽事', seeAll: '全部', none: '目前沒有開賣的比賽', draw: '和局',
     overdrawn: '透支 · 月息 1%', cover: '賣出持股補足',
     why_backed: '押過', why_league: '你的聯盟', why_sport: '你的運動', why_like: '常看', why_value: '划算', why_steady: '穩', why_shot: '值博', why_fair: '合理',
     combos: '精選串關', comboMine: '為你串 3 場', comboSafe: '穩膽 2 串', comboEven: '均衡 3 串', comboBold: '高賠 4 串', comboTotals: '大小 3 串', comboSpread: '讓分 3 串', comboLeague: '{league} 3 串', comboStake: '投注 {v}', comboGo: '加入投注單', openN: '投注中', most: '全中最多', unit: '張', actLive: '場中', actGames: '賽事', actLottery: '彩券', actSlip: '投注單', lottery: '彩券', jackpot: '頭獎累積', pickNow: '去選號', recent: '最近的投注', none2: '還沒有投注', won: '贏 {v}', lost: '未中', openTag: '進行中', ticket: '彩券', scratchT: '刮刮樂', parlayN: '{n} 串 1'
   },
   en: {
-    headline: 'Big game', whyBackedHero: 'You backed them', pick: 'Pick', mlPick: '{t} win', chance: '~{p}% to win', beats: 'Returns more than {p}% of bets', balance: 'Balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
+    headline: 'Big game', whyBackedHero: 'You backed them', pick: 'Pick', mlPick: '{t} win', chance: '~{p}% to win', balance: 'Balance', openBets: '{n} open · up to {m}', search: 'Search teams, leagues', live: 'Live', liveTitle: 'Live now',
     forYou: 'For you', featured: 'Featured', seeAll: 'See all', none: 'No games on sale right now', draw: 'Draw',
     overdrawn: 'Overdrawn · 1% a month', cover: 'Sell to cover',
     why_backed: 'Backed', why_league: 'Your league', why_sport: 'Your sport', why_like: 'Watching', why_value: 'Value', why_steady: 'Steady', why_shot: 'Long shot', why_fair: 'Fair',
@@ -270,17 +270,14 @@ export function renderHome(ctx) {
   };
   const sides = top ? ctx.winnerSides(top, topBets) : [];
   const teams = sides.filter(x => x !== 'draw');
-  // The pick: one wide button (the bet, its price), then why in numbers:
-  // its chance, and how its return ranks on the board (the house keeps a cut
-  // of every bet; this one gives back more than most).
+  // The pick: one wide button (the bet, its price).
   const hp = headline?.pick;
   const heroPick = hp
     ? el('div', { class: 'pl-hero-rec' }, [
         el('button', { class: 'pl-hero-odd pl-hero-pick q-press', type: 'button', 'data-bet': hp.bet.id, 'aria-pressed': String(Boolean(state.parlay?.includes(hp.bet.id))), ...(hp.bet.lock ? { disabled: true } : {}), onclick: () => ctx.toggleLeg(hp.bet) }, [
           el('span', { class: 'pl-hero-pick-l' }, [el('small', { text: T.pick }), el('b', { class: 'q-fit', text: pickName(hp.bet) })]),
           el('strong', { class: 'num', text: hp.bet.lock ? '—' : ctx.fmtOdds(ctx.effectiveOdds(hp.bet)) })
-        ]),
-        el('small', { class: 'pl-hero-why q-fit', text: [f('chance', { p: pct(hp.bet.fairChance) }), hp.merit >= 0.5 ? f('beats', { p: pct(hp.merit) }) : null].filter(Boolean).join(' · ') })
+        ])
       ])
     : null;
   const hero = el('section', { class: 'q-hero-card pl-hero' }, [

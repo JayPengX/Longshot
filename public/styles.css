@@ -154,9 +154,17 @@ span.pick.locked:not(.sl-app *) { pointer-events: none; }
 @media (max-width: 340px) { .pl-combo-pay small { font-size: 12px; } .pl-combo-foot { gap: 8px; } .pl-combo-go { padding: 0 8px; font-size: 14px; } }
 
 /* ==== 5 賽事 ==== */
-/* The day strip is the kit's (.q-day-bar, ui.mjs dayStrip). The kit's bar with the tab's name is pinned above it (44px). */
-.q-day-bar { top: calc(var(--q-top) + 44px); }
-.q-day-bar::before { inset: 0; }
+/* The day strip is the kit's (.q-day-bar, ui.mjs dayStrip), pinned right under
+   the status bar (Jay 2026-10-27: it hung 44px lower, under a title bar that's
+   gone, so games showed through above it). Stuck, it's a frosted band from
+   the screen's top with one hairline, the games blurred under it; the days
+   are slim, the chosen one a soft pill, no line between months. */
+#day-bar { margin-bottom: 4px; padding-block: 4px 6px; }
+#day-bar::before { background: color-mix(in srgb, var(--q-page) 78%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+#day-bar .q-day-strip .q-chip.day { min-height: 46px; padding: 5px 4px; border-radius: 14px; gap: 2px; }
+#day-bar .q-day-strip .q-chip.day > span { font-size: 11px; }
+#day-bar .q-day-strip .q-chip.day small { font-size: 15px; }
+#day-bar .q-day-strip .q-chip.day.month-start:not([aria-pressed='true']) { border-radius: 14px; box-shadow: none; }
 /* Only the few days on sale (運彩 sells no further ahead): no 📅, and no fade at
    the strip's ends over the chosen day (it blurred and cut the first chip). */
 #day-bar .q-day-pick { display: none; }
@@ -306,7 +314,7 @@ h2.pl-league-h.pl-league-h { display: flex; align-items: center; gap: 8px; min-w
 .slip-bar-main strong { overflow: hidden; font: 600 15px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .slip-bar-main small { overflow: hidden; color: var(--q-label-2); font: 400 13px/1.25 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .slip-bar-go { flex: none; padding: 10px 16px; border-radius: 999px; background: var(--accent); color: #fff; font: 600 15px/1 var(--q-font); }
-.slip-bar.in-sheet { position: sticky; bottom: calc(-16px - max(env(safe-area-inset-bottom) - 8px, 0px)); z-index: 2; display: flex; align-items: center; gap: 12px; width: calc(100% + 2 * var(--q-margin)); margin: auto calc(-1 * var(--q-margin)) calc(-16px - max(env(safe-area-inset-bottom) - 8px, 0px)); padding: 10px var(--q-margin) calc(10px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; background: var(--q-sheet); box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep); color: var(--q-label); text-align: left; }
+.slip-bar.in-sheet { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: 12px; width: calc(100% + 2 * var(--q-margin)); margin: auto calc(-1 * var(--q-margin)) 0; padding: 10px var(--q-margin) calc(10px + max(env(safe-area-inset-bottom), var(--q-safe-bottom, 0px))); border: 0; border-radius: 0; background: var(--q-sheet); box-shadow: inset 0 var(--q-hairline) 0 var(--q-sep); color: var(--q-label); text-align: left; }
 /* (A game's sheet ends on the slip's row, as a kit sheet's foot does.) */
 .game-sheet[open]:has(> #game-sheet-bar:not([hidden])) { display: flex; flex-direction: column; }
 .game-sheet > #game-sheet-body { flex: none; padding-bottom: 16px; }
@@ -971,7 +979,6 @@ html .q-logo img { width: 88%; height: 88%; }
 .pl-hero-pick-l > small { color: rgba(255, 255, 255, 0.8); font: 500 12px/16px var(--q-font); }
 .pl-hero-pick-l > b { overflow: hidden; font: 600 17px/22px var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
 .pl-hero-pick > strong { flex: none; font-size: 20px; }
-.pl-hero-why { color: rgba(255, 255, 255, 0.85); font: 500 13px/18px var(--q-font); text-align: center; }
 
 /* ---- The 投注單 sheet (Jay 2026-10-22, "redesign") ----
    The ways to buy in the sheet's head under its title; the picks and the

@@ -1,10 +1,11 @@
 // The scratch's sound (scratch-ticket.js): a coin on latex, soft (a gentle
 // rustle well under the phone's other sounds, never a hiss), a little louder the faster the finger goes, silent when it stops; a tick as a
 // scratch-off comes off; a soft chime as a win shows. Made here (Web Audio),
-// no files. On an iPhone it plays with the silent switch on too (a
-// `playback` audio session while a card is scratched, back to `auto` when
-// the sheet closes: Web Audio left to itself is muted by the switch); iOS
-// opens audio only from a touch that ends, so every touch and lift wakes it.
+// no files. It never stops other apps' music: an `ambient` audio session
+// mixes in under it (Jay 2026-10-27, replacing 2026-10-23's `playback`, which
+// cut the music off). iOS mutes an ambient sound on the silent switch; the
+// web has no session that both mixes and plays through it. iOS opens audio
+// only from a touch that ends, so every touch and lift wakes it.
 // The speaker button turns it off here for good (kept on this device).
 
 const KEY = 'longshot.scratchSound';
@@ -33,7 +34,7 @@ let level = null;
 // Started inside a touch (iOS opens audio only from one).
 export function wake() {
   if (!on) return;
-  session('playback');
+  session('ambient');
   if (!ac) {
     const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!AC) return;
@@ -134,6 +135,5 @@ export function chime(big = false) {
 export function rest() {
   rub(0);
   if (ac && ac.state === 'running') setTimeout(() => ac?.state === 'running' && level?.gain.value < 0.01 && ac.suspend().catch(() => {}), 300);
-  // (Other apps' music back as it was.)
   session('auto');
 }
