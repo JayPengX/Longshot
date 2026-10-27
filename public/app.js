@@ -1982,7 +1982,7 @@ function renderParlay() {
   const parts = [
     droppedTag,
     el('div', { class: 'sl-legs-head' }, [
-      el('span', { text: t('slipLegs', { n }) }),
+      el('span', { text: t(n === 1 ? 'slipLegs1' : 'slipLegs', { n }) }),
       el('button', { class: 'sl-link', type: 'button', text: t('clearParlay'), onclick: () => ((state.parlay = []), slipChanged()) })
     ]),
     el('div', { class: 'q-rowcard sl-legs' },
@@ -2058,7 +2058,7 @@ function renderParlay() {
   const product = slip.reduce((p, l) => p * l.odds, 1);
   const panel = el('div', { class: 'q-sheet-foot sl-panel' }, [
     // (Typing only: what's on the slip, in one line.)
-    el('div', { class: 'sl-sum' }, [el('span', { text: `${t('slipLegs', { n })} · ${t(`slipMode_${mode}`)}` }), mode === 'parlay' ? el('b', { class: 'num', text: `×${fmtOdds(product)}` }) : null]),
+    el('div', { class: 'sl-sum' }, [el('span', { text: `${t(n === 1 ? 'slipLegs1' : 'slipLegs', { n })} · ${t(`slipMode_${mode}`)}` }), mode === 'parlay' ? el('b', { class: 'num', text: `×${fmtOdds(product)}` }) : null]),
     el('div', { class: 'sl-panel-top' }, [el('span', { text: stakeLabel }), el('span', { class: `sl-bal${cost > money ? ' short' : ''}`, text: t('placeNote', { v: fmtMoney(money, { sign: money < 0 }) }) })]),
     el('div', { class: 'sl-stake-row' }, [
       el('label', { class: 'sl-stake-box' }, [el('b', { text: 'NT$' }), stakeInput]),
@@ -2233,7 +2233,7 @@ function payoutBox(legs, sizes, stake, mode) {
   } else {
     for (const k of sizes) rows.push(payLine(t('paySize', { size: sizeName(k, n), c: fmtInt(bySize[k] ?? 0) }), fmtMoney((bySize[k] ?? 0) * stake, { sign: false })));
   }
-  rows.push(payLine(t('payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false })));
+  rows.push(payLine(t(combos === 1 ? 'payCost1' : 'payCost', { c: fmtInt(combos) }), fmtMoney(cost, { sign: false })));
   if (taxed) rows.push(payLine(t('payTax', { rate: taxRateText() }), `−${fmtMoney(allGross - allTaxed, { sign: false })}`));
   if (mode !== 'parlay' && least < allNet) rows.push(payLine(t('payLeastShort'), fmtMoney(least, { sign: false })));
   // (What it pays all correct is the bet panel's; here the profit closes the lines.)
@@ -2512,7 +2512,7 @@ function placeButton(legs, sizes, cost, errors, keep = {}) {
           lang: state.locale,
           icon: 'ticket',
           title: t('placeAsk', { v: fmtMoney(cost, { sign: false }) }),
-          body: t('placeAskBody', { n: records.length, most: fmtMoney(most, { sign: false }) }),
+          body: t(records.length === 1 ? 'placeAskBody1' : 'placeAskBody', { n: records.length, most: fmtMoney(most, { sign: false }) }),
           ok: t('placeOk'),
           cancel: t('askCancel')
         });
@@ -2956,7 +2956,7 @@ function savedSlipCard(slip) {
   return el('article', { class: `pl-slip${fresh ? ' fresh' : ''}${dead ? ' dead' : ''}` }, [
     head([
       el('span', { class: 'pl-slip-title' }, [
-        el('strong', { text: `${mode} · ${t('slipLegs', { n })}` }),
+        el('strong', { text: `${mode} · ${t(n === 1 ? 'slipLegs1' : 'slipLegs', { n })}` }),
         el('small', { text: fmtTime(slip.t) })
       ]),
       pill
