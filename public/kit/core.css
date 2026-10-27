@@ -2238,6 +2238,39 @@ dialog.q-moved::backdrop {
   outline: 2px solid var(--q-accent);
   outline-offset: 1px;
 }
+/* The pass as a password: dots, with 顯示 at its end; the username a
+   password manager files it under is there but never seen. */
+.q-pass-field {
+  position: relative;
+}
+.q-pass-field .q-pass-input {
+  padding: 0 64px;
+}
+.q-pass-eye {
+  position: absolute;
+  inset: 0 6px 0 auto;
+  margin: auto 0;
+  height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--q-accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.q-pass-user {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
 .q-gate-error {
   min-height: 1em;
   margin: 0;

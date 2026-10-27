@@ -1493,12 +1493,32 @@ export { node as el };
 const typedPass = text => cleanCode(text).replace(/[^2-9A-HJ-NP-Z]/g, '').slice(0, 10);
 // No maxlength: a pass is copied as ABCDE-23456 (11 characters), and a
 // maxlength of 10 cut its last character off before the dash was taken out.
+// Typed as a password, in a form a password manager knows (iCloud Keychain,
+// Chrome, Bitwarden offer to keep it and fill it in): the username is always
+// "Longshot Pass", here and on the admin page.
 function passInput(label) {
-  const input = node('input', { class: 'q-pass-input', type: 'text', inputmode: 'text', autocomplete: 'off', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', placeholder: 'ABCDE23456', 'aria-label': label });
+  const input = node('input', { class: 'q-pass-input', type: 'password', name: 'password', inputmode: 'text', autocomplete: 'current-password', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', placeholder: 'ABCDE23456', 'aria-label': label });
   input.addEventListener('input', () => {
     input.value = typedPass(input.value);
   });
   return input;
+}
+const passUser = () => node('input', { class: 'q-pass-user', type: 'text', name: 'username', autocomplete: 'username', value: 'Longshot Pass', readonly: '', tabindex: '-1', 'aria-hidden': 'true' });
+// The pass field with its 顯示 button.
+function passField(input, lang) {
+  const en = lang === 'en';
+  const eye = node('button', {
+    class: 'q-pass-eye',
+    type: 'button',
+    text: en ? 'Show' : '顯示',
+    onclick: () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      eye.textContent = show ? (en ? 'Hide' : '隱藏') : en ? 'Show' : '顯示';
+      input.focus();
+    }
+  });
+  return node('div', { class: 'q-pass-field' }, [input, eye]);
 }
 const ERR = {
   PASSCODE_NOT_FOUND: ['找不到這組通行碼。', 'No Longshot Pass has this code.'],
@@ -1578,6 +1598,8 @@ function signInGate(s) {
       'form',
       {
         class: 'q-gate-form',
+        method: 'post',
+        action: '#',
         onsubmit: event => {
           event.preventDefault();
           const code = cleanCode(input.value);
@@ -1585,7 +1607,7 @@ function signInGate(s) {
           done(() => s.login(code));
         }
       },
-      [node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), input, error, enter, note]
+      [passUser(), node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), passField(input, s.lang), error, enter, note]
     );
     const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true' }, [
       node('div', { class: 'q-gate-box' }, [
@@ -1754,8 +1776,14 @@ export function showNewPass(s, passcode) {
         ok
       ])
     ]);
+    // Sent as a form when confirmed, so a password manager offers to keep the new pass.
+    const saver = node('form', { class: 'q-pass-saver', method: 'post', action: '#', onsubmit: event => event.preventDefault() }, [passUser(), node('input', { class: 'q-pass-user', type: 'password', name: 'password', autocomplete: 'new-password', value: shown, readonly: '', tabindex: '-1', 'aria-hidden': 'true' })]);
+    box.querySelector('.q-gate-box').append(saver);
     // Not closed by Esc or a tap outside: only by the confirmed button.
     ok.addEventListener('click', () => {
+      try {
+        saver.requestSubmit?.();
+      } catch {}
       dropFromTop(box);
       resolve();
     });

@@ -24,8 +24,9 @@
   <section id="gate" class="own-card own-gate">
     <h2 id="gate-title">Longshot 管理</h2>
     <p id="gate-text" class="own-muted">載入中…</p>
-    <form id="gate-form" hidden>
-      <input id="gate-pass" class="own-input mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
+    <form id="gate-form" method="post" action="#" hidden>
+      <input class="q-pass-user" type="text" name="username" autocomplete="username" value="Longshot Pass" readonly tabindex="-1" aria-hidden="true" />
+      <input id="gate-pass" class="own-input mono" type="password" name="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" />
       <button class="q-btn primary block" type="submit">登入</button>
     </form>
     <button id="claim" class="q-btn primary block" type="button" hidden>建立管理員通行碼</button>
@@ -36,6 +37,7 @@
     <h2>你的管理員通行碼</h2>
     <p class="own-muted">只顯示這一次。記下來，用它登入 Longshot 和這個頁面。</p>
     <p id="born-code" class="own-code mono"></p>
+    <form id="born-save" method="post" action="#"><input class="q-pass-user" type="text" name="username" autocomplete="username" value="Longshot Pass" readonly tabindex="-1" aria-hidden="true" /><input id="born-pass" class="q-pass-user" type="password" name="password" autocomplete="new-password" readonly tabindex="-1" aria-hidden="true" /></form>
     <button id="born-ok" class="q-btn primary block" type="button">我記下來了</button>
   </section>
 

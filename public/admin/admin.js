@@ -93,13 +93,21 @@ $('claim').addEventListener('click', async e => {
     const r = await call('claim');
     keep(r.token);
     $('born-code').textContent = pass(r.passcode);
+    $('born-pass').value = pass(r.passcode);
     show('born');
   } catch (err) {
     $('gate-error').textContent = err.message;
     e.currentTarget.disabled = false;
   }
 });
-$('born-ok').addEventListener('click', () => open());
+// (Sent as a form, so a password manager offers to keep the new pass.)
+$('born-save').addEventListener('submit', e => e.preventDefault());
+$('born-ok').addEventListener('click', () => {
+  try {
+    $('born-save').requestSubmit?.();
+  } catch {}
+  open();
+});
 $('out').addEventListener('click', signedOut);
 
 // ---- The panel -----------------------------------------------------------------
