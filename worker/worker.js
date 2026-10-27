@@ -30,7 +30,7 @@ import { wake, tick } from './clock.js';
 
 export { Clock } from './clock.js';
 
-const ADMIN_PAGE = 'https://jaypengx.github.io/Longshot/admin/';
+const ADMIN_PAGE = 'https://longshot.jaypengx.com/admin/';
 
 // The session a request carries (`qt=`), or null.
 async function sessionOf(request, env) {

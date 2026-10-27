@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A Taiwan sportsbook and lottery, on play money.</b><br>
-  <a href="https://jaypengx.com/longshot/"><b>jaypengx.com/longshot</b></a>
+  <a href="https://longshot.jaypengx.com/"><b>longshot.jaypengx.com/</b></a>
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@ A sportsbook priced and settled like a real one, Taiwan Lottery's games, and the
 | Platform | Installable web app with a service worker |
 | Server | Its own Cloudflare Worker (`worker/`): the Longshot Pass account, placing and settling every bet, lottery and scratch cards |
 | Prices | ESPN (DraftKings' lines), Kambi, Polymarket, and the house's own model when nobody prices a game yet |
-| Hosting | GitHub Pages, served at jaypengx.com by a Cloudflare Worker |
+| Hosting | GitHub Pages, served at longshot.jaypengx.com by a Cloudflare Worker |
 | Tests | `node --test` (about 70 test files on pricing, the slip, settling and the lottery) |
 
 ## How it works

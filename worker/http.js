@@ -2,9 +2,9 @@
 // sports.js, … handle): who may call it, the CORS headers, a JSON answer,
 // the errors in both languages, and a request's body read safely.
 
-// The app's page: GitHub Pages, and the family's own domain (jaypengx.com/Longshot/,
-// Orbit-Core's site.js reading Pages through).
-export const ALLOWED_ORIGINS = ['https://jaypengx.github.io', 'https://jaypengx.com'];
+// The app's page: GitHub Pages, and its own host on Jay's domain
+// (longshot.jaypengx.com, a site Worker reading Pages through).
+export const ALLOWED_ORIGINS = ['https://jaypengx.github.io', 'https://longshot.jaypengx.com'];
 // A page served from this computer (the preview tool; over --h2 an https
 // one, as Pages serves a phone): the dev doors let it in (sports.js, worker.js).
 export const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/;
