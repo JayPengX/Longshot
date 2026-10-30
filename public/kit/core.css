@@ -747,7 +747,7 @@ button,
   backdrop-filter: var(--q-glass-blur);
   box-shadow: var(--q-glass-rim), var(--q-glass-drop);
   transform: translateX(-50%);
-  transition: transform var(--q-dur-smooth) var(--q-spring-smooth), padding var(--q-dur-smooth) var(--q-spring-smooth);
+  transition: transform var(--q-dur-smooth) var(--q-spring-smooth);
 }
 .q-tabbar.q-tabbar::before {
   content: '';
@@ -792,7 +792,7 @@ button,
   font: 500 10px/12px var(--q-font);
   white-space: nowrap;
   cursor: pointer;
-  transition: color 0.2s, min-height var(--q-dur-smooth) var(--q-spring-smooth);
+  transition: color 0.2s;
 }
 .q-tab[hidden] {
   display: none;
@@ -818,7 +818,6 @@ button,
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: opacity 0.2s, height var(--q-dur-smooth) var(--q-spring-smooth);
 }
 .q-tab[aria-selected='true'] {
   color: var(--q-accent);
@@ -861,15 +860,6 @@ button,
   height: 10px;
   padding: 0;
 }
-/* Scrolling down: the bar draws in to its icons (orbit.mjs sets .q-tabs-small). */
-.q-tabs-small .q-tabbar .q-tab {
-  min-height: 44px;
-}
-.q-tabs-small .q-tabbar .q-tab-label {
-  height: 0;
-  opacity: 0;
-}
-
 /* ---- The tab bar's accessory: a glass bar just above it (iOS 26's bottom
    accessory, as Music's player): what's in progress, a tap away ---- */
 .q-accessory {

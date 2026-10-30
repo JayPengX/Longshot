@@ -3383,44 +3383,9 @@ export function tabBar({ tabs, onSelect, hash = id => `#${id}`, nav = document.g
     if (still) requestAnimationFrame(() => requestAnimationFrame(() => nav.style.removeProperty('transition')));
   };
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => pill(true)).observe(nav);
-  // Scrolling down, the bar draws in to its icons; its labels come back at
-  // the top, or after a scroll back up of a good part of the screen in one
-  // go, as iOS's: not on a nudge up, nor on the page bouncing back at its foot
-  // (a fling's rubber band moved it up a few px and brought them back). Only
-  // a page with room to scroll (one that nearly fits, Transit's 交通 at 78 px,
-  // never draws it in: its labels would come back only at its very top), and
-  // never from what the page did itself: a page grown shorter pulling the
-  // scroll up, or a tab's own place put back (a change of tab shows the whole
-  // bar, as iOS's, the map's included).
-  let lastY = globalThis.scrollY || 0;
-  let lastMax = 0;
-  let dir = 0;
-  let turnY = lastY;
-  const root = document.documentElement;
-  const resetScroll = (y = globalThis.scrollY || 0) => {
-    root.classList.remove('q-tabs-small');
-    [lastY, dir, turnY] = [y, 0, y];
-  };
-  globalThis.addEventListener?.(
-    'scroll',
-    () => {
-      const max = Math.max(0, root.scrollHeight - globalThis.innerHeight);
-      const y = Math.min(Math.max(globalThis.scrollY || 0, 0), max);
-      const shrunk = max < lastMax - 1 && y >= max - 1;
-      lastMax = max;
-      if (y < 40 || max < 200) return resetScroll(y);
-      if (shrunk) return void ([lastY, turnY] = [y, y]);
-      if (y > lastY) {
-        if (dir !== 1) [dir, turnY] = [1, lastY];
-        if (y - turnY > 12 && !reducedMotion()) root.classList.add('q-tabs-small');
-      } else if (y < lastY) {
-        if (dir !== -1) [dir, turnY] = [-1, lastY];
-        if (turnY - y > Math.max(160, globalThis.innerHeight * 0.3)) root.classList.remove('q-tabs-small');
-      }
-      lastY = y;
-    },
-    { passive: true }
-  );
+  // (The bar stays whole while scrolling: drawing in to its icons on a
+  // scroll down saved 10 px, hid the labels, laid the bar out again on every
+  // frame of a scroll, and the page's own jumps folded it by mistake.)
   nav.addEventListener('keydown', event => {
     const shown = [...buttons].filter(([, b]) => !b.hidden).map(([id]) => id);
     const i = shown.indexOf(current);
@@ -3480,9 +3445,8 @@ export function tabBar({ tabs, onSelect, hash = id => `#${id}`, nav = document.g
       if (changed && !first) {
         // After the app has drawn the tab (it does so right after select).
         const y = top ? 0 : places[id] || 0;
-        resetScroll(y);
         globalThis.scrollTo?.(0, y);
-        if (y) requestAnimationFrame(() => (globalThis.scrollTo(0, y), resetScroll(globalThis.scrollY || 0)));
+        if (y) requestAnimationFrame(() => globalThis.scrollTo(0, y));
       }
     },
     // A count (a number or short text) on a tab's icon; 0/''/null hides it.
