@@ -37,6 +37,7 @@ A sportsbook priced and settled like a real one, Taiwan Lottery's games, and the
 - **注單 Your real tickets:** add a 台灣運彩 ticket and follow each pick live.
 - **真相:** the house's edge and your actual payback, in plain numbers.
 - **All play money:** the house never loses on its own prices, and the numbers show it.
+- **Sign in with Face ID:** the Longshot Pass takes passkeys (Face ID, Touch ID, Windows Hello or a phone nearby).
 
 ## Tech stack
 
