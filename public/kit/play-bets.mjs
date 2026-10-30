@@ -187,7 +187,7 @@ export function liveBets(data, { offersOf = () => null } = {}) {
       }
     } else if (family === 'soccer') {
       if (!(pre.draw > 0) && !g.kambi) continue;
-      if (pre.draw > 0) dist = liveSoccer({ means: fitGoals(pre.homeWin, pre.awayWin), awayScore: g.awayScore, homeScore: g.homeScore, minutesLeft: 90 - g.minute });
+      if (pre.draw > 0) dist = liveSoccer({ means: fitGoals(pre.homeWin, pre.awayWin), awayScore: g.awayScore, homeScore: g.homeScore, minute: g.minute, period: g.period });
     } else if (family === 'hockey') {
       const total = pre.totalLine ? { line: pre.totalLine, overFair: pre.overFair } : null;
       dist = g.left > 0.01 ? liveGoals({ means: fitHockey(pre.homeWin, total), awayScore: g.awayScore, homeScore: g.homeScore, share: g.left }) : null;

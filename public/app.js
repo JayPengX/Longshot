@@ -1527,7 +1527,8 @@ function liveStateText(live) {
     return t('liveInPlay');
   }
   if (atHalftime(live)) return halftimeText(live, live.sport);
-  if (isSoccer(live.sport)) return `${live.minute}'`;
+  // (Added minutes as the broadcast says them: 90+2'.)
+  if (isSoccer(live.sport)) return live.period >= 1 && live.minute > 45 * live.period ? `${45 * live.period}+${live.minute - 45 * live.period}'` : `${live.minute}'`;
   if (live.period != null) {
     const regulation = PERIODS[live.sport]?.[0] ?? 4;
     if (live.period > regulation) return t('liveOT', { clock: live.clock }).trim();

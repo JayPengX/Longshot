@@ -77,9 +77,29 @@ export function liveBaseball({ means, awayScore, homeScore, awayLeft, homeLeft, 
   return out;
 }
 
-// Soccer: goals left in proportion to the minutes left (90 in all); a draw stays a draw.
-export function liveSoccer({ means, awayScore, homeScore, minutesLeft }) {
-  const share = Math.max(0, minutesLeft) / 90;
+// Soccer: each side's goals still to come, the share of a whole game's that
+// the time left holds; a draw stays a draw (不讓分 is on 90 minutes). Measured
+// on 2,473 finished games of 2025–26 (Orbit Sports' soccerwp backtest): a
+// first half holds 45% of the goals, a second 55%, and play goes on 3 and 7
+// minutes past them, so 85' still has about 12 minutes to play and 90'+2 a
+// few (counted as no time at all, a level game at 90' was sold as settled).
+const HALF_LEN = 45;
+const HALF_ADDED = [3, 7];
+const HALF_GOALS = [0.45, 0.55];
+export function soccerShareLeft(minute, period = minute > HALF_LEN ? 2 : 1) {
+  if (!(period >= 1) || period > 2) return 0;
+  let share = 0;
+  for (let n = period; n <= 2; n++) {
+    const from = (n - 1) * HALF_LEN;
+    const added = HALF_ADDED[n - 1];
+    const left = n === period ? Math.max(0, from + HALF_LEN - minute) + Math.max(0.5, added - Math.max(0, minute - from - HALF_LEN)) : HALF_LEN + added;
+    share += (HALF_GOALS[n - 1] * left) / (HALF_LEN + added);
+  }
+  return Math.min(1, share);
+}
+// minute: the broadcast's (90'+2 is 92) and its half; or minutesLeft of 90.
+export function liveSoccer({ means, awayScore, homeScore, minute, period, minutesLeft }) {
+  const share = minute != null ? soccerShareLeft(minute, period) : Math.max(0, minutesLeft) / 90;
   const A = nbPmf(means.away * share, GOALS_DISPERSION, 15);
   const H = nbPmf(means.home * share, GOALS_DISPERSION, 15);
   const out = [];

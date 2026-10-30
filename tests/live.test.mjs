@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { americanToProbability, devigProportional } from '../public/lib/odds.mjs';
-import { inningsLeft, liveBaseball, liveMarkets, liveOdds, pregameRuns, chance, fitGoals, liveSoccer, LIVE_OVERROUND } from '../public/lib/live.mjs';
+import { inningsLeft, liveBaseball, liveMarkets, liveOdds, pregameRuns, chance, fitGoals, liveSoccer, soccerShareLeft, LIVE_OVERROUND } from '../public/lib/live.mjs';
 import { parseInning, parseEspnLive, parsePregameLines } from '../public/lib/sources.mjs';
 
 const snap = JSON.parse(readFileSync(new URL('./fixtures/lottery-live-2026-09-26.json', import.meta.url)));
@@ -58,6 +58,21 @@ test('a finished game is certain; soccer goals scale with the minutes left', () 
   assert.ok(Math.abs(draw - 0.27) < 0.03, draw);
   const late = liveSoccer({ means, awayScore: 0, homeScore: 1, minutesLeft: 5 });
   assert.ok(chance(late, (a, h) => h > a) > 0.85);
+});
+
+test('soccer counts the added minutes: kick-off is the pregame line, 90+2 is not settled', () => {
+  const means = fitGoals(0.45, 0.28);
+  const start = liveSoccer({ means, awayScore: 0, homeScore: 0, minute: 0, period: 1 });
+  assert.ok(Math.abs(chance(start, (a, h) => h > a) - 0.45) < 0.03);
+  assert.equal(soccerShareLeft(45, 2), 0.55);
+  // 1-1 in added time: another goal still possible (it was sold as a sure draw).
+  const added = liveSoccer({ means, awayScore: 1, homeScore: 1, minute: 92, period: 2 });
+  const goal = 1 - chance(added, (a, h) => a + h === 2);
+  assert.ok(goal > 0.05 && goal < 0.2, goal);
+  // 85': about 12 minutes still to play, more than the 5 a 90-minute clock left.
+  const old = liveSoccer({ means, awayScore: 0, homeScore: 0, minutesLeft: 5 });
+  const now = liveSoccer({ means, awayScore: 0, homeScore: 0, minute: 85, period: 2 });
+  assert.ok(chance(now, (a, h) => a === h) < chance(old, (a, h) => a === h) - 0.03);
 });
 
 test('ESPN live games and pregame lines', () => {

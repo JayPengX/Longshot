@@ -1034,9 +1034,13 @@ export function parseEspnLive(data, sport) {
       if (left == null) continue;
       Object.assign(game, { period, clock: comp.status.displayClock || '', left });
     } else {
-      // "67'" or "45'+2'"; half time counts as 45 played.
-      const minute = /^(\d+)/.exec(comp.status.displayClock || '')?.[1];
-      game.minute = /half/i.test(game.detail) ? 45 : Math.min(90, Number(minute) || 0);
+      // "67'" or "45'+2'" (47, its added minutes counted) and its half; half
+      // time is the second half not started.
+      const clock = /^(\d+)'?(?:\s*\+\s*(\d+))?/.exec(String(comp.status.displayClock || '').trim());
+      const minute = clock ? Number(clock[1]) + Number(clock[2] || 0) : 0;
+      const half = /half/i.test(game.detail) || /^HT$/i.test(game.detail);
+      game.minute = half ? 45 : minute;
+      game.period = half ? 2 : Number(comp.status.period) || (minute > 45 ? 2 : 1);
     }
     games.push(game);
   }
