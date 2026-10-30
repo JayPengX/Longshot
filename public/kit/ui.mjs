@@ -979,7 +979,7 @@ export function matchCard({ league = '', leagueLogo = '', when = '', live = fals
       ? pick.locked
         ? lockedRow()
         : h('button', { class: 'q-match-pick', type: 'button', ...(pick.bet ? { 'data-bet': pick.bet } : {}), 'aria-pressed': String(Boolean(pick.selected)), onclick: e => (e.stopPropagation(), pick.onTap?.(e)) }, [
-            h('span', { class: 'q-match-pick-l' }, [h('b', { class: 'q-fit', text: pick.label || '' }), pick.note ? h('small', { text: pick.note }) : null]),
+            h('span', { class: 'q-match-pick-l' }, [h('b', { class: 'q-fit-wrap', text: pick.label || '' }), pick.note ? h('small', { text: pick.note }) : null]),
             h('strong', { class: 'num', text: pick.odds == null ? '' : String(pick.odds) })
           ])
       : null
