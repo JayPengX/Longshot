@@ -3,6 +3,7 @@
 //
 //   node tools/preview.mjs [home games lottery tickets history] [--width 320,390]
 //        [--dark] [--both] [--webkit] [--out dir] [--click selector] [--signed-out]
+//        [--against dir]  (an earlier run's folder: what changed, in pink, on changes.png)
 //
 // Serves public/ on http://localhost:8123, so the deployed Worker answers its
 // data through the dev door (real board, real games); the Pass is stood in for
@@ -16,6 +17,7 @@
 // when there are any, so it can gate a push.
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -27,7 +29,7 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const valued = new Set(['--width', '--out', '--click']);
+const valued = new Set(['--width', '--out', '--click', '--against']);
 const tabs = args.filter((a, i) => !a.startsWith('--') && !valued.has(args[i - 1]));
 const widths = String(opt('width', '320,390')).split(',').map(Number);
 const themes = flag('both') ? ['light', 'dark'] : [flag('dark') ? 'dark' : 'light'];
@@ -106,11 +108,32 @@ try {
       }
       await ctx.close();
     }
+  // One picture of every shot (sheet.png); with --against, each changed one as before | after | diff (changes.png).
+  const against = opt('against', '');
+  const sheet = await browser.newPage({ viewport: { width: 1200, height: 600 } });
+  const img = async f => `data:image/png;base64,${(await readFile(f)).toString('base64')}`;
+  const changed = [];
+  if (against)
+    for (const name of shots) {
+      const was = join(against, name);
+      if (!existsSync(was)) continue;
+      const [a, b] = [await img(was), await img(join(out, name))];
+      const res = await sheet.evaluate(diffInPage, [a, b]);
+      if (res.share > 0.002) changed.push({ name, was: a, now: b, diff: res.png, share: res.share });
+    }
+  const grid = (title, rows) => `<body style="margin:16px;font:13px system-ui;background:#f4f4f6"><h3>${title}</h3><div style="display:flex;flex-wrap:wrap;gap:10px">${rows}</div></body>`;
+  await sheet.setContent(grid(`Longshot · ${shots.length} shots${faults.length ? ` · ${faults.length} faults` : ''}`, (await Promise.all(shots.map(async n => `<figure style="margin:0;width:195px"><img src="${await img(join(out, n))}" width="195"><figcaption>${n.replace(/\.png$/, '')}</figcaption></figure>`))).join('')));
+  await sheet.screenshot({ path: join(out, 'sheet.png'), fullPage: true });
+  if (changed.length) {
+    await sheet.setContent(grid('What changed', changed.map(c => `<figure style="margin:0;display:flex;gap:6px;align-items:start"><figcaption style="width:90px">${c.name.replace(/\.png$/, '')}<br>${(c.share * 100).toFixed(1)}%</figcaption>${[c.was, c.now, c.diff].map(s => `<img src="${s}" width="195">`).join('')}</figure>`).join('')));
+    await sheet.screenshot({ path: join(out, 'changes.png'), fullPage: true });
+  }
+  if (against) console.log(changed.length ? `${changed.length} changed: ${changed.map(c => c.name).join(', ')}` : 'nothing changed');
 } finally {
   await browser.close();
   server.close();
 }
-console.log(`${shots.length} shots in ${out}`);
+console.log(`${shots.length} shots in ${out} (all on sheet.png)`);
 console.log(faults.length ? faults.join('\n') : 'clean');
 process.exitCode = faults.length ? 1 : 0;
 
@@ -157,4 +180,29 @@ function layoutFaults() {
     }
   }
   return out;
+}
+
+// Runs in the page: the pixels that differ between two shots, in pink over the new one greyed.
+async function diffInPage([x, y]) {
+  const load = src => new Promise(ok => Object.assign(new Image(), { onload() { ok(this); }, src }));
+  const [ia, ib] = await Promise.all([load(x), load(y)]);
+  const w = Math.max(ia.width, ib.width);
+  const h = Math.max(ia.height, ib.height);
+  const pix = im => {
+    const c = Object.assign(document.createElement('canvas'), { width: w, height: h }).getContext('2d');
+    c.drawImage(im, 0, 0);
+    return c.getImageData(0, 0, w, h).data;
+  };
+  const [pa, pb] = [pix(ia), pix(ib)];
+  const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const g = c.getContext('2d');
+  const d = g.createImageData(w, h);
+  let changed = 0;
+  for (let i = 0; i < pa.length; i += 4) {
+    const grey = (pb[i] + pb[i + 1] + pb[i + 2]) / 3;
+    if (Math.abs(pa[i] - pb[i]) + Math.abs(pa[i + 1] - pb[i + 1]) + Math.abs(pa[i + 2] - pb[i + 2]) + Math.abs(pa[i + 3] - pb[i + 3]) > 40) (changed++, d.data.set([255, 0, 170, 255], i));
+    else d.data.set([grey * 0.35 + 150, grey * 0.35 + 150, grey * 0.35 + 150, 255], i);
+  }
+  g.putImageData(d, 0, 0);
+  return { share: changed / (w * h), png: c.toDataURL('image/png') };
 }
