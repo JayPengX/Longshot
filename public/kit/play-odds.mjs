@@ -9,7 +9,7 @@ import { minLegsProblem, BASE_CUT } from './play-rules.mjs';
 // numbers either way. Tied to the models (bump FITS_V when a fit changes),
 // not the deploy.
 const FITS_KEY = 'play.fits';
-const FITS_V = 1;
+const FITS_V = 2;
 const FITS_MAX = 4000;
 const FITS_SAVED = 1500;
 let fits = null;
@@ -281,13 +281,20 @@ export function lotteryRunLines(awayLine, awayFair) {
 }
 
 // Each team's runs (for team totals). Runs per team are negative binomial
-// (dispersion TEAM_RUNS_DISPERSION), independent; a tie after nine goes to
-// extra innings and the winner takes it by one run. The two means are fitted
+// (dispersion TEAM_RUNS_DISPERSION), independent. A tie after nine goes to
+// extra innings: the home side wins it by one run (a walk-off), the away
+// side by one, two or three (EXTRA_AWAY), and a home side ahead after the
+// top of the ninth doesn't bat again, so its wins come by a run less
+// (HOME_NO_NINTH of them, from two runs up). Fitted on 2,498 games of 2026
+// with DraftKings' closing lines: the away side giving 1.5 covered 36% of the
+// time where the plain model said 32%. The two means are fitted
 // so the home team's win chance and the game total match DraftKings. On the
 // lottery's team totals from 9 games (2026-09-25) it picked the lottery's line
 // 17 times out of 18 and landed about 1.1 points of chance off (r = 4 fit best).
 export const TEAM_RUNS_DISPERSION = 4;
 const TEAM_RUNS_MAX = 30;
+export const EXTRA_AWAY = [0.4, 0.3, 0.3];
+export const HOME_NO_NINTH = 0.15;
 
 function runsPmf(mu, r = TEAM_RUNS_DISPERSION, kMax = TEAM_RUNS_MAX) {
   const p = r / (r + mu);
@@ -317,10 +324,13 @@ export function scoreGrid(homeMean, awayMean, r = TEAM_RUNS_DISPERSION) {
   for (let h = 0; h <= TEAM_RUNS_MAX; h++)
     for (let a = 0; a <= TEAM_RUNS_MAX; a++) {
       const p = H[h] * A[a];
-      if (h !== a) grid[h * size + a] += p;
+      if (h - a >= 2) {
+        grid[(h - 1) * size + a] += p * HOME_NO_NINTH;
+        grid[h * size + a] += p * (1 - HOME_NO_NINTH);
+      } else if (h !== a) grid[h * size + a] += p;
       else {
         grid[(h + 1) * size + a] += p * homeExtra;
-        grid[h * size + a + 1] += p * (1 - homeExtra);
+        EXTRA_AWAY.forEach((s, i) => (grid[h * size + Math.min(TEAM_RUNS_MAX + 1, a + i + 1)] += p * (1 - homeExtra) * s));
       }
     }
   return { grid, size };

@@ -18,6 +18,8 @@ import { backOf } from './recommend.mjs';
 const FOR_YOU = { n: 12, horizonH: 72, backedH: 5 * 24, perSport: 4, backed: 0.6, league: 0.35, sport: 0.12, merit: 0.6, size: 0.3, odds: [1.35, 4], kinds: new Set(['ml', 'spread', 'runline', 'dnb', 'total']) };
 
 const teamKey = (sport, name) => `team:${sport}:${normalizeTeamName(name)}`;
+// A game as 為你推薦's feedback counts it: itself, its league and its teams.
+export const pickItem = g => ({ id: `g:${g.id}`, keys: [`league:${g.sport}`, ...['home', 'away'].map(s => teamKey(g.sport, g[s]?.en ?? g[s]))] });
 // { teams: Map key -> { w, why }, leagues: Map sport -> w, sports: Map family -> w, held: Set gameId }
 export function tasteOf({ aff = {}, slips = [], now = Date.now() } = {}) {
   const teams = new Map();
@@ -80,7 +82,7 @@ export function gameInterest(game, taste) {
 // house takes its cut); the best ones lose least, at a chance a person can
 // follow (a 1.10 sure thing or a 6.00 long shot is never the pick). On the
 // person's own team when they have one, never against it.
-export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, now = Date.now(), n = FOR_YOU.n, exclude = new Set(), weightOf = () => 0 } = {}) {
+export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, now = Date.now(), n = FOR_YOU.n, exclude = new Set(), weightOf = () => 0, lift = null } = {}) {
   const byGame = new Map();
   const backs = [];
   for (const b of bets) {
@@ -131,7 +133,9 @@ export function forYouPicks({ games = [], bets = [], recs = new Map(), taste, no
     // Why it's here, in a word: their team or league, else what the price is.
     const why = own ? interest.why : tag || (m >= 0.75 ? 'value' : m >= 0.5 ? 'fair' : null);
     if (!why) continue;
-    out.push({ bet: choice, game: g, why, side: interest.side, tag, merit: m, score: interest.score + FOR_YOU.merit * m + soon + FOR_YOU.size * weightOf(g.sport) });
+    // What the person opened, and passed over, among the picks shown before (kit feedback.mjs).
+    const learnt = lift ? 0.3 * Math.log(lift(pickItem(g))) : 0;
+    out.push({ bet: choice, game: g, why, side: interest.side, tag, merit: m, score: interest.score + FOR_YOU.merit * m + soon + FOR_YOU.size * weightOf(g.sport) + learnt });
   }
   // Best first. A league the person shows no interest in gets two cards at
   // most, a league they like three, backed teams all theirs: a night of

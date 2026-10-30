@@ -3,7 +3,8 @@
 //  4 為你推薦 · 5 今日焦點賽事 (vertical) · 6 精選串關 · 7 彩券 · 8 最近的投注.
 // Each section is built by one small function below, on the kit's components.
 import { rank, affinity } from './kit/core.mjs';
-import { tasteOf, gameInterest, forYouPicks, leagueTaste, spreadLeagues } from './lib/foryou.mjs';
+import { tasteOf, gameInterest, forYouPicks, leagueTaste, spreadLeagues, pickItem } from './lib/foryou.mjs';
+import * as feedback from './kit/feedback.mjs';
 import { gameLogo, cardArt } from './icons.js';
 import * as kitUI from './kit/ui.mjs';
 import { normalizeTeamName } from './kit/logos.mjs';
@@ -135,7 +136,7 @@ export function renderHome(ctx) {
   const betsOf = groupOnce(state.bets);
 
   // ---- 為你推薦, then 焦點賽事 (other games, other teams, none already bet on).
-  const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now, weightOf: sport => TIER_WEIGHT[ctx.leagueTier(sport)] / TIER_WEIGHT.major });
+  const fresh = forYouPicks({ games: state.data?.games || [], bets: state.bets || [], recs: state.recs || new Map(), taste, now, weightOf: sport => TIER_WEIGHT[ctx.leagueTier(sport)] / TIER_WEIGHT.major, lift: feedback.lifter('foryou', now) });
   const betById = new Map((state.bets || []).map(b => [b.id, b]));
   const gameById = new Map((state.data?.games || []).map(g => [g.id, g]));
   const kept = mineKept
@@ -143,6 +144,7 @@ export function renderHome(ctx) {
     .filter(x => x.bet && !x.bet.lock && x.game && Date.parse(x.game.startUtc) > now);
   const mine = kept.length ? kept : fresh;
   mineKept = mine;
+  feedback.shown('foryou', mine.slice(0, 4).map(x => pickItem(x.game)), now);
   const shownIds = new Set(mine.map(x => x.game.id));
   const shownTeams = new Set(mine.flatMap(x => ['home', 'away'].map(side => teamKey(x.game, side))));
   const later = (state.data?.games || []).filter(g => Date.parse(g.startUtc) > now && !taste.held.has(g.id) && !shownIds.has(g.id) && !shownTeams.has(teamKey(g, 'home')) && !shownTeams.has(teamKey(g, 'away')) && (betsOf.get(g.id) || []).some(b => b.kind === 'ml' && !b.lock));
@@ -177,13 +179,13 @@ export function renderHome(ctx) {
   const pct = x => Math.round(x * 100);
   // A pick's name: a winner's says so (海鷹 勝), the rest are the app's own (讓分 雪崩 −1.5).
   const pickName = b => (b.kind === 'ml' ? f('mlPick', { t: ctx.shortPick(b) }) : ctx.shortPick(b));
-  const pickOf = b => ({ label: pickName(b), note: f('chance', { p: pct(b.fairChance) }), odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => ctx.toggleLeg(b) });
+  const pickOf = b => ({ label: pickName(b), note: f('chance', { p: pct(b.fairChance) }), odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => (o.why && feedback.picked('foryou', pickItem(g)), ctx.toggleLeg(b)) });
   const matchCard = (g, bets, o = {}) => {
     const ml = bets.filter(b => b.kind === 'ml');
     const mark = { home: lang === 'zh' ? '主' : 'H', away: lang === 'zh' ? '客' : 'A', draw: T.draw };
-    const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => ctx.toggleLeg(b) });
+    const price = (b, label) => ({ label, odds: b.lock ? '' : ctx.fmtOdds(ctx.effectiveOdds(b)), locked: Boolean(b.lock), selected: state.parlay?.includes(b.id), bet: b.id, onTap: () => (o.why && feedback.picked('foryou', pickItem(g)), ctx.toggleLeg(b)) });
     const prices = ctx.winnerSides(g, ml).map(side => ml.find(b => b.side === side) && price(ml.find(b => b.side === side), mark[side])).filter(Boolean);
-    const open = () => (o.live ? ctx.openLive(g.id) : ctx.openGame(g.id));
+    const open = () => (o.why && feedback.picked('foryou', pickItem(g)), o.live ? ctx.openLive(g.id) : ctx.openGame(g.id));
     return kitUI.matchCard({
       league: state.t(`sport_${g.sport}`), leagueLogo: ctx.leagueUrl(g.sport), live: o.live, wide: o.wide,
       when: o.live ? ctx.liveStateText(g.live) : g.timeTbd ? gameTime(g) : ctx.legWhen(g.startUtc),
