@@ -175,8 +175,15 @@ the shared logic the page and the Worker both run (`play-*.mjs`,
 
 ```bash
 npm test
-cd public && python3 -m http.server 8000   # http://localhost:8000
+node tools/preview.mjs --both                 # every tab at 320 and 390, light and dark
+node tools/preview.mjs home --width 375 --click .q-account --webkit
 ```
+
+`tools/preview.mjs` serves `public/` on localhost:8123 (real data through
+the Worker's dev door, a stand-in Pass with NT$30,000), screenshots each tab
+and lists the faults a person would see (sideways scrolling, a cut name or
+number, a title or button on two lines, script errors, failing Worker
+calls); "clean" when there are none.
 
 Tests include real lottery prices and ESPN/Kambi answers as fixtures.
 A push to `main` tests and deploys: Pages (`.github/workflows/deploy.yml`)

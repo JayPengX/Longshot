@@ -26,9 +26,18 @@
   pre.href = 'https://longshot.pengzjay.workers.dev';
   pre.crossOrigin = 'anonymous';
   document.head.appendChild(pre);
+  // The reader's language (core.mjs detectLang's rule: the one picked in the
+  // app, else the phone's), and the page's lang set to it, so nothing shows the
+  // other language first.
+  var saved = '';
+  try {
+    saved = localStorage.getItem('longshot.lang') || '';
+  } catch (e) {}
+  var langs = navigator.languages || [navigator.language || 'zh-TW'];
+  var zh = saved === 'zh' || (saved !== 'en' && (langs.some(function (l) { return /^zh/i.test(l); }) || !langs.some(function (l) { return /^en/i.test(l); })));
+  document.documentElement.lang = zh ? 'zh-Hant' : 'en';
   var box = document.getElementById('loading');
   if (!box) return;
-  var zh = /^zh/i.test(document.documentElement.lang || navigator.language || '');
   var L = function (a, b) {
     return zh ? a : b;
   };

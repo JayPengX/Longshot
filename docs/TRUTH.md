@@ -45,9 +45,10 @@ break it and say so in a line.
 - **`npm test`, then push straight to `main`** (`git push origin
   HEAD:main`). `main` deploys: GitHub Pages for the app, Cloudflare for
   the Worker. No PRs.
-- **Check what a person would see:** if the change is visible, one 375 px
-  screenshot with real data (Playwright against `public/`, WebKit when the
-  bug is about Safari). No wraps, cuts or sideways scrolling.
+- **Check what a person would see:** if the change is visible, screenshot
+  every page it touches at 320 and 390, light and dark, with real data
+  (`node tools/preview.mjs --both`, `--webkit` when the bug is about
+  Safari), and look at them. No wraps, cuts or sideways scrolling.
 - **Tests for logic only:** money, data, ranking, planning and settling,
   where a bug is silent. None for layout or wording.
 - **Commits:** one plain line of what a person sees, numbers when there

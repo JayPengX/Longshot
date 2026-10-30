@@ -580,7 +580,7 @@ export function haptic() {
 // quarter: too quick for iOS). One asked for no motion just closes.
 export function closeSheet(d, speed = 0) {
   if (!d?.open || d.classList.contains('q-leaving')) return;
-  if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return d.close();
+  if (typeof DOMMatrixReadOnly !== 'function' || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return d.close();
   // Where the finger left it (a swipe's translateY) and how far is left to go: the
   // way to the foot measured from its place at rest, as the transform is (from where
   // it was dragged to, it stopped that far short of the foot, then vanished: the owner, 2026-10-18).
@@ -768,7 +768,12 @@ function segThumbs() {
         if (m.type === 'attributes') {
           const seg = m.target.parentElement;
           if (seg?.classList.contains('q-seg')) fit(seg);
-        } else m.addedNodes.forEach(scan);
+        } else {
+          // Its options drawn anew inside the same control (the Pass sheet's
+          // tabs): the control itself never arrives, so it's fitted here.
+          if (m.target.classList?.contains('q-seg')) fit(m.target);
+          m.addedNodes.forEach(scan);
+        }
       }
     }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-selected'] });
   };
@@ -1676,13 +1681,30 @@ export function accountButton(s, { balance = () => s.pool } = {}) {
   };
   paint();
   s.on?.('wallet', paint);
+  // The sheet's code is fetched while the app sits idle, and again from the
+  // finger's touch: fetched only at the tap, a phone on 4G waited for it
+  // after each deploy (new hashes).
+  btn.addEventListener('pointerdown', warmPass, { passive: true });
   btn.addEventListener('click', () => accountSheet(s));
+  warmPassLater();
   btn.paint = paint;
   return btn;
 }
-// The account sheet (pass.mjs, loaded when first opened); tab: 'pass' | 'truth'.
+// The account sheet (pass.mjs, fetched while the app is idle); tab: 'pass' | 'truth'.
+let passing = null;
+export function warmPass() {
+  passing ||= import('./pass.mjs').catch(e => ((passing = null), Promise.reject(e)));
+  return passing;
+}
+let passWarmed = false;
+function warmPassLater() {
+  if (passWarmed) return;
+  passWarmed = true;
+  const idle = f => (globalThis.requestIdleCallback ? globalThis.requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 2000));
+  idle(() => warmPass().catch(() => {}));
+}
 export async function accountSheet(s, { tab = 'pass' } = {}) {
-  const { openPass } = await import('./pass.mjs');
+  const { openPass } = await warmPass();
   return openPass(s, { tab });
 }
 
@@ -1863,10 +1885,22 @@ const inAppBrowser = () => /Line\/|FBAN|FBAV|Instagram|Messenger|MicroMessenger|
 // Safari, it asks to be added first. Returns true when it covered the page
 // (the app shouldn't start).
 let installCovered = false;
+// Chrome on Android offers its own install (an app, not a bookmark): kept
+// from the moment the kit loads, shown as a button on the gate.
+let installPrompt = null;
+let installButton = null;
+globalThis.addEventListener?.('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  if (installButton) installButton.hidden = false;
+});
 export function installGate(lang = detectLang()) {
   if (!isPhoneOrTablet() || isStandalone()) return false;
   if (installCovered) return true;
   installCovered = true;
+  // Installed from this page (Chrome moves the tab into the app's window
+  // without loading it again): start for real.
+  globalThis.matchMedia?.('(display-mode: standalone)').addEventListener?.('change', e => e.matches && location.reload());
   const en = lang === 'en';
   const name = APP.name;
   const steps = inAppBrowser()
@@ -1878,8 +1912,28 @@ export function installGate(lang = detectLang()) {
         ? ['Tap Share (the square with an arrow) in Safari.', 'Choose “Add to Home Screen”, then “Add”.', `Open ${name} from its new icon.`]
         : ['點 Safari 的「分享」（方框加箭頭）。', '選「加入主畫面」，再點「新增」。', `從主畫面的新圖示打開 ${name}。`]
       : en
-        ? ['Tap ⋮ at the top right of Chrome.', 'Choose “Add to Home screen” (or “Install app”).', `Open ${name} from its new icon.`]
-        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」或「安裝應用程式」。', `從主畫面的新圖示打開 ${name}。`];
+        ? ['Tap ⋮ at the top right of Chrome.', 'Choose “Add to Home screen”, then “Install” (not “Create shortcut”).', `Open ${name} from its new icon. If an icon only shows this page again, remove it and add ${name} again with “Install”.`]
+        : ['點 Chrome 右上角的 ⋮。', '選「加入主畫面」，再選「安裝」（不要選「建立捷徑」）。', `從主畫面的新圖示打開 ${name}。如果圖示打開又是這一頁，請刪掉那個圖示，重新加入並選「安裝」。`];
+  // (Chrome's "Add to home screen" asks Install or Create shortcut; a
+  // shortcut opens in the browser, so it lands on this page again.)
+  installButton = isIOS() || inAppBrowser()
+    ? null
+    : node('button', {
+        class: 'q-btn primary block',
+        type: 'button',
+        hidden: !installPrompt,
+        text: en ? `Install ${name}` : `安裝 ${name}`,
+        onclick: async () => {
+          const ask = installPrompt;
+          if (!ask) return;
+          installPrompt = null;
+          installButton.hidden = true;
+          ask.prompt();
+          try {
+            await ask.userChoice;
+          } catch {}
+        }
+      });
   const gate = node('dialog', { class: 'q-gate q-install', 'aria-modal': 'true' }, [
     node('div', { class: 'q-gate-box' }, [
       node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
@@ -1888,7 +1942,8 @@ export function installGate(lang = detectLang()) {
         'ol',
         { class: 'q-steps' },
         steps.map(t => node('li', { text: t }))
-      )
+      ),
+      installButton
     ])
   ]);
   keepOnTop(gate);
@@ -2166,6 +2221,24 @@ function watchKeyboard() {
     root.style.setProperty('--q-kb', `${held ? held.keys : 0}px`);
     root.style.setProperty('--q-vvh', `${held ? held.vvh : Math.round(vv.height)}px`);
     root.classList.toggle('q-kb', up);
+    // The keys gone, the foot left behind: iOS 26 can keep the frame that
+    // fixed bars sit in where the keys had it (the page's height still
+    // shrunk, or the visible part still slid down: WebKit 297779), and the
+    // tab bar and what floats on it hang mid-screen over the page while it
+    // scrolls under and past them (Jay 2026-10-29, Transit 我的: the trip
+    // bar and the tabs over 釘選). --q-foot-gap is how far that frame's foot
+    // is above the screen's; core.css moves the foot's bars down by it.
+    // (Only right after the keys were up, and only what the visible part
+    // shows: measured against the whole screen, an installed app whose page
+    // starts under the status bar read that bar as a gap, and coming back to
+    // the app the tab bar was pushed off the foot, Jay 2026-10-29.)
+    if (up) keysWere = true;
+    const gap = up || !keysWere ? 0 : footGap();
+    if (!up && !gap) keysWere = false;
+    if (gap && !wasGap) unstick();
+    wasGap = gap > 0;
+    root.style.setProperty('--q-foot-gap', `${gap}px`);
+    root.classList.toggle('q-foot-stuck', gap > 0);
     for (const d of document.querySelectorAll('.q-kb-docked')) if (!up || !d.contains(document.activeElement)) d.classList.remove('q-kb-docked');
     // (Lifted once per field and keys, never on the scrolls and resizes it causes itself.)
     if (held?.lift) {
@@ -2178,6 +2251,16 @@ function watchKeyboard() {
     }
   };
   const unslide = () => globalThis.scrollTo?.(globalThis.scrollX, Math.max(0, globalThis.scrollY - vv.offsetTop));
+  // (The screen's foot: what the visible part reaches.)
+  const footGap = () => {
+    if (root.dataset.qTurn) return 0;
+    const gap = Math.round(vv.offsetTop + vv.height - globalThis.innerHeight);
+    // (A few px is rounding; more than half the screen is not this.)
+    return gap > 8 && gap < globalThis.innerHeight ? gap : 0;
+  };
+  // (Asked once as it starts: a scroll to where the page already is makes iOS lay its frame out again, and the gap often closes by itself.)
+  const unstick = () => setTimeout(() => (globalThis.scrollTo?.(globalThis.scrollX, globalThis.scrollY), soon()), 0);
+  let wasGap = false, keysWere = false;
   let held = null;
   // The field in what's left above the keys. One in a bar fixed at the
   // foot (a composer, a stake bar) rides on the keys with its bar; any
@@ -2228,6 +2311,9 @@ function watchKeyboard() {
   globalThis.addEventListener?.('resize', soon);
   document.addEventListener('focusin', () => setTimeout(soon, 60));
   document.addEventListener('focusout', () => setTimeout(soon, 60));
+  // (Back in the app: measured again.)
+  document.addEventListener('visibilitychange', () => document.hidden || soon());
+  globalThis.addEventListener?.('pageshow', soon);
   apply();
 }
 watchKeyboard();
@@ -3472,22 +3558,42 @@ function breakSeconds(summary, own, seconds, mandatory) {
 }
 export function watchBreak(key, { seconds, read, test = /./, play = '', mandatory = null }) {
   key = String(key);
+  // The beat on first, whatever's known: a break's end kept from before (the
+  // app opened again mid-break) never started it, and its countdown moved
+  // only when the list was drawn again, every few seconds.
+  halftimeBeat();
   if (!seconds || halftimeEnds.has(key) || Date.now() - (halftimeAsked.get(key) || 0) < 20_000) return halftimeEnd(key);
   halftimeAsked.set(key, Date.now());
-  Promise.resolve()
-    .then(read)
-    .then(summary => {
-      const status = summary?.header?.competitions?.[0]?.status?.type || {};
-      const own = play ? [...(summary?.plays || []), ...(summary?.drives?.current?.plays || []), ...(summary?.drives?.previous || []).flatMap(d => d?.plays || [])].find(p => String(p?.id) === String(play)) : null;
-      const start = own ? Date.parse(own.wallclock || '') : play ? null : halftimeStartOf(summary);
-      if (!Number.isFinite(start) || !start || (!play && !test.test(`${status.name || ''} ${status.shortDetail || ''}`.trim()) && !test.test(status.shortDetail || ''))) return;
-      halftimeEnds.set(key, start + breakSeconds(summary, own, seconds, mandatory) * 1000);
-      try {
-        localStorage.setItem(HALFTIME_KEY, JSON.stringify(Object.fromEntries(halftimeEnds)));
-      } catch {}
-      halftimeBeat();
-    })
-    .catch(() => {});
+  // Not found yet (the summary a step behind the list: a half ended on a
+  // review still read "End of 2nd Quarter"): asked again 20 s on by itself
+  // while the break is on screen, up to 5 minutes. (It waited for the list
+  // to be drawn again, and a half-time's list, nothing moving, never was:
+  // Rockets at Spurs, 2026-10-23, 中場休息 with no countdown.)
+  const again = n => {
+    if (halftimeEnds.has(key) || n >= 15 || typeof document === 'undefined' || !document.querySelector(`[data-halftime="${CSS.escape(key)}"]`)) return;
+    setTimeout(() => {
+      halftimeAsked.set(key, Date.now());
+      ask(n + 1);
+    }, 20_000);
+  };
+  const ask = n =>
+    Promise.resolve()
+      .then(read)
+      .then(summary => {
+        const status = summary?.header?.competitions?.[0]?.status?.type || {};
+        const own = play ? [...(summary?.plays || []), ...(summary?.drives?.current?.plays || []), ...(summary?.drives?.previous || []).flatMap(d => d?.plays || [])].find(p => String(p?.id) === String(play)) : null;
+        // Never after now: a game's feed can stamp its plays minutes ahead (Clippers at Lakers, 2026-10-23: 2:37), a 暫停 5:54.
+        const stamped = own ? Date.parse(own.wallclock || '') : play ? null : halftimeStartOf(summary);
+        const start = stamped && Math.min(stamped, Date.now());
+        if (!Number.isFinite(start) || !start || (!play && !test.test(`${status.name || ''} ${status.shortDetail || ''}`.trim()) && !test.test(status.shortDetail || ''))) return again(n);
+        halftimeEnds.set(key, start + breakSeconds(summary, own, seconds, mandatory) * 1000);
+        try {
+          localStorage.setItem(HALFTIME_KEY, JSON.stringify(Object.fromEntries(halftimeEnds)));
+        } catch {}
+        halftimeBeat();
+      })
+      .catch(() => again(n));
+  ask(0);
   halftimeBeat();
   return null;
 }

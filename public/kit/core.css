@@ -6,11 +6,23 @@
    controls, deep concentric corners, and springs for every movement
    (SwiftUI's smooth, snappy and bouncy, as CSS linear()). The app builds on
    these tokens and the q- components (kit/ui.mjs makes the ones that move). */
+@font-face {
+  font-family: 'Q Han';
+  src: local('PingFangTC-Regular'), local('PingFang TC'), local('Noto Sans TC'), local('Noto Sans CJK TC');
+  font-weight: 100 549;
+  unicode-range: U+2E80-2FFF, U+3000-303F, U+3100-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'Q Han';
+  src: local('PingFangTC-Semibold'), local('PingFang TC Semibold'), local('Noto Sans TC Bold'), local('NotoSansCJKtc-Bold');
+  font-weight: 550 1000;
+  unicode-range: U+2E80-2FFF, U+3000-303F, U+3100-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
 :root {
   /* San Francisco (and PingFang for Chinese) on Apple's devices; the
      nearest system face elsewhere. Rounded for big numbers. */
   --q-font: -apple-system, BlinkMacSystemFont, system-ui, 'SF Pro Text', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe UI', sans-serif;
-  --q-font-rounded: ui-rounded, 'SF Pro Rounded', var(--q-font);
+  --q-font-rounded: 'Q Han', ui-rounded, 'SF Pro Rounded', var(--q-font);
   --q-font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* The iOS 26/27 palette, light. */
@@ -513,6 +525,9 @@ button,
   text-decoration: none;
   cursor: pointer;
   transition: transform var(--q-dur-snappy) var(--q-spring-snappy), background-color 0.2s, opacity 0.2s, color 0.2s;
+}
+.q-btn[hidden] {
+  display: none;
 }
 .q-btn:is(:active, [data-q-press]):not(:disabled) {
   transform: scale(0.96);
@@ -1352,7 +1367,7 @@ dialog.q-sheet.q-full {
 
 /* ---- Sections and cards on the page ---- */
 .q-section {
-  margin: 28px 0 0;
+  margin: var(--q-s-5) 0 0;
 }
 .q-section-head {
   display: flex;
@@ -1365,7 +1380,7 @@ dialog.q-sheet.q-full {
   margin: 0;
   overflow: hidden;
   font: var(--q-t-title3);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -2744,6 +2759,7 @@ html[data-q-turn] dialog[open] {
   margin: 0 0 2px;
   color: var(--q-label-2);
   font: 600 13px/18px var(--q-font);
+  letter-spacing: 0.02em;
 }
 .q-page-head .q-over.tint {
   color: var(--q-accent);
@@ -2932,7 +2948,7 @@ html[data-q-turn] dialog[open] {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: var(--q-r-card);
   background: var(--q-surface);
   list-style: none;
 }
@@ -3022,6 +3038,17 @@ div.q-ritem {
   color: var(--q-label-2);
   font: 600 12px/1 var(--q-font);
   white-space: nowrap;
+}
+/* A plain tag (no colour, nothing of the app's on it) is a fact: grey text,
+   no capsule (docs/DESIGN.md §6). The coloured ones, the exceptions, keep theirs. */
+.q-tag:is([class='q-tag'], [class='q-tag '], [class='q-tag num'], .gray) {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  font: 500 13px/18px var(--q-font);
+  /* A fact is text: a long one wraps instead of running off the screen. */
+  white-space: normal;
+  max-width: 100%;
 }
 .q-tag:is(.green, .red, .orange, .indigo, .blue, .tint) {
   background: color-mix(in srgb, var(--t) 16%, transparent);
@@ -3182,7 +3209,7 @@ div.q-ritem {
   gap: 6px;
   min-width: 0;
   padding: 14px 16px;
-  border-radius: 20px;
+  border-radius: var(--q-r-card);
   background: var(--q-surface);
   color: var(--q-label);
   text-decoration: none;
@@ -3241,7 +3268,7 @@ div.q-ritem {
   padding: 0 4px 10px;
 }
 .q-section-head.q-shd h2 {
-  font: 700 20px/1.2 var(--q-font);
+  font: 600 20px/1.2 var(--q-font);
   text-overflow: clip;
 }
 .q-sh-count {
@@ -4216,7 +4243,7 @@ button.q-cal-d {
   gap: 4px;
   min-width: 0;
   padding: 14px 16px;
-  border-radius: 20px;
+  border-radius: var(--q-r-card);
   background: var(--q-surface);
   color: var(--q-label);
 }
@@ -4376,20 +4403,18 @@ button.q-cal-d {
   font-weight: 500;
 }
 .q-panel-lv {
+  /* (A level is a fact: grey text, no capsule; up/down colour it with meaning. docs/DESIGN.md §6) */
   flex: none;
   margin-inline-start: auto;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--t) 16%, transparent);
-  color: var(--t);
-  font: var(--q-t-caption2);
-  font-weight: 600;
+  color: var(--q-label-2);
+  font: var(--q-t-caption);
+  font-weight: 500;
 }
 .q-panel-lv.up {
-  --t: var(--q-up);
+  color: var(--q-up);
 }
 .q-panel-lv.down {
-  --t: var(--q-down);
+  color: var(--q-down);
 }
 .q-panel-row {
   display: flex;
@@ -4467,6 +4492,13 @@ html.q-kb .q-gate:focus-within :is(.q-gate-brand, .q-gate-lede) {
 /* The tab bar waits behind the keys, not floating on them. */
 html.q-kb .q-tabbar {
   visibility: hidden;
+}
+/* The keys gone but the fixed bars' frame left short (core.mjs watchKeyboard,
+   --q-foot-gap): the bars at the foot moved down to the screen's foot.
+   (translate, apart from their own transform; an app marks its own foot
+   bars .q-foot.) */
+html.q-foot-stuck :is(.q-tabbar, .q-accessory, .q-toast, .q-net, .q-foot) {
+  translate: 0 var(--q-foot-gap);
 }
 /* A bar that belongs on top of the keys (a composer, a search's results bar). */
 html.q-kb .q-kb-dock {

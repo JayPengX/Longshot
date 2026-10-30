@@ -65,7 +65,18 @@ export function tick() {
 //   days' ends unless given; null: none); follow: every new day to the middle, a tapped
 //   one too; pickLabel: 📅's name; lang: 'zh' | 'en' (the page's).
 // Returns the strip (.q-day-strip-wrap) to put in the bar.
-const dayLang = lang => lang || (/^en/i.test(globalThis.document?.documentElement?.lang || '') ? 'en' : 'zh');
+// (The page's lang, else the language saved in the app: the kit's own words follow it.)
+const pageLang = () => {
+  const html = globalThis.document?.documentElement?.lang || '';
+  if (html) return /^en/i.test(html) ? 'en' : 'zh';
+  try {
+    return globalThis.localStorage?.getItem('longshot.lang') === 'en' ? 'en' : 'zh';
+  } catch {
+    return 'zh';
+  }
+};
+const dayLang = lang => lang || pageLang();
+const kitW = (zh, en) => (pageLang() === 'en' ? en : zh);
 // Taiwan's today, 'YYYY-MM-DD'.
 export const dayToday = () => twDay(Date.now());
 // A chip's top line: 今天 / 明天 / 昨天, else the weekday (週三, Wed).
@@ -212,13 +223,17 @@ export function daySwipe(panel, step) {
   if (!panel) return;
   panel.classList.add('q-day-swipe');
   let start = null;
+  // What a finger lands on: true (its own swipe: a field, a chip row), a
+  // box scrolling sideways (its swipe while it can go that way; at its edge
+  // the page's: a bracket's first round, swiped right, goes back a tab), or null.
   const sideways = node => {
     for (let n = node; n && n !== panel; n = n.parentElement) {
       if (n.matches?.('input, select, textarea, .q-seg, .q-day-bar, .day-bar, [data-noswipe]')) return true;
-      if (n.scrollWidth > n.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
+      if (n.scrollWidth > n.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return n;
     }
-    return false;
+    return null;
   };
+  const canScroll = (n, dx) => (dx < 0 ? n.scrollLeft + n.clientWidth < n.scrollWidth - 2 : n.scrollLeft > 2);
   const settle = () => {
     panel.classList.remove('swiping');
     panel.style.removeProperty('--swipe');
@@ -226,13 +241,14 @@ export function daySwipe(panel, step) {
   panel.addEventListener('touchstart', ev => {
     // (Not under a sheet: one open over the page has the finger; a panel inside that sheet swipes.)
     const over = [...document.querySelectorAll('dialog[open]')].some(d => !d.contains(panel));
-    start = ev.touches.length === 1 && !over && !sideways(ev.target) ? { x: ev.touches[0].clientX, y: ev.touches[0].clientY, at: Date.now(), lock: null } : null;
+    const box = ev.touches.length === 1 && !over ? sideways(ev.target) : true;
+    start = box !== true ? { x: ev.touches[0].clientX, y: ev.touches[0].clientY, at: Date.now(), lock: null, box } : null;
   }, { passive: true });
   panel.addEventListener('touchmove', ev => {
     if (!start) return;
     const dx = ev.touches[0].clientX - start.x;
     const dy = ev.touches[0].clientY - start.y;
-    if (start.lock == null && Math.hypot(dx, dy) > 10) start.lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+    if (start.lock == null && Math.hypot(dx, dy) > 10) start.lock = Math.abs(dx) > Math.abs(dy) * 1.3 && !(start.box && canScroll(start.box, dx)) ? 'x' : 'y';
     if (start.lock !== 'x') return;
     ev.preventDefault();
     panel.classList.add('swiping');
@@ -322,16 +338,27 @@ export function pickSeg(options, current, onPick, { cls = '', chips = false, seg
   const list = options.map(o => (Array.isArray(o) ? { id: o[0], label: o[1], count: o[2] } : o));
   const few = !chips && (list.length <= 4 || (seg && list.length <= 7));
   const attrs = { class: `${few ? 'q-seg' : 'q-chips'} ${cls}`.trim(), role: 'group', ...(label ? { 'aria-label': label } : {}) };
+  // (The pick kept here as it changes: a row the app doesn't draw again on
+  // a pick still shows it, and a tap back on the first one isn't ignored.)
+  let now = current;
+  const pick = id => {
+    if (id === now) return;
+    now = id;
+    buttons.forEach((b, i) => b.setAttribute('aria-pressed', String(list[i].id === id)));
+    if (few) root.style.setProperty('--q-seg-i', String(at(id)));
+    onPick(id);
+  };
   const buttons = list.map(o =>
-    h('button', { type: 'button', ...(few ? {} : { class: 'q-chip' }), 'aria-pressed': String(o.id === current), onclick: () => o.id !== current && onPick(o.id) }, [o.label, segBadge(o.count)])
+    h('button', { type: 'button', ...(few ? {} : { class: 'q-chip' }), 'aria-pressed': String(o.id === current), onclick: () => pick(o.id) }, [o.label, segBadge(o.count)])
   );
-  if (!few) return h('div', attrs, buttons);
+  let root = null;
+  if (!few) return (root = h('div', attrs, buttons));
   const key = `${cls}:${list.map(o => o.id).join('|')}`;
   const at = id => Math.max(0, list.findIndex(o => o.id === id));
   const from = lastPicks.has(key) ? lastPicks.get(key) : current;
   lastPicks.set(key, current);
   const to = String(at(current));
-  const root = h('div', { ...attrs, style: `--q-seg-n:${list.length};--q-seg-i:${at(from)}`, 'data-to': to }, buttons);
+  root = h('div', { ...attrs, style: `--q-seg-n:${list.length};--q-seg-i:${at(from)}`, 'data-to': to }, buttons);
   // (Not in the page yet: no slide, straight to the pick.)
   queueMicrotask(() => {
     if (root.isConnected) return settleSegs(root.parentNode);
@@ -389,7 +416,7 @@ export function bindSheet(d, { onClose = () => {} } = {}) {
   });
   return shut;
 }
-export function sheet({ title = '', body = [], onClose = () => {}, cls = '', lead = null, trailing = null, detent = '', foot = null, closeLabel = '關閉', label = '', subtitle = '' } = {}) {
+export function sheet({ title = '', body = [], onClose = () => {}, cls = '', lead = null, trailing = null, detent = '', foot = null, closeLabel = kitW('關閉', 'Close'), label = '', subtitle = '' } = {}) {
   const d = h('dialog', { class: `q-sheet ${cls}`.trim(), 'aria-label': label || (typeof title === 'string' ? title : '') || null });
   if (foot) d.classList.add('q-has-foot');
   if (DETENTS.includes(detent)) {
@@ -512,10 +539,10 @@ export function list(rows, { head = '', foot = '', big = false } = {}) {
 }
 
 // ---- Search field ----
-export function search({ placeholder = '搜尋', value = '', onInput = () => {}, onSubmit = null, label = placeholder } = {}) {
+export function search({ placeholder = kitW('搜尋', 'Search'), value = '', onInput = () => {}, onSubmit = null, label = placeholder } = {}) {
   const input = h('input', { type: 'search', placeholder, 'aria-label': label, enterkeyhint: 'search', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false' });
   input.value = value;
-  const clear = h('button', { class: 'q-search-clear', type: 'button', 'aria-label': '清除', text: '✕', onclick: () => ((input.value = ''), input.focus(), onInput('')) });
+  const clear = h('button', { class: 'q-search-clear', type: 'button', 'aria-label': kitW('清除', 'Clear'), text: '✕', onclick: () => ((input.value = ''), input.focus(), onInput('')) });
   input.addEventListener('input', () => onInput(input.value));
   if (onSubmit) input.addEventListener('keydown', e => e.key === 'Enter' && onSubmit(input.value));
   const box = h('label', { class: 'q-search' }, [input, clear]);
