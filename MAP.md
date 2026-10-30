@@ -120,8 +120,12 @@ admin pass, once; after that it signs in with it).
 `public/kit/core.mjs` (`passSession`, the sign-in screen), `kit/pass.mjs` (the
 account sheet: 帳戶 and 真相), the Worker's `/pass` (`worker/pass.js`).
 
-- Open sign-up (開新帳號, rate-limited); a 10-character 通行碼 is the only key,
-  shown once. Sign out others, a new 通行碼, sign out here.
+- Passes are handed out on the admin page; a 10-character 通行碼, shown once.
+  Sign out others, a new 通行碼, sign out here.
+- Also signs in: a passkey (Face ID, Touch ID, Windows Hello; `worker/passkey.js`,
+  `webauthn.js`, `kit/passkey.mjs`; RP ID longshot.jaypengx.com, Longshot's
+  alone, up to 10 per Pass, listed and removable in the 帳戶 sheet), and a
+  device code (8 characters, 10 minutes, once) from 帳戶 › 新增裝置.
 - Money, sized like a real 運彩 customer's budget so a loss is felt and
   nothing invites chasing it: NT$30,000 to open, NT$10,000 on the 1st of each
   month (Taiwan time), paid by the Worker. Broke waits for the 1st (no relief

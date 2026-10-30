@@ -126,3 +126,33 @@ export function sessionLimited(sid, limit, windowMs = 60_000, now = Date.now()) 
   c.n++;
   return c.n > limit;
 }
+
+// ---- Sealed: a short-lived note only this Worker can read -----------------------
+//
+// A passkey's challenge (passkey.js) goes out sealed (AES-GCM under a key
+// from the same secret) and comes back with the passkey's answer: nothing is
+// stored until a passkey is made or used.
+async function sealKey(secret) {
+  const raw = await crypto.subtle.digest('SHA-256', enc.encode(`longshot-seal:${secret}`));
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+export async function seal(secret, data) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await sealKey(secret), enc.encode(JSON.stringify(data))));
+  const out = new Uint8Array(iv.length + ct.length);
+  out.set(iv);
+  out.set(ct, iv.length);
+  return b64url(out);
+}
+
+export async function unseal(secret, text) {
+  if (!secret || typeof text !== 'string' || text.length > 512) return null;
+  try {
+    const bytes = unb64url(text);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0, 12) }, await sealKey(secret), bytes.slice(12));
+    return JSON.parse(new TextDecoder().decode(plain));
+  } catch {
+    return null;
+  }
+}

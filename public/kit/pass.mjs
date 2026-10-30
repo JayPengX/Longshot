@@ -1,10 +1,12 @@
 // The account sheet (the account button; accountSheet in core.mjs opens it,
 // loaded the first time). Two tabs:
 //   帳戶   the Longshot Pass: the balance and its latest entries, the monthly
-//          deposit, security, the debug log
+//          deposit, devices (a device code), passkeys, security, the debug log
 //   真相   how the house earns, in real numbers, and this account's own
 //          record (truth.mjs)
 import { money, describeEntry, nextPayday, MONTHLY, showNewPass, recRows, ask, errorText, el } from './core.mjs';
+import { passkeyHere, passkeyName, makePasskey, forgetPasskey, cancelled } from './passkey.mjs';
+import { icons } from './ui.mjs';
 import { PLAY, houseKeep, scratchBacks, record } from './truth.mjs';
 import { sheet, section, segmented } from './ui.mjs';
 
@@ -17,6 +19,24 @@ export const STRINGS = {
     monthly: '每月 1 日存入 {v}，下次 {date}',
     latest: '最近明細',
     noEntries: '還沒有明細',
+    devices: '裝置',
+    deviceAdd: '新增裝置（取得裝置代碼）',
+    deviceLabel: '裝置代碼',
+    deviceLeft: '{n} 分鐘內有效，只能用一次',
+    deviceHow: '在另一台裝置的登入畫面輸入這組代碼',
+    passkeys: '通行密鑰',
+    passkeysSub: '用 Face ID、Touch ID 或 Windows Hello 登入，不必輸入通行碼；通行碼照樣能用。',
+    passkeyAdd: '加入通行密鑰',
+    passkeyAnother: '再加一個通行密鑰',
+    passkeyAdded: '已加入通行密鑰，下次可以直接用它登入。',
+    passkeyHere: '這台裝置已經有這個 Longshot Pass 的通行密鑰。',
+    passkeyWhen: '{date} 加入',
+    passkeyUsed: '上次使用 {date}',
+    passkeyNever: '還沒用過',
+    passkeyRemove: '移除',
+    passkeyRemoveAsk: '移除這個通行密鑰？',
+    passkeyRemoveBody: '「{name}」就不能再登入這個 Longshot Pass。通行碼和其他通行密鑰照常可用。',
+    passkeyRemoved: '已移除通行密鑰。',
     security: '帳戶安全',
     signOutOthers: '登出其他所有裝置',
     signOutOthersAsk: '登出其他所有裝置？',
@@ -61,6 +81,24 @@ export const STRINGS = {
     monthly: '{v} on the 1st of each month; next on {date}',
     latest: 'Latest entries',
     noEntries: 'No entries yet',
+    devices: 'Devices',
+    deviceAdd: 'Add a device (get a device code)',
+    deviceLabel: 'Device code',
+    deviceLeft: 'Valid {n} more min, once',
+    deviceHow: 'Enter it on the other device’s sign-in screen',
+    passkeys: 'Passkeys',
+    passkeysSub: 'Sign in with Face ID, Touch ID or Windows Hello instead of typing your pass. Your pass still works.',
+    passkeyAdd: 'Add a passkey',
+    passkeyAnother: 'Add another passkey',
+    passkeyAdded: 'Passkey added: next time, sign in with it.',
+    passkeyHere: 'This device already has a passkey for this Longshot Pass.',
+    passkeyWhen: 'Added {date}',
+    passkeyUsed: 'last used {date}',
+    passkeyNever: 'not used yet',
+    passkeyRemove: 'Remove',
+    passkeyRemoveAsk: 'Remove this passkey?',
+    passkeyRemoveBody: '“{name}” will no longer sign in to this Longshot Pass. Your pass and other passkeys still work.',
+    passkeyRemoved: 'Passkey removed.',
     security: 'Security',
     signOutOthers: 'Sign out every other device',
     signOutOthersAsk: 'Sign out every other device?',
@@ -133,6 +171,101 @@ export function openPass(s, { tab = 'pass' } = {}) {
         }
       }
     });
+  // A device code, counting down while the sheet is open.
+  const device = el('div', { class: 'q-device', hidden: true });
+  let tick = 0;
+  const showCode = ({ code, exp }) => {
+    clearInterval(tick);
+    const left = el('span', { class: 'q-device-left' });
+    const paintLeft = () => {
+      const ms = exp - Date.now();
+      if (ms <= 0 || !device.isConnected) {
+        clearInterval(tick);
+        device.hidden = true;
+        return;
+      }
+      left.textContent = t('deviceLeft', { n: Math.ceil(ms / 60_000) });
+    };
+    device.replaceChildren(el('span', { class: 'q-device-label', text: t('deviceLabel') }), el('strong', { class: 'q-device-code num', text: `${code.slice(0, 4)}-${code.slice(4)}` }), left, el('span', { class: 'q-device-how', text: t('deviceHow') }));
+    device.hidden = false;
+    paintLeft();
+    tick = setInterval(paintLeft, 15_000);
+  };
+  // 通行密鑰: every passkey of the account (who keeps it, when added and last
+  // used), each removable, and a button to add one where this browser can.
+  // Shown also where it can't, once there are some.
+  const dayOf = x => new Date(x).toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-TW', { month: 'short', day: 'numeric' });
+  const keysOf = () => (Array.isArray(s.wallet?.passkeys) ? s.wallet.passkeys : []);
+  function passkeyRows() {
+    const here = passkeyHere();
+    // (The challenge asked for ahead of the tap: Safari takes the request only during it.)
+    let begin = null;
+    let asking = null;
+    const ask_ = () => (asking ||= s.passkeyAddBegin().then(b => (begin = b)).finally(() => (asking = null)));
+    const fresh = () => (begin && begin.exp - Date.now() > 30_000 ? begin : null);
+    const box = el('div', { class: 'q-rows q-passkeys' });
+    const head = el('h3', { class: 'q-sheet-h', text: t('passkeys') });
+    const sub = el('p', { class: 'q-sheet-sub', text: t('passkeysSub') });
+    const paint = () => {
+      const keys = keysOf();
+      head.hidden = box.hidden = sub.hidden = !here && !keys.length;
+      box.replaceChildren(
+        ...keys.map(k =>
+          el('div', { class: 'q-cell' }, [
+            el('span', { class: 'q-cell-icon', style: '--q-cell-tint:#0a84ff', html: icons.key || '' }),
+            el('span', { class: 'q-cell-text' }, [el('span', { text: passkeyName(k, s.lang) }), el('small', { text: [t('passkeyWhen', { date: dayOf(k.t) }), k.used ? t('passkeyUsed', { date: dayOf(k.used) }) : t('passkeyNever')].join(' · ') })]),
+            el('button', {
+              class: 'q-cell-act danger',
+              type: 'button',
+              text: t('passkeyRemove'),
+              onclick: async event => {
+                const b = event.currentTarget;
+                if (!(await ask({ lang: s.lang, icon: '🔑', title: t('passkeyRemoveAsk'), body: t('passkeyRemoveBody', { name: passkeyName(k, s.lang) }), ok: t('passkeyRemove'), danger: true }))) return;
+                b.disabled = true;
+                try {
+                  await s.passkeyRemove(k.id);
+                  forgetPasskey(k.id);
+                  note.textContent = t('passkeyRemoved');
+                  paint();
+                } catch (e) {
+                  b.disabled = false;
+                  note.textContent = errorText(e, s.lang);
+                }
+              }
+            })
+          ])
+        ),
+        here
+          ? el('button', {
+              class: 'q-row-btn',
+              type: 'button',
+              text: keys.length ? t('passkeyAnother') : t('passkeyAdd'),
+              disabled: keys.length >= 10,
+              onclick: async event => {
+                const b = event.currentTarget;
+                b.disabled = true;
+                note.textContent = '';
+                try {
+                  const got = fresh() || (await ask_());
+                  await s.passkeyAdd(got.challenge, await makePasskey(got));
+                  note.textContent = t('passkeyAdded');
+                  paint();
+                } catch (e) {
+                  ask_().catch(() => {});
+                  if (e?.name === 'InvalidStateError') note.textContent = t('passkeyHere');
+                  else if (!cancelled(e)) note.textContent = errorText(e, s.lang);
+                } finally {
+                  b.disabled = false;
+                }
+              }
+            })
+          : null
+      );
+    };
+    paint();
+    if (here) ask_().catch(() => {});
+    return [head, box, sub];
+  }
   function account() {
     const w = s.wallet || {};
     const date = x => new Date(x).toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -153,6 +286,9 @@ export function openPass(s, { tab = 'pass' } = {}) {
           ? el('ul', { class: 'q-card list q-recent' }, recent.map(e => el('li', {}, [el('span', { class: 'q-recent-when num', text: short(e.t) }), el('span', { class: 'q-recent-what', text: describeEntry(e, locale) }), el('strong', { class: `num ${e.amount < 0 ? 'down' : 'up'}`, text: money(e.amount, { sign: true }) })])))
           : el('p', { class: 'muted', text: t('noEntries') })
       ),
+      el('h3', { class: 'q-sheet-h', text: t('devices') }),
+      el('div', { class: 'q-rows' }, [act(t('deviceAdd'), async () => showCode(await s.deviceCode())), device]),
+      ...passkeyRows(),
       el('h3', { class: 'q-sheet-h', text: t('security') }),
       el('div', { class: 'q-rows' }, [
         act(t('signOutOthers'), async () => {

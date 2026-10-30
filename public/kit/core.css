@@ -1336,6 +1336,22 @@ dialog.q-sheet.q-full {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.q-cell-act {
+  flex: none;
+  min-height: 34px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--q-accent);
+  font: var(--q-t-body);
+  cursor: pointer;
+}
+.q-cell-act.danger {
+  color: var(--q-red);
+}
+.q-cell-act:disabled {
+  opacity: 0.4;
+}
 .q-cell.chevron::after,
 .q-row-btn.chevron::after {
   content: '';
@@ -2286,12 +2302,59 @@ dialog.q-moved::backdrop {
   clip-path: inset(50%);
   opacity: 0;
 }
+/* Or a passkey: under the form, as Sign in with Apple sits under a login. */
+.q-gate-or {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.q-gate-or-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--q-muted);
+  font-size: 12.5px;
+}
+.q-gate-or-line::before,
+.q-gate-or-line::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--q-border);
+}
+.q-passkey-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.q-passkey-btn svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
 .q-gate-error {
   min-height: 1em;
   margin: 0;
   color: var(--q-bad);
   font-size: 13px;
 }
+
+/* ---- A device code (the Pass sheet's 新增裝置) ---- */
+.q-device {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--q-radius-sm);
+  background: var(--q-accent-wash);
+  border: 1px solid color-mix(in srgb, var(--q-accent) 25%, transparent);
+  text-align: center;
+}
+.q-device[hidden] { display: none; }
+.q-device-label { font-size: 12px; font-weight: 700; color: var(--q-muted); }
+.q-device-code { font-size: 30px; font-weight: 800; letter-spacing: 0.12em; color: var(--q-text); }
+.q-device-left { font-size: 12px; font-weight: 700; color: var(--q-accent); }
+.q-device-how { font-size: 12px; color: var(--q-text-2); line-height: 1.45; }
 .q-gate-error:empty {
   display: none;
 }

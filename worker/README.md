@@ -8,7 +8,7 @@ Kit modules are imported as `#kit/<file>`, which package.json maps to `public/ki
 
 | Path | Module | What it does |
 |---|---|---|
-| `/pass` | pass.js | The Longshot Pass: create, login, refresh, GET/PATCH/DELETE (`qt`), signout-all, rotate. One session serves app `odds` (Play) and app `slip` (Slips). |
+| `/pass` | pass.js | The Longshot Pass: create, login, refresh, GET/PATCH/DELETE (`qt`), signout-all, rotate, device codes (pair-create/redeem), passkeys (passkey.js: passkey-begin/login/add-begin/add/remove). One session serves app `odds` (Play) and app `slip` (Slips). |
 | `/play` | settle.js, price.js, lotto.js | Slips placed, settled and acknowledged; the lottery and scratch cards. A localhost page may `check` a slip without a pass. |
 | `/kambi` | kambi.js | Kambi matches watched for settling. Needs a session. |
 | `/slip-scan` | slip.js | A 台灣運彩 ticket photo read by Gemini. Answers 503 MISSING_API_KEY without the key. |

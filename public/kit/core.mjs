@@ -15,6 +15,7 @@
 import { icons, tile, pullToRefresh, setSheetDetent, segmented, h as node } from './ui.mjs';
 import { twDay } from './format.mjs';
 import { fitNumbers, watchFit } from './fit.mjs';
+import { passkeyHere, deviceName, usePasskey, forgetPasskey, cancelled } from './passkey.mjs';
 export { fitNumbers, watchFit };
 
 export const WORKER = 'https://longshot.pengzjay.workers.dev';
@@ -63,6 +64,8 @@ export const pick = (lang, zh, en) => (lang === 'en' ? en : zh);
 // ---- Codes ---------------------------------------------------------------------------
 
 export const PASS_PATTERN = /^[2-9A-HJ-NP-Z]{10}$/;
+// A device code (the Pass sheet's 新增裝置): 8 characters, 10 minutes, once.
+export const DEVICE_CODE_PATTERN = /^[2-9A-HJ-NP-Z]{8}$/;
 export function cleanCode(text) {
   return String(text || '')
     .toUpperCase()
@@ -1137,7 +1140,7 @@ function makeSession(app, { lang, heartbeat }) {
 
   // Every way of signing in ends here: a refresh token for this device.
   const signIn = body => claimed(call('POST', '', { ...body, app }).then(res => absorb({ ...res, active: true })));
-  const login = code => signIn({ op: 'login', passcode: cleanCode(code) });
+  const login = code => signIn(DEVICE_CODE_PATTERN.test(cleanCode(code)) ? { op: 'pair-redeem', code: cleanCode(code) } : { op: 'login', passcode: cleanCode(code) });
   // A session from the device's refresh token (claim: make this app live).
   // One at a time: a data fetch that needs a token while the start's sign-in
   // is on its way waits for that one (not a second call to the Worker).
@@ -1239,6 +1242,15 @@ function makeSession(app, { lang, heartbeat }) {
       absorb(res);
       return res.passcode;
     });
+  // A device code: sign in on another device within 10 minutes, once.
+  s.deviceCode = () => withToken(qt => call('POST', '', { op: 'pair-create', qt }));
+  // Passkeys (passkey.mjs makes and uses them; the Worker checks): a
+  // challenge first (fetched ahead of the tap), then the key's answer.
+  s.passkeyBegin = () => call('POST', '', { op: 'passkey-begin' });
+  s.passkeyLogin = (challenge, credential) => signIn({ op: 'passkey-login', challenge, credential });
+  s.passkeyAddBegin = () => withToken(qt => call('POST', '', { op: 'passkey-add-begin', qt }));
+  s.passkeyAdd = (challenge, credential) => withToken(qt => call('POST', '', { op: 'passkey-add', qt, challenge, credential, device: deviceName() })).then(absorb);
+  s.passkeyRemove = id => withToken(qt => call('POST', '', { op: 'passkey-remove', qt, id })).then(absorb);
   // (The heartbeat's read every 2 minutes: the whole wallet, up to hundreds
   // of KB, came back each time, and every app redrew for it.)
   // (`since`: the updateTime of the app's data held here; while it's still
@@ -1502,7 +1514,7 @@ const typedPass = text => cleanCode(text).replace(/[^2-9A-HJ-NP-Z]/g, '').slice(
 // Chrome, Bitwarden offer to keep it and fill it in): the username is always
 // "Longshot Pass", here and on the admin page.
 function passInput(label) {
-  const input = node('input', { class: 'q-pass-input', type: 'password', name: 'password', inputmode: 'text', autocomplete: 'current-password', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', placeholder: 'ABCDE23456', 'aria-label': label });
+  const input = node('input', { class: 'q-pass-input', type: 'password', name: 'password', inputmode: 'text', autocomplete: passkeyHere() ? 'current-password webauthn' : 'current-password', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', placeholder: 'ABCDE23456', 'aria-label': label });
   input.addEventListener('input', () => {
     input.value = typedPass(input.value);
   });
@@ -1530,7 +1542,13 @@ const ERR = {
   PAUSED: ['暫停中，稍後再試。', 'Paused for now. Try again later.'],
   RATE_LIMITED: ['嘗試太多次，請稍後再試。', 'Too many tries. Please wait a little.'],
   SESSION_MOVED: ['帳戶正在另一台裝置使用中，回到這裡後再試一次。', 'Your account is in use on another device. Come back here and try again.'],
-  INVALID_PASSCODE: ['請輸入 10 碼通行碼（例如 ABCDE-23456）。', 'Enter your 10-character pass (like ABCDE-23456).']
+  INVALID_PASSCODE: ['請輸入 10 碼通行碼（例如 ABCDE-23456）或 8 碼裝置代碼。', 'Enter your 10-character pass (like ABCDE-23456) or an 8-character device code.'],
+  PAIR_NOT_FOUND: ['這組裝置代碼無效或已過期（10 分鐘內、只能用一次）。', 'That device code isn’t valid or has expired (10 minutes, once).'],
+  PASSKEY_UNKNOWN: ['這個通行密鑰已不在任何 Longshot Pass 上，請用通行碼登入。', 'This passkey isn’t on any Longshot Pass any more. Sign in with your pass.'],
+  PASSKEY_INVALID: ['這個通行密鑰無法使用，請再試一次或用通行碼登入。', 'That passkey didn’t work. Try again, or use your pass.'],
+  PASSKEY_EXPIRED: ['等太久了，請再試一次。', 'That took too long. Please try again.'],
+  PASSKEY_TAKEN: ['這個通行密鑰已經加入過了。', 'This passkey is already added.'],
+  PASSKEY_FULL: ['最多 10 個通行密鑰，請先移除一個。', 'Ten passkeys at most: remove one first.']
 };
 export const errorText = (error, lang) => {
   const e = ERR[error?.code];
@@ -1584,16 +1602,23 @@ function signInGate(s) {
     const error = node('p', { class: 'q-gate-error', role: 'alert' });
     const enter = node('button', { class: 'q-btn primary block', type: 'submit', text: en ? 'Sign in' : '登入' });
     const note = node('p', { class: 'q-gate-note q-kb-hide', text: en ? 'Passes are handed out by Longshot. Ask the person who invited you.' : '通行碼由 Longshot 發放，請向邀請你的人索取。' });
-    const busy = on => [enter, input].forEach(b => (b.disabled = on));
-    const done = async (task, after = () => {}) => {
+    const deviceNote = node('p', { class: 'q-gate-note q-kb-hide', text: en ? 'Signed in on another device? Its Account sheet gives a device code for this one.' : '已在其他裝置登入？在那裡的「帳戶」取得裝置代碼，就能在這裡登入。' });
+    const keys = passkeyHere() ? passkeyGate(s, error, res => finish(res), on => busy(on)) : null;
+    const busy = on => [enter, input, keys?.button].forEach(b => b && (b.disabled = on));
+    let over = false;
+    const finish = res => {
+      if (over) return;
+      over = true;
+      keys?.stop();
+      dropFromTop(gate);
+      document.documentElement.classList.remove('q-signing-in');
+      resolve(res);
+    };
+    const done = async task => {
       busy(true);
       error.textContent = '';
       try {
-        const res = await task();
-        dropFromTop(gate);
-        await after(res);
-        document.documentElement.classList.remove('q-signing-in');
-        resolve(res);
+        finish(await task());
       } catch (e) {
         error.textContent = errorText(e, s.lang);
         busy(false);
@@ -1608,26 +1633,114 @@ function signInGate(s) {
         onsubmit: event => {
           event.preventDefault();
           const code = cleanCode(input.value);
-          if (!PASS_PATTERN.test(code)) return void (error.textContent = errorText({ code: 'INVALID_PASSCODE' }, s.lang));
+          if (!PASS_PATTERN.test(code) && !DEVICE_CODE_PATTERN.test(code)) return void (error.textContent = errorText({ code: 'INVALID_PASSCODE' }, s.lang));
           done(() => s.login(code));
         }
       },
-      [passUser(), node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass' : '你的 Longshot Pass' }), passField(input, s.lang), error, enter, note]
+      [passUser(), node('label', { class: 'q-gate-label', text: en ? 'Your Longshot Pass or a device code' : 'Longshot Pass 或裝置代碼' }), passField(input, s.lang), error, enter]
     );
     const gate = node('dialog', { class: 'q-gate', 'aria-modal': 'true' }, [
       node('div', { class: 'q-gate-box' }, [
         node('img', { class: 'q-gate-icon', src: './favicon.svg', alt: '', width: '72', height: '72' }),
         node('h1', { class: 'q-gate-title', text: APP.name }),
         node('p', { class: 'q-gate-lede', text: en ? 'Sports bets and the lottery on play money, and your real 運彩 tickets followed live.' : '用虛擬幣玩運彩與彩券，也即時追蹤你買的運彩注單。' }),
-        form
+        form,
+        keys?.row,
+        note,
+        deviceNote
       ])
     ]);
     document.documentElement.classList.add('q-signing-in');
     // Alone on screen: any sheet the app had open closes first.
     for (const d of document.querySelectorAll('dialog[open]')) if (!onTop.has(d)) d.close();
     keepOnTop(gate);
+    keys?.start();
     setTimeout(() => input.focus(), 50);
   });
+}
+
+// The sign-in screen's passkey: a button (the browser's sheet: Face ID, a
+// phone by QR…) and the keyboard's suggestion where the browser offers one.
+// The challenge is fetched ahead (Safari takes the request only during a
+// tap) and again before it runs out.
+function passkeyGate(s, error, signedIn, lock) {
+  const en = s.lang === 'en';
+  let begin = null;
+  let wait = null;
+  let quiet = null;
+  let timer = 0;
+  let stopped = false;
+  const fresh = () => begin && begin.exp - Date.now() > 30_000;
+  const ask = async () => {
+    try {
+      begin = await s.passkeyBegin();
+    } catch {
+      begin = null;
+    }
+    clearTimeout(timer);
+    if (!stopped) timer = setTimeout(ask, begin ? Math.max(30_000, begin.exp - Date.now() - 45_000) : 60_000);
+    return begin;
+  };
+  const run = async (challenge, credential) => {
+    lock(true);
+    try {
+      signedIn(await s.passkeyLogin(challenge, credential));
+    } catch (e) {
+      if (e.code === 'PASSKEY_UNKNOWN') forgetPasskey(credential.id);
+      error.textContent = errorText(e, s.lang);
+      lock(false);
+      ask().then(listen);
+    }
+  };
+  // The keyboard's suggestion (iOS 16+, Chrome, Edge): a passkey picked there signs in.
+  const listen = async () => {
+    if (stopped || !(await globalThis.PublicKeyCredential?.isConditionalMediationAvailable?.().catch(() => false))) return;
+    if (!fresh()) await ask();
+    if (!begin || stopped) return;
+    quiet?.abort();
+    quiet = new AbortController();
+    const challenge = begin.challenge;
+    try {
+      const cred = await usePasskey(challenge, { signal: quiet.signal, conditional: true });
+      if (!stopped) run(challenge, cred);
+    } catch {}
+  };
+  const button = node('button', {
+    class: 'q-btn block q-passkey-btn',
+    type: 'button',
+    html: `${icons.key || ''}<span>${en ? 'Sign in with a passkey' : '用通行密鑰登入'}</span>`,
+    onclick: async () => {
+      error.textContent = '';
+      quiet?.abort();
+      lock(true);
+      const b = fresh() ? begin : await ask();
+      if (!b) {
+        lock(false);
+        error.textContent = errorText({}, s.lang);
+        return;
+      }
+      try {
+        wait = new AbortController();
+        const cred = await usePasskey(b.challenge, { signal: wait.signal });
+        await run(b.challenge, cred);
+      } catch (e) {
+        lock(false);
+        if (!cancelled(e)) error.textContent = errorText({ code: 'PASSKEY_INVALID' }, s.lang);
+        ask().then(listen);
+      }
+    }
+  });
+  const row = node('div', { class: 'q-gate-or' }, [node('span', { class: 'q-gate-or-line', text: en ? 'or' : '或' }), button]);
+  return {
+    row,
+    button,
+    start: () => ask().then(listen),
+    stop: () => {
+      stopped = true;
+      clearTimeout(timer);
+      quiet?.abort();
+    }
+  };
 }
 
 // "Open on another device": this one waits.

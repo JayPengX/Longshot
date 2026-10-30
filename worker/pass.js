@@ -37,14 +37,22 @@
 //   POST   /pass { op: 'refresh', refresh, app, claim?, data?, w?, since? }
 //   POST   /pass { op: 'signout-all', qt }             every other device out
 //   POST   /pass { op: 'rotate', qt }                  a new pass, same account
+//   POST   /pass { op: 'pair-create', qt }             a device code (10 min, once)
+//   POST   /pass { op: 'pair-redeem', code, app }      sign in with it
+//   POST   /pass { op: 'passkey-…' }                   passkeys (passkey.js)
 
 import { storeReady } from './doc-store.js';
 import { tokenSecret, signToken, readToken, sessionLimited, SESSION_MS, REFRESH_MS } from './token.js';
+import { passkeyBegin, passkeyLogin, passkeyAddBegin, passkeyAdd, passkeyRemove, passkeySummary, passkeyIds, dropIndex, usePass } from './passkey.js';
 
 export const PASSCODE_LENGTH = 10;
 export const PASSCODE_PATTERN = /^[2-9A-HJ-NP-Z]{10}$/;
 export const WALLET_COLLECTION = 'wallets';
 export const PASS_COLLECTION = 'passes';
+// Device codes: 8 characters naming an account for PAIR_MS, used once.
+export const PAIR_COLLECTION = 'pairs';
+export const PAIR_MS = 10 * 60_000;
+export const PAIR_PATTERN = /^[2-9A-HJ-NP-Z]{8}$/;
 const ACCOUNT_ID = /^[2-9A-HJ-NP-Z]{16}$/;
 
 // Each app's data collection.
@@ -206,7 +214,8 @@ export function mergeWallet(a, b) {
     settings: newest(base.settings, b.settings),
     // The Worker's own fields: a patch never carries them.
     ...(base.live ? { live: base.live } : {}),
-    ...(base.sec ? { sec: base.sec } : {})
+    ...(base.sec ? { sec: base.sec } : {}),
+    ...(base.passkeys ? { passkeys: base.passkeys } : {})
   };
 }
 
@@ -225,10 +234,12 @@ export function parseWallet(text) {
 }
 
 // What clients see of the wallet: not the Worker's own bookkeeping.
+// The wallet as the page sees it: no secrets, and of its passkeys only what
+// the Pass sheet lists (never a key).
 export function publicWallet(w) {
   if (!w) return w;
-  const { sec, ...rest } = w;
-  return rest;
+  const { sec, passkeys, ...rest } = w;
+  return passkeys ? { ...rest, passkeys: passkeySummary(w) } : rest;
 }
 
 const isActive = (wallet, claims) => Boolean(wallet?.live?.sid) && wallet.live.sid === claims.s;
@@ -249,7 +260,14 @@ const OPS = {
   login: passLogin,
   refresh: passRefresh,
   'signout-all': passSignOutAll,
-  rotate: passRotate
+  rotate: passRotate,
+  'pair-create': pairCreate,
+  'pair-redeem': pairRedeem,
+  'passkey-begin': passkeyBegin,
+  'passkey-login': passkeyLogin,
+  'passkey-add-begin': passkeyAddBegin,
+  'passkey-add': passkeyAdd,
+  'passkey-remove': passkeyRemove
 };
 
 export async function handlePassRequest(request, env, headers, ip, deps) {
@@ -517,6 +535,37 @@ async function passRotate(ctx) {
   return signIn(ctx, c.d, { passcode });
 }
 
+// A device code: 8 characters, good for PAIR_MS and once, to sign in on
+// another device without typing the pass.
+async function pairCreate(ctx) {
+  const { env, deps, headers, request } = ctx;
+  const c = await liveSession(ctx);
+  if (!c) return deps.errorJson('TOKEN_INVALID', 401, headers, request);
+  if (sessionLimited(`p:${c.s}`, 10, 60_000, deps.now())) return deps.errorJson('RATE_LIMITED', 429, headers, request);
+  const code = deps.generateCode(8);
+  const exp = deps.now() + PAIR_MS;
+  await deps.fsWrite(env, PAIR_COLLECTION, code, JSON.stringify({ d: c.d, g: c.g, exp }));
+  return deps.json({ code, exp }, 200, headers);
+}
+
+async function pairRedeem(ctx) {
+  const { env, deps, headers, request, body, ip } = ctx;
+  if (sessionLimited(`login:${ip}`, LIMITS.loginPerHour, 3_600_000, deps.now())) return deps.errorJson('RATE_LIMITED', 429, headers, request);
+  const code = cleanCode(body.code);
+  if (!PAIR_PATTERN.test(code)) return deps.errorJson('PAIR_NOT_FOUND', 404, headers, request);
+  const doc = await deps.fsGet(env, PAIR_COLLECTION, code);
+  let pair = null;
+  try {
+    pair = doc.exists ? JSON.parse(doc.payload) : null;
+  } catch {}
+  if (doc.exists) await deps.fsDelete(env, PAIR_COLLECTION, code);
+  if (!pair || !(pair.exp > deps.now())) return deps.errorJson('PAIR_NOT_FOUND', 404, headers, request);
+  const w = await deps.fsGet(env, WALLET_COLLECTION, pair.d);
+  if (!w.exists || gen(parseWallet(w.payload)) !== pair.g) return deps.errorJson('PAIR_NOT_FOUND', 404, headers, request);
+  const res = await signIn(ctx, pair.d);
+  return res || deps.errorJson('PAIR_NOT_FOUND', 404, headers, request);
+}
+
 // ---- Storage ------------------------------------------------------------------------
 
 // An account taken by this request alone, for a rotate: its generation moved
@@ -594,6 +643,7 @@ export async function deleteAccount(env, deps, docId) {
   const doc = await deps.fsGet(env, WALLET_COLLECTION, docId);
   const wallet = doc.exists ? parseWallet(doc.payload) : null;
   if (wallet?.sec?.pass) await deps.fsDelete(env, PASS_COLLECTION, wallet.sec.pass);
+  if (wallet) await dropIndex(env, deps, docId, passkeyIds(wallet));
   for (const { collection } of Object.values(APPS)) await deps.fsDelete(env, collection, docId);
   await deps.fsDelete(env, WALLET_COLLECTION, docId);
 }
@@ -621,3 +671,6 @@ export async function newPasscode(env, deps, docId) {
   }
   throw new Error('could not mint a passcode');
 }
+
+// What passkey.js borrows from here.
+usePass({ WALLET_COLLECTION, LIMITS, parseWallet, publicWallet, poolBalance, gen, updateWallet, signIn });

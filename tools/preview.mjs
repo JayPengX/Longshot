@@ -2,7 +2,7 @@
 // (or the ones named), and the layout faults a person would notice.
 //
 //   node tools/preview.mjs [home games lottery tickets history] [--width 320,390]
-//        [--dark] [--both] [--webkit] [--out dir] [--click selector]
+//        [--dark] [--both] [--webkit] [--out dir] [--click selector] [--signed-out]
 //
 // Serves public/ on http://localhost:8123, so the deployed Worker answers its
 // data through the dev door (real board, real games); the Pass is stood in for
@@ -68,10 +68,11 @@ try {
   for (const theme of themes)
     for (const width of widths) {
       const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 2, colorScheme: theme, locale: 'zh-TW', timezoneId: 'Asia/Taipei' });
-      await ctx.addInitScript(([account, refresh]) => {
-        localStorage.setItem('longshot.account', account);
-        localStorage.setItem('longshot.refresh', refresh);
-      }, [ACCOUNT, REFRESH]);
+      if (!flag('signed-out'))
+        await ctx.addInitScript(([account, refresh]) => {
+          localStorage.setItem('longshot.account', account);
+          localStorage.setItem('longshot.refresh', refresh);
+        }, [ACCOUNT, REFRESH]);
       await ctx.route(/longshot\.pengzjay\.workers\.dev\/pass/, route => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(route.request().method() === 'GET' || /"op":"(refresh|login)"/.test(route.request().postData() || '') ? passAnswer : { ok: true }) }));
       // (The stand-in session isn't the Worker's: data calls go without it, through the dev door.)
       await ctx.route(/longshot\.pengzjay\.workers\.dev\/(?!pass)[^]*[?&]qt=/, route => route.continue({ url: route.request().url().replace(/&qt=[^&]*/, '') }));
@@ -81,6 +82,16 @@ try {
       page.on('response', r => r.status() >= 400 && /workers\.dev/.test(r.url()) && !(r.status() === 404 && /\/data\//.test(r.url())) && errors.push(`requests: ${r.status()} ${r.url().replace(/[?].*/, '')}`));
       await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => document.getElementById('loading')?.hidden !== false, null, { timeout: 30_000 }).catch(() => errors.push('the loading screen never lifted'));
+      if (flag('signed-out')) {
+        await page.waitForSelector('dialog.q-gate[open]', { timeout: 20_000 }).catch(() => errors.push('no sign-in screen'));
+        await page.waitForTimeout(800);
+        const name = `signin-${width}-${theme}.png`;
+        await page.screenshot({ path: join(out, name) });
+        shots.push(name);
+        for (const f of [...(await page.evaluate(layoutFaults)), ...errors.splice(0).map(e => `errors: ${e}`)]) faults.push(`signin ${width} ${theme}: ${f}`);
+        await ctx.close();
+        continue;
+      }
       const all = await page.$$eval('#tabs [role=tab]', bs => bs.map(b => b.id.replace(/^tab-/, '') || b.dataset.tab || b.textContent.trim()));
       for (const tab of tabs.length ? tabs : all) {
         const btn = page.locator(`#tabs [role=tab]#tab-${tab}`);
