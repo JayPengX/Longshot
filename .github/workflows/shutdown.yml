@@ -1,0 +1,45 @@
+# Longshot's shutdown (Jay 2026-10-31). Run by hand: "backup" saves what
+# Longshot keeps on Cloudflare (D1 longshot-store, R2 longshot-data) as a
+# run artifact; "delete" backs it up again and, only if that worked, removes
+# the R2 bucket, the D1 database and the longshot Worker (its crons,
+# workers.dev address, Durable Object and secrets go with it).
+name: Shut down Longshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: backup, or delete (backs up first)
+        type: choice
+        options: [backup, delete]
+        default: backup
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The account
+        run: |
+          id=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).result[0].id)}catch{console.log("")}})')
+          [ -n "$id" ] || { echo "the token sees no account"; exit 1; }
+          echo "CLOUDFLARE_ACCOUNT_ID=$id" >> "$GITHUB_ENV"
+      - name: Back up
+        run: node scripts/shutdown.mjs backup
+      - uses: actions/upload-artifact@v4
+        with:
+          name: longshot-backup
+          path: backup
+          retention-days: 90
+      - name: Delete
+        if: ${{ inputs.mode == 'delete' }}
+        run: node scripts/shutdown.mjs delete
