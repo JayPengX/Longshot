@@ -465,33 +465,36 @@ button.pl-slip-head { width: 100%; padding: 0; border: 0; background: none; colo
 /* An odd last figure takes the whole row (never one alone beside a hole). */
 .st-stats > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .st-total { display: grid; gap: 6px; }
+.st-total.down { --amb: var(--bad); }
 .st-label { color: var(--q-label-2); font: 600 13px/1 var(--q-font); }
 .st-big { overflow: hidden; font: 700 40px/1.1 var(--q-font-rounded); letter-spacing: -0.02em; white-space: nowrap; }
-.wins-rhythm { display: flex; align-items: flex-end; gap: 6px; height: 56px; margin-top: 10px; }
-.wr-bar { flex: 1; height: var(--h); min-height: 4px; border-radius: 4px; background: var(--q-fill-2); }
-.wr-bar.on { background: color-mix(in srgb, var(--good) 55%, transparent); }
-.wr-bar.on.now { background: var(--good); }
+.st-total .q-tags { flex-wrap: wrap; }
+/* Green only where it's up, red only where it's down. */
+#stats-body .num.up { color: var(--good); }
+#stats-body .num.down { color: var(--bad); }
+.st-rhythm { position: relative; display: flex; gap: 6px; height: 64px; margin-top: 10px; }
+.st-rhythm::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--q-sep); }
+.sr-bar { position: relative; flex: 1; }
+.sr-bar i { position: absolute; left: 0; right: 0; height: calc(var(--h) / 2); border-radius: 3px; }
+.sr-bar.up i { bottom: 50%; background: color-mix(in srgb, var(--good) 55%, transparent); }
+.sr-bar.down i { top: 50%; background: color-mix(in srgb, var(--bad) 55%, transparent); }
+.sr-bar.up.now i { background: var(--good); }
+.sr-bar.down.now i { background: var(--bad); }
 .st-stats { margin-top: 12px; }
 .st-stats .q-stat strong { font-size: 22px; }
-.st-badges { --q-rail-w: 140px; }
-.st-badge { position: relative; overflow: hidden; gap: 6px; min-height: 132px; }
-.st-badge .q-tile { margin-bottom: 2px; }
-.st-badge-name { font: 600 15px/1.25 var(--q-font); }
-.st-badge.q-rail-card > small { display: block; margin-bottom: 10px; overflow: visible; white-space: normal; color: var(--q-label-2); font: var(--q-t-caption); text-wrap: balance; }
-.st-badge:not(.done) { color: var(--q-label-2); }
-.st-progress { position: relative; display: block; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 2px; background: var(--q-fill-3); }
-.st-progress::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 2px; background: var(--gold); }
-.st-badge .st-progress { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: 0; }
 .st-logo { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--q-fill-3); }
 .st-logo.sm { width: 28px; height: 28px; border-radius: 9px; }
 .st-logo.sm .q-gl { width: 18px; height: 18px; }
 .lt-who .lt-mark-row, .st-moment .lt-mark-row { width: 53px; padding: 5px; }
-.st-moment .q-ritem-end span { color: var(--good); font-family: var(--q-font-rounded); }
+.st-moment .q-ritem-end span { font-family: var(--q-font-rounded); }
 .st-sports { gap: 0; padding: 6px 0; }
-.st-sport { display: grid; grid-template-columns: auto minmax(0, 7em) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; }
+.st-sport { display: grid; grid-template-columns: auto minmax(0, 6em) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; }
 .st-sport-name { overflow: hidden; font: 500 15px/1.2 var(--q-font); white-space: nowrap; text-overflow: ellipsis; }
-.st-track { height: 8px; overflow: hidden; border-radius: 4px; background: var(--q-fill-3); }
-.st-track i { display: block; width: var(--w); height: 100%; border-radius: 4px; background: var(--accent); }
+/* A two-way bar from the middle: right for up, left for down. */
+.st-track { position: relative; height: 8px; overflow: hidden; border-radius: 4px; background: var(--q-fill-3); }
+.st-track i { position: absolute; top: 0; bottom: 0; width: var(--w); border-radius: 4px; background: var(--q-label-3); }
+.st-track.up i { left: 50%; background: var(--good); }
+.st-track.down i { right: 50%; background: var(--bad); }
 .st-sport strong { font: 600 15px/1 var(--q-font-rounded); }
 
 /* ==== 9 彩券 ==== */

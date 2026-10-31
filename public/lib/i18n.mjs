@@ -693,7 +693,7 @@ export const STRINGS = {
     livePaused: 'betting paused',
     yesterday: 'Yesterday',
     historyView_slips: 'Slips',
-    historyView_stats: 'Wins',
+    historyView_stats: 'Record',
     historyView_tickets: 'Lottery tickets',
     sumSlips: '{n} slips',
     sumMost: 'Most they can pay',
