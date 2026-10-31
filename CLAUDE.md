@@ -1,5 +1,7 @@
 # Working on Longshot
 
+**Shut down 2026-10-31 (Jay).** The Worker, its D1/R2 data and secrets are deleted; Pages serves only `closed/` (the notice). The code is kept for reference, deployed nowhere. Don't revive it unless Jay asks.
+
 Read `docs/TRUTH.md` first (one page: how the owner works and what matters).
 MAP.md is this repo's map (README.md is the short public front page).
 

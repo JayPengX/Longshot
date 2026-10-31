@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> **Longshot has shut down (2026-10-31).** Its server, accounts and data have been removed and
+> [longshot.jaypengx.com](https://longshot.jaypengx.com/) shows only a shutdown notice. The code
+> below is kept here for reference; nothing in this repo is deployed any more.
+>
+> **Longshot 已停止服務（2026-10-31）。** 伺服器、帳號與資料都已移除，網址只顯示停止服務的通知；程式碼留在這裡作紀錄，不再部署。
+
 <p align="center">
   <img src="public/icons/icon-192.png" width="96" height="96" alt="">
 </p>
